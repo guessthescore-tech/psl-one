@@ -1,0 +1,318 @@
+# PSL One — Database Migration Inventory
+
+**Database:** Local PostgreSQL  
+**Database name:** `psl_identity_dev`  
+**Connection pattern:** `postgresql://localhost:5432/psl_identity_dev` (credentials in `.env`, never committed)  
+**ORM:** Prisma 5.22  
+**Schema file:** `apps/api/prisma/schema.prisma`  
+**Migration directory:** `apps/api/prisma/migrations/`  
+**Sprint:** 1 Final — 26 migrations applied
+
+**Commands:**
+```bash
+# Apply all pending migrations
+cd apps/api && npx prisma migrate dev
+
+# Run seed after migrations
+pnpm --filter @psl-one/api db:seed
+
+# Validate schema
+cd apps/api && npx prisma validate
+
+# Generate Prisma client after schema change
+cd apps/api && npx prisma generate
+```
+
+---
+
+## Migration Inventory
+
+### 1. `20260609045934_init_auth_schema`
+
+**Story:** Issue 0 / STORY-01 — Auth foundation  
+**Tables created:** `users`, `refresh_tokens`, `password_reset_tokens`, `consents`, `audit_logs`  
+**Enums created:** `UserRole` (FAN, CLUB_ADMIN, SPONSOR, PSL_ADMIN), `ConsentPurpose`  
+**Seed dependency:** Yes — all seed users require this migration  
+**Notes:** Foundation of the entire schema. `users` table is referenced by nearly every other table.
+
+---
+
+### 2. `20260609054914_add_football_core`
+
+**Story:** STORY-02 — Football Core  
+**Tables created:** `competitions`, `seasons`, `teams`, `players`, `fixtures`, `standings`  
+**Enums created:** `PlayerPosition` (GOALKEEPER, DEFENDER, MIDFIELDER, FORWARD), `FixtureStatus` (SCHEDULED, LIVE, FINISHED, POSTPONED, CANCELLED), `CompetitionType`  
+**Seed dependency:** Yes — teams, players, fixtures, competition, season  
+**Notes:** `fixtures` references `seasons`, `teams` (home and away). `standings` references `seasons`, `teams`. `players` references `teams`.
+
+---
+
+### 3. `20260609063037_add_fan_profile`
+
+**Story:** STORY-03 — Fan Profile  
+**Tables created:** `fan_profiles`, `fan_preferences`  
+**Seed dependency:** Yes — fan profiles created for all 32 fan users  
+**Notes:** `fan_profiles.user_id` is a 1:1 FK to `users.id`. Created automatically at registration.
+
+---
+
+### 4. `20260609070826_add_match_state`
+
+**Story:** STORY-04 — Live Match State  
+**Tables created:** `match_states`, `match_events`, `lineup_entries`, `match_stats`  
+**Enums created:** `MatchEventType` (GOAL, YELLOW_CARD, RED_CARD, SUBSTITUTION, etc.), `LineupStatus` (STARTING, SUBSTITUTE, UNAVAILABLE, etc.)  
+**Seed dependency:** No (match data is admin-driven at runtime)  
+**Notes:** `match_states` is 1:1 with `fixtures`. `match_events` and `match_stats` reference both `fixtures` and `players`.
+
+---
+
+### 5. `20260609073452_add_predictions`
+
+**Story:** STORY-05 — Predictions & Challenges  
+**Tables created:** `score_predictions`, `prediction_points_ledger`, `peer_challenges`  
+**Enums created:** `PredictionStatus` (PENDING, LOCKED, WON, LOST, SETTLED), `ChallengeStatus` (PENDING, ACCEPTED, DECLINED, CANCELLED, SETTLED)  
+**Seed dependency:** No  
+**Notes:** `score_predictions` has a unique constraint on `(user_id, fixture_id)` — one prediction per user per fixture. `prediction_points_ledger` is append-only.
+
+---
+
+### 6. `20260609100000_add_provider_fields`
+
+**Story:** STORY-02 / STORY-04 — Sports data provider readiness  
+**Changes:** Added `external_id`, `source`, `source_url` columns to `teams`, `players`, `fixtures` tables  
+**Seed dependency:** No  
+**Notes:** Enables provider-neutral sports data import. `external_id` has a unique index per table. Used by `LiveMatchProviderInterface` adapter.
+
+---
+
+### 7. `20260609120000_add_fantasy`
+
+**Story:** STORY-06 — Fantasy Team MVP  
+**Tables created:** `fantasy_teams`, `fantasy_team_players`, `fantasy_chips`  
+**Enums created:** `FantasyPlayerPosition` (STARTER, BENCH), `FantasyPlayerRole` (NONE, CAPTAIN, VICE_CAPTAIN)  
+**Seed dependency:** No  
+**Notes:** `fantasy_teams` has a unique constraint on `(user_id, season_id)` — one team per fan per season. `fantasy_chips` are pre-created (4 per team: WILDCARD, FREE_HIT, TRIPLE_CAPTAIN, BENCH_BOOST).
+
+---
+
+### 8. `20260609130000_add_fantasy_formation_transfers`
+
+**Story:** STORY-07 / STORY-13 — Transfers and formation  
+**Changes:** Added `formation` column to `fantasy_teams`  
+**Tables created:** `fantasy_transfers`  
+**Enums created:** (via `FantasyChipType`, `FantasyChipStatus` added later)  
+**Seed dependency:** No  
+**Notes:** `fantasy_transfers` tracks every player-in/player-out pair with `is_free` boolean. Required for transfer cost calculation and rollover.
+
+---
+
+### 9. `20260609140000_add_gameweeks`
+
+**Story:** STORY-07 — Gameweek Deadlines  
+**Tables created:** `gameweeks`, `gameweek_stages`  
+**Enums created:** `GameweekStatus` (UPCOMING, OPEN, LOCKED, LIVE, COMPLETED)  
+**Seed dependency:** Yes — 9 World Cup gameweeks seeded  
+**Notes:** `gameweeks.deadline_at` is the cut-off for fantasy changes. `fixtures` references `gameweeks` via `gameweek_id` FK.
+
+---
+
+### 10. `20260609150000_add_competition_format_and_stages`
+
+**Story:** Competition Format Hardening Pass  
+**Tables created:** `stages`, `groups`, `group_memberships`  
+**Enums created:** `CompetitionFormat` (LEAGUE, CUP, TOURNAMENT, HYBRID), `StageType` (LEAGUE, GROUP, KNOCKOUT, FINAL, PLAYOFF)  
+**Seed dependency:** Yes — 7 WC stages and 12 groups seeded  
+**Notes:** `fixtures` gained `stage_id` and `group_id` foreign keys. Enables tournament bracket and group stage modelling.
+
+---
+
+### 11. `20260609160000_add_competition_season_management`
+
+**Story:** STORY-08 — Competition & Season Management  
+**Changes:** Added `SeasonStatus` enum, status column to `seasons`, `activation` tracking  
+**Enums created:** `SeasonStatus` (UPCOMING, ACTIVE, COMPLETED, ARCHIVED)  
+**Seed dependency:** Yes — season status is set during seed  
+**Notes:** Only one season per competition can be `ACTIVE` at any time — enforced by `activateSeason()` transaction.
+
+---
+
+### 12. `20260609170000_add_competition_import_jobs`
+
+**Story:** STORY-09 — Competition Import  
+**Tables created:** `competition_import_jobs`, `import_job_items`  
+**Enums created:** `CompetitionImportStatus` (PENDING_REVIEW, COMMITTED, FAILED, CANCELLED)  
+**Seed dependency:** No  
+**Notes:** `competition_import_jobs.payload` is JSON — stores the full import data. `import_job_items` tracks per-entity status within a job.
+
+---
+
+### 13. `20260609180000_add_fixture_assignment_status`
+
+**Story:** STORY-10 — Fixture & Gameweek Assignment  
+**Changes:** Added `assignment_status`, `assignment_source`, `assigned_at` columns to `fixtures`  
+**Seed dependency:** Yes — fixtures are assigned to gameweeks in the seed script  
+**Notes:** `assignment_status` values: UNASSIGNED, ASSIGNED_TO_GAMEWEEK, ASSIGNED_TO_STAGE, FULLY_ASSIGNED.
+
+---
+
+### 14. `20260609190000_add_prediction_void_status`
+
+**Story:** STORY-11 — Prediction Lock & Settle  
+**Changes:** Added `VOID` value to `PredictionStatus` enum  
+**Seed dependency:** No  
+**Notes:** `VOID` status is used when a fixture is postponed/cancelled. No points awarded or deducted for voided predictions.
+
+---
+
+### 15. `20260610000000_add_fantasy_rules_engine`
+
+**Story:** STORY-13 / STORY-12 — Fantasy chips and rules  
+**Enums created:** `FantasyChipType` (BENCH_BOOST, FREE_HIT, TRIPLE_CAPTAIN, WILDCARD), `FantasyChipStatus` (AVAILABLE, ACTIVE, USED, CANCELLED, EXPIRED)  
+**Changes:** `fantasy_chips` table finalized with chip type and status  
+**Seed dependency:** No  
+
+---
+
+### 16. `20260610000001_add_fantasy_rules_config`
+
+**Story:** STORY-14 — Fantasy Rules Admin Config  
+**Tables created:** `fantasy_rules_configs`  
+**Seed dependency:** No (config is created by admin; defaults used if absent)  
+**Notes:** Unique constraint on `season_id`. `scoring_weights` column is JSON — stores per-action point values. All fantasy services read this config.
+
+---
+
+### 17. `20260610000002_fantasy_leagues_v2`
+
+**Story:** STORY-15 — Fantasy Leagues & Cups  
+**Tables created:** `fantasy_leagues`, `fantasy_league_memberships`, `fantasy_cups`, `fantasy_cup_matches`  
+**Enums created:** `FantasyLeagueType` (PRIVATE, PUBLIC, GLOBAL), `FantasyLeagueMemberRole` (OWNER, MEMBER), `FantasyCupStatus`  
+**Seed dependency:** No  
+**Notes:** `fantasy_leagues` has a unique `invite_code` for private leagues. Global leagues are created once per season.
+
+---
+
+### 18. `20260610000004_fantasy_gameweek_scoring`
+
+**Story:** STORY-16 — Fantasy Scoring & History  
+**Tables created:** `fantasy_gameweek_scores`  
+**Seed dependency:** No  
+**Notes:** Unique constraint on `(fantasy_team_id, gameweek_id)`. `autosub_count` and `chip_used` fields capture gameweek-specific context. Rank is updated after all teams in a season are scored.
+
+---
+
+### 19. `20260610000005_live_match_dashboard`
+
+**Story:** STORY-17 — Live Match Dashboard  
+**Changes:** Additional columns to `match_states` for live dashboard data (possession, shots, corners, etc.)  
+**Seed dependency:** No  
+**Notes:** Live state columns default to 0. Populated by admin score/event push or future sports data provider.
+
+---
+
+### 20. `20260610000006_fantasy_auto_substitution`
+
+**Story:** STORY-18 — Fantasy Auto-Substitution  
+**Tables created:** `fantasy_auto_substitutions`  
+**Enums created:** `FantasyAutoSubstitutionStatus` (APPLIED, SKIPPED_NO_ELIGIBLE_SUB, SKIPPED_FORMATION_INVALID, SKIPPED_BENCH_PLAYER_DID_NOT_PLAY, SKIPPED_GOALKEEPER_ONLY, SKIPPED_STARTER_PLAYED)  
+**Seed dependency:** No  
+**Notes:** Records are created for every evaluated substitution — both applied and skipped — so the audit trail is complete.
+
+---
+
+### 21. `20260610000007_fan_value_ledger_v2`
+
+**Story:** STORY-19 — Fan Value Ledger  
+**Tables created:** `fan_value_ledger`  
+**Enums created:** `FanValueSourceType`, `FanValueType`, `FanValueTransactionType`  
+**Seed dependency:** No  
+**Notes:** Append-only ledger pattern. `void` entries are negative offsets, never deletions. `fan_profiles.fan_value_total` is a denormalized summary kept in sync.
+
+---
+
+### 22. `20260610000008_achievements_badges`
+
+**Story:** STORY-20 — Achievements & Badges  
+**Tables created:** `achievement_definitions`, `badges`, `fan_achievements`, `fan_badges`  
+**Enums created:** `AchievementCategory`, `AchievementTriggerType`, `BadgeRarity` (COMMON, UNCOMMON, RARE, EPIC, LEGENDARY)  
+**Seed dependency:** Yes — 17 achievement definitions and linked badges seeded  
+**Notes:** `achievement_definitions.criteria` is JSON for flexible rule definition. `badges` links to `achievement_definitions` via optional FK.
+
+---
+
+### 23. `20260611000001_rewards_readiness`
+
+**Story:** STORY-21 — Rewards Readiness  
+**Tables created:** `reward_readiness_definitions`, `fan_reward_readiness`  
+**Enums created:** `RewardReadinessStatus` (ELIGIBLE, INELIGIBLE, PENDING_EVALUATION), `RewardReadinessCategory`  
+**Seed dependency:** Yes — 6 reward readiness definitions seeded  
+**Notes:** `fan_reward_readiness` has a unique constraint on `(fan_id, definition_id)`. Eligibility metadata is stored as JSON for full criteria context.
+
+---
+
+### 24. `20260611000002_notifications`
+
+**Story:** STORY-22 — Notifications & Alerts  
+**Tables created:** `notifications`, `notification_preferences`, `notification_delivery_logs`  
+**Enums created:** `NotificationType`, `NotificationStatus` (UNREAD, READ, ARCHIVED), `NotificationDeliveryChannel` (IN_APP), `NotificationDeliveryStatus` (PENDING, DELIVERED, FAILED)  
+**Seed dependency:** No  
+**Notes:** `notification_preferences` has a unique constraint on `(user_id, type)`. `notification_delivery_logs` tracks each delivery attempt per channel. Sprint 1 uses `IN_APP` channel only.
+
+---
+
+### 25. `20260611000003_activity_feed`
+
+**Story:** STORY-23 — Social Activity Feed  
+**Tables created:** `activity_items`, `activity_reactions`  
+**Enums created:** `ActivityFeedType`, `ActivityVisibility` (PUBLIC, PRIVATE, ADMIN_ONLY), `ActivityStatus` (ACTIVE, HIDDEN, ARCHIVED), `ReactionType` (LIKE, FIRE, SHOCK, TROPHY, HEART)  
+**Seed dependency:** No  
+**Notes:** `activity_reactions` has a unique constraint on `(activity_item_id, user_id, reaction_type)` — one reaction per type per user per item. `activity_items.content` is JSON for flexible activity metadata.
+
+---
+
+### 26. (No new migration — STORY-24)
+
+**Story:** STORY-24 — Admin Command Centre  
+**Changes:** None — admin dashboard is aggregation-only, no new tables or enums  
+**Seed dependency:** No  
+**Notes:** The admin dashboard reads existing tables via Prisma `count()`, `groupBy()`, and `aggregate()`. No schema changes were required.
+
+---
+
+## Seed Data Ordering
+
+The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisfy FK constraints:
+
+1. Create admin user and fan users (`users` table)
+2. Create fan profiles (`fan_profiles`)
+3. Create competition (`competitions`)
+4. Create season (`seasons`)
+5. Create teams (`teams`)
+6. Create players (`players` → requires `teams`)
+7. Create stages (`stages` → requires `seasons`)
+8. Create groups (`groups` → requires `stages`)
+9. Create gameweeks (`gameweeks` → requires `seasons`)
+10. Create fixtures (`fixtures` → requires `seasons`, `teams`, `stages`, `gameweeks`)
+11. Create group memberships (`group_memberships` → requires `groups`, `teams`)
+12. Create standings (`standings` → requires `seasons`, `teams`)
+13. Create achievement definitions + badges (`achievement_definitions`, `badges`)
+14. Create reward readiness definitions (`reward_readiness_definitions`)
+
+**Note:** `match_stats` requires fixtures to exist (FK on `fixture_id`). If seeding match stats, do so after fixtures are created.
+
+---
+
+## Key FK Constraints
+
+| Child table | FK column | Parent table |
+|------------|-----------|-------------|
+| `fan_profiles` | `user_id` | `users` |
+| `players` | `team_id` | `teams` |
+| `fixtures` | `season_id`, `home_team_id`, `away_team_id` | `seasons`, `teams` |
+| `fixtures` | `gameweek_id`, `stage_id` | `gameweeks`, `stages` |
+| `fantasy_teams` | `user_id`, `season_id` | `users`, `seasons` |
+| `fantasy_team_players` | `fantasy_team_id`, `player_id` | `fantasy_teams`, `players` |
+| `score_predictions` | `user_id`, `fixture_id` | `users`, `fixtures` |
+| `fan_achievements` | `fan_id`, `achievement_definition_id` | `fan_profiles`, `achievement_definitions` |
+| `fan_reward_readiness` | `fan_id`, `definition_id` | `fan_profiles`, `reward_readiness_definitions` |
+| `activity_reactions` | `activity_item_id`, `user_id` | `activity_items`, `users` |

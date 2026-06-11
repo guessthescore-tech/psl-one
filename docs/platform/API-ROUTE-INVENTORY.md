@@ -1,0 +1,460 @@
+# PSL One — API Route Inventory
+
+**Base URL (local):** `http://localhost:4000`  
+**Auth header:** `Authorization: Bearer <jwt>`  
+**Roles:** `FAN`, `PSL_ADMIN`  
+**Sprint:** 1 Final
+
+All routes verified from source files in `apps/api/src/`.
+
+---
+
+## /auth — Authentication
+
+**Purpose:** Fan registration, login, JWT issuance, password management.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/auth/register` | None | Register new fan user, creates FanProfile |
+| POST | `/auth/login` | None | Login, returns `accessToken` JWT |
+| POST | `/auth/logout` | FAN | Logout (client-side token discard) |
+| GET | `/auth/me` | FAN | Return current user (no password fields) |
+| POST | `/auth/password-reset/request` | None | Generate password reset token |
+| POST | `/auth/password-reset/confirm` | None | Confirm token and set new password |
+
+**Notes:** Password hashes are never returned. Email delivery of reset tokens is Sprint 3.
+
+---
+
+## /football — Football Core
+
+**Purpose:** Read access to competition, season, team, player, fixture, and standings data. Admin controls live match state.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/football/competitions` | None | List all competitions |
+| GET | `/football/competitions/:slug` | None | Competition detail |
+| GET | `/football/seasons` | None | List seasons (optional seasonId filter) |
+| GET | `/football/seasons/active` | None | Current active season |
+| GET | `/football/teams` | None | List teams (optional seasonId, competitionId) |
+| GET | `/football/teams/:slug` | None | Team detail with players |
+| GET | `/football/teams/:slug/players` | None | Players for a team |
+| GET | `/football/players` | None | Player pool (seasonId, teamId, position filters) |
+| GET | `/football/players/:id` | None | Player detail |
+| GET | `/football/fixtures` | None | Fixtures (seasonId, teamId, status, date range filters) |
+| GET | `/football/fixtures/:id` | None | Fixture detail |
+| GET | `/football/fixtures/:id/live` | None | Live match status |
+| GET | `/football/fixtures/:id/live-state` | None | Full live state object |
+| GET | `/football/fixtures/:id/live-dashboard` | PSL_ADMIN | Admin live dashboard view |
+| GET | `/football/fixtures/:id/timeline` | None | Match event timeline |
+| GET | `/football/fixtures/:id/player-stats` | None | Player stats for fixture |
+| GET | `/football/fixtures/:id/live-fantasy-preview` | FAN | Live fantasy points preview |
+| GET | `/football/fixtures/:id/events` | None | Match events list |
+| GET | `/football/fixtures/:id/lineups` | None | Lineup for fixture |
+| GET | `/football/fixtures/:id/availability` | None | Player availability check |
+| GET | `/football/standings` | None | League standings (seasonId, competitionId) |
+| GET | `/football/match-centre/:fixtureId` | None | Combined match centre data |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| PATCH | `/football/admin/fixtures/:id/status` | PSL_ADMIN | Update fixture status |
+| PATCH | `/football/admin/fixtures/:id/score` | PSL_ADMIN | Update fixture score |
+| POST | `/football/admin/fixtures/:id/events` | PSL_ADMIN | Add match event |
+| POST | `/football/admin/fixtures/:id/lineups` | PSL_ADMIN | Set lineups |
+| PATCH | `/football/admin/fixtures/:id/live-state` | PSL_ADMIN | Update live state |
+| POST | `/football/admin/fixtures/:id/match-events` | PSL_ADMIN | Bulk add match events |
+| PATCH | `/football/admin/events/:eventId` | PSL_ADMIN | Update event |
+
+---
+
+## /profile — Fan Profile
+
+**Purpose:** Fan profile management and preferences.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/profile/me` | FAN | Get own profile |
+| PATCH | `/profile/me` | FAN | Update display name, bio, avatar, favourite team |
+| GET | `/profile/preferences` | FAN | Get notification preferences |
+| PATCH | `/profile/preferences` | FAN | Update notification preferences |
+| GET | `/profile/summary` | FAN | Profile summary card (FV, achievements, predictions) |
+
+---
+
+## /gameweeks — Gameweeks
+
+**Purpose:** Gameweek lifecycle management. Fans read gameweek state; admins control it.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/gameweeks` | None | List all gameweeks (optional seasonId) |
+| GET | `/gameweeks/active` | None | Current active/open gameweek |
+| GET | `/gameweeks/:id` | None | Gameweek detail |
+| GET | `/gameweeks/:id/fixtures` | None | Fixtures in gameweek |
+| GET | `/gameweeks/:id/lock-state` | None | Whether gameweek is locked |
+| PATCH | `/admin/gameweeks/:id/status` | PSL_ADMIN | Update gameweek status |
+| PATCH | `/admin/gameweeks/:id/deadlines` | PSL_ADMIN | Update gameweek deadline |
+
+---
+
+## /predictions — Guess the Score
+
+**Purpose:** Score prediction game. Fans predict match scores; admin settles predictions after matches.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/predictions` | FAN | Create prediction for a fixture |
+| GET | `/predictions/me` | FAN | All own predictions |
+| GET | `/predictions/me/:fixtureId` | FAN | Own prediction for specific fixture |
+| PATCH | `/predictions/:id` | FAN | Update prediction (only while fixture is open) |
+| GET | `/predictions/fixtures/:fixtureId/lock-state` | FAN | Whether predictions are locked for fixture |
+| GET | `/predictions/gameweek/:gameweekId` | FAN | Predictions for a gameweek |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/predictions/admin/settle-fixture/:fixtureId` | PSL_ADMIN | Settle all predictions for fixture |
+| POST | `/predictions/admin/lock-fixture/:fixtureId` | PSL_ADMIN | Lock predictions for fixture |
+| POST | `/predictions/admin/void-fixture/:fixtureId` | PSL_ADMIN | Void all predictions for fixture |
+| POST | `/predictions/admin/lock-gameweek/:gameweekId` | PSL_ADMIN | Lock all fixtures in gameweek |
+| POST | `/predictions/admin/lock-gameweek/:gameweekId/force` | PSL_ADMIN | Force-lock even with issues |
+| POST | `/predictions/admin/settle-gameweek/:gameweekId` | PSL_ADMIN | Settle all fixtures in gameweek |
+
+**Scoring:** 10 pts (exact), 5 pts (correct goal diff), 3 pts (correct result), 0 pts (wrong). Non-financial.
+
+---
+
+## /challenges — Peer Challenges
+
+**Purpose:** Head-to-head prediction contests between fans.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/challenges` | FAN | Create challenge vs. another fan on a fixture |
+| GET | `/challenges/me` | FAN | Own challenges (sent + received) |
+| GET | `/challenges/:id` | FAN | Challenge detail |
+| POST | `/challenges/:id/accept` | FAN | Accept incoming challenge |
+| POST | `/challenges/:id/decline` | FAN | Decline incoming challenge |
+| POST | `/challenges/:id/cancel` | FAN | Cancel sent challenge |
+
+**Notes:** Challenges use Fan Value as wager — non-financial, no cash value.
+
+---
+
+## /leaderboards — Leaderboards
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/leaderboards/predictions` | None | Prediction points leaderboard (seasonId filter) |
+
+---
+
+## /fantasy — Fantasy Football
+
+**Purpose:** Full fantasy football lifecycle: team management, transfers, chips, scoring, leagues, cups.
+
+**Fan routes (team):**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/fantasy/team` | FAN | Create fantasy team for active season |
+| GET | `/fantasy/team/me` | FAN | Get own fantasy team |
+| POST | `/fantasy/team/me` | FAN | Alias create own team |
+| PATCH | `/fantasy/team/me` | FAN | Update team name/formation |
+| POST | `/fantasy/team/me/players` | FAN | Add player to team |
+| DELETE | `/fantasy/team/me/players/:playerId` | FAN | Remove player from team |
+| PATCH | `/fantasy/team/me/players/:playerId` | FAN | Update player role (captain/VC/bench order) |
+| POST | `/fantasy/team/me/transfers` | FAN | Make a transfer |
+| POST | `/fantasy/team/me/validate` | FAN | Validate team before gameweek |
+| POST | `/fantasy/validate` | FAN | Validate team composition |
+
+**Fan routes (data):**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fantasy/player-pool` | FAN | Browse available players |
+| GET | `/fantasy/player-pool/:fixtureId` | FAN | Players for a fixture |
+| GET | `/fantasy/deadline` | FAN | Current transfer deadline |
+| GET | `/fantasy/gameweeks/:gameweekId/deadline` | FAN | Deadline for specific gameweek |
+| GET | `/fantasy/gameweeks/:gameweekId/score` | FAN | Fantasy score for gameweek |
+| GET | `/fantasy/gameweeks/:gameweekId/players` | FAN | Player scores for gameweek |
+| GET | `/fantasy/transfers/status` | FAN | Transfer status (free transfers remaining) |
+| GET | `/fantasy/chips` | FAN | Available chips |
+| POST | `/fantasy/chips/:chipId/activate` | FAN | Activate chip |
+| POST | `/fantasy/chips/:chipId/cancel` | FAN | Cancel active chip |
+| GET | `/fantasy/player-prices` | FAN | Player price list |
+| GET | `/fantasy/leagues/me` | FAN | Own leagues |
+| POST | `/fantasy/leagues/private` | FAN | Create private league |
+| POST | `/fantasy/leagues/join` | FAN | Join by invite code |
+| POST | `/fantasy/leagues/public/join` | FAN | Join public league |
+| GET | `/fantasy/leagues/:leagueId` | FAN | League detail |
+| GET | `/fantasy/leagues/:leagueId/standings` | FAN | League standings |
+| POST | `/fantasy/leagues/:leagueId/leave` | FAN | Leave league |
+| GET | `/fantasy/cups/me` | FAN | Own cups |
+| GET | `/fantasy/cups/:id` | FAN | Cup detail |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/fantasy/admin/settle-fixture/:fixtureId` | PSL_ADMIN | Settle fantasy points for fixture |
+| POST | `/fantasy/admin/gameweeks/:gameweekId/recalculate-deadline` | PSL_ADMIN | Recalculate deadline |
+| POST | `/fantasy/admin/gameweeks/:gameweekId/rollover-transfers` | PSL_ADMIN | Rollover unused transfers |
+| POST | `/fantasy/admin/players/:playerId/price` | PSL_ADMIN | Update player price |
+| POST | `/fantasy/admin/gameweeks/:gameweekId/process-auto-subs` | PSL_ADMIN | Process auto-substitutions |
+| POST | `/fantasy/admin/fixtures/:fixtureId/match-stats` | PSL_ADMIN | Set match stats for fixture |
+| POST | `/fantasy/admin/fixtures/:fixtureId/settle-fantasy-points` | PSL_ADMIN | Settle fantasy for fixture |
+| POST | `/fantasy/admin/scoring/gameweeks/:gameweekId/settle` | PSL_ADMIN | Full gameweek scoring settlement |
+| POST | `/fantasy/admin/scoring/gameweeks/:gameweekId/recalculate` | PSL_ADMIN | Recalculate gameweek scores |
+
+---
+
+## /fan-value — Fan Value Ledger
+
+**Purpose:** Non-financial engagement currency tracking. No cash value.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan-value/summary` | FAN | Total FV balance and breakdown |
+| GET | `/fan-value/ledger` | FAN | Full transaction ledger (paginated) |
+| GET | `/fan-value/by-type` | FAN | FV grouped by entry type |
+| GET | `/fan-value/by-source` | FAN | FV grouped by source |
+| GET | `/fan-value/seasons/:seasonId` | FAN | FV for specific season |
+| GET | `/fan-value/gameweeks/:gameweekId` | FAN | FV for specific gameweek |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan-value/admin/summary` | PSL_ADMIN | Platform-wide FV summary |
+| GET | `/fan-value/admin/users/:userId/ledger` | PSL_ADMIN | Ledger for specific user |
+| POST | `/fan-value/admin/entries` | PSL_ADMIN | Post manual FV entry |
+| POST | `/fan-value/admin/entries/:entryId/void` | PSL_ADMIN | Void an entry |
+| POST | `/fan-value/admin/sponsor-engagement-ready` | PSL_ADMIN | Mark fan as sponsor-engagement ready |
+
+---
+
+## /achievements — Achievements & Badges
+
+**Purpose:** Achievement and badge system. Fans earn achievements through platform activity.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/achievements` | FAN | Own achievements |
+| GET | `/achievements/summary` | FAN | Achievement summary card |
+| GET | `/achievements/progress` | FAN | Progress toward locked achievements |
+| GET | `/achievements/badges` | FAN | Own badges |
+| GET | `/achievements/definitions` | FAN | All achievement definitions (public) |
+| GET | `/achievements/definitions/badges` | FAN | Badge definitions linked to achievements |
+| POST | `/achievements/evaluate` | FAN | Trigger self-evaluation |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/achievements/admin/stats` | PSL_ADMIN | Platform achievement stats |
+| GET | `/achievements/admin/definitions` | PSL_ADMIN | All definitions with counts |
+| POST | `/achievements/admin/definitions` | PSL_ADMIN | Create definition |
+| PATCH | `/achievements/admin/definitions/:id` | PSL_ADMIN | Update definition |
+| GET | `/achievements/admin/badges` | PSL_ADMIN | All badges |
+| POST | `/achievements/admin/badges` | PSL_ADMIN | Create badge |
+| PATCH | `/achievements/admin/badges/:id` | PSL_ADMIN | Update badge |
+| POST | `/achievements/admin/link-badge` | PSL_ADMIN | Link badge to definition |
+| GET | `/achievements/admin/users/:userId` | PSL_ADMIN | User's achievements |
+| POST | `/achievements/admin/users/:userId/award` | PSL_ADMIN | Manually award achievement |
+| POST | `/achievements/admin/users/:userId/revoke-achievement/:fanAchievementId` | PSL_ADMIN | Revoke achievement |
+| POST | `/achievements/admin/users/:userId/revoke-badge/:fanBadgeId` | PSL_ADMIN | Revoke badge |
+| POST | `/achievements/admin/evaluate/:userId` | PSL_ADMIN | Evaluate user for all achievements |
+
+---
+
+## /rewards-readiness — Rewards Readiness
+
+**Purpose:** Fan eligibility for sponsor rewards. Non-financial, no redemption in Sprint 1.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/rewards-readiness` | FAN | Own reward readiness records |
+| GET | `/rewards-readiness/eligible` | FAN | Rewards the fan is eligible for |
+| GET | `/rewards-readiness/locked` | FAN | Rewards the fan is not yet eligible for |
+| POST | `/rewards-readiness/evaluate` | FAN | Trigger own eligibility evaluation |
+| GET | `/rewards-readiness/definitions` | FAN | All reward definitions |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/rewards-readiness/admin/stats` | PSL_ADMIN | Platform eligibility stats |
+| GET | `/rewards-readiness/admin/definitions` | PSL_ADMIN | All definitions with eligible counts |
+| POST | `/rewards-readiness/admin/definitions` | PSL_ADMIN | Create definition |
+| PATCH | `/rewards-readiness/admin/definitions/:id` | PSL_ADMIN | Update definition |
+| POST | `/rewards-readiness/admin/definitions/:id/toggle` | PSL_ADMIN | Enable/disable definition |
+| GET | `/rewards-readiness/admin/definitions/:id/eligible-fans` | PSL_ADMIN | Fans eligible for definition |
+| POST | `/rewards-readiness/admin/evaluate/:userId` | PSL_ADMIN | Evaluate specific user |
+| POST | `/rewards-readiness/admin/evaluate-all` | PSL_ADMIN | Evaluate all fans |
+
+---
+
+## /notifications — Notifications & Alerts
+
+**Purpose:** In-app notification delivery and preference management.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/notifications` | FAN | Notification inbox (paginated) |
+| GET | `/notifications/unread-count` | FAN | Count of unread notifications |
+| GET | `/notifications/preferences` | FAN | Notification preferences |
+| PATCH | `/notifications/preferences` | FAN | Update preferences |
+| GET | `/notifications/:id` | FAN | Notification detail |
+| POST | `/notifications/:id/read` | FAN | Mark as read |
+| POST | `/notifications/read-all` | FAN | Mark all as read |
+| POST | `/notifications/:id/archive` | FAN | Archive notification |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/notifications/admin/stats` | PSL_ADMIN | Delivery stats |
+| GET | `/notifications/admin/recent` | PSL_ADMIN | Recent notifications |
+| POST | `/notifications/admin/users/:userId` | PSL_ADMIN | Send notification to specific user |
+| POST | `/notifications/admin/broadcast` | PSL_ADMIN | Broadcast to all fans |
+| POST | `/notifications/admin/fantasy-deadline` | PSL_ADMIN | Send fantasy deadline alert |
+| POST | `/notifications/admin/live-match-alert` | PSL_ADMIN | Send live match alert |
+
+**Notes:** Sprint 1 delivery is in-app only. Email/SMS/push channels are Sprint 3.
+
+---
+
+## /activity-feed — Social Activity Feed
+
+**Purpose:** Social feed of fan platform activity with reactions and moderation.
+
+**Fan routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/activity-feed` | None | Global activity feed (paginated) |
+| GET | `/activity-feed/me` | FAN | Own activity feed |
+| GET | `/activity-feed/:id` | None | Activity item detail |
+| POST | `/activity-feed/:id/reactions` | FAN | Add reaction to item |
+| DELETE | `/activity-feed/:id/reactions/:reactionType` | FAN | Remove own reaction |
+| POST | `/activity-feed/:id/hide` | FAN | Hide own activity item |
+
+**Admin routes:**
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/activity-feed/admin` | PSL_ADMIN | Full admin feed (includes hidden) |
+| GET | `/activity-feed/admin/stats` | PSL_ADMIN | Activity feed stats |
+| POST | `/activity-feed/admin/system` | PSL_ADMIN | Post system announcement |
+| POST | `/activity-feed/admin/live-match-alert` | PSL_ADMIN | Post live match alert item |
+| POST | `/activity-feed/admin/:id/hide` | PSL_ADMIN | Admin-hide item |
+| POST | `/activity-feed/admin/:id/unhide` | PSL_ADMIN | Admin-unhide item |
+
+---
+
+## /admin-dashboard — Admin Command Centre
+
+**Purpose:** Aggregated operational metrics for PSL_ADMIN. All routes require `PSL_ADMIN` role.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin-dashboard` | PSL_ADMIN | Full dashboard (all sections in parallel) |
+| GET | `/admin-dashboard/overview` | PSL_ADMIN | Platform KPI overview |
+| GET | `/admin-dashboard/health` | PSL_ADMIN | Platform health status |
+| GET | `/admin-dashboard/action-required` | PSL_ADMIN | Items requiring admin action |
+| GET | `/admin-dashboard/recent-events` | PSL_ADMIN | Recent operational events |
+| GET | `/admin-dashboard/quick-links` | PSL_ADMIN | Quick links to admin pages |
+| GET | `/admin-dashboard/football` | PSL_ADMIN | Football domain summary |
+| GET | `/admin-dashboard/fans` | PSL_ADMIN | Fan domain summary |
+| GET | `/admin-dashboard/fantasy` | PSL_ADMIN | Fantasy domain summary |
+| GET | `/admin-dashboard/predictions` | PSL_ADMIN | Predictions domain summary |
+| GET | `/admin-dashboard/challenges` | PSL_ADMIN | Challenges domain summary |
+| GET | `/admin-dashboard/fan-value` | PSL_ADMIN | Fan Value domain summary |
+| GET | `/admin-dashboard/achievements` | PSL_ADMIN | Achievements domain summary |
+| GET | `/admin-dashboard/rewards` | PSL_ADMIN | Rewards domain summary |
+| GET | `/admin-dashboard/notifications` | PSL_ADMIN | Notifications domain summary |
+| GET | `/admin-dashboard/activity` | PSL_ADMIN | Activity domain summary |
+| GET | `/admin-dashboard/guess-the-score` | PSL_ADMIN | Guess the Score command centre |
+| GET | `/admin-dashboard/fantasy-rules` | PSL_ADMIN | Fantasy Rules command centre |
+| GET | `/admin-dashboard/fantasy-league` | PSL_ADMIN | Fantasy League command centre |
+| GET | `/admin-dashboard/league-management` | PSL_ADMIN | League Management command centre |
+| GET | `/admin-dashboard/fixture-management` | PSL_ADMIN | Fixture Management command centre |
+| GET | `/admin-dashboard/sponsor-management` | PSL_ADMIN | Sponsor Management command centre |
+| GET | `/admin-dashboard/content-moderation` | PSL_ADMIN | Content Moderation command centre |
+| GET | `/admin-dashboard/reporting` | PSL_ADMIN | Reporting Centre command centre |
+| GET | `/admin-dashboard/compliance` | PSL_ADMIN | Compliance command centre |
+| GET | `/admin-dashboard/user-audience` | PSL_ADMIN | User Audience command centre |
+| GET | `/admin-dashboard/system-operations` | PSL_ADMIN | System Operations command centre |
+
+---
+
+## /admin/competitions — Competition Admin
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/competitions` | PSL_ADMIN | List competitions |
+| POST | `/admin/competitions` | PSL_ADMIN | Create competition |
+| PATCH | `/admin/competitions/:id` | PSL_ADMIN | Update competition |
+| GET | `/admin/competitions/:id/seasons` | PSL_ADMIN | List seasons for competition |
+| POST | `/admin/competitions/:id/seasons` | PSL_ADMIN | Create season |
+| PATCH | `/admin/seasons/:id` | PSL_ADMIN | Update season |
+| POST | `/admin/seasons/:id/activate` | PSL_ADMIN | Activate season (deactivates others) |
+
+---
+
+## /admin/imports — Data Import Pipeline
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/imports` | PSL_ADMIN | List import jobs |
+| POST | `/admin/imports/validate` | PSL_ADMIN | Validate import payload |
+| POST | `/admin/imports/commit` | PSL_ADMIN | Commit validated import |
+| POST | `/admin/imports/manual` | PSL_ADMIN | Create manual import entry |
+| GET | `/admin/imports/:id` | PSL_ADMIN | Import job detail |
+| POST | `/admin/imports/:id/retry` | PSL_ADMIN | Retry failed job |
+| POST | `/admin/imports/:id/cancel` | PSL_ADMIN | Cancel job |
+| POST | `/admin/imports/manual/competition` | PSL_ADMIN | Manual competition entry |
+| POST | `/admin/imports/manual/season` | PSL_ADMIN | Manual season entry |
+| POST | `/admin/imports/manual/team` | PSL_ADMIN | Manual team entry |
+| POST | `/admin/imports/manual/player` | PSL_ADMIN | Manual player entry |
+| POST | `/admin/imports/manual/venue` | PSL_ADMIN | Manual venue entry |
+| POST | `/admin/imports/manual/fixture` | PSL_ADMIN | Manual fixture entry |
+
+---
+
+## /admin/fixtures — Fixture Assignment
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/fixtures/unassigned` | PSL_ADMIN | Unassigned fixtures |
+| GET | `/admin/fixtures/assignment-summary` | PSL_ADMIN | Assignment coverage summary |
+| POST | `/admin/fixtures/bulk-assign-gameweek` | PSL_ADMIN | Bulk assign fixtures to gameweek |
+| POST | `/admin/fixtures/bulk-assign-stage` | PSL_ADMIN | Bulk assign fixtures to stage |
+| POST | `/admin/fixtures/auto-assign` | PSL_ADMIN | Auto-assign by date range |
+| POST | `/admin/fixtures/:id/assign-gameweek` | PSL_ADMIN | Assign fixture to gameweek |
+| POST | `/admin/fixtures/:id/assign-stage` | PSL_ADMIN | Assign fixture to stage |
+
+---
+
+## /health & /version
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/health` | None | API health check |
+| GET | `/version` | None | API version |
