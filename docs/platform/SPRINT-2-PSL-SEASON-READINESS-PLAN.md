@@ -95,22 +95,22 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-29 — PSL Fantasy Season Calibration
+### STORY-29 — PSL Fantasy Season Calibration ✅ COMPLETE (2026-06-11)
 
 **Goal:** Configure fantasy rules and pricing for the PSL season operating model.
 
-**Work:**
-- Create a `FantasyRulesConfig` for the PSL season with appropriate values:
-  - Squad size: 15 (typical PSL format)
-  - Budget: calibrated to make squad selection interesting (e.g., 100M FV)
-  - Transfers per gameweek: 1 free, 4 banked max
-  - Formation rules: standard PSL formations
-  - Scoring weights: goals, assists, clean sheets, saves, bonus points
-- Calibrate player prices based on their expected contribution
-- Validate: fans can create a legal PSL fantasy squad within the budget
-- Validate: transfer rules correctly applied for 30-round season
+**Work completed:**
+- `seed-data/psl-players.ts` — 96 provisional placeholder players (6 per club × 16 clubs: 1 GK, 2 DEF, 2 MID, 1 FWD). Source `PSL_PLACEHOLDER`. Not official PSL data.
+- Seed extended: idempotent player creation (findFirst + conditional create), FantasyRulesConfig (halfwayGameweek=15, seasonGameweekCount=30), provisional player prices (GK=50, DEF=50, MID=55, FWD=60 × 10), SeasonSquadRegistrations
+- `FantasyCalibrationService` — 10 methods: `getCalibrationSeasons`, `getCalibrationReadiness`, `getFantasyRules`, `createProvisionalRules`, `updateFantasyRules`, `getPlayerPriceReadiness`, `generateProvisionalPrices`, `updatePlayerPrice`, `getSquadReadiness`, `getGameweekReadiness`, `deriveGameweekDeadlines`, `getActivationImpact`
+- `FantasyCalibrationController` at `@Controller('fantasy/admin/calibration')` — 13 PSL_ADMIN routes
+- `FantasyCalibrationModule` registered in `AppModule`
+- `fantasy-calibration-client.ts` — 13 typed API wrappers
+- 7 admin web pages: calibration list, season dashboard, readiness detail, rules config, player prices, gameweek deadlines, activation impact
+- 21 new spec tests; total 975 API tests passing
+- WC integration tests updated to filter by `source: 'fifa-wc2026'` (PSL players use `source: 'PSL_PLACEHOLDER'`)
 
-**Acceptance:** Fans can create a PSL fantasy team that is within budget and meets squad rules.
+**Acceptance:** Admin can view all seasons' calibration status; create provisional PSL rules (30-round); generate provisional prices for unpriced players; derive gameweek deadlines from fixture kickoffs; view activation impact before switching. All values clearly marked PROVISIONAL. No official PSL data. STORY-28 season switching readiness warnings resolved.
 
 ---
 

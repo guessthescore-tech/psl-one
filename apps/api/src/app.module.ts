@@ -22,6 +22,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { ClubExperienceModule } from './club-experience/club-experience.module';
 import { FixtureImportModule } from './fixture-import/fixture-import.module';
 import { SeasonSwitchingModule } from './season-switching/season-switching.module';
+import { FantasyCalibrationModule } from './fantasy-calibration/fantasy-calibration.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { SeasonSwitchingModule } from './season-switching/season-switching.modul
     ClubExperienceModule,
     FixtureImportModule,
     SeasonSwitchingModule,
+    FantasyCalibrationModule,
     HealthModule,
   ],
   controllers: [VersionController],

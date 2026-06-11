@@ -871,3 +871,86 @@ Added `fixtureImportRow.deleteMany()`, `fixtureImportBatch.deleteMany()`, and `s
 - `/admin/seasons/switching/[seasonId]/preview` — activation preview with cross-domain impact, warning acknowledgement, activate button
 
 **Test gate:** 954 API tests passing (32 new in `season-switching.service.spec.ts`). Typecheck clean. API and web build clean. Seed passes. Schema validates. All 9 admin routes verified locally including RBAC (FAN=403, unauth=401).
+
+---
+
+## STORY-29 — PSL Fantasy Season Calibration
+
+**Goal:** Make PSL Fantasy ready enough for activation and beta testing. All values are provisional and clearly marked as such.
+
+**Constraints respected:**
+- No official PSL squad scraping or inferred private data
+- No real-money mechanics, payments, betting, gambling, or commerce
+- No new fantasy chips or advanced mechanics beyond existing MVP rules
+- No World Cup fantasy history recalculation or deletion
+- All provisional values explicitly documented as non-official
+
+### Seed data (`apps/api/prisma/seed-data/psl-players.ts`)
+
+96 provisional placeholder players: 6 per club × 16 PSL clubs (1 GK, 2 DEF, 2 MID, 1 FWD). Source: `PSL_PLACEHOLDER`. Named convention: `{ClubShortName} GK`, `{ClubShortName} DEF 1`, etc.
+
+Provisional price bands (stored as integer × 10):
+- GK: 50 (5.0 credits)
+- DEF: 50 (5.0 credits)
+- MID: 55 (5.5 credits)
+- FWD: 60 (6.0 credits)
+
+### Seed updates (`apps/api/prisma/seed.ts`)
+
+- Added `fantasyPlayerPriceHistory.deleteMany()` + `fantasyPlayerPrice.deleteMany()` before `player.deleteMany()` (FK safety)
+- Idempotent PSL player creation: `findFirst({ where: { externalId } })` + conditional `create` (NOT upsert — `Player.externalId` is non-unique in schema)
+- PSL `FantasyRulesConfig` upsert: `halfwayGameweek: 15`, `seasonGameweekCount: 30`, `update: {}` (never overwrites)
+- Provisional player prices: `update: {}` idempotent — existing manually-set prices preserved
+- `SeasonSquadRegistration` upsert: `PROVISIONAL` status, `PLACEHOLDER` source, `update: {}`
+- WC integration tests updated to filter `source: 'fifa-wc2026'` to exclude PSL placeholder players
+
+### FantasyCalibrationService (`apps/api/src/fantasy-calibration/fantasy-calibration.service.ts`)
+
+12 methods:
+- `getCalibrationSeasons()` — all seasons with calibration metadata (hasRulesConfig, playerPriceCount, gameweekCount)
+- `getCalibrationReadiness(seasonId)` — 5-check readiness: rules config, player prices, squad registrations, gameweeks, published fixtures → READY / READY_WITH_WARNINGS / BLOCKED
+- `getFantasyRules(seasonId)` — returns config or null (does not throw)
+- `createProvisionalRules(seasonId)` — upsert with PSL overrides (halfwayGameweek=15, seasonGameweekCount=30), never overwrites existing
+- `updateFantasyRules(seasonId, dto)` — partial update, creates if not exists
+- `getPlayerPriceReadiness(seasonId)` — total/priced/unpriced counts, missing by position, isReady flag
+- `generateProvisionalPrices(seasonId)` — generates prices only for unpriced registered players; skips existing
+- `updatePlayerPrice(seasonId, playerId, price)` — upsert + history entry with reason `ADMIN_CALIBRATION`
+- `getSquadReadiness(seasonId)` — per-club eligible player counts and isReady (min 11 players, all positions covered)
+- `getGameweekReadiness(seasonId)` — per-gameweek fixture linkage status (Gameweek.transferDeadlineAt is non-nullable)
+- `deriveGameweekDeadlines(seasonId)` — sets deadlines to earliest published fixture kickoff − 90 minutes; skips gameweeks without fixtures
+- `getActivationImpact(seasonId)` — summary: fantasyTeams, predictions, rulesConfigured, playerPricesSet, gameweeksConfigured, warnings
+
+**Key schema notes:**
+- `Gameweek.round` (not `gameweekNumber`) — field name per Prisma schema
+- `Gameweek.transferDeadlineAt` is non-nullable — readiness checks fixture linkage instead of null filter
+- `prisma.scorePrediction` (not `prisma.prediction`)
+- `Season._count.playerPrices` (relation name in Season model)
+- `Season.startDate` for orderBy (no `createdAt` on Season)
+
+### FantasyCalibrationController (`apps/api/src/fantasy-calibration/fantasy-calibration.controller.ts`)
+
+`@Controller('fantasy/admin/calibration')` — all 13 routes use `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles('PSL_ADMIN')` at class level.
+
+`UpdatePlayerPriceDto` uses `@IsInt() @Min(1)` — required because global `ValidationPipe({ whitelist: true })` strips undecorated properties.
+
+### Season switching integration
+
+`SeasonSwitchingService.checkFantasyRulesConfig()` and `checkFantasyPlayerPrices()` (WARNING severity) both resolve after STORY-29 seed:
+- PSL `FantasyRulesConfig` exists → `checkFantasyRulesConfig` PASSES
+- PSL has 96 player prices (≥ 11) → `checkFantasyPlayerPrices` PASSES
+
+### Web client (`apps/web/src/lib/fantasy-calibration-client.ts`)
+
+13 typed API wrappers matching controller routes.
+
+### Admin web pages (7)
+
+- `/admin/fantasy/calibration` — season list with calibration status indicators
+- `/admin/fantasy/calibration/[seasonId]` — dashboard: overall status, blockers, warnings, nav links
+- `/admin/fantasy/calibration/[seasonId]/readiness` — full check breakdown with codes, messages, detail text
+- `/admin/fantasy/calibration/[seasonId]/rules` — rules config view; create provisional button if missing
+- `/admin/fantasy/calibration/[seasonId]/players` — price readiness counts; generate provisional prices button
+- `/admin/fantasy/calibration/[seasonId]/gameweeks` — per-gameweek fixture linkage table; derive deadlines button
+- `/admin/fantasy/calibration/[seasonId]/activation-impact` — impact summary before season switching
+
+**Test gate:** 975 API tests passing (21 new in `fantasy-calibration.service.spec.ts`). Typecheck clean. API and web build clean. Seed passes. Schema validates. All 13 admin routes verified locally. RBAC confirmed: FAN=403, unauth=401. PSL season switching readiness WARNINGs resolved.

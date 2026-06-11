@@ -375,3 +375,13 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 - Index on `created_at DESC`
 
 **Purpose:** Immutable audit trail for every season switch action. Used by `SeasonSwitchingService` to record PREVIEW, ACTIVATE, COMPLETE, ROLLBACK events with full blocker/warning context.
+
+## STORY-29 — No New Migration
+
+**Reason:** All required models already existed: `FantasyRulesConfig`, `FantasyPlayerPrice`, `FantasyPlayerPriceHistory`, `SeasonSquadRegistration`.
+
+**Seed additions only:**
+- 96 provisional `Player` records (`source: 'PSL_PLACEHOLDER'`, `Player.externalId` is non-unique — seed uses `findFirst + create` pattern)
+- 1 `FantasyRulesConfig` for PSL season (`halfwayGameweek: 15`, `seasonGameweekCount: 30`)
+- 96 `FantasyPlayerPrice` records (provisional price bands, idempotent `update: {}`)
+- 96 `SeasonSquadRegistration` records (`status: PROVISIONAL`, `source: PLACEHOLDER`, idempotent `update: {}`)

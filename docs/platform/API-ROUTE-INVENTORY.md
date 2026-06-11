@@ -555,3 +555,23 @@ All routes verified from source files in `apps/api/src/`.
 | POST | `/seasons/admin/switching/activate/:seasonId` | PSL_ADMIN | Activate season (transactional, requires acknowledgeWarnings if READY_WITH_WARNINGS) |
 | POST | `/seasons/admin/switching/complete/:seasonId` | PSL_ADMIN | Explicitly mark a season COMPLETED |
 | POST | `/seasons/admin/switching/rollback/:seasonId` | PSL_ADMIN | Rollback activation — deactivates current and restores prior active season |
+
+## /fantasy/admin/calibration — PSL Fantasy Calibration (STORY-29)
+
+**Purpose:** Admin-only PSL fantasy calibration workflow. Configure provisional rules, pricing, and gameweek deadlines for the PSL season. All values are provisional and clearly marked as such.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fantasy/admin/calibration` | PSL_ADMIN | List all seasons with calibration status (rules, price count, gameweek count) |
+| GET | `/fantasy/admin/calibration/:seasonId` | PSL_ADMIN | Full calibration readiness check (READY / READY_WITH_WARNINGS / BLOCKED) |
+| GET | `/fantasy/admin/calibration/:seasonId/readiness` | PSL_ADMIN | Detailed readiness breakdown (blockers, warnings, info) |
+| GET | `/fantasy/admin/calibration/:seasonId/rules` | PSL_ADMIN | Get current fantasy rules config (null if not set) |
+| POST | `/fantasy/admin/calibration/:seasonId/rules` | PSL_ADMIN | Create provisional PSL rules (halfwayGameweek=15, seasonGameweekCount=30) — idempotent |
+| PATCH | `/fantasy/admin/calibration/:seasonId/rules` | PSL_ADMIN | Update specific fantasy rules fields |
+| GET | `/fantasy/admin/calibration/:seasonId/players` | PSL_ADMIN | Player price readiness: priced vs unpriced by position |
+| POST | `/fantasy/admin/calibration/:seasonId/players/generate-prices` | PSL_ADMIN | Generate provisional prices for unpriced registered players — idempotent (skips already-priced) |
+| PATCH | `/fantasy/admin/calibration/:seasonId/players/:playerId/price` | PSL_ADMIN | Update single player price |
+| GET | `/fantasy/admin/calibration/:seasonId/squads` | PSL_ADMIN | Per-club squad eligibility readiness |
+| GET | `/fantasy/admin/calibration/:seasonId/gameweeks` | PSL_ADMIN | Gameweek readiness: fixture linkage and deadline status |
+| POST | `/fantasy/admin/calibration/:seasonId/gameweeks/derive-deadlines` | PSL_ADMIN | Derive transfer/prediction deadlines from earliest fixture kickoff (−90 min) |
+| GET | `/fantasy/admin/calibration/:seasonId/activation-impact` | PSL_ADMIN | Summary of platform state impact if season is activated |

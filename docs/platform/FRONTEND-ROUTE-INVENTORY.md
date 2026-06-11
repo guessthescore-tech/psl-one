@@ -361,3 +361,15 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/seasons/switching/[seasonId]` | Season detail: status, dates, activation history | PSL_ADMIN | `season-context-client` | — |
 | `/admin/seasons/switching/[seasonId]/readiness` | Cross-domain readiness dashboard: 7 checks, BLOCKER/WARNING/INFO | PSL_ADMIN | `season-context-client` | Links to preview if not BLOCKED |
 | `/admin/seasons/switching/[seasonId]/preview` | Activation preview: from/to season, impact summary, activate button | PSL_ADMIN | `season-context-client` | Warning acknowledgement checkbox |
+
+## Admin — Fantasy Calibration (STORY-29)
+
+| Route | Purpose | Auth | Client | Notes |
+|-------|---------|------|--------|-------|
+| `/admin/fantasy/calibration` | List all seasons with calibration status (rules configured, price count, gameweek count) | PSL_ADMIN | `fantasy-calibration-client` | — |
+| `/admin/fantasy/calibration/[seasonId]` | Season calibration dashboard: overall readiness status, blockers, warnings, nav to sub-pages | PSL_ADMIN | `fantasy-calibration-client` | — |
+| `/admin/fantasy/calibration/[seasonId]/readiness` | Detailed readiness breakdown: all checks with codes, messages, details | PSL_ADMIN | `fantasy-calibration-client` | — |
+| `/admin/fantasy/calibration/[seasonId]/rules` | View current fantasy rules config; create provisional PSL rules button if missing | PSL_ADMIN | `fantasy-calibration-client` | PROVISIONAL label |
+| `/admin/fantasy/calibration/[seasonId]/players` | Player price readiness: counts by position; generate provisional prices button | PSL_ADMIN | `fantasy-calibration-client` | PROVISIONAL prices |
+| `/admin/fantasy/calibration/[seasonId]/gameweeks` | Gameweek readiness: fixture linkage, deadline status; derive deadlines from fixtures | PSL_ADMIN | `fantasy-calibration-client` | — |
+| `/admin/fantasy/calibration/[seasonId]/activation-impact` | Activation impact summary; links to Season Switching for final activation | PSL_ADMIN | `fantasy-calibration-client` | Links to /admin/seasons/switching |

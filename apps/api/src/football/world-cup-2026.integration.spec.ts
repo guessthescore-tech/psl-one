@@ -84,7 +84,7 @@ describe('WC2026 seed — teams', () => {
 
   it('has 1200 real players (no TBD team players)', async () => {
     const count = await prisma.player.count({
-      where: { team: { NOT: { slug: 'tbd' } } },
+      where: { team: { NOT: { slug: 'tbd' } }, source: 'fifa-wc2026' },
     });
     expect(count).toBe(1200);
   });
@@ -238,8 +238,8 @@ describe('WC2026 seed — fantasy player pool', () => {
     expect(tbdPlayerCount).toBe(0);
   });
 
-  it('player pool count is exactly 1200', async () => {
-    const count = await prisma.player.count();
+  it('player pool count is exactly 1200 (WC players only)', async () => {
+    const count = await prisma.player.count({ where: { source: 'fifa-wc2026' } });
     expect(count).toBe(1200);
   });
 });

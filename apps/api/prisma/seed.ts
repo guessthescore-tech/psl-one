@@ -5,6 +5,7 @@ import { GROUPS } from './seed-data/world-cup-2026/groups';
 import { ALL_FIXTURES } from './seed-data/world-cup-2026/fixtures';
 import { PLAYERS } from './seed-data/world-cup-2026/players';
 import { PSL_CLUBS } from './seed-data/psl-clubs';
+import { PSL_PLACEHOLDER_PLAYERS, PROVISIONAL_PRICE } from './seed-data/psl-players';
 
 const prisma = new PrismaClient();
 
@@ -72,6 +73,10 @@ async function main() {
 
   // Clear season switch audit data
   await prisma.seasonSwitchAudit.deleteMany();
+
+  // Clear fantasy player prices/history before deleting players
+  await prisma.fantasyPlayerPriceHistory.deleteMany();
+  await prisma.fantasyPlayerPrice.deleteMany();
 
   // Clear football data in dependency order
   await prisma.fantasyPlayerMatchStat.deleteMany();
@@ -730,6 +735,84 @@ async function main() {
   console.log(`  ✓ PSL Clubs seeded: ${PSL_CLUBS.length}`);
   console.log(`  ✓ PSL Season team registrations: ${PSL_CLUBS.length} (PROVISIONAL)`);
 
+  // ── PSL Fantasy Calibration ───────────────────────────────────────────────
+  // Provisional placeholder players — NOT official PSL data
+  let pslPlayerCount = 0;
+  for (const p of PSL_PLACEHOLDER_PLAYERS) {
+    const teamId = pslTeamMap.get(p.clubExternalId);
+    if (!teamId) continue;
+    const existing = await prisma.player.findFirst({ where: { externalId: p.externalId } });
+    if (!existing) {
+      await prisma.player.create({
+        data: {
+          teamId,
+          name: p.name,
+          position: p.position,
+          nationality: p.nationality,
+          number: p.shirtNumber,
+          externalId: p.externalId,
+          source: 'PSL_PLACEHOLDER',
+        },
+      });
+    }
+    pslPlayerCount++;
+  }
+  console.log(`  ✓ PSL placeholder players: ${pslPlayerCount} (PROVISIONAL)`);
+
+  // PSL FantasyRulesConfig — provisional PSL 30-round season settings
+  await prisma.fantasyRulesConfig.upsert({
+    where: { seasonId: pslSeason.id },
+    create: {
+      seasonId: pslSeason.id,
+      // PSL uses 30 rounds; halfway = gameweek 15
+      halfwayGameweek: 15,
+      seasonGameweekCount: 30,
+      // All other defaults match the platform's existing EPL-derived rules
+    },
+    update: {},
+  });
+  console.log(`  ✓ PSL FantasyRulesConfig seeded (PROVISIONAL — 30-round season)`);
+
+  // PSL provisional player prices — only seed if price is missing
+  let pslPriceCount = 0;
+  for (const p of PSL_PLACEHOLDER_PLAYERS) {
+    const teamId = pslTeamMap.get(p.clubExternalId);
+    if (!teamId) continue;
+    const player = await prisma.player.findFirst({ where: { externalId: p.externalId } });
+    if (!player) continue;
+    const price = PROVISIONAL_PRICE[p.position];
+    await prisma.fantasyPlayerPrice.upsert({
+      where: { playerId_seasonId: { playerId: player.id, seasonId: pslSeason.id } },
+      create: { playerId: player.id, seasonId: pslSeason.id, price },
+      update: {},
+    });
+    pslPriceCount++;
+  }
+  console.log(`  ✓ PSL provisional player prices: ${pslPriceCount} (PROVISIONAL)`);
+
+  // PSL SeasonSquadRegistration for placeholder players
+  let pslRegCount = 0;
+  for (const p of PSL_PLACEHOLDER_PLAYERS) {
+    const teamId = pslTeamMap.get(p.clubExternalId);
+    if (!teamId) continue;
+    const player = await prisma.player.findFirst({ where: { externalId: p.externalId } });
+    if (!player) continue;
+    await prisma.seasonSquadRegistration.upsert({
+      where: { seasonId_playerId: { seasonId: pslSeason.id, playerId: player.id } },
+      create: {
+        seasonId: pslSeason.id,
+        teamId,
+        playerId: player.id,
+        status: 'PROVISIONAL',
+        shirtNumber: p.shirtNumber,
+        source: 'PLACEHOLDER',
+      },
+      update: {},
+    });
+    pslRegCount++;
+  }
+  console.log(`  ✓ PSL squad registrations: ${pslRegCount} (PROVISIONAL)`);
+
   console.log('');
   console.log('Seed complete.');
   console.log(`  Competition : ${competition.name}`);
@@ -743,6 +826,8 @@ async function main() {
   console.log(`  Gameweeks   : ${gameweekMap.size}`);
   console.log(`  Standings   : ${standingCount} rows (all zeroed)`);
   console.log(`  PSL Clubs   : ${PSL_CLUBS.length}`);
+  console.log(`  PSL Players : ${pslPlayerCount} (provisional)`);
+  console.log(`  PSL Prices  : ${pslPriceCount} (provisional)`);
 }
 
 main()
