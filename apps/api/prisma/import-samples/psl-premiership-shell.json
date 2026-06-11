@@ -1,0 +1,42 @@
+{
+  "source": "MANUAL",
+  "sourceType": "JSON_FILE",
+  "competition": {
+    "externalId": "psl-premiership",
+    "name": "PSL Premiership",
+    "slug": "psl-premiership",
+    "format": "LEAGUE",
+    "teamCount": 16,
+    "hasGroups": false,
+    "hasKnockouts": false,
+    "hasHomeAway": true,
+    "usesNeutralVenues": false,
+    "pointsForWin": 3,
+    "pointsForDraw": 1,
+    "pointsForLoss": 0,
+    "sourceUrl": "https://www.psl.co.za"
+  },
+  "_metadata": {
+    "leagueRules": {
+      "format": "double round-robin",
+      "matchesPerTeam": 30,
+      "totalFixtures": 240,
+      "qualification": {
+        "top2": "CAF Champions League Group Stage",
+        "3rd": "CAF Confederation Cup",
+        "nedbank_cup_winner": "CAF Confederation Cup"
+      },
+      "relegation": {
+        "16th": "relegated to GladAfrica Championship",
+        "15th": "promotion play-off"
+      },
+      "notes": "Full fixture list to be imported when officially released by PSL"
+    }
+  },
+  "teams": [],
+  "venues": [],
+  "players": [],
+  "fixtures": [],
+  "groups": [],
+  "gameweeks": []
+}

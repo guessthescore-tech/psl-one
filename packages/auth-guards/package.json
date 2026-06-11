@@ -1,0 +1,36 @@
+{
+  "name": "@psl-one/auth-guards",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@psl-one/shared-types": "workspace:*",
+    "aws-jwt-verify": "^4.0.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "vitest": "*",
+    "rimraf": "*",
+    "@nestjs/common": "*",
+    "@nestjs/core": "*",
+    "reflect-metadata": "*"
+  }
+}

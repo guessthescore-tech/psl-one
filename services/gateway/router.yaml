@@ -1,0 +1,35 @@
+# Apollo Router configuration
+# See: https://www.apollographql.com/docs/router/configuration/overview
+
+supergraph:
+  listen: 0.0.0.0:4000
+
+cors:
+  origins:
+    - https://pslone.co.za
+    - https://www.pslone.co.za
+    - http://localhost:3001  # web app dev
+
+authentication:
+  router:
+    jwt:
+      jwks:
+        - url: https://cognito-idp.af-south-1.amazonaws.com/${COGNITO_USER_POOL_ID}/.well-known/jwks.json
+
+headers:
+  all:
+    request:
+      - propagate:
+          named: authorization
+      - propagate:
+          named: x-correlation-id
+      - propagate:
+          named: x-tenant-id
+
+telemetry:
+  apollo:
+    field_level_instrumentation_sampler: always_off
+
+limits:
+  max_depth: 10
+  max_aliases: 30

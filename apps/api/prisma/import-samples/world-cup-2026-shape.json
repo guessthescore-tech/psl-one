@@ -1,0 +1,48 @@
+{
+  "source": "REFERENCE_DATA",
+  "sourceType": "JSON_FILE",
+  "competition": {
+    "externalId": "fifa-world-cup-2026",
+    "name": "FIFA World Cup 2026",
+    "slug": "fifa-world-cup",
+    "format": "HYBRID",
+    "teamCount": 48,
+    "hasGroups": true,
+    "hasKnockouts": true,
+    "hasHomeAway": true,
+    "usesNeutralVenues": true,
+    "pointsForWin": 3,
+    "pointsForDraw": 1,
+    "pointsForLoss": 0,
+    "sourceUrl": "https://www.fifa.com/fifaplus/en/tournaments/mens/worldcup/canadamexicousa2026"
+  },
+  "season": {
+    "externalId": "fifa-wc-2026",
+    "name": "FIFA World Cup 2026",
+    "slug": "fifa-world-cup-2026",
+    "startDate": "2026-06-11",
+    "endDate": "2026-07-19",
+    "status": "ACTIVE",
+    "isActive": true
+  },
+  "_metadata": {
+    "stages": [
+      { "slug": "group-stage", "name": "Group Stage", "type": "GROUP", "order": 1 },
+      { "slug": "round-of-32", "name": "Round of 32", "type": "KNOCKOUT", "order": 2 },
+      { "slug": "round-of-16", "name": "Round of 16", "type": "KNOCKOUT", "order": 3 },
+      { "slug": "quarter-final", "name": "Quarter-Final", "type": "KNOCKOUT", "order": 4 },
+      { "slug": "semi-final", "name": "Semi-Final", "type": "KNOCKOUT", "order": 5 },
+      { "slug": "third-place", "name": "Third Place Play-off", "type": "PLAYOFF", "order": 6 },
+      { "slug": "final", "name": "Final", "type": "FINAL", "order": 7 }
+    ],
+    "groups": ["A","B","C","D","E","F","G","H","I","J","K","L"],
+    "venues": ["MetLife Stadium","SoFi Stadium","AT&T Stadium","Levi's Stadium","Rose Bowl","Hard Rock Stadium","Lincoln Financial Field","Gillette Stadium","Arrowhead Stadium","NRG Stadium","BC Place","Estadio Azteca","Estadio Akron","BMO Field","Q2 Stadium","Empower Field at Mile High"],
+    "note": "This shape file documents the WC2026 structure. Full fixture data is already seeded via prisma/seed.ts."
+  },
+  "teams": [],
+  "venues": [],
+  "players": [],
+  "fixtures": [],
+  "groups": [],
+  "gameweeks": []
+}

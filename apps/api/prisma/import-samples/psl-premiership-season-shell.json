@@ -1,0 +1,23 @@
+{
+  "source": "MANUAL",
+  "sourceType": "JSON_FILE",
+  "competitionSlug": "psl-premiership",
+  "activateSeason": false,
+  "season": {
+    "externalId": "psl-2026-27",
+    "name": "PSL Premiership 2026/27",
+    "slug": "psl-premiership-2026-27",
+    "startDate": "2026-08-01",
+    "endDate": "2027-05-31",
+    "status": "UPCOMING",
+    "isActive": false,
+    "sourceUrl": "https://www.psl.co.za/fixtures"
+  },
+  "_note": "Season shell only. Activate via POST /admin/seasons/:id/activate once fixtures are imported.",
+  "teams": [],
+  "venues": [],
+  "players": [],
+  "fixtures": [],
+  "groups": [],
+  "gameweeks": []
+}

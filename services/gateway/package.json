@@ -1,0 +1,16 @@
+{
+  "name": "@psl-one/gateway",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "echo 'Apollo Router is a Rust binary — no build step'",
+    "start": "router --config router.yaml --supergraph supergraph.graphql",
+    "dev": "rover dev --supergraph-config supergraph-dev.yaml",
+    "compose": "rover supergraph compose --config supergraph-dev.yaml > supergraph.graphql",
+    "typecheck": "echo 'no typecheck for gateway'",
+    "clean": "rimraf supergraph.graphql"
+  },
+  "devDependencies": {
+    "rimraf": "*"
+  }
+}

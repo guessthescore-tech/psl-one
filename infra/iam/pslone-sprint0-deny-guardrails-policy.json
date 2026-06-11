@@ -1,0 +1,119 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyNonFreeTierEC2",
+      "Effect": "Deny",
+      "Action": "ec2:RunInstances",
+      "Resource": "arn:aws:ec2:*:*:instance/*",
+      "Condition": {
+        "StringNotEquals": {
+          "ec2:InstanceType": "t2.micro"
+        }
+      }
+    },
+    {
+      "Sid": "DenyRDSNonFreeTier",
+      "Effect": "Deny",
+      "Action": [
+        "rds:CreateDBInstance",
+        "rds:ModifyDBInstance",
+        "rds:CreateDBInstanceReadReplica"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "rds:DatabaseClass": "db.t3.micro"
+        }
+      }
+    },
+    {
+      "Sid": "DenyRDSClusters",
+      "Effect": "Deny",
+      "Action": [
+        "rds:CreateDBCluster",
+        "rds:RestoreDBClusterFromS3",
+        "rds:RestoreDBClusterFromSnapshot",
+        "rds:RestoreDBClusterToPointInTime",
+        "rds:CreateGlobalCluster"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyRDSMultiAZ",
+      "Effect": "Deny",
+      "Action": [
+        "rds:CreateDBInstance",
+        "rds:ModifyDBInstance"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "rds:MultiAz": "true"
+        }
+      }
+    },
+    {
+      "Sid": "DenyPublicS3",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutBucketAcl",
+        "s3:PutObjectAcl",
+        "s3:DeletePublicAccessBlock"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyIAMEscalation",
+      "Effect": "Deny",
+      "Action": [
+        "iam:CreateUser",
+        "iam:DeleteUser",
+        "iam:CreateGroup",
+        "iam:DeleteGroup",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:CreatePolicyVersion",
+        "iam:SetDefaultPolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:AttachUserPolicy",
+        "iam:DetachUserPolicy",
+        "iam:PutUserPolicy",
+        "iam:DeleteUserPolicy",
+        "iam:AttachGroupPolicy",
+        "iam:DetachGroupPolicy",
+        "iam:PutGroupPolicy",
+        "iam:DeleteGroupPolicy",
+        "iam:CreateLoginProfile",
+        "iam:UpdateLoginProfile",
+        "iam:DeleteLoginProfile",
+        "iam:CreateAccessKey",
+        "iam:DeleteAccessKey",
+        "iam:UpdateAccessKey",
+        "iam:CreateVirtualMFADevice",
+        "iam:EnableMFADevice",
+        "iam:DeactivateMFADevice",
+        "iam:UpdateAssumeRolePolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyRoute53",
+      "Effect": "Deny",
+      "Action": "route53:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyOrganizations",
+      "Effect": "Deny",
+      "Action": "organizations:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "DenyMSKKafka",
+      "Effect": "Deny",
+      "Action": "kafka:*",
+      "Resource": "*"
+    }
+  ]
+}

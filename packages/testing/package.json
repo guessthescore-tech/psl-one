@@ -1,0 +1,32 @@
+{
+  "name": "@psl-one/testing",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@psl-one/event-schemas": "workspace:*",
+    "@psl-one/shared-types": "workspace:*",
+    "testcontainers": "^10.0.0",
+    "uuid": "^9.0.0"
+  },
+  "peerDependencies": {
+    "vitest": "*"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "rimraf": "*",
+    "vitest": "*"
+  }
+}

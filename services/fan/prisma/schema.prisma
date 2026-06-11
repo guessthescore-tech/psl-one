@@ -1,0 +1,22 @@
+// fan Service — Prisma Schema
+// Domain agent adds models in Sprint 1
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  topic       String
+  payload     Json
+  createdAt   DateTime  @default(now()) @map("created_at")
+  publishedAt DateTime? @map("published_at")
+  attempts    Int       @default(0)
+  @@index([publishedAt, attempts])
+  @@map("outbox_events")
+}

@@ -1,0 +1,72 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RDSCreateT3MicroOnly",
+      "Effect": "Allow",
+      "Action": [
+        "rds:CreateDBInstance",
+        "rds:ModifyDBInstance"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "rds:DatabaseClass": "db.t3.micro"
+        }
+      }
+    },
+    {
+      "Sid": "RDSOtherManagement",
+      "Effect": "Allow",
+      "Action": [
+        "rds:DeleteDBInstance",
+        "rds:RebootDBInstance",
+        "rds:StartDBInstance",
+        "rds:StopDBInstance",
+        "rds:CreateDBSubnetGroup",
+        "rds:DeleteDBSubnetGroup",
+        "rds:ModifyDBSubnetGroup",
+        "rds:CreateDBParameterGroup",
+        "rds:DeleteDBParameterGroup",
+        "rds:ModifyDBParameterGroup",
+        "rds:ResetDBParameterGroup",
+        "rds:CreateDBSnapshot",
+        "rds:DeleteDBSnapshot",
+        "rds:RestoreDBInstanceFromDBSnapshot",
+        "rds:AddTagsToResource",
+        "rds:RemoveTagsFromResource",
+        "rds:ApplyPendingMaintenanceAction"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ElastiCacheDevManagement",
+      "Effect": "Allow",
+      "Action": [
+        "elasticache:CreateCacheCluster",
+        "elasticache:DeleteCacheCluster",
+        "elasticache:ModifyCacheCluster",
+        "elasticache:RebootCacheCluster",
+        "elasticache:CreateReplicationGroup",
+        "elasticache:DeleteReplicationGroup",
+        "elasticache:ModifyReplicationGroup",
+        "elasticache:CreateCacheSubnetGroup",
+        "elasticache:DeleteCacheSubnetGroup",
+        "elasticache:ModifyCacheSubnetGroup",
+        "elasticache:CreateCacheParameterGroup",
+        "elasticache:DeleteCacheParameterGroup",
+        "elasticache:ModifyCacheParameterGroup",
+        "elasticache:ResetCacheParameterGroup",
+        "elasticache:AddTagsToResource",
+        "elasticache:RemoveTagsFromResource",
+        "elasticache:DescribeCacheClusters",
+        "elasticache:DescribeReplicationGroups",
+        "elasticache:DescribeCacheSubnetGroups",
+        "elasticache:DescribeCacheParameterGroups",
+        "elasticache:DescribeCacheParameters",
+        "elasticache:ListTagsForResource"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

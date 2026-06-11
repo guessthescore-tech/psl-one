@@ -1,0 +1,36 @@
+{
+  "name": "@psl-one/kafka-client",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@psl-one/event-schemas": "workspace:*",
+    "@psl-one/logger": "workspace:*",
+    "kafkajs": "^2.2.0",
+    "zod": "^3.22.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "vitest": "*",
+    "rimraf": "*",
+    "@nestjs/common": "*",
+    "reflect-metadata": "*"
+  }
+}

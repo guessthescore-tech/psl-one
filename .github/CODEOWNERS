@@ -1,0 +1,31 @@
+# PSL One — Code Owners
+# All PRs require at least one human review before merge.
+# Agent PRs still require human approval.
+
+# Default — Programme Director reviews everything
+* @psl-one/programme-director
+
+# Infrastructure — DevOps team
+infra/ @psl-one/devops
+.github/ @psl-one/devops
+docker-compose.yml @psl-one/devops
+
+# ADRs — Architecture decisions require senior review
+docs/adr/ @psl-one/architecture-board
+
+# Identity & Security — Always requires security review
+services/identity/ @psl-one/security-team
+packages/auth-guards/ @psl-one/security-team
+
+# Wallet — Financial integrity
+services/wallet/ @psl-one/security-team @psl-one/finance
+
+# Event schemas — Breaking changes affect all services
+packages/event-schemas/ @psl-one/architecture-board
+
+# Shared types — Breaking changes affect all services and apps
+packages/shared-types/ @psl-one/architecture-board
+
+# Frontend apps
+apps/ @psl-one/frontend-team
+packages/ui/ @psl-one/frontend-team

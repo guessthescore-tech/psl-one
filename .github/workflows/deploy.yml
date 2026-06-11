@@ -1,0 +1,69 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options: [dev, staging, prod]
+
+env:
+  AWS_REGION: af-south-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push service images
+        run: |
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG=${{ github.sha }}
+
+          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
+            docker build \
+              -f services/$service/Dockerfile \
+              -t $ECR_REGISTRY/psl-$service:$IMAGE_TAG \
+              -t $ECR_REGISTRY/psl-$service:latest \
+              .
+            docker push $ECR_REGISTRY/psl-$service:$IMAGE_TAG
+            docker push $ECR_REGISTRY/psl-$service:latest
+          done
+
+      - name: Deploy to ECS
+        run: |
+          ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}
+          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
+            aws ecs update-service \
+              --cluster psl-$ENVIRONMENT \
+              --service psl-$service \
+              --force-new-deployment \
+              --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200"
+          done
+
+      - name: Wait for services stable
+        run: |
+          ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}
+          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
+            aws ecs wait services-stable \
+              --cluster psl-$ENVIRONMENT \
+              --services psl-$service
+          done

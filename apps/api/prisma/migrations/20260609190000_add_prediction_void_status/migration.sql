@@ -1,0 +1,1 @@
+ALTER TYPE "PredictionStatus" ADD VALUE IF NOT EXISTS 'VOID';

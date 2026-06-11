@@ -1,0 +1,796 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { FantasySquadRole, LineupStatus, MatchEventType, PlayerPosition, FixtureStatus } from '@prisma/client';
+import { FantasyService } from './fantasy.service';
+import type { PrismaService } from '../prisma/prisma.service';
+import type { AchievementsService } from '../achievements/achievements.service';
+
+const makeAchievementsMock = () => ({
+  safeEvaluate: vi.fn().mockResolvedValue(undefined),
+}) as unknown as AchievementsService;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const uuid = () => Math.random().toString(36).slice(2);
+
+function makePlayer(
+  id: string,
+  position: PlayerPosition,
+  teamId = 'team-1',
+  name = `Player ${id}`,
+) {
+  return { id, position, teamId, name };
+}
+
+function makeSlot(
+  playerId: string,
+  squadRole: FantasySquadRole,
+  opts: { benchSlot?: number; isCaptain?: boolean; isViceCaptain?: boolean } = {},
+) {
+  return { playerId, squadRole, ...opts };
+}
+
+// Build a valid 15-player squad: 2GK 5DEF 5MID 3FWD, 11 starters (1GK 4DEF 4MID 2FWD), 4 subs
+function buildValidSquad() {
+  const teams = ['t1', 't2', 't3', 't4', 't5', 't6'];
+  let ti = 0;
+  const nextTeam = () => teams[ti++ % teams.length];
+
+  const gk1 = makePlayer('gk1', PlayerPosition.GOALKEEPER, nextTeam());
+  const gk2 = makePlayer('gk2', PlayerPosition.GOALKEEPER, nextTeam());
+  const defs = Array.from({ length: 5 }, (_, i) => makePlayer(`d${i}`, PlayerPosition.DEFENDER, nextTeam()));
+  const mids = Array.from({ length: 5 }, (_, i) => makePlayer(`m${i}`, PlayerPosition.MIDFIELDER, nextTeam()));
+  const fwds = Array.from({ length: 3 }, (_, i) => makePlayer(`f${i}`, PlayerPosition.FORWARD, nextTeam()));
+
+  const players = [gk1, gk2, ...defs, ...mids, ...fwds];
+
+  // Formation 4-4-2: 1GK 4DEF 4MID 2FWD starters
+  const slots = [
+    makeSlot('gk1', FantasySquadRole.STARTER, { isCaptain: true }),
+    ...defs.slice(0, 4).map(d => makeSlot(d.id, FantasySquadRole.STARTER)),
+    makeSlot('d4', FantasySquadRole.SUBSTITUTE, { benchSlot: 1 }),
+    ...mids.slice(0, 4).map(m => makeSlot(m.id, FantasySquadRole.STARTER)),
+    makeSlot('m4', FantasySquadRole.SUBSTITUTE, { benchSlot: 2 }),
+    makeSlot('f0', FantasySquadRole.STARTER, { isViceCaptain: true }),
+    makeSlot('f1', FantasySquadRole.STARTER),
+    makeSlot('f2', FantasySquadRole.SUBSTITUTE, { benchSlot: 3 }),
+    makeSlot('gk2', FantasySquadRole.SUBSTITUTE, { benchSlot: 0 }),
+  ];
+
+  return { players, slots };
+}
+
+// ── Squad validation tests ────────────────────────────────────────────────────
+
+describe('Fantasy squad validation (via FantasyService.validateSlots)', () => {
+  const makePrismaMock = () =>
+    ({
+      season: { findFirst: vi.fn() },
+      player: { findMany: vi.fn(), findUnique: vi.fn() },
+      fantasyTeam: { findUnique: vi.fn(), create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+      fantasyTeamPlayer: { delete: vi.fn(), create: vi.fn() },
+      fantasyPointsLedger: { createMany: vi.fn() },
+      fixture: { findUnique: vi.fn() },
+      fantasyRulesConfig: { findUnique: vi.fn() },
+    }) as unknown as PrismaService;
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+  });
+
+  it('accepts a valid 15-player squad: 2GK 5DEF 5MID 3FWD', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.squadCounts).toEqual({ goalkeepers: 2, defenders: 5, midfielders: 5, forwards: 3 });
+  });
+
+  it('rejects wrong position counts (3GK instead of 2)', async () => {
+    const { players, slots } = buildValidSquad();
+    // Replace one DEF with a GK in the details
+    players[2]!.position = PlayerPosition.GOALKEEPER;
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('goalkeeper'))).toBe(true);
+  });
+
+  it('accepts formation 4-4-2', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.formation).toBe('4-4-2');
+  });
+
+  it('accepts formation 3-4-3', async () => {
+    const gk1 = makePlayer('gk1', PlayerPosition.GOALKEEPER, 't1');
+    const gk2 = makePlayer('gk2', PlayerPosition.GOALKEEPER, 't2');
+    const defs = Array.from({ length: 5 }, (_, i) => makePlayer(`d${i}`, PlayerPosition.DEFENDER, `td${i}`));
+    const mids = Array.from({ length: 5 }, (_, i) => makePlayer(`m${i}`, PlayerPosition.MIDFIELDER, `tm${i}`));
+    const fwds = Array.from({ length: 3 }, (_, i) => makePlayer(`f${i}`, PlayerPosition.FORWARD, `tf${i}`));
+    const players = [gk1, gk2, ...defs, ...mids, ...fwds];
+
+    // Formation 3-4-3: 1GK 3DEF 4MID 3FWD starters, 2DEF+1MID+1GK bench
+    const slots = [
+      makeSlot('gk1', FantasySquadRole.STARTER, { isCaptain: true }),
+      makeSlot('d0', FantasySquadRole.STARTER),
+      makeSlot('d1', FantasySquadRole.STARTER),
+      makeSlot('d2', FantasySquadRole.STARTER),
+      makeSlot('d3', FantasySquadRole.SUBSTITUTE, { benchSlot: 1 }),
+      makeSlot('d4', FantasySquadRole.SUBSTITUTE, { benchSlot: 2 }),
+      makeSlot('m0', FantasySquadRole.STARTER),
+      makeSlot('m1', FantasySquadRole.STARTER),
+      makeSlot('m2', FantasySquadRole.STARTER),
+      makeSlot('m3', FantasySquadRole.STARTER),
+      makeSlot('m4', FantasySquadRole.SUBSTITUTE, { benchSlot: 3 }),
+      makeSlot('f0', FantasySquadRole.STARTER, { isViceCaptain: true }),
+      makeSlot('f1', FantasySquadRole.STARTER),
+      makeSlot('f2', FantasySquadRole.STARTER),
+      makeSlot('gk2', FantasySquadRole.SUBSTITUTE, { benchSlot: 0 }),
+    ];
+
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.formation).toBe('3-4-3');
+  });
+
+  it('rejects fewer than 3 defenders in starting XI', async () => {
+    const { players, slots } = buildValidSquad();
+    // Move 2 more DEFs to bench (only 2 DEF starters left)
+    const defSlots = slots.filter(s => {
+      const p = players.find(pl => pl.id === s.playerId);
+      return p?.position === PlayerPosition.DEFENDER && s.squadRole === FantasySquadRole.STARTER;
+    });
+    defSlots[0]!.squadRole = FantasySquadRole.SUBSTITUTE;
+    defSlots[0]!.benchSlot = 3;
+    defSlots[1]!.squadRole = FantasySquadRole.STARTER; // Already starter — move a sub to keep count
+
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    // Actually rebuild with only 2 DEF starters
+    const gk1 = makePlayer('gk1', PlayerPosition.GOALKEEPER, 't1');
+    const gk2 = makePlayer('gk2', PlayerPosition.GOALKEEPER, 't2');
+    const defs = Array.from({ length: 5 }, (_, i) => makePlayer(`d${i}`, PlayerPosition.DEFENDER, `td${i}`));
+    const mids = Array.from({ length: 5 }, (_, i) => makePlayer(`m${i}`, PlayerPosition.MIDFIELDER, `tm${i}`));
+    const fwds = Array.from({ length: 3 }, (_, i) => makePlayer(`f${i}`, PlayerPosition.FORWARD, `tf${i}`));
+    const p2 = [gk1, gk2, ...defs, ...mids, ...fwds];
+
+    // 2 DEF starters → invalid formation
+    const s2 = [
+      makeSlot('gk1', FantasySquadRole.STARTER, { isCaptain: true }),
+      makeSlot('d0', FantasySquadRole.STARTER),
+      makeSlot('d1', FantasySquadRole.STARTER),
+      makeSlot('d2', FantasySquadRole.SUBSTITUTE, { benchSlot: 1 }),
+      makeSlot('d3', FantasySquadRole.SUBSTITUTE, { benchSlot: 2 }),
+      makeSlot('d4', FantasySquadRole.SUBSTITUTE, { benchSlot: 3 }),
+      ...mids.slice(0, 5).map((m, i) => makeSlot(m.id, FantasySquadRole.STARTER)),
+      makeSlot('f0', FantasySquadRole.STARTER, { isViceCaptain: true }),
+      makeSlot('f1', FantasySquadRole.STARTER),
+      makeSlot('f2', FantasySquadRole.STARTER),
+      makeSlot('gk2', FantasySquadRole.SUBSTITUTE, { benchSlot: 0 }),
+    ];
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(p2);
+    const result = await service.validateSlots(s2);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('defender') || e.includes('formation'))).toBe(true);
+  });
+
+  it('rejects no forward in starting XI', async () => {
+    const gk1 = makePlayer('gk1', PlayerPosition.GOALKEEPER, 't1');
+    const gk2 = makePlayer('gk2', PlayerPosition.GOALKEEPER, 't2');
+    const defs = Array.from({ length: 5 }, (_, i) => makePlayer(`d${i}`, PlayerPosition.DEFENDER, `td${i}`));
+    const mids = Array.from({ length: 5 }, (_, i) => makePlayer(`m${i}`, PlayerPosition.MIDFIELDER, `tm${i}`));
+    const fwds = Array.from({ length: 3 }, (_, i) => makePlayer(`f${i}`, PlayerPosition.FORWARD, `tf${i}`));
+    const p = [gk1, gk2, ...defs, ...mids, ...fwds];
+
+    // No FWD in starters (5-5-0) — invalid
+    const slots = [
+      makeSlot('gk1', FantasySquadRole.STARTER, { isCaptain: true }),
+      ...defs.slice(0, 5).map(d => makeSlot(d.id, FantasySquadRole.STARTER)),
+      ...mids.slice(0, 5).map(m => makeSlot(m.id, FantasySquadRole.STARTER)),
+      makeSlot('f0', FantasySquadRole.SUBSTITUTE, { benchSlot: 1 }),
+      makeSlot('f1', FantasySquadRole.SUBSTITUTE, { benchSlot: 2, isViceCaptain: true }),
+      makeSlot('f2', FantasySquadRole.SUBSTITUTE, { benchSlot: 3 }),
+      makeSlot('gk2', FantasySquadRole.SUBSTITUTE, { benchSlot: 0 }),
+    ];
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(p);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('forward') || e.includes('formation'))).toBe(true);
+  });
+
+  it('rejects squad with fewer than 11 starters', async () => {
+    const { players, slots } = buildValidSquad();
+    // Move one starter to substitute
+    const firstStarter = slots.find(s => s.squadRole === FantasySquadRole.STARTER)!;
+    firstStarter.squadRole = FantasySquadRole.SUBSTITUTE;
+    firstStarter.benchSlot = 5;
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('11'))).toBe(true);
+  });
+
+  it('rejects squad with fewer than 4 substitutes', async () => {
+    const { players, slots } = buildValidSquad();
+    const firstSub = slots.find(s => s.squadRole === FantasySquadRole.SUBSTITUTE)!;
+    firstSub.squadRole = FantasySquadRole.STARTER;
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+  });
+
+  it('rejects missing captain', async () => {
+    const { players, slots } = buildValidSquad();
+    slots.forEach(s => { s.isCaptain = false; });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.toLowerCase().includes('captain'))).toBe(true);
+  });
+
+  it('rejects captain on the bench', async () => {
+    const { players, slots } = buildValidSquad();
+    slots.forEach(s => { s.isCaptain = false; });
+    const subSlot = slots.find(s => s.squadRole === FantasySquadRole.SUBSTITUTE)!;
+    subSlot.isCaptain = true;
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('Captain must be in the starting XI'))).toBe(true);
+  });
+
+  it('rejects vice-captain on the bench', async () => {
+    const { players, slots } = buildValidSquad();
+    slots.forEach(s => { s.isViceCaptain = false; });
+    const subSlot = slots.find(s => s.squadRole === FantasySquadRole.SUBSTITUTE)!;
+    subSlot.isViceCaptain = true;
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+  });
+
+  it('rejects same player as captain and vice-captain', async () => {
+    const { players, slots } = buildValidSquad();
+    const capSlot = slots.find(s => s.isCaptain)!;
+    capSlot.isViceCaptain = true;
+    slots.forEach(s => { if (s.playerId !== capSlot.playerId) s.isViceCaptain = false; });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('different players'))).toBe(true);
+  });
+
+  it('rejects more than 3 players from same team', async () => {
+    const { players, slots } = buildValidSquad();
+    // Set 4 players to team 'SAME'
+    players[0]!.teamId = 'SAME';
+    players[1]!.teamId = 'SAME';
+    players[2]!.teamId = 'SAME';
+    players[3]!.teamId = 'SAME';
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.maxPerTeamValid).toBe(false);
+  });
+});
+
+// ── FPL Scoring tests ─────────────────────────────────────────────────────────
+
+describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
+  const makePrismaMock = () =>
+    ({
+      season: { findFirst: vi.fn() },
+      gameweek: { findFirst: vi.fn() },
+      player: { findMany: vi.fn(), findUnique: vi.fn() },
+      fantasyTeam: { findUnique: vi.fn(), create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+      fantasyTeamPlayer: { delete: vi.fn(), create: vi.fn() },
+      fantasyPointsLedger: { createMany: vi.fn() },
+      fixture: { findUnique: vi.fn() },
+      fantasyRulesConfig: { findUnique: vi.fn() },
+    }) as unknown as PrismaService;
+
+  // We test the internal scorePlayer function indirectly via settleFixture.
+  // For unit tests of the pure scoring logic, import via module-level exposure.
+  // Here we test the FPL scoring rules by calling settleFixture with a controlled fixture.
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  const FIXTURE_ID = 'fix-1';
+  const HOME_TEAM_ID = 'home-team';
+  const AWAY_TEAM_ID = 'away-team';
+
+  function makeFixture(homeScore: number, awayScore: number, events: object[] = []) {
+    return {
+      id: FIXTURE_ID,
+      status: FixtureStatus.FINISHED,
+      homeScore,
+      awayScore,
+      homeTeamId: HOME_TEAM_ID,
+      awayTeamId: AWAY_TEAM_ID,
+      lineups: [],
+      events,
+    };
+  }
+
+  function makeLineup(playerId: string, status: LineupStatus) {
+    return { playerId, status, shirtNumber: null, position: null };
+  }
+
+  function makeFantasyTeam(playerId: string, position: PlayerPosition, teamId: string, isCaptain = false, isViceCaptain = false) {
+    return {
+      id: 'fteam-1',
+      totalPoints: 0,
+      players: [
+        {
+          id: 'ftp-1',
+          playerId,
+          squadRole: FantasySquadRole.STARTER,
+          isCaptain,
+          isViceCaptain,
+          player: { id: playerId, position, teamId, name: 'Test' },
+        },
+      ],
+    };
+  }
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mockResolvedValue({ count: 1 });
+    (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
+  });
+
+  it('STARTING player gets 2 appearance points', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, AWAY_TEAM_ID),
+    ]);
+    const result = await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'APPEARANCE_60_PLUS' && e.points === 2)).toBe(true);
+  });
+
+  it('SUBSTITUTE player gets 1 appearance point', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.SUBSTITUTE)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, AWAY_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'APPEARANCE_UNDER_60' && e.points === 1)).toBe(true);
+  });
+
+  it('goalkeeper goal = 6 points', async () => {
+    const pId = 'p-gk';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.GOALKEEPER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'GOAL_GOALKEEPER' && e.points === 6)).toBe(true);
+  });
+
+  it('defender goal = 6 points', async () => {
+    const pId = 'p-df';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.DEFENDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'GOAL_DEFENDER' && e.points === 6)).toBe(true);
+  });
+
+  it('midfielder goal = 5 points', async () => {
+    const pId = 'p-mf';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'GOAL_MIDFIELDER' && e.points === 5)).toBe(true);
+  });
+
+  it('forward goal = 4 points', async () => {
+    const pId = 'p-fw';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.FORWARD, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'GOAL_FORWARD' && e.points === 4)).toBe(true);
+  });
+
+  it('assist = 3 points', async () => {
+    const pId = 'p-mid';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.ASSIST, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'ASSIST' && e.points === 3)).toBe(true);
+  });
+
+  it('goalkeeper clean sheet = 4 points', async () => {
+    const pId = 'p-gk';
+    const fixture = makeFixture(0, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.GOALKEEPER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'CLEAN_SHEET_GOALKEEPER' && e.points === 4)).toBe(true);
+  });
+
+  it('defender clean sheet = 4 points', async () => {
+    const pId = 'p-df';
+    const fixture = makeFixture(0, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.DEFENDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'CLEAN_SHEET_DEFENDER' && e.points === 4)).toBe(true);
+  });
+
+  it('midfielder clean sheet = 1 point', async () => {
+    const pId = 'p-mf';
+    const fixture = makeFixture(0, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'CLEAN_SHEET_MIDFIELDER' && e.points === 1)).toBe(true);
+  });
+
+  it('goalkeeper concedes 2 goals = -1 point deduction', async () => {
+    const pId = 'p-gk';
+    const fixture = makeFixture(0, 2); // GK is home team, concedes 2
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.GOALKEEPER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'GOALS_CONCEDED' && e.points === -1)).toBe(true);
+  });
+
+  it('yellow card = -1 point', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.YELLOW_CARD, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'YELLOW_CARD' && e.points === -1)).toBe(true);
+  });
+
+  it('red card = -3 points', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.RED_CARD, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.MIDFIELDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'RED_CARD' && e.points === -3)).toBe(true);
+  });
+
+  it('own goal = -2 points', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.OWN_GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.DEFENDER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'OWN_GOAL' && e.points === -2)).toBe(true);
+  });
+
+  it('penalty missed = -2 points', async () => {
+    const pId = 'p1';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.PENALTY_MISSED, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.FORWARD, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'PENALTY_MISSED' && e.points === -2)).toBe(true);
+  });
+
+  it('penalty save = 5 points for GK', async () => {
+    const pId = 'p-gk';
+    const fixture = makeFixture(0, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.PENALTY_SAVE, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.GOALKEEPER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'PENALTY_SAVE' && e.points === 5)).toBe(true);
+  });
+
+  it('3 saves = 1 bonus point for GK', async () => {
+    const pId = 'p-gk';
+    const fixture = makeFixture(0, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [
+      { eventType: MatchEventType.SAVE, playerId: pId },
+      { eventType: MatchEventType.SAVE, playerId: pId },
+      { eventType: MatchEventType.SAVE, playerId: pId },
+    ] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.GOALKEEPER, HOME_TEAM_ID),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'SAVES' && e.points === 1)).toBe(true);
+  });
+
+  it('captain doubles final score', async () => {
+    const pId = 'p-cap';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(pId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: pId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeFantasyTeam(pId, PlayerPosition.FORWARD, HOME_TEAM_ID, true, false),
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'CAPTAIN_MULTIPLIER')).toBe(true);
+  });
+
+  it('vice-captain doubles only if captain did not play', async () => {
+    const vcId = 'p-vc';
+    const fixture = makeFixture(1, 0);
+    fixture.lineups = [makeLineup(vcId, LineupStatus.STARTING)] as typeof fixture.lineups;
+    fixture.events = [{ eventType: MatchEventType.GOAL, playerId: vcId }] as typeof fixture.events;
+    (prisma.fixture.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(fixture);
+    // Captain is 'p-cap' but has no lineup/events → did not play
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        id: 'fteam-1',
+        totalPoints: 0,
+        players: [
+          {
+            id: 'ftp-cap',
+            playerId: 'p-cap',
+            squadRole: FantasySquadRole.STARTER,
+            isCaptain: true,
+            isViceCaptain: false,
+            player: { id: 'p-cap', position: PlayerPosition.FORWARD, teamId: HOME_TEAM_ID, name: 'Cap' },
+          },
+          {
+            id: 'ftp-vc',
+            playerId: vcId,
+            squadRole: FantasySquadRole.STARTER,
+            isCaptain: false,
+            isViceCaptain: true,
+            player: { id: vcId, position: PlayerPosition.FORWARD, teamId: HOME_TEAM_ID, name: 'VC' },
+          },
+        ],
+      },
+    ]);
+    await service.settleFixture(FIXTURE_ID);
+    const entries = (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data as { reason: string; points: number }[];
+    expect(entries.some(e => e.reason === 'VICE_CAPTAIN_MULTIPLIER')).toBe(true);
+  });
+
+  it('leaderboard ranks teams by total points', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'season-1' });
+    (prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'ft1', name: 'Team A', totalPoints: 120, user: { id: 'u1' }, _count: { players: 15 } },
+      { id: 'ft2', name: 'Team B', totalPoints: 90, user: { id: 'u2' }, _count: { players: 15 } },
+    ]);
+    const result = await service.getLeaderboard();
+    expect((prisma.fantasyTeam.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0]!).toMatchObject({
+      orderBy: { totalPoints: 'desc' },
+    });
+  });
+
+  it('throws NotFoundException for missing fantasy team', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    await expect(service.getMyTeam('user-1')).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('throws ConflictException when creating a second team for same season', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'existing' });
+    const { slots } = buildValidSquad();
+    await expect(service.createTeam('u1', { players: slots })).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('throws BadRequestException for invalid squad on create', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    await expect(service.createTeam('u1', { players: [] })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('transfer cannot break squad composition', async () => {
+    const { players, slots } = buildValidSquad();
+    const defPlayer = players.find(p => p.position === PlayerPosition.DEFENDER)!;
+    const gkPlayer = players.find(p => p.position === PlayerPosition.GOALKEEPER)!;
+
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+    (prisma.gameweek.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      players: slots.map(s => ({
+        id: `ftp-${s.playerId}`,
+        playerId: s.playerId,
+        squadRole: s.squadRole,
+        benchSlot: s.benchSlot ?? null,
+        isCaptain: s.isCaptain ?? false,
+        isViceCaptain: s.isViceCaptain ?? false,
+        lockedAt: null,
+        player: players.find(p => p.id === s.playerId) ?? null,
+      })),
+    });
+    // Mock player.findUnique to return the GK (different position from DEF being removed)
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: gkPlayer.id,
+      position: PlayerPosition.GOALKEEPER,
+      teamId: gkPlayer.teamId,
+      name: gkPlayer.name,
+    });
+    // Try to swap a DEF for a GK → different position → BadRequestException
+    await expect(
+      service.makeTransfer('u1', { removePlayerId: defPlayer.id, addPlayerId: gkPlayer.id }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+});
+
+// ── Team-management deadline locks ────────────────────────────────────────────
+
+describe('Fantasy team management — deadline locks', () => {
+  const makePrismaMock = () =>
+    ({
+      season: { findFirst: vi.fn() },
+      gameweek: { findFirst: vi.fn() },
+      player: { findMany: vi.fn(), findUnique: vi.fn() },
+      fantasyTeam: { findUnique: vi.fn(), create: vi.fn(), findMany: vi.fn(), update: vi.fn() },
+      fantasyTeamPlayer: { delete: vi.fn(), create: vi.fn(), update: vi.fn() },
+      fantasyPointsLedger: { createMany: vi.fn() },
+      fantasyTransfer: { create: vi.fn() },
+      fixture: { findUnique: vi.fn() },
+      fantasyRulesConfig: { findUnique: vi.fn() },
+    }) as unknown as PrismaService;
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+  });
+
+  function lockDeadline() {
+    // No UPCOMING/OPEN gameweek → assertTransferOpen throws
+    (prisma.gameweek.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  }
+
+  function openDeadline() {
+    (prisma.gameweek.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'gw-1',
+      status: 'OPEN',
+      transferDeadlineAt: new Date(Date.now() + 60_000),
+    });
+  }
+
+  it('updateTeamMeta throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(service.updateTeamMeta('u1', { name: 'New Name' })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('addPlayerToSquad throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(
+      service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('removePlayerFromSquad throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(service.removePlayerFromSquad('u1', 'p1')).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updatePlayerSlot (captain change) throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(service.updatePlayerSlot('u1', 'p1', { isCaptain: true })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updatePlayerSlot (vice-captain change) throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(service.updatePlayerSlot('u1', 'p1', { isViceCaptain: true })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updatePlayerSlot (starting XI change) throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(
+      service.updatePlayerSlot('u1', 'p1', { squadRole: 'STARTER' as FantasySquadRole }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updatePlayerSlot (bench slot / substitution priority) throws when deadline has passed', async () => {
+    lockDeadline();
+    await expect(service.updatePlayerSlot('u1', 'p1', { benchSlot: 1 })).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('updateTeamMeta succeeds before deadline', async () => {
+    openDeadline();
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft1' });
+    (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft1', name: 'New Name', players: [] });
+    const result = await service.updateTeamMeta('u1', { name: 'New Name' });
+    expect(result).toBeDefined();
+  });
+
+  it('error message contains "locked" when deadline passed', async () => {
+    lockDeadline();
+    try {
+      await service.updatePlayerSlot('u1', 'p1', { isCaptain: true });
+      expect.fail('Should have thrown');
+    } catch (e) {
+      expect((e as BadRequestException).message).toMatch(/locked/i);
+    }
+  });
+});

@@ -1,0 +1,32 @@
+{
+  "name": "@psl-one/logger",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "pino": "^8.0.0",
+    "pino-pretty": "^11.0.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0"
+  },
+  "devDependencies": {
+    "typescript": "*",
+    "vitest": "*",
+    "rimraf": "*",
+    "@nestjs/common": "*"
+  }
+}

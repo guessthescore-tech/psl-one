@@ -1,0 +1,45 @@
+# Rover supergraph composition config for local development
+# Run: pnpm --filter @psl-one/gateway compose
+
+federation_version: =2.5.0
+
+subgraphs:
+  identity:
+    routing_url: http://localhost:3001/graphql
+    schema:
+      subgraph_url: http://localhost:3001/graphql
+
+  fan:
+    routing_url: http://localhost:3002/graphql
+    schema:
+      subgraph_url: http://localhost:3002/graphql
+
+  football:
+    routing_url: http://localhost:3003/graphql
+    schema:
+      subgraph_url: http://localhost:3003/graphql
+
+  fantasy:
+    routing_url: http://localhost:3004/graphql
+    schema:
+      subgraph_url: http://localhost:3004/graphql
+
+  loyalty:
+    routing_url: http://localhost:3005/graphql
+    schema:
+      subgraph_url: http://localhost:3005/graphql
+
+  wallet:
+    routing_url: http://localhost:3006/graphql
+    schema:
+      subgraph_url: http://localhost:3006/graphql
+
+  content:
+    routing_url: http://localhost:3007/graphql
+    schema:
+      subgraph_url: http://localhost:3007/graphql
+
+  notifications:
+    routing_url: http://localhost:3008/graphql
+    schema:
+      subgraph_url: http://localhost:3008/graphql

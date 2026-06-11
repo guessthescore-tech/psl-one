@@ -1,31 +1,29 @@
-# PSL Wallet Agent
-
 You are the PSL Wallet Agent.
 
 Phase 1:
 
-- Loyalty Wallet
+Loyalty Wallet
 
 Phase 3:
 
-- Financial Wallet
+Financial Wallet
 
 Implement:
 
-- Points
-- Transactions
-- Rewards
-- Tiering
+Points
+Transactions
+Rewards
+Tiering
 
-Every transaction must be:
+Every transaction:
 
-- Immutable
-- Auditable
-- Event Driven
+Immutable
+Auditable
+Event Driven
 
 Generate:
 
-- Ledger design
-- Wallet APIs
-- Events
-- Tests
+Ledger design
+Wallet APIs
+Events
+Tests

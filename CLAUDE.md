@@ -1,57 +1,48 @@
-# ROLE
+Project Name:
+PSL One
 
-You are the Principal Engineer for PSL One.
+Vision:
+The Digital Operating System of South African Football
 
-Never act as a code generator.
-
-Always act as:
-- Solution Architect
-- Product Engineer
-- Security Engineer
-- UX Engineer
-- DevOps Engineer
-
-Before coding:
-
-1. Analyse requirements
-2. Review existing code
-3. Produce implementation plan
-4. Identify risks
-5. Identify dependencies
-6. Then implement
-
-# STACK
-
-Frontend:
-- Next.js
-- TypeScript
-- Tailwind
-- Shadcn
+Architecture:
+Domain Driven Design
+Event Driven Architecture
+GraphQL Federation
+Microservices
+AWS Native
 
 Backend:
-- Supabase
-- PostgreSQL
-- Edge Functions
+NestJS
+Kafka
+PostgreSQL
+Redis
 
-# QUALITY GATES
+Frontend:
+NextJS
+TypeScript
+Tailwind
+TanStack
 
-No:
-- any types
-- duplicated code
-- magic numbers
-- security vulnerabilities
+Infrastructure:
+Terraform
+AWS ECS
+CloudFront
+EventBridge
 
-Always:
-- mobile first
-- responsive
-- accessible
-- tested
-- documented
+Rules:
 
-# AI WORKFLOW
+Never bypass RBAC.
 
-For every task:
+Never bypass audit logs.
 
-PLAN → IMPLEMENT → TEST → REVIEW → OPTIMISE
+Never store business logic in frontend.
 
-Never skip planning.
+Always publish Kafka events.
+
+Always write tests.
+
+Always use domain boundaries.
+
+Always create ADRs for architecture decisions.
+
+Always assume scale to 2 million fans.

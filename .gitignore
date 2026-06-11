@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment files — NEVER commit secrets
+.env
+.env.local
+.env.*.local
+
+# Terraform state — use remote state (S3)
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.backup
+**/.terraform.lock.hcl
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Playwright
+playwright-report/
+test-results/
+
+# Logs
+*.log
+logs/
+
+# Prisma
+# Keep migration files, exclude generated client output
+**/node_modules/.prisma/
+
+# Local settings
+.claude/settings.local.json
+
+# Turbo cache
+.turbo/
