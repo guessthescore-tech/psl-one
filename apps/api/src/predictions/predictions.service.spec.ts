@@ -73,7 +73,7 @@ describe('PredictionsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
-    service = new PredictionsService(prisma as unknown as PrismaService, makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    service = new PredictionsService(prisma as unknown as PrismaService, makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createPredictionResultActivity: vi.fn().mockResolvedValue(null), createChallengeActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   // ── 1. Create prediction ───────────────────────────────────────────────────

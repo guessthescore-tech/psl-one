@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityFeedService } from '../activity-feed/activity-feed.service';
 
 export interface CreateAchievementDefinitionDto {
   slug: string;
@@ -45,6 +46,7 @@ export class AchievementsService {
     private readonly prisma: PrismaService,
     private readonly fanValueLedgerService: FanValueLedgerService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityFeedService: ActivityFeedService,
   ) {}
 
   // ── Definitions ──────────────────────────────────────────────────────────
@@ -326,6 +328,18 @@ export class AchievementsService {
       sourceId: def.id,
       actionUrl: '/achievements',
     }).catch(() => null);
+
+    // Activity feed (safe)
+    this.activityFeedService.createAchievementActivity(userId, { id: def.id, name: def.name }).catch(() => null);
+
+    // Badge activity for each linked badge
+    const typedDef = def as unknown as { badges: { badge: { id: string; name?: string } }[] };
+    for (const ab of typedDef.badges) {
+      this.activityFeedService.createBadgeActivity(userId, {
+        id: ab.badge.id,
+        name: ab.badge.name ?? 'Badge',
+      }).catch(() => null);
+    }
 
     return fanAchievement;
   }

@@ -1445,7 +1445,7 @@ describe('FantasyGameweekScoringService — calculatePlayerGameweekPoints', () =
 
   beforeEach(() => {
     db = makeDb();
-    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createFantasyResultActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   function mockPlayerFixtures(stats: typeof baseStatRow[]) {
@@ -1613,7 +1613,7 @@ describe('FantasyGameweekScoringService — calculateFantasyTeamGameweekScore', 
 
   beforeEach(() => {
     db = makeDb();
-    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createFantasyResultActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   function setupTeamWithChips(
@@ -1792,7 +1792,7 @@ describe('FantasyGameweekScoringService — settlement', () => {
   beforeEach(() => {
     db = makeDb();
     fanValueMock = makeFanValueMock();
-    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), fanValueMock, makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), fanValueMock, makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createFantasyResultActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   function setupSettleEnv() {
@@ -1908,7 +1908,7 @@ describe('FantasyGameweekScoringService — history and leaderboards', () => {
 
   beforeEach(() => {
     db = makeDb();
-    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    svc = new FantasyGameweekScoringService(db, makeAutoSubMock(), makeFanValueMock(), makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createFantasyResultActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   it('getFantasyTeamGameweekHistory returns empty when no team', async () => {

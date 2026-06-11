@@ -5,6 +5,7 @@ import { FantasyAutoSubService, type ComputedAutoSub } from './fantasy-auto-sub.
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityFeedService } from '../activity-feed/activity-feed.service';
 
 interface BreakdownJson {
   appearance: number;
@@ -95,6 +96,7 @@ export class FantasyGameweekScoringService {
     private readonly fanValueLedgerService: FanValueLedgerService,
     private readonly achievementsService: AchievementsService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityFeedService: ActivityFeedService,
   ) {}
 
   private computeBasePoints(
@@ -588,6 +590,12 @@ export class FantasyGameweekScoringService {
         sourceType: 'FANTASY_GAMEWEEK_SCORE',
         sourceId: score.id,
         actionUrl: `/fantasy/gameweeks/${gameweekId}/score`,
+      }).catch(() => null);
+
+      this.activityFeedService.createFantasyResultActivity(score.userId, {
+        id: score.id,
+        netPoints: score.netPoints,
+        gameweekId,
       }).catch(() => null);
     }
 

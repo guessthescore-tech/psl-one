@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationPriority, NotificationType, RewardReadinessCategory, RewardReadinessStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityFeedService } from '../activity-feed/activity-feed.service';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export class RewardsReadinessService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityFeedService: ActivityFeedService,
   ) {}
 
   // ── Definitions ────────────────────────────────────────────────────────────
@@ -134,6 +136,9 @@ export class RewardsReadinessService {
           sourceId: def.id,
           actionUrl: '/rewards',
         }).catch(() => null);
+
+        // Activity feed (safe)
+        this.activityFeedService.createRewardEligibleActivity(userId, { id: def.id, name: def.name }).catch(() => null);
       }
 
       results.push({ definitionId: def.id, slug: def.slug, name: def.name, status, metRequirements: met, unmetRequirements: unmet });

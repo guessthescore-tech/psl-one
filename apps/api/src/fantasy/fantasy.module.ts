@@ -16,9 +16,10 @@ import { AuthModule } from '../auth/auth.module';
 import { FanValueModule } from '../fan-value/fan-value.module';
 import { AchievementsModule } from '../achievements/achievements.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { ActivityFeedModule } from '../activity-feed/activity-feed.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, FanValueModule, AchievementsModule, NotificationsModule],
+  imports: [PrismaModule, AuthModule, FanValueModule, AchievementsModule, NotificationsModule, ActivityFeedModule],
   providers: [
     FantasyService,
     FantasyDeadlineService,

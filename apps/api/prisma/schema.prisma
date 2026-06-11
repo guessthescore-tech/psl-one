@@ -65,6 +65,9 @@ model User {
   fanRewardReadiness      FanRewardReadiness[]
   notifications           Notification[]
   notificationPreference  NotificationPreference?
+  activityFeedItems       ActivityFeedItem[]      @relation("ActivityFeedItemOwner")
+  moderatedActivities     ActivityFeedItem[]      @relation("ActivityFeedItemModerator")
+  activityReactions       ActivityReaction[]
 
   @@map("users")
 }
@@ -1537,6 +1540,87 @@ model Notification {
   @@index([userId, status])
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+// ── Social Activity Feed ───────────────────────────────────────────────────────
+
+enum ActivityFeedType {
+  SYSTEM
+  ACHIEVEMENT_UNLOCKED
+  BADGE_EARNED
+  FANTASY_RESULT
+  PREDICTION_RESULT
+  CHALLENGE_CREATED
+  CHALLENGE_RESULT
+  REWARD_ELIGIBLE
+  LIVE_MATCH_ALERT
+  FAN_VALUE_MILESTONE
+  ADMIN_POST
+}
+
+enum ActivityVisibility {
+  PUBLIC
+  PRIVATE
+  ADMIN_ONLY
+}
+
+enum ActivityStatus {
+  ACTIVE
+  HIDDEN
+  ARCHIVED
+}
+
+enum ActivityReactionType {
+  LIKE
+  FIRE
+  CLAP
+  TROPHY
+  BALL
+}
+
+model ActivityFeedItem {
+  id              String             @id @default(uuid())
+  userId          String?            @map("user_id")
+  type            ActivityFeedType
+  title           String
+  body            String
+  visibility      ActivityVisibility @default(PUBLIC)
+  status          ActivityStatus     @default(ACTIVE)
+  sourceType      String?            @map("source_type")
+  sourceId        String?            @map("source_id")
+  actionUrl       String?            @map("action_url")
+  metadataJson    Json?              @map("metadata_json")
+  occurredAt      DateTime           @default(now()) @map("occurred_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  hiddenAt        DateTime?          @map("hidden_at")
+  hiddenByUserId  String?            @map("hidden_by_user_id")
+  hiddenReason    String?            @map("hidden_reason")
+
+  user      User?              @relation("ActivityFeedItemOwner", fields: [userId], references: [id])
+  hiddenBy  User?              @relation("ActivityFeedItemModerator", fields: [hiddenByUserId], references: [id])
+  reactions ActivityReaction[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([occurredAt(sort: Desc)])
+  @@map("activity_feed_items")
+}
+
+model ActivityReaction {
+  id                 String               @id @default(uuid())
+  activityFeedItemId String               @map("activity_feed_item_id")
+  userId             String               @map("user_id")
+  reactionType       ActivityReactionType @map("reaction_type")
+  createdAt          DateTime             @default(now()) @map("created_at")
+
+  activityFeedItem ActivityFeedItem @relation(fields: [activityFeedItemId], references: [id])
+  user             User             @relation(fields: [userId], references: [id])
+
+  @@unique([activityFeedItemId, userId, reactionType])
+  @@index([userId])
+  @@map("activity_reactions")
 }
 
 model NotificationPreference {

@@ -17,6 +17,7 @@ import { FanValueModule } from './fan-value/fan-value.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { RewardsReadinessModule } from './rewards/rewards-readiness.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ActivityFeedModule } from './activity-feed/activity-feed.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AchievementsModule,
     RewardsReadinessModule,
     NotificationsModule,
+    ActivityFeedModule,
     HealthModule,
   ],
   controllers: [VersionController],

@@ -93,7 +93,7 @@ describe('AchievementsService', () => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
     fanValueMock = makeFanValueMock();
-    service = new AchievementsService(prisma as unknown as PrismaService, fanValueMock, { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
+    service = new AchievementsService(prisma as unknown as PrismaService, fanValueMock, { createInAppNotification: vi.fn().mockResolvedValue(null) } as any, { createAchievementActivity: vi.fn().mockResolvedValue(null), createBadgeActivity: vi.fn().mockResolvedValue(null) } as any);
   });
 
   // ── 1. getDefinitions ──────────────────────────────────────────────────────

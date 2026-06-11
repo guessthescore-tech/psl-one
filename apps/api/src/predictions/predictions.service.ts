@@ -13,6 +13,7 @@ import { calculatePoints } from './scoring';
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityFeedService } from '../activity-feed/activity-feed.service';
 
 const FIXTURE_SELECT = {
   id: true,
@@ -39,6 +40,7 @@ export class PredictionsService {
     private readonly fanValueLedgerService: FanValueLedgerService,
     private readonly achievementsService: AchievementsService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityFeedService: ActivityFeedService,
   ) {}
 
   async createPrediction(userId: string, dto: CreatePredictionDto) {
@@ -244,6 +246,9 @@ export class PredictionsService {
         actionUrl: `/predictions`,
       }).catch(() => null);
 
+      // Activity feed (safe)
+      this.activityFeedService.createPredictionResultActivity(p.userId, { id: p.id, pointsAwarded: points }).catch(() => null);
+
       summary.push({ predictionId: p.id, userId: p.userId, points });
     }
 
@@ -313,6 +318,14 @@ export class PredictionsService {
           sourceId: ch.id,
           actionUrl: `/predictions`,
         }).catch(() => null);
+
+        // Activity feed (safe)
+        this.activityFeedService.createChallengeActivity(
+          participantId,
+          { id: ch.id },
+          'RESULT',
+          { winnerUserId, challengerUserId: ch.challengerUserId },
+        ).catch(() => null);
       }
     }
 

@@ -8,6 +8,7 @@ import { ChallengeStatus, NotificationPriority, NotificationType } from '@prisma
 import { PrismaService } from '../prisma/prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityFeedService } from '../activity-feed/activity-feed.service';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 
 const FIXTURE_SELECT = {
@@ -38,6 +39,7 @@ export class ChallengesService {
     private prisma: PrismaService,
     private readonly achievementsService: AchievementsService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityFeedService: ActivityFeedService,
   ) {}
 
   async createChallenge(challengerUserId: string, dto: CreateChallengeDto) {
@@ -88,6 +90,9 @@ export class ChallengesService {
       sourceId: challenge.id,
       actionUrl: `/predictions`,
     }).catch(() => null);
+
+    // Activity feed for challenger (safe)
+    this.activityFeedService.createChallengeActivity(challengerUserId, { id: challenge.id }, 'CREATED').catch(() => null);
 
     return challenge;
   }
