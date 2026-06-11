@@ -18,6 +18,7 @@ import { AchievementsModule } from './achievements/achievements.module';
 import { RewardsReadinessModule } from './rewards/rewards-readiness.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityFeedModule } from './activity-feed/activity-feed.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { ActivityFeedModule } from './activity-feed/activity-feed.module';
     RewardsReadinessModule,
     NotificationsModule,
     ActivityFeedModule,
+    AdminDashboardModule,
     HealthModule,
   ],
   controllers: [VersionController],
