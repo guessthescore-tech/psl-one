@@ -62,6 +62,7 @@ model User {
   fanAchievements       FanAchievement[]          @relation("FanAchievementOwner")
   awardedAchievements   FanAchievement[]          @relation("FanAchievementAwarder")
   fanBadges             FanBadge[]
+  fanRewardReadiness    FanRewardReadiness[]
 
   @@map("users")
 }
@@ -1410,4 +1411,74 @@ model FanBadge {
   @@unique([userId, badgeDefinitionId])
   @@index([userId])
   @@map("fan_badges")
+}
+
+// ── Rewards Readiness ─────────────────────────────────────────────────────────
+
+enum RewardReadinessStatus {
+  ELIGIBLE
+  INELIGIBLE
+  PENDING_EVALUATION
+}
+
+enum RewardReadinessCategory {
+  FANTASY
+  PREDICTIONS
+  CHALLENGES
+  SPONSOR_READY
+  FAN_VALUE
+  LOYALTY
+  PLATFORM
+}
+
+model RewardReadinessDefinition {
+  id          String                  @id @default(uuid())
+  slug        String                  @unique
+  name        String
+  description String
+  category    RewardReadinessCategory
+  isEnabled   Boolean                 @default(true) @map("is_enabled")
+  sortOrder   Int                     @default(0) @map("sort_order")
+
+  // Eligibility requirements — all non-null/true conditions must be met
+  minFanValuePoints          Int?     @map("min_fan_value_points")
+  requiredAchievementSlugs   String[] @map("required_achievement_slugs")
+  requiredBadgeSlugs         String[] @map("required_badge_slugs")
+  requiresFantasyTeam        Boolean  @default(false) @map("requires_fantasy_team")
+  requiresPredictionActivity Boolean  @default(false) @map("requires_prediction_activity")
+  requiresChallengeActivity  Boolean  @default(false) @map("requires_challenge_activity")
+
+  // Display copy
+  unlockHint        String? @map("unlock_hint")
+  sponsorName       String? @map("sponsor_name")
+  notRedeemableNote String  @default("This reward opportunity is not yet redeemable. Fan Value points have no cash value.") @map("not_redeemable_note")
+
+  metadataJson Json?    @map("metadata_json")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  fanReadiness FanRewardReadiness[]
+
+  @@map("reward_readiness_definitions")
+}
+
+model FanRewardReadiness {
+  id           String                @id @default(uuid())
+  userId       String                @map("user_id")
+  definitionId String                @map("definition_id")
+  status       RewardReadinessStatus @default(PENDING_EVALUATION)
+  evaluatedAt  DateTime?             @map("evaluated_at")
+
+  metRequirementsJson   Json? @map("met_requirements_json")
+  unmetRequirementsJson Json? @map("unmet_requirements_json")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user       User                      @relation(fields: [userId], references: [id])
+  definition RewardReadinessDefinition @relation(fields: [definitionId], references: [id])
+
+  @@unique([userId, definitionId])
+  @@index([userId, status])
+  @@map("fan_reward_readiness")
 }

@@ -1,4 +1,4 @@
-import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType } from '@prisma/client';
+import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory } from '@prisma/client';
 import { VENUES } from './seed-data/world-cup-2026/venues';
 import { TEAMS, TBD_TEAM } from './seed-data/world-cup-2026/teams';
 import { GROUPS } from './seed-data/world-cup-2026/groups';
@@ -12,6 +12,10 @@ async function main() {
 
   // Reset fan preferred-team FK first to allow team deletion
   await prisma.fanProfile.updateMany({ data: { preferredTeamId: null } });
+
+  // Clear rewards readiness data
+  await prisma.fanRewardReadiness.deleteMany();
+  await prisma.rewardReadinessDefinition.deleteMany();
 
   // Clear achievement data first (depend on users and definitions)
   await prisma.fanBadge.deleteMany();
@@ -464,6 +468,102 @@ async function main() {
 
   console.log(`  ✓ Achievement definitions seeded: ${achDefs.length}`);
   console.log(`  ✓ Badge definitions seeded: ${badgeDefs.length}`);
+
+  // ── Reward Readiness Definitions ──────────────────────────────────────────
+
+  interface RewardDef {
+    slug: string;
+    name: string;
+    description: string;
+    category: RewardReadinessCategory;
+    sortOrder: number;
+    minFanValuePoints?: number;
+    requiredAchievementSlugs?: string[];
+    requiredBadgeSlugs?: string[];
+    requiresFantasyTeam?: boolean;
+    requiresPredictionActivity?: boolean;
+    requiresChallengeActivity?: boolean;
+    unlockHint?: string;
+    sponsorName?: string;
+  }
+
+  const rewardDefs: RewardDef[] = [
+    {
+      slug: 'fantasy-starter-reward',
+      name: 'Fantasy Starter Reward',
+      description: 'Available to fans who have built a fantasy team and earned at least 10 Fan Value points.',
+      category: RewardReadinessCategory.FANTASY,
+      sortOrder: 10,
+      minFanValuePoints: 10,
+      requiresFantasyTeam: true,
+      unlockHint: 'Build a fantasy team and earn 10 Fan Value points to unlock this reward opportunity.',
+    },
+    {
+      slug: 'prediction-explorer-reward',
+      name: 'Prediction Explorer Reward',
+      description: 'Available to fans who have made match predictions and earned at least 20 Fan Value points.',
+      category: RewardReadinessCategory.PREDICTIONS,
+      sortOrder: 20,
+      minFanValuePoints: 20,
+      requiresPredictionActivity: true,
+      unlockHint: 'Make at least one prediction and earn 20 Fan Value points.',
+    },
+    {
+      slug: 'challenge-champion-reward',
+      name: 'Challenge Champion Reward',
+      description: 'Available to fans who have participated in peer challenges and earned at least 30 Fan Value points.',
+      category: RewardReadinessCategory.CHALLENGES,
+      sortOrder: 30,
+      minFanValuePoints: 30,
+      requiresChallengeActivity: true,
+      unlockHint: 'Issue or accept a peer challenge and earn 30 Fan Value points.',
+    },
+    {
+      slug: 'loyal-fan-reward',
+      name: 'Loyal Fan Reward',
+      description: 'Available to fans who have accumulated 100 or more Fan Value points across all activities.',
+      category: RewardReadinessCategory.FAN_VALUE,
+      sortOrder: 40,
+      minFanValuePoints: 100,
+      unlockHint: 'Accumulate 100 Fan Value points through fantasy, predictions, and challenges.',
+    },
+    {
+      slug: 'sponsor-ready-reward',
+      name: 'Sponsor Engagement Ready',
+      description: 'For highly active fans: fantasy team, predictions, and 50 Fan Value points required.',
+      category: RewardReadinessCategory.SPONSOR_READY,
+      sortOrder: 50,
+      minFanValuePoints: 50,
+      requiresFantasyTeam: true,
+      requiresPredictionActivity: true,
+      sponsorName: 'PSL One Sponsor (TBD)',
+      unlockHint: 'Build a fantasy team, make predictions, and earn 50 Fan Value points.',
+    },
+    {
+      slug: 'platform-pioneer-reward',
+      name: 'Platform Pioneer Reward',
+      description: 'Exclusive reward opportunity for early PSL One platform adopters. Requires the Early Supporter badge.',
+      category: RewardReadinessCategory.PLATFORM,
+      sortOrder: 60,
+      requiredAchievementSlugs: ['early-supporter'],
+      requiredBadgeSlugs: ['badge-early-supporter'],
+      unlockHint: 'Earn the Early Supporter achievement to unlock this exclusive platform pioneer reward.',
+    },
+  ];
+
+  for (const r of rewardDefs) {
+    await prisma.rewardReadinessDefinition.upsert({
+      where: { slug: r.slug },
+      create: {
+        ...r,
+        requiredAchievementSlugs: r.requiredAchievementSlugs ?? [],
+        requiredBadgeSlugs: r.requiredBadgeSlugs ?? [],
+      },
+      update: { name: r.name, description: r.description, isEnabled: true },
+    });
+  }
+
+  console.log(`  ✓ Reward readiness definitions seeded: ${rewardDefs.length}`);
 
   console.log('');
   console.log('Seed complete.');

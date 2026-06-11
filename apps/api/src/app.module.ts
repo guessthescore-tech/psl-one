@@ -15,6 +15,7 @@ import { GameweeksModule } from './gameweeks/gameweeks.module';
 import { AdminModule } from './admin/admin.module';
 import { FanValueModule } from './fan-value/fan-value.module';
 import { AchievementsModule } from './achievements/achievements.module';
+import { RewardsReadinessModule } from './rewards/rewards-readiness.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { AchievementsModule } from './achievements/achievements.module';
     AdminModule,
     FanValueModule,
     AchievementsModule,
+    RewardsReadinessModule,
     HealthModule,
   ],
   controllers: [VersionController],
