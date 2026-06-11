@@ -121,6 +121,7 @@ export class FootballService {
   }) {
     return this.prisma.fixture.findMany({
       where: {
+        isPublished: true,
         ...(filters.seasonSlug ? { season: { slug: filters.seasonSlug } } : {}),
         ...(filters.status ? { status: filters.status as FixtureStatus } : {}),
         ...(filters.group ? { group: { name: filters.group } } : {}),

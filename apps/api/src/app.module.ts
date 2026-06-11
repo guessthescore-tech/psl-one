@@ -20,6 +20,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityFeedModule } from './activity-feed/activity-feed.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { ClubExperienceModule } from './club-experience/club-experience.module';
+import { FixtureImportModule } from './fixture-import/fixture-import.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ClubExperienceModule } from './club-experience/club-experience.module';
     ActivityFeedModule,
     AdminDashboardModule,
     ClubExperienceModule,
+    FixtureImportModule,
     HealthModule,
   ],
   controllers: [VersionController],

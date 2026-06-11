@@ -339,3 +339,25 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 | `club_shop_products` | `team_id` | `teams` |
 | `club_experience_statuses` | `team_id` | `teams` |
 | `season_squad_registrations` | `season_id`, `player_id`, `team_id` | `seasons`, `players`, `teams` |
+
+## Migration 20260611000005 — Fixture Import (STORY-27)
+
+**File:** `apps/api/prisma/migrations/20260611000005_fixture_import/migration.sql`
+
+### Changes
+
+- `fixtures.is_published BOOLEAN NOT NULL DEFAULT true` — WC2026 fixtures default published; PSL import fixtures start unpublished
+- New table `fixture_import_batches` — staging container for a set of imported fixtures (status pipeline: DRAFT → VALIDATING → VALIDATED/FAILED_VALIDATION → COMMITTED → PUBLISHED/REJECTED)
+- New table `fixture_import_rows` — one row per fixture record in a batch; tracks raw input, resolved IDs, validation errors/warnings as JSONB
+- New enums: `FixtureImportBatchStatus`, `FixtureImportRowStatus`, `FixtureImportSource`
+
+### FK Constraints Added
+
+| Child table | FK column | Parent table |
+|------------|-----------|-------------|
+| `fixture_import_batches` | `season_id` | `seasons` |
+| `fixture_import_rows` | `batch_id` | `fixture_import_batches` |
+| `fixture_import_rows` | `fixture_id` | `fixtures` |
+| `fixture_import_rows` | `home_team_id`, `away_team_id` | `teams` |
+| `fixture_import_rows` | `venue_id` | `venues` |
+| `fixture_import_rows` | `gameweek_id` | `gameweeks` |

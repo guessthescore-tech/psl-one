@@ -506,3 +506,31 @@ All routes verified from source files in `apps/api/src/`.
 | PATCH | `/clubs/admin/fixtures/:fixtureId/venue` | PSL_ADMIN | Assign venue to fixture |
 | PATCH | `/clubs/admin/fixtures/:fixtureId/gameweek` | PSL_ADMIN | Assign gameweek to fixture |
 | PATCH | `/clubs/admin/fixtures/:fixtureId/assignment-status` | PSL_ADMIN | Update fixture assignment status |
+
+## Fixture Import (STORY-27)
+
+### Admin Routes (PSL_ADMIN only — controller: `fixtures/admin`)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fixtures/admin/imports` | PSL_ADMIN | List all import batches (filter by ?seasonId) |
+| POST | `/fixtures/admin/imports` | PSL_ADMIN | Create new import batch |
+| GET | `/fixtures/admin/imports/:batchId` | PSL_ADMIN | Get batch detail with season |
+| DELETE | `/fixtures/admin/imports/:batchId` | PSL_ADMIN | Delete DRAFT/FAILED batch |
+| GET | `/fixtures/admin/imports/:batchId/summary` | PSL_ADMIN | Batch summary with row counts by status |
+| GET | `/fixtures/admin/imports/:batchId/rows` | PSL_ADMIN | List rows in batch |
+| POST | `/fixtures/admin/imports/:batchId/rows` | PSL_ADMIN | Add row to batch |
+| PATCH | `/fixtures/admin/imports/:batchId/rows/:rowId` | PSL_ADMIN | Update row |
+| DELETE | `/fixtures/admin/imports/:batchId/rows/:rowId` | PSL_ADMIN | Delete row |
+| POST | `/fixtures/admin/imports/:batchId/validate` | PSL_ADMIN | Run validation on all rows |
+| POST | `/fixtures/admin/imports/:batchId/commit` | PSL_ADMIN | Commit validated rows as unpublished fixtures |
+| POST | `/fixtures/admin/imports/:batchId/publish` | PSL_ADMIN | Publish committed fixtures (set isPublished=true) |
+| POST | `/fixtures/admin/imports/:batchId/reject` | PSL_ADMIN | Reject batch |
+| GET | `/fixtures/admin/validation/season/:seasonId` | PSL_ADMIN | Season-level fixture validation summary |
+| GET | `/fixtures/admin/conflicts/season/:seasonId` | PSL_ADMIN | Detect duplicate/overlap conflicts |
+| GET | `/fixtures/admin/gameweeks/season/:seasonId/readiness` | PSL_ADMIN | Gameweek assignment readiness |
+| POST | `/fixtures/admin/gameweeks/season/:seasonId/auto-create` | PSL_ADMIN | Auto-create gameweeks from round data |
+| POST | `/fixtures/admin/gameweeks/season/:seasonId/assign-by-round` | PSL_ADMIN | Assign fixtures to gameweeks by round |
+| GET | `/fixtures/admin/publishing/season/:seasonId/readiness` | PSL_ADMIN | Publishing readiness check |
+| POST | `/fixtures/admin/publishing/season/:seasonId/publish-provisional` | PSL_ADMIN | Publish all unpublished fixtures in season |
+| POST | `/fixtures/admin/publishing/season/:seasonId/unpublish-provisional` | PSL_ADMIN | Unpublish safe fixtures (no predictions/fantasy/events) |

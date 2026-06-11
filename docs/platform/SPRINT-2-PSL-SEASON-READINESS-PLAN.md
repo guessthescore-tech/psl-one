@@ -54,19 +54,25 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-27 — PSL Fixture Import, Validation & Publishing Workflow
+### STORY-27 — PSL Fixture Import, Validation & Publishing Workflow ✅ COMPLETE (2026-06-11)
 
 **Goal:** Import the official PSL fixture calendar and validate it before publishing to fans.
 
-**Work:**
-- Import all 30 PSL matchday rounds as gameweeks
-- Import all fixtures with correct kickoff times and venues
-- Assign fixtures to gameweeks using auto-assign or manual assignment
-- Validate: no fixture without a gameweek, no gameweek without fixtures
-- Admin preview + confirmation step before fixtures are published
-- Set fixture status to `SCHEDULED` for all pre-season fixtures
+**Work completed:**
+- `Fixture.isPublished Boolean @default(true)` — existing WC2026 fixtures remain fan-visible; PSL import fixtures start `false`
+- Migration `20260611000005_fixture_import`: `fixture_import_batches`, `fixture_import_rows` tables + 3 enums
+- `FixtureImportService` (22 methods): batch CRUD, row CRUD, validation (ERROR/WARNING/INFO), conflict detection (DUPLICATE_FIXTURE, TEAM_SCHEDULE_OVERLAP, VENUE_OVERLAP), commit (idempotent, `isPublished=false`), publish (blocks if predictions/fantasy/events), auto-gameweek creation from round data
+- `FixtureImportController` at `@Controller('fixtures/admin')` — 21 PSL_ADMIN routes
+- `FootballService.listFixtures()` and `ClubExperienceService` fixture queries filter `isPublished: true`
+- 10 admin web pages: imports list/new/detail/rows/validation/publish, season validation/conflicts/gameweeks/publishing
+- `fixture-import-client.ts` — 21 typed API wrappers
+- 110 new tests; total 922 API tests passing
 
-**Acceptance:** PSL fixtures are browsable at `/football/fixtures` with correct dates and teams.
+**Acceptance criteria met:** Admin can create import batches, add rows, validate (row-level ERROR/WARNING), commit to provisional fixtures, and publish safely. Fan-facing fixture queries return only published fixtures. WC2026 fixtures remain visible (default `true`). RBAC enforced (401/403 for non-admin). All gate checks pass.
+
+**Provider-neutral:** Import source enum supports MANUAL, CSV_UPLOAD, PROVIDER_API. No vendor parsing hardcoded.
+
+**Commerce boundary:** No betting, odds, stakes, payouts, wallet, payment, checkout, order, or commerce mechanics introduced.
 
 ---
 

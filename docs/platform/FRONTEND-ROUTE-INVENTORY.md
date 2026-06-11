@@ -336,3 +336,18 @@ All pages verified from `apps/web/src/app/` directory scan.
 | File | Routes served |
 |------|--------------|
 | `clubs-client.ts` | `/clubs` (fan) and `/clubs/admin` routes (STORY-26) |
+
+## Fixture Import Admin Pages (STORY-27)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/fixtures/imports` | List all import batches; links to season tools | PSL_ADMIN | `fixture-import-client` | — |
+| `/admin/fixtures/imports/new` | Create new import batch (seasonId, label, source) | PSL_ADMIN | `fixture-import-client` | — |
+| `/admin/fixtures/imports/[batchId]` | Batch detail; status pipeline; lifecycle actions | PSL_ADMIN | `fixture-import-client` | — |
+| `/admin/fixtures/imports/[batchId]/rows` | View/add/delete import rows | PSL_ADMIN | `fixture-import-client` | Inline add form |
+| `/admin/fixtures/imports/[batchId]/validation` | Run validation; error/warning breakdown per row | PSL_ADMIN | `fixture-import-client` | Auto-runs on load |
+| `/admin/fixtures/imports/[batchId]/publish` | Publish committed fixtures confirmation | PSL_ADMIN | `fixture-import-client` | Guards against live fixtures |
+| `/admin/fixtures/validation` | Season-level fixture data quality check | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
+| `/admin/fixtures/conflicts` | Detect duplicate/overlap conflicts for season | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
+| `/admin/fixtures/gameweeks` | Gameweek readiness + auto-create from rounds | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
+| `/admin/fixtures/publishing` | Publish/unpublish all fixtures in season | PSL_ADMIN | `fixture-import-client` | Season ID lookup |

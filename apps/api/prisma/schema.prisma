@@ -306,6 +306,7 @@ model Season {
   fantasyAutoSubs       FantasyAutoSubstitution[]
   seasonTeams           SeasonTeam[]
   squadRegistrations    SeasonSquadRegistration[]
+  fixtureImportBatches  FixtureImportBatch[]
 
   @@map("seasons")
 }
@@ -428,6 +429,7 @@ model Fixture {
   assignmentStatus     String    @default("UNASSIGNED") @map("assignment_status")
   assignmentSource     String?   @map("assignment_source")
   assignedAt           DateTime? @map("assigned_at")
+  isPublished          Boolean   @default(true) @map("is_published")
 
   season       Season                   @relation(fields: [seasonId], references: [id])
   homeTeam     Team                     @relation("HomeTeam", fields: [homeTeamId], references: [id])
@@ -443,6 +445,7 @@ model Fixture {
   ledgerEntries PredictionPointsLedger[]
   fantasyLedger     FantasyPointsLedger[]
   fantasyMatchStats FantasyPlayerMatchStat[]
+  importRows        FixtureImportRow[]
 
   @@map("fixtures")
 }
@@ -1873,4 +1876,91 @@ model SeasonSquadRegistration {
   @@unique([seasonId, playerId])
   @@index([seasonId, teamId])
   @@map("season_squad_registrations")
+}
+
+// ── Fixture Import Workflow ───────────────────────────────────────────────────
+
+enum FixtureImportBatchStatus {
+  DRAFT
+  VALIDATING
+  VALIDATED
+  FAILED_VALIDATION
+  COMMITTED
+  PUBLISHED
+  REJECTED
+}
+
+enum FixtureImportRowStatus {
+  PENDING
+  VALID
+  WARNING
+  ERROR
+  COMMITTED
+  SKIPPED
+}
+
+enum FixtureImportSource {
+  MANUAL
+  CSV
+  JSON
+  OFFICIAL_PSL
+  PROVIDER_IMPORT
+  PLACEHOLDER
+}
+
+model FixtureImportBatch {
+  id               String                  @id @default(uuid())
+  seasonId         String                  @map("season_id")
+  source           FixtureImportSource     @default(MANUAL)
+  status           FixtureImportBatchStatus @default(DRAFT)
+  label            String?
+  fileName         String?                 @map("file_name")
+  sourceReference  String?                 @map("source_reference")
+  importedByUserId String?                 @map("imported_by_user_id")
+  totalRows        Int                     @default(0) @map("total_rows")
+  validRows        Int                     @default(0) @map("valid_rows")
+  warningRows      Int                     @default(0) @map("warning_rows")
+  errorRows        Int                     @default(0) @map("error_rows")
+  committedRows    Int                     @default(0) @map("committed_rows")
+  summaryJson      Json?                   @map("summary_json")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+  validatedAt      DateTime?               @map("validated_at")
+  committedAt      DateTime?               @map("committed_at")
+  publishedAt      DateTime?               @map("published_at")
+  rejectedAt       DateTime?               @map("rejected_at")
+
+  season Season          @relation(fields: [seasonId], references: [id])
+  rows   FixtureImportRow[]
+
+  @@index([seasonId, status])
+  @@map("fixture_import_batches")
+}
+
+model FixtureImportRow {
+  id              String                @id @default(uuid())
+  batchId         String                @map("batch_id")
+  rowNumber       Int                   @map("row_number")
+  rawDataJson     Json                  @map("raw_data_json")
+  homeTeamRaw     String?               @map("home_team_raw")
+  awayTeamRaw     String?               @map("away_team_raw")
+  venueRaw        String?               @map("venue_raw")
+  kickoffAtRaw    String?               @map("kickoff_at_raw")
+  roundRaw        String?               @map("round_raw")
+  homeTeamId      String?               @map("home_team_id")
+  awayTeamId      String?               @map("away_team_id")
+  venueId         String?               @map("venue_id")
+  gameweekId      String?               @map("gameweek_id")
+  fixtureId       String?               @map("fixture_id")
+  status          FixtureImportRowStatus @default(PENDING)
+  errorsJson      Json?                 @map("errors_json")
+  warningsJson    Json?                 @map("warnings_json")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  batch   FixtureImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  fixture Fixture?           @relation(fields: [fixtureId], references: [id])
+
+  @@index([batchId, status])
+  @@map("fixture_import_rows")
 }

@@ -105,6 +105,7 @@ export class ClubExperienceService {
     const team = await this._requireTeamBySlug(slug);
     return this.prisma.fixture.findMany({
       where: {
+        isPublished: true,
         OR: [{ homeTeamId: team.id }, { awayTeamId: team.id }],
         status: { in: [FixtureStatus.SCHEDULED, FixtureStatus.LIVE] },
       },
@@ -122,6 +123,7 @@ export class ClubExperienceService {
     const team = await this._requireTeamBySlug(slug);
     return this.prisma.fixture.findMany({
       where: {
+        isPublished: true,
         OR: [{ homeTeamId: team.id }, { awayTeamId: team.id }],
         status: FixtureStatus.FINISHED,
       },

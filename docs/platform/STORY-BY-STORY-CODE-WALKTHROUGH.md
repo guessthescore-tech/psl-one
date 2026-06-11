@@ -720,3 +720,64 @@ This document explains what each Sprint 1 story built, how the code works, and w
 **Module fix:** `ClubExperienceModule` imports `AuthModule` (required for `JwtAuthGuard`/`RolesGuard` to resolve `LocalJwtProvider`). This is the standard pattern across all modules that use admin guards.
 
 **`getClubs()` filter:** Without a season slug, the method filters to `where: { clubProfile: { isNot: null } }` so only PSL clubs (which have `ClubProfile` records) are returned. WC2026 teams have no `ClubProfile` and are excluded.
+
+---
+
+## STORY-27 — PSL Fixture Import, Validation & Publishing Workflow
+
+**Product purpose:** Deliver an admin-controlled workflow to stage, validate, and safely publish PSL fixture data without risking World Cup beta fixture visibility or fan data integrity. Fixtures remain invisible to fans until explicitly published after validation.
+
+**Schema additions (`20260611000005_fixture_import`):**
+- `Fixture.isPublished Boolean @default(true)` — all existing WC2026 fixtures remain fan-visible; new PSL import-created fixtures default to `false`
+- 3 new enums: `FixtureImportBatchStatus` (DRAFT → VALIDATING → VALIDATED/FAILED_VALIDATION → COMMITTED → PUBLISHED/REJECTED), `FixtureImportRowStatus` (PENDING/VALID/WARNING/ERROR/COMMITTED/SKIPPED), `FixtureImportSource` (MANUAL/CSV_UPLOAD/PROVIDER_API)
+- `FixtureImportBatch` model — staging container, tracks row counts and lifecycle timestamps
+- `FixtureImportRow` model — one row per fixture; stores raw input fields, resolved team/venue/gameweek IDs, and validation errors/warnings as JSONB
+- Back-relation `Season.fixtureImportBatches` and `Fixture.importRows` added
+
+**`isPublished` fan-facing protection:**
+- `FootballService.listFixtures()` filters `isPublished: true`
+- `ClubExperienceService.getClubFixtures()` and `getClubResults()` filter `isPublished: true`
+- Existing WC2026 fixtures have `isPublished = true` by migration default — no fan-visible change
+
+**New service: `FixtureImportService` (22 methods):**
+- Batch CRUD: `listBatches`, `createBatch`, `getBatch`, `deleteBatch`, `getBatchRows`, `getBatchSummary`
+- Row CRUD: `addRow`, `updateRow`, `deleteRow` — with auto-resolution of team/venue by name/slug/shortName
+- Validation pipeline: `validateBatch` — row-level ERROR/WARNING/INFO items; detects missing teams, invalid kickoff dates, team equality, season participation, season date window, venue/gameweek warnings, duplicate rows within batch, duplicate vs existing DB fixtures
+- Conflict detection: `getSeasonFixtureConflicts` — DUPLICATE_FIXTURE (same home/away on same date), TEAM_SCHEDULE_OVERLAP (within 2 hours), VENUE_OVERLAP (same venue, same kickoff)
+- Commit: `commitBatch` — creates fixtures with `isPublished: false`, idempotent (skips exact duplicates already in DB)
+- Publish: `publishBatch` — sets `isPublished: true`, blocks if fixture has predictions/fantasy/events attached
+- Season tools: `getSeasonFixtureValidation`, `getGameweekReadiness`, `autoCreateGameweeks` (groups fixtures by round, creates gameweeks with deadlines 1h before earliest kickoff), `assignFixturesByRound`
+- Publishing readiness: `getPublishingReadiness`, `publishProvisionalFixtures`, `unpublishProvisionalFixtures` (only safe fixtures with no fan data)
+- Reject: `rejectBatch`
+
+**Controller (`@Controller('fixtures/admin')` — PSL_ADMIN only, 21 routes):**
+- Route family `fixtures/admin` chosen to avoid collision with existing `admin/fixtures` (AdminFixtureAssignmentController)
+- Static season-level routes (`validation/season/:id`, `conflicts/season/:id`, `gameweeks/season/:id/...`, `publishing/season/:id/...`) declared before parameterised `:batchId` routes
+
+**Validation rules (ERROR blocks commit, WARNING allows commit with review):**
+- ERROR: missing homeTeam, missing awayTeam, home == away, invalid kickoff date, team not in season, unresolved team name, duplicate row in batch
+- WARNING: team participation not ACTIVE, kickoff outside season window, venue not specified, gameweek not assigned, gameweek deadline after kickoff, duplicate vs existing DB fixture
+
+**Commit is idempotent:** If exact duplicate (home+away+kickoff+season) already exists in DB, row is marked COMMITTED with the existing fixture ID and counted as `skipped`.
+
+**Provider-neutral design:** `FixtureImportSource` enum supports MANUAL, CSV_UPLOAD, PROVIDER_API. No vendor-specific parsing. Team resolution by name, slug, shortName, or externalId.
+
+**Commerce boundaries:** No checkout, cart, orders, payments, fulfilment, refunds, vouchers, inventory reservation, deposits, withdrawals, fiat, crypto, betting, odds, stakes, payouts, or wagers. Import workflow is fixture data only.
+
+**Web pages added (10 admin pages):**
+- `/admin/fixtures/imports` — batch list with status pipeline
+- `/admin/fixtures/imports/new` — create batch form
+- `/admin/fixtures/imports/[batchId]` — batch detail with lifecycle action buttons
+- `/admin/fixtures/imports/[batchId]/rows` — row table with inline add form
+- `/admin/fixtures/imports/[batchId]/validation` — auto-runs validation on load, row-by-row error/warning breakdown
+- `/admin/fixtures/imports/[batchId]/publish` — publish confirmation with pre-publish checklist
+- `/admin/fixtures/validation` — season-level fixture data quality check
+- `/admin/fixtures/conflicts` — conflict scanner (DUPLICATE/OVERLAP/VENUE)
+- `/admin/fixtures/gameweeks` — gameweek readiness + auto-create from rounds
+- `/admin/fixtures/publishing` — season-level publish/unpublish all
+
+**Web client:** `apps/web/src/lib/fixture-import-client.ts` — 21 typed fetch wrappers matching controller routes
+
+**Test gate:** 922 API tests passing (110 new in `fixture-import.service.spec.ts`), 8 web tests passing. Typecheck clean. API and web build clean. Seed passes. Schema validates.
+
+**TypeScript fixes applied:** `exactOptionalPropertyTypes: true` required: `where` spread instead of `where: undefined`; optional string fields mapped to `null`; Prisma nullable JSON cleared via `Prisma.JsonNull` not `null`.
