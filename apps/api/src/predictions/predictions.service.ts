@@ -5,13 +5,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PredictionStatus, ChallengeStatus } from '@prisma/client';
+import { NotificationPriority, NotificationType, PredictionStatus, ChallengeStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePredictionDto } from './dto/create-prediction.dto';
 import { UpdatePredictionDto } from './dto/update-prediction.dto';
 import { calculatePoints } from './scoring';
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const FIXTURE_SELECT = {
   id: true,
@@ -37,6 +38,7 @@ export class PredictionsService {
     private prisma: PrismaService,
     private readonly fanValueLedgerService: FanValueLedgerService,
     private readonly achievementsService: AchievementsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createPrediction(userId: string, dto: CreatePredictionDto) {
@@ -230,6 +232,18 @@ export class PredictionsService {
       }
       this.achievementsService.safeEvaluate(p.userId, ['prediction-points-25', 'prediction-points-50', 'fan-value-100', 'fan-value-250']).catch(() => null);
 
+      // Notification hook (safe)
+      this.notificationsService.createInAppNotification({
+        userId: p.userId,
+        type: NotificationType.PREDICTION_RESULT,
+        title: points > 0 ? `Prediction scored ${points} pts!` : 'Prediction result in',
+        body: points > 0 ? `Your prediction earned you ${points} Fan Value points.` : 'Better luck next time!',
+        priority: NotificationPriority.NORMAL,
+        sourceType: 'PREDICTION',
+        sourceId: p.id,
+        actionUrl: `/predictions`,
+      }).catch(() => null);
+
       summary.push({ predictionId: p.id, userId: p.userId, points });
     }
 
@@ -280,6 +294,25 @@ export class PredictionsService {
       // Achievement hooks for challenge winner
       if (winnerUserId) {
         this.achievementsService.safeEvaluate(winnerUserId, ['first-challenge-win']).catch(() => null);
+      }
+
+      // Notify both participants of challenge result (safe hook)
+      const resultBody = winnerUserId
+        ? winnerUserId === ch.challengerUserId
+          ? `You won! You scored ${cPts} pts vs ${oPts} pts.`
+          : `You won! You scored ${oPts} pts vs ${cPts} pts.`
+        : `It's a draw! Both scored ${cPts} pts.`;
+      for (const participantId of [ch.challengerUserId, ch.opponentUserId]) {
+        this.notificationsService.createInAppNotification({
+          userId: participantId,
+          type: NotificationType.CHALLENGE_RESULT,
+          title: winnerUserId === participantId ? 'You won the challenge!' : winnerUserId ? 'Challenge result in' : 'Challenge drawn!',
+          body: resultBody,
+          priority: NotificationPriority.NORMAL,
+          sourceType: 'CHALLENGE',
+          sourceId: ch.id,
+          actionUrl: `/predictions`,
+        }).catch(() => null);
       }
     }
 

@@ -13,6 +13,11 @@ async function main() {
   // Reset fan preferred-team FK first to allow team deletion
   await prisma.fanProfile.updateMany({ data: { preferredTeamId: null } });
 
+  // Clear notification data
+  await prisma.notificationDeliveryLog.deleteMany();
+  await prisma.notification.deleteMany();
+  await prisma.notificationPreference.deleteMany();
+
   // Clear rewards readiness data
   await prisma.fanRewardReadiness.deleteMany();
   await prisma.rewardReadinessDefinition.deleteMany();

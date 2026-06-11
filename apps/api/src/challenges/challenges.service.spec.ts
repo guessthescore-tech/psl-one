@@ -66,7 +66,7 @@ describe('ChallengesService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
-    service = new ChallengesService(prisma as unknown as PrismaService, makeAchievementsMock());
+    service = new ChallengesService(prisma as unknown as PrismaService, makeAchievementsMock(), { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
   });
 
   // ── 1. Create challenge ────────────────────────────────────────────────────

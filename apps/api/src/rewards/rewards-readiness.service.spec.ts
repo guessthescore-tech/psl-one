@@ -81,7 +81,7 @@ describe('RewardsReadinessService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
-    service = new RewardsReadinessService(prisma as unknown as PrismaService);
+    service = new RewardsReadinessService(prisma as unknown as PrismaService, { createInAppNotification: vi.fn().mockResolvedValue(null) } as any);
   });
 
   // ── 1. getDefinitions ──────────────────────────────────────────────────────

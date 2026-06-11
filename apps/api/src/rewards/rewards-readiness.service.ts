@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { RewardReadinessCategory, RewardReadinessStatus } from '@prisma/client';
+import { NotificationPriority, NotificationType, RewardReadinessCategory, RewardReadinessStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,10 @@ export interface EligibilityResult {
 
 @Injectable()
 export class RewardsReadinessService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   // ── Definitions ────────────────────────────────────────────────────────────
 
@@ -95,6 +99,11 @@ export class RewardsReadinessService {
         ? RewardReadinessStatus.ELIGIBLE
         : RewardReadinessStatus.INELIGIBLE;
 
+      // Check previous status before upsert to detect newly eligible
+      const prev = await this.prisma.fanRewardReadiness.findUnique({
+        where: { userId_definitionId: { userId, definitionId: def.id } },
+      });
+
       await this.prisma.fanRewardReadiness.upsert({
         where: { userId_definitionId: { userId, definitionId: def.id } },
         create: {
@@ -112,6 +121,20 @@ export class RewardsReadinessService {
           unmetRequirementsJson: unmet,
         },
       });
+
+      // Notify fan on newly becoming ELIGIBLE (safe hook)
+      if (status === RewardReadinessStatus.ELIGIBLE && (!prev || prev.status !== RewardReadinessStatus.ELIGIBLE)) {
+        this.notificationsService.createInAppNotification({
+          userId,
+          type: NotificationType.REWARD_ELIGIBLE,
+          title: 'Reward opportunity available!',
+          body: `You are now eligible for: ${def.name}`,
+          priority: NotificationPriority.NORMAL,
+          sourceType: 'REWARD_READINESS',
+          sourceId: def.id,
+          actionUrl: '/rewards',
+        }).catch(() => null);
+      }
 
       results.push({ definitionId: def.id, slug: def.slug, name: def.name, status, metRequirements: met, unmetRequirements: unmet });
     }

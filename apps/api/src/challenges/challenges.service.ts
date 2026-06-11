@@ -4,9 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ChallengeStatus } from '@prisma/client';
+import { ChallengeStatus, NotificationPriority, NotificationType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateChallengeDto } from './dto/create-challenge.dto';
 
 const FIXTURE_SELECT = {
@@ -36,6 +37,7 @@ export class ChallengesService {
   constructor(
     private prisma: PrismaService,
     private readonly achievementsService: AchievementsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createChallenge(challengerUserId: string, dto: CreateChallengeDto) {
@@ -74,6 +76,19 @@ export class ChallengesService {
     });
 
     this.achievementsService.safeEvaluate(challengerUserId, ['first-peer-challenge']).catch(() => null);
+
+    // Notify opponent of challenge invite (safe hook)
+    this.notificationsService.createInAppNotification({
+      userId: opponent.id,
+      type: NotificationType.CHALLENGE_INVITE,
+      title: 'You have a new challenge!',
+      body: `You have been challenged on an upcoming fixture.`,
+      priority: NotificationPriority.NORMAL,
+      sourceType: 'CHALLENGE',
+      sourceId: challenge.id,
+      actionUrl: `/predictions`,
+    }).catch(() => null);
+
     return challenge;
   }
 

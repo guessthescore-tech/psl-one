@@ -61,8 +61,10 @@ model User {
   fantasyAutoSubs       FantasyAutoSubstitution[]
   fanAchievements       FanAchievement[]          @relation("FanAchievementOwner")
   awardedAchievements   FanAchievement[]          @relation("FanAchievementAwarder")
-  fanBadges             FanBadge[]
-  fanRewardReadiness    FanRewardReadiness[]
+  fanBadges               FanBadge[]
+  fanRewardReadiness      FanRewardReadiness[]
+  notifications           Notification[]
+  notificationPreference  NotificationPreference?
 
   @@map("users")
 }
@@ -525,23 +527,9 @@ model FanProfile {
   updatedAt       DateTime @updatedAt @map("updated_at")
 
   user          User                     @relation(fields: [userId], references: [id])
-  preferredTeam Team?                    @relation(fields: [preferredTeamId], references: [id])
-  preferences   NotificationPreferences?
+  preferredTeam Team? @relation(fields: [preferredTeamId], references: [id])
 
   @@map("fan_profiles")
-}
-
-model NotificationPreferences {
-  id             String  @id @default(uuid())
-  profileId      String  @unique @map("profile_id")
-  matchReminders Boolean @default(true) @map("match_reminders")
-  teamNews       Boolean @default(true) @map("team_news")
-  fantasyUpdates Boolean @default(false) @map("fantasy_updates")
-  rewardsUpdates Boolean @default(false) @map("rewards_updates")
-
-  profile FanProfile @relation(fields: [profileId], references: [id])
-
-  @@map("notification_preferences")
 }
 
 // ── Predictions & Peer Challenges ─────────────────────────────────────────────
@@ -1481,4 +1469,110 @@ model FanRewardReadiness {
   @@unique([userId, definitionId])
   @@index([userId, status])
   @@map("fan_reward_readiness")
+}
+
+// ── Notifications & Alerts ────────────────────────────────────────────────────
+
+enum NotificationType {
+  SYSTEM
+  FANTASY_DEADLINE
+  FANTASY_RESULT
+  PREDICTION_LOCK
+  PREDICTION_RESULT
+  CHALLENGE_INVITE
+  CHALLENGE_RESULT
+  ACHIEVEMENT_UNLOCKED
+  REWARD_ELIGIBLE
+  LIVE_MATCH_ALERT
+  ADMIN_BROADCAST
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum NotificationChannel {
+  IN_APP
+  PUSH_READY
+  EMAIL_READY
+  SMS_READY
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  SKIPPED
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  userId      String               @map("user_id")
+  type        NotificationType
+  title       String
+  body        String
+  status      NotificationStatus   @default(UNREAD)
+  priority    NotificationPriority @default(NORMAL)
+  sourceType  String?              @map("source_type")
+  sourceId    String?              @map("source_id")
+  actionUrl   String?              @map("action_url")
+  metadataJson Json?               @map("metadata_json")
+  readAt      DateTime?            @map("read_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  user         User                      @relation(fields: [userId], references: [id])
+  deliveryLogs NotificationDeliveryLog[]
+
+  @@unique([userId, sourceType, sourceId])
+  @@index([userId, status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                   String   @id @default(uuid())
+  userId               String   @unique @map("user_id")
+  inAppEnabled         Boolean  @default(true) @map("in_app_enabled")
+  fantasyEnabled       Boolean  @default(true) @map("fantasy_enabled")
+  predictionsEnabled   Boolean  @default(true) @map("predictions_enabled")
+  challengesEnabled    Boolean  @default(true) @map("challenges_enabled")
+  achievementsEnabled  Boolean  @default(true) @map("achievements_enabled")
+  rewardsEnabled       Boolean  @default(true) @map("rewards_enabled")
+  systemEnabled        Boolean  @default(true) @map("system_enabled")
+  marketingEnabled     Boolean  @default(false) @map("marketing_enabled")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("notification_preferences")
+}
+
+model NotificationDeliveryLog {
+  id             String                     @id @default(uuid())
+  notificationId String?                    @map("notification_id")
+  userId         String                     @map("user_id")
+  channel        NotificationChannel
+  provider       String
+  status         NotificationDeliveryStatus
+  errorMessage   String?                    @map("error_message")
+  metadataJson   Json?                      @map("metadata_json")
+  attemptedAt    DateTime                   @default(now()) @map("attempted_at")
+  createdAt      DateTime                   @default(now()) @map("created_at")
+
+  notification Notification? @relation(fields: [notificationId], references: [id])
+
+  @@index([notificationId])
+  @@index([userId, attemptedAt(sort: Desc)])
+  @@map("notification_delivery_logs")
 }

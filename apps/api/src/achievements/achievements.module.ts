@@ -4,9 +4,10 @@ import { AchievementsService } from './achievements.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { FanValueModule } from '../fan-value/fan-value.module';
 import { AuthModule } from '../auth/auth.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [PrismaModule, FanValueModule, AuthModule],
+  imports: [PrismaModule, FanValueModule, AuthModule, NotificationsModule],
   controllers: [AchievementsController],
   providers: [AchievementsService],
   exports: [AchievementsService],

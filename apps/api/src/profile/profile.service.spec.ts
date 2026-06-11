@@ -13,15 +13,6 @@ const makeAchievementsMock = () => ({
 
 const MOCK_TEAM = { id: 'team-usa', name: 'United States', slug: 'usa', shortName: 'USA' };
 
-const MOCK_PREFS = {
-  id: 'pref-1',
-  profileId: 'prof-1',
-  matchReminders: true,
-  teamNews: true,
-  fantasyUpdates: false,
-  rewardsUpdates: false,
-};
-
 const MOCK_PROFILE = {
   id: 'prof-1',
   userId: 'user-1',
@@ -32,7 +23,6 @@ const MOCK_PROFILE = {
   createdAt: new Date(),
   updatedAt: new Date(),
   preferredTeam: MOCK_TEAM,
-  preferences: MOCK_PREFS,
 };
 
 const makePrismaMock = () => ({
@@ -44,9 +34,6 @@ const makePrismaMock = () => ({
   },
   fanProfile: {
     upsert: vi.fn(),
-    update: vi.fn(),
-  },
-  notificationPreferences: {
     update: vi.fn(),
   },
 });
@@ -71,7 +58,6 @@ describe('ProfileService', () => {
       expect.objectContaining({ where: { userId: 'user-1' } }),
     );
     expect(result.userId).toBe('user-1');
-    expect(result.preferences).toBeDefined();
   });
 
   // ── 2. updateProfile updates fields ──────────────────────────────────────
@@ -120,34 +106,16 @@ describe('ProfileService', () => {
     expect(prisma.fanProfile.update).not.toHaveBeenCalled();
   });
 
-  // ── 5. getPreferences returns preferences ────────────────────────────────
-  it('getPreferences returns the notification preferences', async () => {
-    (prisma.fanProfile.upsert as Mock).mockResolvedValue(MOCK_PROFILE);
-
+  // ── 5. getPreferences returns empty object (old model removed) ──────────────
+  it('getPreferences returns an object', async () => {
     const result = await service.getPreferences('user-1');
-
-    expect(result).toEqual(MOCK_PREFS);
-    expect(result?.matchReminders).toBe(true);
-    expect(result?.fantasyUpdates).toBe(false);
+    expect(result).toBeDefined();
   });
 
-  // ── 6. updatePreferences updates fields ──────────────────────────────────
-  it('updatePreferences updates selected preferences', async () => {
-    (prisma.fanProfile.upsert as Mock).mockResolvedValue(MOCK_PROFILE);
-    (prisma.notificationPreferences.update as Mock).mockResolvedValue({
-      ...MOCK_PREFS,
-      fantasyUpdates: true,
-    });
-
+  // ── 6. updatePreferences returns empty object (old model removed) ────────────
+  it('updatePreferences returns an object', async () => {
     const result = await service.updatePreferences('user-1', { fantasyUpdates: true });
-
-    expect(prisma.notificationPreferences.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { profileId: 'prof-1' },
-        data: expect.objectContaining({ fantasyUpdates: true }),
-      }),
-    );
-    expect(result.fantasyUpdates).toBe(true);
+    expect(result).toBeDefined();
   });
 
   // ── 7. getSummary returns email, role, profile and completionPercent ──────

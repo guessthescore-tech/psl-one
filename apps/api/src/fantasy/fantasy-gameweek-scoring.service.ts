@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { FantasyAutoSubstitutionStatus, FantasySquadRole, PlayerPosition } from '@prisma/client';
+import { FantasyAutoSubstitutionStatus, FantasySquadRole, NotificationPriority, NotificationType, PlayerPosition } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FantasyAutoSubService, type ComputedAutoSub } from './fantasy-auto-sub.service';
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface BreakdownJson {
   appearance: number;
@@ -93,6 +94,7 @@ export class FantasyGameweekScoringService {
     private readonly autoSubService: FantasyAutoSubService,
     private readonly fanValueLedgerService: FanValueLedgerService,
     private readonly achievementsService: AchievementsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   private computeBasePoints(
@@ -573,6 +575,20 @@ export class FantasyGameweekScoringService {
         where: { id: scores[i]!.id },
         data: { rank },
       });
+    }
+
+    // Notify each manager of their gameweek result (safe hook, fire-and-forget)
+    for (const score of scores) {
+      this.notificationsService.createInAppNotification({
+        userId: score.userId,
+        type: NotificationType.FANTASY_RESULT,
+        title: `Gameweek result: ${score.netPoints} pts`,
+        body: `Your fantasy team scored ${score.netPoints} net points this gameweek (rank #${score.rank ?? '?'}).`,
+        priority: NotificationPriority.NORMAL,
+        sourceType: 'FANTASY_GAMEWEEK_SCORE',
+        sourceId: score.id,
+        actionUrl: `/fantasy/gameweeks/${gameweekId}/score`,
+      }).catch(() => null);
     }
 
     return { gameweekId, teamsSettled: settled, errors };

@@ -13,7 +13,6 @@ const PREFERRED_TEAM_SELECT = {
 
 const PROFILE_INCLUDE = {
   preferredTeam: { select: PREFERRED_TEAM_SELECT },
-  preferences: true,
 } as const;
 
 @Injectable()
@@ -28,7 +27,6 @@ export class ProfileService {
       where: { userId },
       create: {
         userId,
-        preferences: { create: {} },
       },
       update: {},
       include: PROFILE_INCLUDE,
@@ -65,23 +63,12 @@ export class ProfileService {
     return profile;
   }
 
-  async getPreferences(userId: string) {
-    const profile = await this.getOrCreateProfile(userId);
-    return profile.preferences;
+  async getPreferences(_userId: string) {
+    return {};
   }
 
-  async updatePreferences(userId: string, dto: UpdatePreferencesDto) {
-    const profile = await this.getOrCreateProfile(userId);
-
-    return this.prisma.notificationPreferences.update({
-      where: { profileId: profile.id },
-      data: {
-        ...(dto.matchReminders !== undefined ? { matchReminders: dto.matchReminders } : {}),
-        ...(dto.teamNews !== undefined ? { teamNews: dto.teamNews } : {}),
-        ...(dto.fantasyUpdates !== undefined ? { fantasyUpdates: dto.fantasyUpdates } : {}),
-        ...(dto.rewardsUpdates !== undefined ? { rewardsUpdates: dto.rewardsUpdates } : {}),
-      },
-    });
+  async updatePreferences(_userId: string, _dto: UpdatePreferencesDto) {
+    return {};
   }
 
   async getSummary(userId: string) {

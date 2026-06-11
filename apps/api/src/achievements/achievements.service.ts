@@ -6,9 +6,12 @@ import {
   FanValueSourceType,
   FanValueType,
   FanValueStatus,
+  NotificationType,
+  NotificationPriority,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CreateAchievementDefinitionDto {
   slug: string;
@@ -41,6 +44,7 @@ export class AchievementsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly fanValueLedgerService: FanValueLedgerService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ── Definitions ──────────────────────────────────────────────────────────
@@ -310,6 +314,18 @@ export class AchievementsService {
         `Achievement unlocked: ${def.name}`,
       ).catch(() => null);
     }
+
+    // In-app notification (safe — must not fail the award)
+    this.notificationsService.createInAppNotification({
+      userId,
+      type: NotificationType.ACHIEVEMENT_UNLOCKED,
+      title: 'Achievement unlocked!',
+      body: `You unlocked: ${def.name}`,
+      priority: NotificationPriority.NORMAL,
+      sourceType: 'ACHIEVEMENT',
+      sourceId: def.id,
+      actionUrl: '/achievements',
+    }).catch(() => null);
 
     return fanAchievement;
   }
