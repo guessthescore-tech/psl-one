@@ -230,26 +230,41 @@ Sprint 3 is where PSL One becomes a real, deployed, revenue-generating product. 
 
 ### Infrastructure
 - Terraform is the infrastructure-as-code tool
-- Do not run `terraform apply` without proper review and approval
+- Do not run `terraform apply` without explicit review and user approval — design only until instructed
 - Production RDS requires regular backup verification
 - CloudFront distribution caches static assets — cache invalidation strategy needed
+- Connection pooling: RDS Proxy is preferred over PgBouncer for Fargate (stateless containers); capture this in an ADR before Sprint 3 deployment
+
+### CORS (must fix before first ECS deploy)
+- `apps/api/src/main.ts` currently hardcodes `origin: ['http://localhost:3001']`
+- Before any staging or production deployment, `CORS_ORIGIN` must be an environment variable
+- Recommended fix: `app.enableCors({ origin: process.env['CORS_ORIGIN']?.split(',') ?? ['http://localhost:3001'], credentials: true })`
+- Failure to fix this will cause all production fan requests to be blocked by CORS
 
 ### Database
 - Production uses AWS RDS PostgreSQL (not local)
 - Migrations run via `prisma migrate deploy` (not `migrate dev`)
 - Never run `prisma migrate reset` on production
-- Connection pooling via PgBouncer or RDS Proxy
+- Create a dedicated performance index migration before any load testing
+
+### Missing indexes (create as performance migration in Sprint 3)
+The following indexes are absent from the Sprint 1 schema and will cause query degradation at 2M fans:
+- `fixtures`: index on `(season_id, status)` and `(gameweek_id)`
+- `score_predictions`: index on `(fixture_id, status)` for settlement queries
+- `peer_challenges`: index on `challenger_user_id` and `opponent_user_id`
+- `fantasy_gameweek_scores`: index on `(season_id, gameweek_id)` for leaderboard queries
 
 ### Security
 - All secrets via AWS Secrets Manager — never in environment files
 - JWT secret rotation policy needed
-- API rate limiting via AWS WAF or NestJS throttle guard
+- API rate limiting: add `@nestjs/throttler` on auth endpoints before production
+- Add `@fastify/helmet` for security headers (HSTS, XSS protection, etc.)
 - HTTPS everywhere — no HTTP in production
 
 ### Performance
-- Database indexes on high-traffic queries: `user_id`, `fixture_id`, `season_id`
+- Database indexes on high-traffic queries: create performance migration (see above)
 - Redis caching for: active season, player pool, standings (Sprint 3+)
-- Kafka for async event processing (achievement evaluation, notification dispatch)
+- Async event processing (achievement evaluation, notification dispatch) requires explicit broker decision — do not introduce Kafka or EventBridge until explicitly approved
 
 ### Compliance
 - POPIA requires: lawful basis for processing, data subject rights, breach notification within 72 hours

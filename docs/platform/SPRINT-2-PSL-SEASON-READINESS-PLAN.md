@@ -212,6 +212,20 @@ These are Sprint 3.
 - Platform already supports multiple concurrent competitions
 - No architectural changes needed — Sprint 2 is configuration and data
 
+### Known deferred issues (from Sprint 1 expert review)
+
+The following issues were identified in the Sprint 1 expert review and are documented here for Sprint 2 awareness. They do not block data readiness work but must be resolved before production:
+
+**Audit log coverage (HIGH):** Audit logs currently only cover auth events (register, login, logout, password reset). Domain mutations (prediction settlement, fantasy transfer, fan value posting, achievement award) are not audited. This violates the CLAUDE.md "Always write audit logs" rule. Add domain mutation audit logging in Sprint 2 where feasible, or defer to Sprint 3 as a dedicated story.
+
+**Dev-token web pages (HIGH):** 21 web pages use `const TOKEN = 'dev-token'` as a hardcoded placeholder. These pages will not function with real JWT tokens. A UX pass is required (STORY-33 or a dedicated story) to wire real session management before fan beta.
+
+**Missing database indexes (MEDIUM for Sprint 2, HIGH before production):** The following indexes are missing and will cause performance degradation at scale. They are not critical for Sprint 2 local development but must be added before any load testing or production deployment:
+- `fixtures`: `(season_id, status)` and `(gameweek_id)`
+- `score_predictions`: `(fixture_id, status)` for settlement queries
+- `peer_challenges`: `challenger_user_id` and `opponent_user_id`
+- `fantasy_gameweek_scores`: `(season_id, gameweek_id)`
+
 ### Testing
 - All existing 812 API tests must remain green
 - New tests should cover PSL-specific rule variants (30-round seasons, squad sizes)
