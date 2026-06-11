@@ -534,3 +534,24 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/fixtures/admin/publishing/season/:seasonId/readiness` | PSL_ADMIN | Publishing readiness check |
 | POST | `/fixtures/admin/publishing/season/:seasonId/publish-provisional` | PSL_ADMIN | Publish all unpublished fixtures in season |
 | POST | `/fixtures/admin/publishing/season/:seasonId/unpublish-provisional` | PSL_ADMIN | Unpublish safe fixtures (no predictions/fantasy/events) |
+
+## /football — Season Context (STORY-28 additions)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/football/context` | None | Active season + upcoming seasons context for fan default experience |
+| GET | `/football/seasons/:slug` | None | Get season by slug (including historical seasons like WC2026) |
+
+## /seasons/admin — Season Switching (STORY-28)
+
+**Purpose:** Admin-only season switching workflow with readiness checks, preview, activation, completion, rollback, and audit trail.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/seasons/admin/context` | PSL_ADMIN | Admin season context: active, all seasons, last switch |
+| GET | `/seasons/admin/switching/history` | PSL_ADMIN | Audit history of all season switch actions |
+| GET | `/seasons/admin/switching/readiness/:seasonId` | PSL_ADMIN | Cross-domain readiness check for season activation |
+| GET | `/seasons/admin/switching/preview/:seasonId` | PSL_ADMIN | Preview activation impact: fromSeason, toSeason, willComplete, willActivate |
+| POST | `/seasons/admin/switching/activate/:seasonId` | PSL_ADMIN | Activate season (transactional, requires acknowledgeWarnings if READY_WITH_WARNINGS) |
+| POST | `/seasons/admin/switching/complete/:seasonId` | PSL_ADMIN | Explicitly mark a season COMPLETED |
+| POST | `/seasons/admin/switching/rollback/:seasonId` | PSL_ADMIN | Rollback activation — deactivates current and restores prior active season |

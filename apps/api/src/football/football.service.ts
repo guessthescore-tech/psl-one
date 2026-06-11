@@ -64,6 +64,28 @@ export class FootballService {
     return season;
   }
 
+  async getSeasonBySlug(slug: string) {
+    const season = await this.prisma.season.findUnique({
+      where: { slug },
+      include: { competition: true },
+    });
+    if (!season) throw new NotFoundException(`Season '${slug}' not found`);
+    return season;
+  }
+
+  async getSeasonContext() {
+    const active = await this.prisma.season.findFirst({
+      where: { isActive: true },
+      include: { competition: { select: { id: true, name: true, slug: true } } },
+    });
+    const upcoming = await this.prisma.season.findMany({
+      where: { status: 'UPCOMING' },
+      include: { competition: { select: { id: true, name: true, slug: true } } },
+      orderBy: { startDate: 'asc' },
+    });
+    return { activeSeason: active, upcomingSeasons: upcoming };
+  }
+
   listTeams(filters: { competitionSlug?: string; seasonSlug?: string }) {
     return this.prisma.team.findMany({
       ...(filters.seasonSlug

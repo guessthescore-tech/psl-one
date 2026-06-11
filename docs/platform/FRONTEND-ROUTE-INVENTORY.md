@@ -351,3 +351,13 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/fixtures/conflicts` | Detect duplicate/overlap conflicts for season | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
 | `/admin/fixtures/gameweeks` | Gameweek readiness + auto-create from rounds | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
 | `/admin/fixtures/publishing` | Publish/unpublish all fixtures in season | PSL_ADMIN | `fixture-import-client` | Season ID lookup |
+
+## Admin — Season Switching (STORY-28)
+
+| Route | Purpose | Auth | Client | Notes |
+|-------|---------|------|--------|-------|
+| `/admin/seasons/context` | Active season card, all seasons table, last switch info | PSL_ADMIN | `season-context-client` | Links to switching per season |
+| `/admin/seasons/switching` | List inactive seasons + recent switch history | PSL_ADMIN | `season-context-client` | — |
+| `/admin/seasons/switching/[seasonId]` | Season detail: status, dates, activation history | PSL_ADMIN | `season-context-client` | — |
+| `/admin/seasons/switching/[seasonId]/readiness` | Cross-domain readiness dashboard: 7 checks, BLOCKER/WARNING/INFO | PSL_ADMIN | `season-context-client` | Links to preview if not BLOCKED |
+| `/admin/seasons/switching/[seasonId]/preview` | Activation preview: from/to season, impact summary, activate button | PSL_ADMIN | `season-context-client` | Warning acknowledgement checkbox |

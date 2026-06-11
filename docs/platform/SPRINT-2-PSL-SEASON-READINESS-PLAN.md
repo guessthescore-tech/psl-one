@@ -76,18 +76,22 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-28 — Competition Switching: World Cup Beta to PSL Season Mode
+### STORY-28 — Competition Switching: World Cup Beta to PSL Season Mode ✅ COMPLETE (2026-06-11)
 
 **Goal:** Activate the PSL season as the primary competition without losing WC 2026 data.
 
-**Work:**
-- Create a new `Season` for the PSL 2026/27 season and set it to `ACTIVE`
-- Archive WC 2026 season (status: `COMPLETED`)
-- Update default season context: fantasy team creation and predictions should default to PSL season
-- Validate: fan fantasy teams for WC are retained but not active for PSL season
-- Validate: WC prediction history is preserved and visible
+**Work completed:**
+- Migration `20260611000006_season_switch_audit`: `SeasonSwitchAction`, `SeasonSwitchStatus`, `season_switch_audits` table
+- `SeasonSwitchingService` (7 methods): `getAdminSeasonContext`, `getSeasonSwitchReadiness` (7 cross-domain checks), `getSeasonSwitchPreview`, `activateSeason` (transactional + acknowledgeWarnings), `completeSeason`, `rollbackSeason`, `getSwitchHistory`
+- `SeasonSwitchingController` at `@Controller('seasons/admin')` — 7 admin routes, all PSL_ADMIN
+- `FootballService.getSeasonBySlug()` + `GET /football/seasons/:slug` for historical access
+- `FootballService.getSeasonContext()` + `GET /football/context` for fan default context
+- Seed fix: `fixtureImportRow/Batch` and `seasonSwitchAudit` cleared before season delete
+- 5 admin web pages: context, switching list, season detail, readiness dashboard, preview+activate
+- `season-context-client.ts` — 10 typed API wrappers
+- 32 new tests; total 954 API tests passing
 
-**Acceptance:** `/football/seasons/active` returns PSL season; WC season is accessible historically.
+**Acceptance criteria met:** Admin can preview, check readiness (7 cross-domain checks), and activate PSL season. WC2026 data preserved and accessible by slug. Only one season active at a time. Activation is transactional. Rollback restores prior active season. Blockers prevent activation. Warnings require explicit acknowledgement. RBAC enforced (FAN=403, unauth=401). All gate checks pass.
 
 ---
 

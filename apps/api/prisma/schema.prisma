@@ -1964,3 +1964,35 @@ model FixtureImportRow {
   @@index([batchId, status])
   @@map("fixture_import_rows")
 }
+
+// ── Season Switching ──────────────────────────────────────────────────────────
+
+enum SeasonSwitchAction {
+  PREVIEW
+  ACTIVATE
+  COMPLETE
+  ROLLBACK
+}
+
+enum SeasonSwitchStatus {
+  SUCCESS
+  BLOCKED
+  FAILED
+}
+
+model SeasonSwitchAudit {
+  id                String             @id @default(uuid())
+  fromSeasonId      String?            @map("from_season_id")
+  toSeasonId        String             @map("to_season_id")
+  action            SeasonSwitchAction
+  status            SeasonSwitchStatus
+  performedByUserId String?            @map("performed_by_user_id")
+  blockersJson      Json?              @map("blockers_json")
+  warningsJson      Json?              @map("warnings_json")
+  summaryJson       Json?              @map("summary_json")
+  createdAt         DateTime           @default(now()) @map("created_at")
+
+  @@index([toSeasonId])
+  @@index([createdAt(sort: Desc)])
+  @@map("season_switch_audits")
+}

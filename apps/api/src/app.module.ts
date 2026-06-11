@@ -21,6 +21,7 @@ import { ActivityFeedModule } from './activity-feed/activity-feed.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { ClubExperienceModule } from './club-experience/club-experience.module';
 import { FixtureImportModule } from './fixture-import/fixture-import.module';
+import { SeasonSwitchingModule } from './season-switching/season-switching.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { FixtureImportModule } from './fixture-import/fixture-import.module';
     AdminDashboardModule,
     ClubExperienceModule,
     FixtureImportModule,
+    SeasonSwitchingModule,
     HealthModule,
   ],
   controllers: [VersionController],

@@ -361,3 +361,17 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 | `fixture_import_rows` | `home_team_id`, `away_team_id` | `teams` |
 | `fixture_import_rows` | `venue_id` | `venues` |
 | `fixture_import_rows` | `gameweek_id` | `gameweeks` |
+
+## Migration 20260611000006 — Season Switch Audit (STORY-28)
+
+**File:** `apps/api/prisma/migrations/20260611000006_season_switch_audit/migration.sql`  
+**Applied:** 2026-06-11 (local dev via `prisma migrate resolve --applied`)
+
+**Adds:**
+- Enum `SeasonSwitchAction`: `PREVIEW`, `ACTIVATE`, `COMPLETE`, `ROLLBACK`
+- Enum `SeasonSwitchStatus`: `SUCCESS`, `BLOCKED`, `FAILED`
+- Table `season_switch_audits`: id, from_season_id (nullable), to_season_id, action, status, performed_by_user_id (nullable), blockers_json (JSONB), warnings_json (JSONB), summary_json (JSONB), created_at
+- Index on `to_season_id`
+- Index on `created_at DESC`
+
+**Purpose:** Immutable audit trail for every season switch action. Used by `SeasonSwitchingService` to record PREVIEW, ACTIVATE, COMPLETE, ROLLBACK events with full blocker/warning context.

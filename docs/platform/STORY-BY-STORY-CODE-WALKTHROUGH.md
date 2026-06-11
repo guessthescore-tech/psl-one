@@ -781,3 +781,93 @@ This document explains what each Sprint 1 story built, how the code works, and w
 **Test gate:** 922 API tests passing (110 new in `fixture-import.service.spec.ts`), 8 web tests passing. Typecheck clean. API and web build clean. Seed passes. Schema validates.
 
 **TypeScript fixes applied:** `exactOptionalPropertyTypes: true` required: `where` spread instead of `where: undefined`; optional string fields mapped to `null`; Prisma nullable JSON cleared via `Prisma.JsonNull` not `null`.
+
+---
+
+## STORY-28 — Competition Switching: World Cup Beta to PSL Season Mode
+
+**Goal:** Build a controlled admin-only season activation workflow. The platform can switch from World Cup beta mode to PSL season mode without losing any historical data. World Cup fixtures, predictions, fantasy teams, and fan data are preserved as historical records.
+
+**Core rule:** The platform does not automatically activate the PSL season. Admin must explicitly activate via the switching workflow after readiness checks pass or warnings are acknowledged.
+
+### Data model
+
+**Migration:** `20260611000006_season_switch_audit`
+
+New enums and model in `apps/api/prisma/schema.prisma`:
+
+```prisma
+enum SeasonSwitchAction { PREVIEW ACTIVATE COMPLETE ROLLBACK }
+enum SeasonSwitchStatus  { SUCCESS BLOCKED FAILED }
+
+model SeasonSwitchAudit {
+  id                String             @id @default(uuid())
+  fromSeasonId      String?            @map("from_season_id")
+  toSeasonId        String             @map("to_season_id")
+  action            SeasonSwitchAction
+  status            SeasonSwitchStatus
+  performedByUserId String?            @map("performed_by_user_id")
+  blockersJson      Json?              @map("blockers_json")
+  warningsJson      Json?              @map("warnings_json")
+  summaryJson       Json?              @map("summary_json")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  @@index([toSeasonId])
+  @@index([createdAt(sort: Desc)])
+  @@map("season_switch_audits")
+}
+```
+
+### SeasonSwitchingService (`apps/api/src/season-switching/season-switching.service.ts`)
+
+7 cross-domain readiness checks:
+1. **Season teams** (BLOCKER): ≥2 teams must be registered
+2. **Fixtures loaded** (WARNING): ≥1 fixture present
+3. **Fixtures published** (WARNING): ≥1 published fixture
+4. **Gameweeks** (WARNING): ≥1 gameweek defined
+5. **Fantasy rules config** (WARNING): `FantasyRulesConfig` exists
+6. **Player prices** (WARNING): ≥11 `FantasyPlayerPrice` rows
+7. **Club profiles** (INFO): all season teams have club profiles
+
+`activationStatus`:
+- `READY` — no blockers or warnings
+- `READY_WITH_WARNINGS` — no blockers, at least one warning; requires `acknowledgeWarnings: true` to activate
+- `BLOCKED` — ≥1 blocker; creates `BLOCKED` audit; throws 400
+
+Activation flow (transactional):
+1. Check readiness; reject if BLOCKED or unacknowledged warnings
+2. `$transaction`: set all active seasons `isActive: false`; set target `isActive: true, status: ACTIVE`
+3. Write `SeasonSwitchAudit` with `ACTIVATE` + `SUCCESS`
+4. Rollback available: deactivates current active, restores `fromSeasonId` from most recent activation audit
+
+`getSeasonSwitchPreview()` writes a `PREVIEW` audit record so every admin inspection is logged.
+
+### SeasonSwitchingController (`apps/api/src/season-switching/season-switching.controller.ts`)
+
+`@Controller('seasons/admin')` — distinct from existing `@Controller('admin/seasons')` (AdminCompetitionsController).
+
+All routes require `JwtAuthGuard` + `RolesGuard` + `@Roles('PSL_ADMIN')`.
+
+Static routes declared before dynamic `:seasonId` routes.
+
+### FootballController / FootballService additions
+
+- `GET /football/context` — returns `{ activeSeason, upcomingSeasons }` for fan default context
+- `GET /football/seasons/:slug` — returns historical season by slug (World Cup accessible as `fifa-world-cup-2026`)
+
+### Seed fix (`apps/api/prisma/seed.ts`)
+
+Added `fixtureImportRow.deleteMany()`, `fixtureImportBatch.deleteMany()`, and `seasonSwitchAudit.deleteMany()` before `season.deleteMany()` to resolve FK constraint P2003.
+
+### Web client (`apps/web/src/lib/season-context-client.ts`)
+
+8 typed API wrappers: `getActiveSeasonContext`, `getActiveSeason`, `getSeasonBySlug`, `getAdminSeasonContext`, `getSwitchReadiness`, `getSwitchPreview`, `activateSeason`, `completeSeason`, `rollbackSeason`, `getSwitchHistory`.
+
+### Admin web pages (5)
+
+- `/admin/seasons/context` — active season card, all seasons table, last switch metadata
+- `/admin/seasons/switching` — list inactive seasons, recent switch history
+- `/admin/seasons/switching/[seasonId]` — season detail + per-season audit history
+- `/admin/seasons/switching/[seasonId]/readiness` — 7-check readiness dashboard with BLOCKER/WARNING/INFO badges
+- `/admin/seasons/switching/[seasonId]/preview` — activation preview with cross-domain impact, warning acknowledgement, activate button
+
+**Test gate:** 954 API tests passing (32 new in `season-switching.service.spec.ts`). Typecheck clean. API and web build clean. Seed passes. Schema validates. All 9 admin routes verified locally including RBAC (FAN=403, unauth=401).

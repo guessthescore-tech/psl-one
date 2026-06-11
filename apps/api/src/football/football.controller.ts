@@ -41,6 +41,16 @@ export class FootballController {
     return this.footballService.getActiveSeason();
   }
 
+  @Get('context')
+  getSeasonContext() {
+    return this.footballService.getSeasonContext();
+  }
+
+  @Get('seasons/:slug')
+  getSeasonBySlug(@Param('slug') slug: string) {
+    return this.footballService.getSeasonBySlug(slug);
+  }
+
   @Get('teams')
   listTeams(
     @Query('competitionSlug') competitionSlug?: string,
