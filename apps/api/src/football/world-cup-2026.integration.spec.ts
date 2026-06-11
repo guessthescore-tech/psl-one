@@ -75,9 +75,9 @@ describe('WC2026 seed — competition format', () => {
 });
 
 describe('WC2026 seed — teams', () => {
-  it('has exactly 48 real (non-TBD) teams', async () => {
+  it('has exactly 48 real (non-TBD) WC2026 teams', async () => {
     const count = await prisma.team.count({
-      where: { NOT: { slug: 'tbd' } },
+      where: { source: 'fifa-wc2026', NOT: { slug: 'tbd' } },
     });
     expect(count).toBe(48);
   });

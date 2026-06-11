@@ -1,9 +1,10 @@
-import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory } from '@prisma/client';
+import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory, SeasonTeamStatus, SeasonTeamSource, ClubProfileStatus, ShopProductCategory, ShopProductAvailability, ShopProductStatus, ClubContentType, ClubContentStatus } from '@prisma/client';
 import { VENUES } from './seed-data/world-cup-2026/venues';
 import { TEAMS, TBD_TEAM } from './seed-data/world-cup-2026/teams';
 import { GROUPS } from './seed-data/world-cup-2026/groups';
 import { ALL_FIXTURES } from './seed-data/world-cup-2026/fixtures';
 import { PLAYERS } from './seed-data/world-cup-2026/players';
+import { PSL_CLUBS } from './seed-data/psl-clubs';
 
 const prisma = new PrismaClient();
 
@@ -12,6 +13,14 @@ async function main() {
 
   // Reset fan preferred-team FK first to allow team deletion
   await prisma.fanProfile.updateMany({ data: { preferredTeamId: null } });
+
+  // Clear club experience data
+  await prisma.clubExperienceStatus.deleteMany();
+  await prisma.clubShopProduct.deleteMany();
+  await prisma.clubContentItem.deleteMany();
+  await prisma.clubProfile.deleteMany();
+  await prisma.seasonSquadRegistration.deleteMany();
+  await prisma.seasonTeam.deleteMany();
 
   // Clear activity feed data
   await prisma.activityReaction.deleteMany();
@@ -574,6 +583,146 @@ async function main() {
 
   console.log(`  ✓ Reward readiness definitions seeded: ${rewardDefs.length}`);
 
+  // ── PSL Club Experience ───────────────────────────────────────────────────
+  const pslSeason = await prisma.season.findUnique({ where: { slug: 'psl-premiership-upcoming' } });
+  if (!pslSeason) throw new Error('PSL season not found — seed order error');
+
+  const pslVenueMap = new Map<string, string>(); // externalId → id
+  const uniqueVenues = new Map<string, { name: string; capacity: number; city: string }>();
+  for (const club of PSL_CLUBS) {
+    if (!uniqueVenues.has(club.venueExternalId)) {
+      uniqueVenues.set(club.venueExternalId, {
+        name: club.venueName,
+        capacity: club.venueCapacity,
+        city: club.city,
+      });
+    }
+  }
+
+  for (const [externalId, v] of uniqueVenues) {
+    const venue = await prisma.venue.upsert({
+      where: { externalId },
+      update: {},
+      create: {
+        name: v.name,
+        city: v.city,
+        country: 'South Africa',
+        capacity: v.capacity,
+        externalId,
+        source: 'PSL_MANUAL',
+      },
+    });
+    pslVenueMap.set(externalId, venue.id);
+  }
+  console.log(`  ✓ PSL Venues upserted: ${pslVenueMap.size}`);
+
+  const pslTeamMap = new Map<string, string>(); // externalId → id
+  for (const club of PSL_CLUBS) {
+    const team = await prisma.team.upsert({
+      where: { slug: club.slug },
+      update: { shortName: club.shortName },
+      create: {
+        name: club.name,
+        slug: club.slug,
+        shortName: club.shortName,
+        country: club.country,
+        externalId: club.externalId,
+        source: 'PSL_MANUAL',
+      },
+    });
+    pslTeamMap.set(club.externalId, team.id);
+
+    const venueId = pslVenueMap.get(club.venueExternalId);
+
+    // ClubProfile
+    await prisma.clubProfile.upsert({
+      where: { teamId: team.id },
+      update: {},
+      create: {
+        teamId: team.id,
+        profileStatus: ClubProfileStatus.DRAFT,
+        primaryColor: club.primaryColour,
+        secondaryColor: club.secondaryColour,
+        city: club.city,
+        country: club.country,
+      },
+    });
+
+    // SeasonTeam
+    await prisma.seasonTeam.upsert({
+      where: { seasonId_teamId: { seasonId: pslSeason.id, teamId: team.id } },
+      update: {},
+      create: {
+        seasonId: pslSeason.id,
+        teamId: team.id,
+        status: SeasonTeamStatus.PROVISIONAL,
+        source: SeasonTeamSource.MANUAL,
+      },
+    });
+
+    // Placeholder content item (create only — no unique slug, idempotent via deleteMany above)
+    await prisma.clubContentItem.create({
+      data: {
+        teamId: team.id,
+        title: `Welcome to ${club.name}`,
+        summary: `${club.name} is competing in the PSL Premiership. Follow the club for the latest news and squad information.`,
+        type: ClubContentType.ANNOUNCEMENT,
+        status: ClubContentStatus.PUBLISHED,
+        publishedAt: new Date(),
+      },
+    });
+
+    // Placeholder shop products (8 per club, catalogue-only)
+    const PLACEHOLDER_PRODUCTS = [
+      { suffix: 'home-kit',      name: 'Home Kit Placeholder',       category: ShopProductCategory.HOME_KIT,      featured: true  },
+      { suffix: 'away-kit',      name: 'Away Kit Placeholder',       category: ShopProductCategory.AWAY_KIT,      featured: false },
+      { suffix: 'third-kit',     name: 'Third Kit Placeholder',      category: ShopProductCategory.THIRD_KIT,     featured: false },
+      { suffix: 'training-top',  name: 'Training Top Placeholder',   category: ShopProductCategory.TRAINING_WEAR, featured: false },
+      { suffix: 'club-scarf',    name: 'Club Scarf Placeholder',     category: ShopProductCategory.ACCESSORIES,   featured: false },
+      { suffix: 'lifestyle-hood',name: 'Lifestyle Hoodie Placeholder',category: ShopProductCategory.LIFESTYLE,    featured: false },
+      { suffix: 'kids-mini-kit', name: 'Kids Mini Kit Placeholder',  category: ShopProductCategory.KIDS,          featured: false },
+      { suffix: 'souvenirs',     name: 'Souvenirs Placeholder',      category: ShopProductCategory.SOUVENIRS,     featured: false },
+    ];
+    for (const prod of PLACEHOLDER_PRODUCTS) {
+      await prisma.clubShopProduct.upsert({
+        where: { teamId_slug: { teamId: team.id, slug: `${club.slug}-${prod.suffix}` } },
+        update: {},
+        create: {
+          teamId: team.id,
+          name: `${club.shortName} ${prod.name}`,
+          slug: `${club.slug}-${prod.suffix}`,
+          description: `Placeholder listing. Official ${club.name} merchandise coming soon.`,
+          category: prod.category,
+          status: ShopProductStatus.PUBLISHED,
+          availability: ShopProductAvailability.COMING_SOON,
+          featured: prod.featured,
+          priceDisplay: 'Price TBC',
+          currencyCode: 'ZAR',
+        },
+      });
+    }
+
+    // ClubExperienceStatus
+    await prisma.clubExperienceStatus.upsert({
+      where: { teamId: team.id },
+      update: {},
+      create: {
+        teamId: team.id,
+        profileReady: false,
+        squadReady: false,
+        shopfrontReady: false,
+        catalogueReady: true,
+        fixturesReady: false,
+        venueReady: !!pslVenueMap.get(club.venueExternalId),
+        lastReviewedAt: new Date(),
+        reviewNotes: 'Seeded — awaiting squad, profile, and fixture assignment.',
+      },
+    });
+  }
+
+  console.log(`  ✓ PSL Clubs seeded: ${PSL_CLUBS.length}`);
+  console.log(`  ✓ PSL Season team registrations: ${PSL_CLUBS.length} (PROVISIONAL)`);
+
   console.log('');
   console.log('Seed complete.');
   console.log(`  Competition : ${competition.name}`);
@@ -586,6 +735,7 @@ async function main() {
   console.log(`  Stages      : ${STAGE_DEFS.length}`);
   console.log(`  Gameweeks   : ${gameweekMap.size}`);
   console.log(`  Standings   : ${standingCount} rows (all zeroed)`);
+  console.log(`  PSL Clubs   : ${PSL_CLUBS.length}`);
 }
 
 main()

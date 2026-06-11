@@ -19,6 +19,7 @@ import { RewardsReadinessModule } from './rewards/rewards-readiness.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ActivityFeedModule } from './activity-feed/activity-feed.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { ClubExperienceModule } from './club-experience/club-experience.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
     NotificationsModule,
     ActivityFeedModule,
     AdminDashboardModule,
+    ClubExperienceModule,
     HealthModule,
   ],
   controllers: [VersionController],

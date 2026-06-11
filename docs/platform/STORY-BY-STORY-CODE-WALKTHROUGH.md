@@ -674,3 +674,49 @@ This document explains what each Sprint 1 story built, how the code works, and w
 - `docs/platform/SPRINT-3-COMMERCE-PRODUCTION-PLAN.md` — Sprint 3 plan
 
 **Final gate:** 812 API tests, 8 web tests, all clean. No new models. No AWS. No Kafka. Local PostgreSQL only.
+
+---
+
+## STORY-26 — PSL Club, Squad, Season & Club Experience Readiness
+
+**Product purpose:** Deliver PSL club hub, season-specific participation, squad/player/fixture assignment readiness, club profile, shopfront catalogue, ticketing readiness, content placeholders, and admin club readiness tooling. Establishes the Premier League-style club experience foundation for the PSL Premiership.
+
+**Schema additions (`20260611000004_club_experience`):**
+- 12 new enums: `SeasonTeamStatus`, `SeasonTeamSource`, `ClubProfileStatus`, `ClubContentType`, `ClubContentStatus`, `ShopProductCategory`, `ShopProductAvailability`, `ShopProductStatus`, `ShopCommerceStatus`, `SquadRegistrationStatus`, `SquadRegistrationSource`
+- 6 new models: `SeasonTeam`, `ClubProfile`, `ClubContentItem`, `ClubShopProduct`, `ClubExperienceStatus`, `SeasonSquadRegistration`
+- Back-relations added to: `Season`, `Team`, `Player`
+
+**Seed additions:**
+- 14 PSL venues upserted (`PSL_MANUAL` source)
+- 16 PSL clubs seeded via `psl-clubs.ts`
+- `SeasonTeam` participation records for each club (status: `PROVISIONAL`)
+- `ClubProfile` for each club (draft state, with colour data)
+- 1 `ClubContentItem` announcement per club (published)
+- 8 `ClubShopProduct` placeholder listings per club (catalogue-only, price TBC)
+- `ClubExperienceStatus` for each club (initial review state)
+
+**New service files:**
+- `apps/api/src/club-experience/club-experience.service.ts` — 11 fan-facing methods
+- `apps/api/src/club-experience/club-admin.service.ts` — 24 admin methods
+
+**Fan routes (all public):** `GET /clubs`, `GET /clubs/:slug`, `GET /clubs/:slug/overview`, `/fixtures`, `/results`, `/squad`, `/stats`, `/stadium`, `/tickets`, `/shop`, `/shop/:productSlug`
+
+**Admin routes (PSL_ADMIN only):** club list/readiness/detail/experience/shop/players/fixtures, season team CRUD, player assignment, fixture assignment, validation endpoints.
+
+**Route ordering:** All static admin routes declared before `:slug` dynamic routes in controller to prevent NestJS slug capture.
+
+**Commerce boundaries:** Shopfront is `CATALOGUE_ONLY`. No checkout, cart, orders, payments, fulfilment, refunds, vouchers, inventory, deposits, withdrawals, betting, or financial mechanics.
+
+**Ticketing:** MVP stub only — no integration. `ticketingUrl` field in `ClubProfile` ready for future partner.
+
+**Promoted/relegated flexibility:** Club participation is season-specific via `SeasonTeam`. Adding/removing clubs does not delete the club. No hardcoded 16-team assumption in service code.
+
+**Web pages added:** 11 fan pages under `/clubs/...` and 8 admin pages under `/admin/clubs/...` + `/admin/seasons/[id]/clubs`.
+
+**Test gate:** 883 API tests passing (71 new), 8 web tests passing. Typecheck clean. Seed passes. API and web build clean.
+
+**Seeding note:** WC2026 integration test updated to filter by `source: 'fifa-wc2026'` to exclude PSL clubs from the 48-team count.
+
+**Module fix:** `ClubExperienceModule` imports `AuthModule` (required for `JwtAuthGuard`/`RolesGuard` to resolve `LocalJwtProvider`). This is the standard pattern across all modules that use admin guards.
+
+**`getClubs()` filter:** Without a season slug, the method filters to `where: { clubProfile: { isNot: null } }` so only PSL clubs (which have `ClubProfile` records) are returned. WC2026 teams have no `ClubProfile` and are excluded.

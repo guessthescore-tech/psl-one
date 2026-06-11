@@ -292,18 +292,20 @@ model Season {
   sourceUrl     String?      @map("source_url")
   importedAt    DateTime?    @map("imported_at")
 
-  competition     Competition          @relation(fields: [competitionId], references: [id])
-  fixtures        Fixture[]
-  groups          Group[]
-  fantasyTeams    FantasyTeam[]
-  gameweeks       Gameweek[]
-  playerPrices    FantasyPlayerPrice[]
-  leagues         FantasyLeague[]
-  cups            FantasyCup[]
-  rulesConfig     FantasyRulesConfig?
-  gameweekScores  FantasyGameweekScore[]
-  fanValueLedger  FanValueLedger[]
-  fantasyAutoSubs FantasyAutoSubstitution[]
+  competition           Competition               @relation(fields: [competitionId], references: [id])
+  fixtures              Fixture[]
+  groups                Group[]
+  fantasyTeams          FantasyTeam[]
+  gameweeks             Gameweek[]
+  playerPrices          FantasyPlayerPrice[]
+  leagues               FantasyLeague[]
+  cups                  FantasyCup[]
+  rulesConfig           FantasyRulesConfig?
+  gameweekScores        FantasyGameweekScore[]
+  fanValueLedger        FanValueLedger[]
+  fantasyAutoSubs       FantasyAutoSubstitution[]
+  seasonTeams           SeasonTeam[]
+  squadRegistrations    SeasonSquadRegistration[]
 
   @@map("seasons")
 }
@@ -336,14 +338,20 @@ model Team {
   sourceUrl  String?   @map("source_url")
   importedAt DateTime? @map("imported_at")
 
-  players          Player[]
-  homeFixtures     Fixture[]                @relation("HomeTeam")
-  awayFixtures     Fixture[]                @relation("AwayTeam")
-  standings        GroupStanding[]
-  fans             FanProfile[]
-  matchEvents      MatchEvent[]
-  lineups          FixtureLineup[]
-  playerMatchStats FantasyPlayerMatchStat[]
+  players              Player[]
+  homeFixtures         Fixture[]                @relation("HomeTeam")
+  awayFixtures         Fixture[]                @relation("AwayTeam")
+  standings            GroupStanding[]
+  fans                 FanProfile[]
+  matchEvents          MatchEvent[]
+  lineups              FixtureLineup[]
+  playerMatchStats     FantasyPlayerMatchStat[]
+  seasonTeams          SeasonTeam[]
+  clubProfile          ClubProfile?
+  contentItems         ClubContentItem[]
+  shopProducts         ClubShopProduct[]
+  experienceStatus     ClubExperienceStatus?
+  squadRegistrations   SeasonSquadRegistration[]
 
   @@map("teams")
 }
@@ -376,6 +384,7 @@ model Player {
   gameweekScores        FantasyPlayerGameweekScore[]
   autoSubsOut           FantasyAutoSubstitution[]    @relation("AutoSubOutPlayer")
   autoSubsIn            FantasyAutoSubstitution[]    @relation("AutoSubInPlayer")
+  seasonRegistrations   SeasonSquadRegistration[]
 
   @@map("players")
 }
@@ -1659,4 +1668,209 @@ model NotificationDeliveryLog {
   @@index([notificationId])
   @@index([userId, attemptedAt(sort: Desc)])
   @@map("notification_delivery_logs")
+}
+
+// ── Club Experience ────────────────────────────────────────────────────────────
+
+enum SeasonTeamStatus {
+  ACTIVE
+  PROVISIONAL
+  PROMOTED
+  RELEGATED
+  WITHDRAWN
+  NEEDS_REVIEW
+}
+
+enum SeasonTeamSource {
+  MANUAL
+  IMPORT
+  OFFICIAL
+  PLACEHOLDER
+}
+
+enum ClubProfileStatus {
+  DRAFT
+  READY
+  PUBLISHED
+}
+
+enum ClubContentType {
+  NEWS
+  VIDEO
+  ANNOUNCEMENT
+}
+
+enum ClubContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ShopProductCategory {
+  HOME_KIT
+  AWAY_KIT
+  THIRD_KIT
+  TRAINING_WEAR
+  LIFESTYLE
+  ACCESSORIES
+  SOUVENIRS
+  KIDS
+}
+
+enum ShopProductAvailability {
+  COMING_SOON
+  AVAILABLE_SOON
+  UNAVAILABLE
+}
+
+enum ShopProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ShopCommerceStatus {
+  CATALOGUE_ONLY
+  COMMERCE_READY_FOR_SPRINT_3
+}
+
+enum SquadRegistrationStatus {
+  PROVISIONAL
+  CONFIRMED
+  NEEDS_REVIEW
+  REMOVED
+}
+
+enum SquadRegistrationSource {
+  MANUAL
+  IMPORT
+  OFFICIAL
+  PLACEHOLDER
+}
+
+model SeasonTeam {
+  id        String           @id @default(uuid())
+  seasonId  String           @map("season_id")
+  teamId    String           @map("team_id")
+  status    SeasonTeamStatus @default(PROVISIONAL)
+  source    SeasonTeamSource @default(PLACEHOLDER)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  season Season @relation(fields: [seasonId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
+
+  @@unique([seasonId, teamId])
+  @@index([seasonId, status])
+  @@map("season_teams")
+}
+
+model ClubProfile {
+  id             String            @id @default(uuid())
+  teamId         String            @unique @map("team_id")
+  foundedYear    Int?              @map("founded_year")
+  city           String?
+  province       String?
+  country        String            @default("South Africa")
+  websiteUrl     String?           @map("website_url")
+  ticketingUrl   String?           @map("ticketing_url")
+  shopUrl        String?           @map("shop_url")
+  description    String?
+  heroImageUrl   String?           @map("hero_image_url")
+  crestUrl       String?           @map("crest_url")
+  primaryColor   String?           @map("primary_color")
+  secondaryColor String?           @map("secondary_color")
+  profileStatus  ClubProfileStatus @default(DRAFT) @map("profile_status")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@map("club_profiles")
+}
+
+model ClubContentItem {
+  id          String            @id @default(uuid())
+  teamId      String            @map("team_id")
+  type        ClubContentType
+  title       String
+  summary     String?
+  imageUrl    String?           @map("image_url")
+  videoUrl    String?           @map("video_url")
+  externalUrl String?           @map("external_url")
+  status      ClubContentStatus @default(DRAFT)
+  publishedAt DateTime?         @map("published_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@index([teamId, status])
+  @@map("club_content_items")
+}
+
+model ClubShopProduct {
+  id             String                  @id @default(uuid())
+  teamId         String                  @map("team_id")
+  name           String
+  slug           String
+  category       ShopProductCategory
+  description    String?
+  imageUrl       String?                 @map("image_url")
+  priceDisplay   String?                 @map("price_display")
+  currencyCode   String?                 @map("currency_code")
+  availability   ShopProductAvailability @default(COMING_SOON)
+  featured       Boolean                 @default(false)
+  status         ShopProductStatus       @default(DRAFT)
+  commerceStatus ShopCommerceStatus      @default(CATALOGUE_ONLY) @map("commerce_status")
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@unique([teamId, slug])
+  @@index([teamId, status])
+  @@map("club_shop_products")
+}
+
+model ClubExperienceStatus {
+  id             String    @id @default(uuid())
+  teamId         String    @unique @map("team_id")
+  profileReady   Boolean   @default(false) @map("profile_ready")
+  squadReady     Boolean   @default(false) @map("squad_ready")
+  fixturesReady  Boolean   @default(false) @map("fixtures_ready")
+  venueReady     Boolean   @default(false) @map("venue_ready")
+  ticketsReady   Boolean   @default(false) @map("tickets_ready")
+  shopfrontReady Boolean   @default(false) @map("shopfront_ready")
+  catalogueReady Boolean   @default(false) @map("catalogue_ready")
+  lastReviewedAt DateTime? @map("last_reviewed_at")
+  reviewNotes    String?   @map("review_notes")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  team Team @relation(fields: [teamId], references: [id])
+
+  @@map("club_experience_statuses")
+}
+
+model SeasonSquadRegistration {
+  id           String                  @id @default(uuid())
+  seasonId     String                  @map("season_id")
+  teamId       String                  @map("team_id")
+  playerId     String                  @map("player_id")
+  status       SquadRegistrationStatus @default(PROVISIONAL)
+  shirtNumber  Int?                    @map("shirt_number")
+  source       SquadRegistrationSource @default(PLACEHOLDER)
+  registeredAt DateTime?               @map("registered_at")
+  removedAt    DateTime?               @map("removed_at")
+  createdAt    DateTime                @default(now()) @map("created_at")
+  updatedAt    DateTime                @updatedAt @map("updated_at")
+
+  season Season @relation(fields: [seasonId], references: [id])
+  team   Team   @relation(fields: [teamId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
+
+  @@unique([seasonId, playerId])
+  @@index([seasonId, teamId])
+  @@map("season_squad_registrations")
 }

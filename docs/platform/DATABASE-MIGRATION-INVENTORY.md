@@ -6,7 +6,7 @@
 **ORM:** Prisma 5.22  
 **Schema file:** `apps/api/prisma/schema.prisma`  
 **Migration directory:** `apps/api/prisma/migrations/`  
-**Sprint:** 1 Final — 26 migrations applied
+**Sprint:** 2 (STORY-26) — 27 migrations applied
 
 **Commands:**
 ```bash
@@ -279,6 +279,16 @@ cd apps/api && npx prisma generate
 
 ---
 
+### 27. `20260611000004_club_experience`
+
+**Story:** STORY-26 — PSL Club, Squad, Season & Club Experience Readiness  
+**Tables created:** `season_teams`, `club_profiles`, `club_content_items`, `club_shop_products`, `club_experience_statuses`, `season_squad_registrations`  
+**Enums created:** `SeasonTeamStatus` (ACTIVE, PROVISIONAL, PROMOTED, RELEGATED, WITHDRAWN, NEEDS_REVIEW), `SeasonTeamSource` (MANUAL, IMPORT, OFFICIAL, PLACEHOLDER), `ClubProfileStatus` (DRAFT, READY, PUBLISHED), `ClubContentType` (NEWS, VIDEO, ANNOUNCEMENT), `ClubContentStatus` (DRAFT, PUBLISHED, ARCHIVED), `ShopProductCategory` (HOME_KIT, AWAY_KIT, THIRD_KIT, TRAINING_WEAR, LIFESTYLE, ACCESSORIES, SOUVENIRS, KIDS), `ShopProductAvailability` (COMING_SOON, AVAILABLE_SOON, UNAVAILABLE), `ShopProductStatus` (DRAFT, PUBLISHED, ARCHIVED), `ShopCommerceStatus` (CATALOGUE_ONLY, COMMERCE_READY_FOR_SPRINT_3), `SquadRegistrationStatus` (PROVISIONAL, CONFIRMED, NEEDS_REVIEW, REMOVED), `SquadRegistrationSource` (MANUAL, IMPORT, OFFICIAL, PLACEHOLDER)  
+**Seed dependency:** Yes — seed adds 16 PSL clubs, 14 unique venues, 16 SeasonTeam records, 8 placeholder shop products per club, ClubProfile, ClubContentItem, and ClubExperienceStatus per club  
+**Notes:** `season_teams` has a unique constraint on `(season_id, team_id)`. `club_profiles` has a unique constraint on `team_id`. `season_squad_registrations` has a unique constraint on `(season_id, player_id)`. `club_shop_products` uses `ShopCommerceStatus.CATALOGUE_ONLY` for MVP — no checkout. `Player.teamId` is non-nullable; "unassigned" is represented by absence of a `season_squad_registrations` record rather than null FK.
+
+---
+
 ## Seed Data Ordering
 
 The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisfy FK constraints:
@@ -297,6 +307,13 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 12. Create standings (`standings` → requires `seasons`, `teams`)
 13. Create achievement definitions + badges (`achievement_definitions`, `badges`)
 14. Create reward readiness definitions (`reward_readiness_definitions`)
+15. Create PSL venues (`venues`)
+16. Create season participation records (`season_teams` → requires `seasons`, `teams`)
+17. Create club profiles (`club_profiles` → requires `teams`)
+18. Create club content items (`club_content_items` → requires `teams`)
+19. Create shop products (`club_shop_products` → requires `teams`)
+20. Create season squad registrations (`season_squad_registrations` → requires `seasons`, `players`)
+21. Create club experience statuses (`club_experience_statuses` → requires `teams`)
 
 **Note:** `match_stats` requires fixtures to exist (FK on `fixture_id`). If seeding match stats, do so after fixtures are created.
 
@@ -316,3 +333,9 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 | `fan_achievements` | `fan_id`, `achievement_definition_id` | `fan_profiles`, `achievement_definitions` |
 | `fan_reward_readiness` | `fan_id`, `definition_id` | `fan_profiles`, `reward_readiness_definitions` |
 | `activity_reactions` | `activity_item_id`, `user_id` | `activity_items`, `users` |
+| `season_teams` | `season_id`, `team_id` | `seasons`, `teams` |
+| `club_profiles` | `team_id` | `teams` |
+| `club_content_items` | `team_id` | `teams` |
+| `club_shop_products` | `team_id` | `teams` |
+| `club_experience_statuses` | `team_id` | `teams` |
+| `season_squad_registrations` | `season_id`, `player_id`, `team_id` | `seasons`, `players`, `teams` |

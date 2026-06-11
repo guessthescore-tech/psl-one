@@ -36,20 +36,21 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ## Candidate Stories
 
-### STORY-26 — PSL Club, Squad & Season Data Readiness
+### STORY-26 — PSL Club, Squad, Season & Club Experience Readiness ✅ COMPLETE (2026-06-11)
 
-**Goal:** Ensure all PSL clubs (including promoted clubs once confirmed) and their squads are ready for the season.
+**Goal:** Ensure all PSL clubs and their squads are ready for the season, and fans have a full club experience.
 
-**Work:**
-- Review existing team data — identify PSL clubs already in the system
-- Add missing PSL clubs (promoted teams once official)
-- Import/validate official PSL squad data (player registrations, transferred players)
-- Set correct `fantasyPrice` values calibrated for PSL (budget-balanced)
-- Set player `position` values accurately
-- Validate: every PSL club has a full squad (minimum 15 registered players)
-- Validate: no duplicate external IDs or conflicting slugs
+**Work completed:**
+- 16 PSL clubs seeded with `SeasonTeam` participation for `psl-premiership-upcoming`
+- 14 unique venues seeded (`Venue` model) with capacity and city
+- `ClubProfile`, `ClubContentItem`, `ClubShopProduct` (8 per club, `CATALOGUE_ONLY`), `ClubExperienceStatus` seeded for all clubs
+- `ClubExperienceService` — 11 fan-facing methods (club list, detail, overview, fixtures, results, squad, stats, stadium, tickets, shop, product)
+- `ClubAdminService` — 24 admin methods across season management, player assignment, fixture assignment, readiness validation
+- `ClubExperienceController` — full route suite with static-before-dynamic ordering for Fastify compatibility
+- 11 fan web pages + 8 admin web pages
+- 71 new tests; total 883 API tests passing
 
-**Acceptance:** Admin can browse PSL season teams and see accurate, complete squads.
+**Acceptance criteria met:** Admin can browse all 16 PSL clubs with readiness status. Fans can view club hub, squad, fixtures, results, stats, stadium, shop catalogue. Commerce stub returns `CATALOGUE_ONLY` with Sprint 3 note. All gate checks pass.
 
 ---
 
@@ -241,7 +242,7 @@ Admin visibility exists through the command centre, but full user and role admin
 Sponsor Management, Reporting Centre, and Compliance/POPIA Governance are command-centre readiness sections in Sprint 1. Full operational sponsor management, report export centre, and compliance workflow engine belong in Sprint 3. Keep Sprint 2 focused on PSL Season Readiness, data validation, fixture and squad ingestion, competition switching, QA, and beta feedback.
 
 ### Testing
-- All existing 812 API tests must remain green
+- All existing 883 API tests must remain green (updated after STORY-26)
 - New tests should cover PSL-specific rule variants (30-round seasons, squad sizes)
 - Integration tests should cover full fixture-to-prediction-to-settlement lifecycle with PSL data
 

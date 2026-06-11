@@ -458,3 +458,51 @@ All routes verified from source files in `apps/api/src/`.
 |--------|-------|------|-------------|
 | GET | `/health` | None | API health check |
 | GET | `/version` | None | API version |
+
+## /clubs — Club Experience (STORY-26)
+
+### Fan Routes (Public)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/clubs` | None | List clubs (optional `?season=` slug filter) |
+| GET | `/clubs/:slug` | None | Club identity and profile |
+| GET | `/clubs/:slug/overview` | None | Club hub overview (fixture preview, squad preview, news) |
+| GET | `/clubs/:slug/fixtures` | None | Upcoming fixtures for club |
+| GET | `/clubs/:slug/results` | None | Recent results for club |
+| GET | `/clubs/:slug/squad` | None | Squad grouped by position |
+| GET | `/clubs/:slug/stats` | None | Club stats aggregate |
+| GET | `/clubs/:slug/stadium` | None | Home venue/stadium info |
+| GET | `/clubs/:slug/tickets` | None | Ticketing readiness (MVP stub — no sales) |
+| GET | `/clubs/:slug/shop` | None | Club shopfront catalogue (no checkout) |
+| GET | `/clubs/:slug/shop/:productSlug` | None | Product detail (no checkout) |
+
+### Admin Routes (PSL_ADMIN only)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/clubs/admin/list` | PSL_ADMIN | All clubs with readiness status |
+| GET | `/clubs/admin/readiness` | PSL_ADMIN | Readiness summary across all clubs |
+| GET | `/clubs/admin/fixtures/unassigned` | PSL_ADMIN | Fixtures missing gameweek |
+| GET | `/clubs/admin/players/unassigned` | PSL_ADMIN | Players without season registration |
+| GET | `/clubs/admin/seasons/:seasonId/teams` | PSL_ADMIN | Teams registered for season |
+| POST | `/clubs/admin/seasons/:seasonId/teams` | PSL_ADMIN | Add team to season |
+| PATCH | `/clubs/admin/seasons/:seasonId/teams/:teamId` | PSL_ADMIN | Update participation status |
+| DELETE | `/clubs/admin/seasons/:seasonId/teams/:teamId` | PSL_ADMIN | Remove team from season (club not deleted) |
+| GET | `/clubs/admin/seasons/:seasonId/validate` | PSL_ADMIN | Validate season participation |
+| GET | `/clubs/admin/seasons/:seasonId/fixtures/validate` | PSL_ADMIN | Validate fixture readiness |
+| GET | `/clubs/admin/:id` | PSL_ADMIN | Admin club detail |
+| GET | `/clubs/admin/:id/experience` | PSL_ADMIN | Club experience readiness status |
+| GET | `/clubs/admin/:id/players` | PSL_ADMIN | Club players list |
+| GET | `/clubs/admin/:id/shop/readiness` | PSL_ADMIN | Shopfront readiness check |
+| GET | `/clubs/admin/:id/fixtures` | PSL_ADMIN | Club fixtures for admin |
+| POST | `/clubs/admin/:id/validate` | PSL_ADMIN | Run data quality validation |
+| POST | `/clubs/admin/:id/seasons/:seasonId/players` | PSL_ADMIN | Assign player to club for season |
+| PATCH | `/clubs/admin/:id/seasons/:seasonId/players/:playerId` | PSL_ADMIN | Update player assignment |
+| DELETE | `/clubs/admin/:id/seasons/:seasonId/players/:playerId` | PSL_ADMIN | Remove player from season squad |
+| POST | `/clubs/admin/:id/seasons/:seasonId/players/:playerId/move` | PSL_ADMIN | Move player to another club |
+| GET | `/clubs/admin/:id/seasons/:seasonId/squad/validate` | PSL_ADMIN | Validate squad completeness |
+| PATCH | `/clubs/admin/fixtures/:fixtureId/teams` | PSL_ADMIN | Assign teams to fixture |
+| PATCH | `/clubs/admin/fixtures/:fixtureId/venue` | PSL_ADMIN | Assign venue to fixture |
+| PATCH | `/clubs/admin/fixtures/:fixtureId/gameweek` | PSL_ADMIN | Assign gameweek to fixture |
+| PATCH | `/clubs/admin/fixtures/:fixtureId/assignment-status` | PSL_ADMIN | Update fixture assignment status |

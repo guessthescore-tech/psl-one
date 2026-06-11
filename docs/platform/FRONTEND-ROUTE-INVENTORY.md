@@ -295,3 +295,44 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `admin-predictions-client.ts` | `/predictions/admin` routes |
 | `admin-dashboard-client.ts` | `/admin-dashboard` routes |
 | `query-keys.ts` | TanStack Query key constants |
+
+---
+
+## Club Experience Pages (STORY-26)
+
+### Fan Pages
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/clubs` | Club grid with colour avatars | None | `clubs-client` | Optional `?season=` filter |
+| `/clubs/[slug]` | Club hub — header + tab nav | None | `clubs-client` | Links to all sub-pages |
+| `/clubs/[slug]/overview` | Dashboard: fixture preview, squad, news | None | `clubs-client` | — |
+| `/clubs/[slug]/fixtures` | Upcoming fixtures list | None | `clubs-client` | — |
+| `/clubs/[slug]/results` | Recent results with scores | None | `clubs-client` | — |
+| `/clubs/[slug]/squad` | Squad grouped by position | None | `clubs-client` | — |
+| `/clubs/[slug]/stats` | Stats aggregate cards | None | `clubs-client` | — |
+| `/clubs/[slug]/stadium` | Home venue / stadium info | None | `clubs-client` | — |
+| `/clubs/[slug]/tickets` | Ticketing stub (not enabled MVP) | None | `clubs-client` | Commerce note only |
+| `/clubs/[slug]/shop` | Product catalogue with category filter | None | `clubs-client` | No checkout |
+| `/clubs/[slug]/shop/[productSlug]` | Product detail — disabled cart | None | `clubs-client` | No checkout |
+
+### Admin Pages
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/clubs` | Clubs table with readiness dots | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/readiness` | Readiness dashboard with progress bars | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/[id]` | Club detail + validate button | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/[id]/experience` | Experience checklist with progress bar | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/[id]/players` | Players table | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/[id]/fixtures` | Fixtures with venue/gameweek warnings | PSL_ADMIN | `clubs-client` | — |
+| `/admin/clubs/[id]/shop` | Shop readiness checklist | PSL_ADMIN | `clubs-client` | Commerce note |
+| `/admin/seasons/[id]/clubs` | Season clubs with remove confirmation | PSL_ADMIN | `clubs-client` | Uses existing `[id]` segment |
+
+---
+
+## API Client Modules Update
+
+| File | Routes served |
+|------|--------------|
+| `clubs-client.ts` | `/clubs` (fan) and `/clubs/admin` routes (STORY-26) |
