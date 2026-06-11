@@ -216,15 +216,29 @@ These are Sprint 3.
 
 The following issues were identified in the Sprint 1 expert review and are documented here for Sprint 2 awareness. They do not block data readiness work but must be resolved before production:
 
-**Audit log coverage (HIGH):** Audit logs currently only cover auth events (register, login, logout, password reset). Domain mutations (prediction settlement, fantasy transfer, fan value posting, achievement award) are not audited. This violates the CLAUDE.md "Always write audit logs" rule. Add domain mutation audit logging in Sprint 2 where feasible, or defer to Sprint 3 as a dedicated story.
+**1. Audit log coverage**
 
-**Dev-token web pages (HIGH):** 21 web pages use `const TOKEN = 'dev-token'` as a hardcoded placeholder. These pages will not function with real JWT tokens. A UX pass is required (STORY-33 or a dedicated story) to wire real session management before fan beta.
+Audit logs currently cover auth events (register, login, logout, password reset). Several domain mutations still need dedicated audit coverage before production, including prediction settlement, fantasy transfer, fan value posting, achievement awards, notification broadcasts, activity moderation, and admin dashboard actions. This should be addressed in Sprint 2 or Sprint 3 as a dedicated audit and governance story.
 
-**Missing database indexes (MEDIUM for Sprint 2, HIGH before production):** The following indexes are missing and will cause performance degradation at scale. They are not critical for Sprint 2 local development but must be added before any load testing or production deployment:
-- `fixtures`: `(season_id, status)` and `(gameweek_id)`
-- `score_predictions`: `(fixture_id, status)` for settlement queries
-- `peer_challenges`: `challenger_user_id` and `opponent_user_id`
-- `fantasy_gameweek_scores`: `(season_id, gameweek_id)`
+**2. Dev-token placeholder on web pages**
+
+Several Sprint 1 web pages use a `dev-token` placeholder for local/demo API calls. This is acceptable for World Cup beta development but must be replaced with the real authenticated session and token flow before production launch. A UX pass is planned in STORY-33.
+
+**3. CORS production readiness**
+
+The API currently uses local development CORS settings (`localhost:3001` hardcoded). Before staging or production deployment, CORS origins must be environment-driven. No code change required in Sprint 2 — deferred to Sprint 3 pre-deployment.
+
+**4. Performance indexes**
+
+Some high-volume query paths should receive dedicated indexes before production-scale testing, especially fixtures, predictions, peer challenges, and fantasy leaderboard and scoring queries. No migrations required in Sprint 2 — deferred to Sprint 3 as a performance migration story.
+
+**5. Admin user management**
+
+Admin visibility exists through the command centre, but full user and role administration (promote, suspend, search) is not yet implemented. Deferred to Sprint 3.
+
+**6. Sponsor, reporting, and compliance are readiness stubs**
+
+Sponsor Management, Reporting Centre, and Compliance/POPIA Governance are command-centre readiness sections in Sprint 1. Full operational sponsor management, report export centre, and compliance workflow engine belong in Sprint 3. Keep Sprint 2 focused on PSL Season Readiness, data validation, fixture and squad ingestion, competition switching, QA, and beta feedback.
 
 ### Testing
 - All existing 812 API tests must remain green

@@ -230,7 +230,10 @@ Sprint 3 is where PSL One becomes a real, deployed, revenue-generating product. 
 
 ### Infrastructure
 - Terraform is the infrastructure-as-code tool
-- Do not run `terraform apply` without explicit review and user approval — design only until instructed
+- **Do not run any `aws` CLI commands unless explicitly instructed** — design only until approved
+- **Do not run any `terraform` commands (plan, apply, init, destroy) unless explicitly instructed** — design only until approved
+- **Do not introduce Kafka, EventBridge, queues, or brokers unless explicitly approved** — all event integration is synchronous direct service calls until further notice
+- **Local PostgreSQL (`psl_identity_dev`) remains the development default through Sprint 2 and early Sprint 3** — production RDS is only used after explicit deployment approval
 - Production RDS requires regular backup verification
 - CloudFront distribution caches static assets — cache invalidation strategy needed
 - Connection pooling: RDS Proxy is preferred over PgBouncer for Fargate (stateless containers); capture this in an ADR before Sprint 3 deployment

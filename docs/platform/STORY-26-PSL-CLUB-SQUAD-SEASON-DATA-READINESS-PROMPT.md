@@ -82,6 +82,25 @@ Before writing a single line of code, apply these lenses:
    - Data may come from: PSL directly, a licensed provider (Opta, Stats Perform), manual entry, or CSV import via `/admin/imports`
    - The import pipeline must handle all sources without code changes
    - If PSL has not yet released official squad data, seed with reasonable placeholder squads and note them as `provisional`
+   - Make no assumptions about final official squad composition until data is available
+
+7. **Venue data quality checks**
+   - Review seeded `Venue` records for PSL stadiums (name, city, capacity)
+   - Add missing PSL stadium venues if not already present
+   - Prefer existing `Venue` model — no new venue-related models needed
+
+8. **Data quality validation**
+   - Clubs: name, slug, shortName, country, logoUrl (placeholder acceptable)
+   - Players: name, position, teamId, fantasyPrice — flag any missing fields
+   - Squads: minimum 15 players per club, positional balance (2 GK, 5 DEF, 5 MID, 3 FWD minimum)
+   - Season: competition linkage, status, start/end date placeholders
+   - No duplicate externalIds or slugs across teams or players
+
+9. **Prefer existing patterns — add new models only if unavoidable**
+   - Use existing `Competition`, `Season`, `Team`, `Player`, `Venue`, `Fixture`, `CompetitionImportJob` models
+   - Do not introduce new bounded contexts or Prisma models for this story
+   - Use existing admin import pipeline (`/admin/imports`) for data ingestion where possible
+   - Manual admin review via existing admin pages before any data is considered ready
 
 ### Out of Scope
 
@@ -89,11 +108,13 @@ Before writing a single line of code, apply these lenses:
 - Do not activate the PSL season (STORY-28)
 - Do not configure PSL fantasy rules (STORY-29)
 - Do not calibrate prediction points for PSL (STORY-30)
-- Do not implement new API routes unless the existing import pipeline is insufficient
+- Do not implement new API routes unless the existing import pipeline is genuinely insufficient
 - Do not introduce Kafka, AWS commands, or Terraform
 - Do not edit `.next`
 - Do not touch production databases — local PostgreSQL only
-- Do not implement sponsor, commerce, or financial mechanics
+- Do not implement sponsor, commerce, reporting, compliance, or any financial mechanics
+- Do not introduce new product domains — Football Core only
+- Do not implement new admin management UIs unless explicitly needed for this data review
 
 ---
 
