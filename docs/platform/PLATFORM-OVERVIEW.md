@@ -1,6 +1,6 @@
 # PSL One — Platform Overview
 
-**Version:** Sprint 2 — STORY-33 complete  
+**Version:** Sprint 2 — STORY-34 complete  
 **Date:** 2026-06-12
 
 ---
@@ -26,11 +26,12 @@ Sprint 1 produced:
 - 108+ web pages (fan + admin)
 - Full admin command centre
 
-Sprint 2 (through STORY-33) added:
+Sprint 2 (through STORY-34) added:
 - Season-scoped leaderboards (Fan Value, Fantasy, Predictions, Achievements) — WC/PSL data isolation
 - Admin Engagement Metrics module — 10 routes, season scope audit, activation impact
-- 10th season-switching readiness check (engagement scope)
-- 1170 API tests passing (up from 812)
+- Player Match Stats module — authoritative production stats, DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle
+- 11th season-switching readiness check (player stats pipeline)
+- 1188 API tests passing (up from 812)
 
 ---
 

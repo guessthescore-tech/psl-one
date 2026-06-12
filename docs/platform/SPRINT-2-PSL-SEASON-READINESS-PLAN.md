@@ -191,24 +191,28 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-34 — PSL Launch Data Checklist
+### STORY-34 — PSL Player Stats & Match Performance ✅ COMPLETE (2026-06-12)
 
-**Goal:** Final data validation checklist before PSL season fan launch.
+**Goal:** Authoritative production player match statistics — separated from fantasy-only `FantasyPlayerMatchStat`. Full DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle with admin pipeline and fan-facing views.
 
-**Work:**
-- [x] All 16 PSL clubs loaded (including promoted/relegated)
-- [x] All squad registrations validated
-- [x] All 30 matchday fixtures loaded with correct kickoff times
-- [x] All fixtures assigned to gameweeks
-- [x] Fantasy rules config active for PSL season
-- [x] Player prices reviewed and calibrated
-- [x] Achievement definitions reviewed for PSL context
-- [x] Reward readiness definitions reviewed
-- [x] Admin user(s) created and tested
-- [x] All API tests pass on PSL data
-- [x] Platform health: all green
+**Work completed:**
+- Migration `20260612000004_player_match_stats`: `PlayerMatchStatsSource` enum (MANUAL/IMPORTED/PROVIDER/SYSTEM_DERIVED), `PlayerMatchStatsStatus` enum (DRAFT/VERIFIED/PUBLISHED/LOCKED), `player_match_stats` table with 40+ fields, unique on `(player_id, fixture_id)`, direct `season_id` + `gameweek_id` columns
+- Named relations to avoid collision with `FantasyPlayerMatchStat`: Player→`playerStats`, Team→`statsEntries`, Fixture/Season/Gameweek→`playerMatchStats`
+- `PlayerStatsModule` — service (16 fan + admin methods), `PlayerStatsController` (7 fan routes under `/players`), `PlayerStatsAdminController` (10 admin routes under `/players/admin/stats`, PSL_ADMIN gated)
+- Fan reads return only PUBLISHED/VERIFIED stats; admin sees all statuses
+- `adminUpsertStat` auto-derives `seasonId` + `gameweekId` from fixture (upsert on `(playerId, fixtureId)`)
+- LOCKED stats are immutable; PUBLISHED stats are deletion-protected
+- `checkPlayerStatsReadiness` — 11th season-switching readiness check (WARNING when finished fixtures have no/draft stats)
+- `PLAYER_STATS` module added to `AdminOperationsService` module readiness list (BUILT_NOW, foundational, non-commercial)
+- `apps/web/src/lib/players-client.ts` — 7 typed fan API wrappers
+- `apps/web/src/lib/admin-player-stats-client.ts` — 9 typed admin API wrappers
+- 10 fan web pages: `/players`, `/players/[id]`, `/players/[id]/season/[id]`, `/players/[id]/fixture/[id]`, `/players/fixtures/[id]`, `/players/season/[id]`, `/players/season/[id]/top-performers`, `/players/gameweek/[id]`
+- 11 admin web pages: `/admin/player-stats`, `/admin/player-stats/new`, `/admin/player-stats/[id]`, `/admin/player-stats/season/[id]`, `/admin/player-stats/season/[id]/readiness`, `/admin/player-stats/fixture/[id]`
+- 42 new spec tests; total 1188 API tests passing
 
-**Acceptance:** Launch data checklist signed off by product owner.
+**Acceptance criteria met:** Admin can create DRAFT stats, verify, publish (fan-visible), lock (immutable). Fan views return only PUBLISHED/VERIFIED. Lifecycle protection enforced (LOCKED blocks edits/verify/publish/delete; PUBLISHED blocks delete). Season switching has 11 checks. PLAYER_STATS module is BUILT_NOW. RBAC enforced (401/403). Web typecheck clean. Web build clean (14 player-stats pages compiled). All gate checks pass.
+
+**Provider-neutral:** `PlayerMatchStatsSource.PROVIDER` enum value reserved for future live-provider ingestion. No external provider calls or SDK dependencies introduced. `providerStatId` field reserved for provider reconciliation.
 
 ---
 
@@ -267,7 +271,7 @@ Admin visibility exists through the command centre, but full user and role admin
 Sponsor Management, Reporting Centre, and Compliance/POPIA Governance are command-centre readiness sections in Sprint 1. Full operational sponsor management, report export centre, and compliance workflow engine belong in Sprint 3. Keep Sprint 2 focused on PSL Season Readiness, data validation, fixture and squad ingestion, competition switching, QA, and beta feedback.
 
 ### Testing
-- All existing 883 API tests must remain green (updated after STORY-26)
+- All existing 1188 API tests must remain green (updated after STORY-34)
 - New tests should cover PSL-specific rule variants (30-round seasons, squad sizes)
 - Integration tests should cover full fixture-to-prediction-to-settlement lifecycle with PSL data
 

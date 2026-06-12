@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SeasonStatus, SeasonSwitchAction, SeasonSwitchStatus, Prisma } from '@prisma/client';
+import { SeasonStatus, SeasonSwitchAction, SeasonSwitchStatus, PlayerMatchStatsStatus, Prisma } from '@prisma/client';
 import { ActivateSeasonDto } from './dto/activate-season.dto';
 
 export type ReadinessSeverity = 'BLOCKER' | 'WARNING' | 'INFO';
@@ -85,6 +85,7 @@ export class SeasonSwitchingService {
       this.checkPredictionReadiness(seasonId),
       this.checkMatchdayOperationsReadiness(seasonId),
       this.checkEngagementSeasonScope(seasonId),
+      this.checkPlayerStatsReadiness(seasonId),
     ]);
 
     const blockers = checks.filter((c) => c.severity === 'BLOCKER' && !c.passed);
@@ -437,6 +438,45 @@ export class SeasonSwitchingService {
         : directCount > 0
           ? `${directCount} fan value entries scoped to this season. ${unscopedCount} legacy unscoped entries (admin-visible only).`
           : `No fan value entries yet for this season. ${unscopedCount} legacy unscoped entries (admin-visible only, normal for new seasons).`,
+    };
+  }
+
+  private async checkPlayerStatsReadiness(seasonId: string): Promise<ReadinessCheck> {
+    const finishedFixtures = await this.prisma.fixture.count({ where: { seasonId, status: 'FINISHED' } });
+
+    if (finishedFixtures === 0) {
+      return {
+        domain: 'player_stats',
+        label: 'Player stats pipeline ready',
+        severity: 'INFO',
+        passed: true,
+        detail: 'No completed fixtures — player stats pipeline pre-configured and ready',
+      };
+    }
+
+    const statsCount = await this.prisma.playerMatchStats.count({ where: { seasonId } });
+    if (statsCount === 0) {
+      return {
+        domain: 'player_stats',
+        label: 'Player stats pipeline ready',
+        severity: 'WARNING',
+        passed: false,
+        detail: `${finishedFixtures} completed fixture(s) have no player stats entries — consider entering stats before activation`,
+      };
+    }
+
+    const draftCount = await this.prisma.playerMatchStats.count({
+      where: { seasonId, status: PlayerMatchStatsStatus.DRAFT },
+    });
+
+    return {
+      domain: 'player_stats',
+      label: 'Player stats pipeline ready',
+      severity: 'WARNING',
+      passed: draftCount === 0,
+      detail: draftCount > 0
+        ? `${draftCount} player stat entries still in DRAFT across ${finishedFixtures} completed fixtures`
+        : `Player stats pipeline ready — ${statsCount} entries across ${finishedFixtures} completed fixtures`,
     };
   }
 }

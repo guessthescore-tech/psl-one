@@ -1,7 +1,7 @@
 # PSL One — Beta Readiness Review
 
-**Purpose:** Assess Sprint 1 readiness for World Cup 2026 beta testing  
-**Date:** 2026-06-11  
+**Purpose:** Assess platform readiness for World Cup 2026 beta testing  
+**Date:** 2026-06-12 (updated STORY-34)  
 **Status:** BETA-READY (World Cup validation mode)
 
 ---
@@ -35,6 +35,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 | Admin command centre | ✅ Ready | Full operational visibility |
 | Live match dashboard | ✅ Ready | Admin-driven score/event management |
 | Player prices | ✅ Ready | Fantasy prices on all players |
+| Player match stats | ✅ Ready | DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle; admin entry pipeline; fan views |
 
 ---
 
@@ -236,7 +237,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 9. QA Checklist
 
 ### Backend
-- [x] All 812 API tests pass
+- [x] All 1188 API tests pass (updated STORY-34)
 - [x] Prisma schema valid
 - [x] Seed runs cleanly on fresh database
 - [x] All migrations apply cleanly in sequence
@@ -246,11 +247,12 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - [x] Fantasy transfer limits enforced per gameweek
 - [x] Fantasy chip rules enforced (one active, one per type per season)
 - [x] Auto-sub records show correct skip reason when no eligible sub
+- [x] Player stats lifecycle: LOCKED blocks mutation; PUBLISHED blocks delete
 
 ### Frontend
 - [x] All 8 web tests pass
 - [x] TypeScript clean (0 errors)
-- [x] Web build succeeds (static + dynamic pages)
+- [x] Web build succeeds (static + dynamic pages, 14 player-stats pages compiled)
 - [x] Admin pages require PSL_ADMIN JWT (return 401 otherwise)
 - [x] Fan pages render seeded competition, team, fixture data
 - [x] Admin command centre loads all 11 sections
@@ -266,7 +268,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 10. Go / No-Go Criteria
 
 ### GO ✅
-- API tests: 812/812 pass
+- API tests: 1188/1188 pass
 - Web typechecks: clean
 - Seed: runs without errors
 - Admin login: `admin@psl.co.za` authenticates successfully
@@ -274,9 +276,10 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - Fantasy team creation: enforces squad rules
 - Prediction scoring: correct points for exact/diff/result/miss
 - Achievement evaluation: awards achievement on trigger
+- Player stats: LOCKED stat blocks mutation; fan sees only PUBLISHED/VERIFIED
 
 ### NO-GO 🚫
-- Any API test regression below 812
+- Any API test regression below 1188
 - Prisma schema validation failure
 - Seed failure on fresh database
 - Auth bypass (PSL_ADMIN routes accessible without PSL_ADMIN role)

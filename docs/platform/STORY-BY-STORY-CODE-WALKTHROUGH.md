@@ -1129,3 +1129,52 @@ Provisional price bands (stored as integer × 10):
 - `SeasonScopeSource` taxonomy: `DIRECT` → `DERIVED_GAMEWEEK` → `DERIVED_PREDICTION` → `DERIVED_PEER_CHALLENGE` → `DERIVED_FIXTURE` → `LEGACY_UNSCOPED`
 
 **Test gate:** 1170 API tests passing (82 new). Typecheck clean. Seed passes. Build clean.
+
+---
+
+## STORY-34 — PSL Player Stats & Match Performance
+
+**Goal:** Authoritative production player match statistics, separate from fantasy-scoring `FantasyPlayerMatchStat`. Manual entry, status lifecycle, season-scoped queries, 11th season-switching check.
+
+**Migration `20260612000004_player_match_stats`:**
+- New enums: `PlayerMatchStatsSource` (MANUAL/IMPORTED/PROVIDER/SYSTEM_DERIVED), `PlayerMatchStatsStatus` (DRAFT/VERIFIED/PUBLISHED/LOCKED)
+- New model `PlayerMatchStats` with 40+ fields including direct `seasonId`, `gameweekId`, `status`, `source`, rating, and extended technical stats
+- Unique constraint: `(playerId, fixtureId)`
+- Relation naming to avoid collision with `FantasyPlayerMatchStat`: Player→`playerStats`, Team→`statsEntries`, Fixture→`playerMatchStats`, Season→`playerMatchStats`, Gameweek→`playerMatchStats`
+
+**PlayerStatsService (new):** 15+ methods
+- Fan: `getPlayerProfile`, `getPlayerSeasonStats`, `getPlayerMatchStat`, `listFixtureStats`, `listSeasonTopPerformers`, `listGameweekStats`, `listSeasonSquadStats`
+- Admin: `adminListStats`, `adminGetStat`, `adminUpsertStat`, `adminVerifyStat`, `adminPublishStat`, `adminLockStat`, `adminBulkPublishFixture`, `adminDeleteStat`, `adminGetSeasonReadiness`
+- Season check: `checkPlayerStatsReadiness`
+- Fan routes return only PUBLISHED/VERIFIED; admin sees all statuses
+- `adminUpsertStat` auto-derives `seasonId` and `gameweekId` from the fixture
+- LOCKED stats are immutable (ForbiddenException on any mutation)
+- PUBLISHED stats are protected from deletion
+
+**PlayerStatsController:** 7 fan routes under `GET /players/...` (unauthenticated)
+**PlayerStatsAdminController:** 10 admin routes under `/players/admin/stats/...` (PSL_ADMIN)
+
+**SeasonSwitchingService:** Added 11th readiness check `checkPlayerStatsReadiness` (WARNING severity: triggers when finished fixtures exist but stats are empty or have drafts).
+
+**AdminOperationsService:** Added `PLAYER_STATS` module to `getSeasonModuleReadiness` (BUILT_NOW, non-commercial, foundational).
+
+**2 new web clients:** `players-client.ts`, `admin-player-stats-client.ts`
+
+**10 fan web pages:**
+- `/players` (index), `/players/[playerId]` (profile), `/players/[playerId]/season/[seasonId]` (season stats),
+- `/players/[playerId]/fixture/[fixtureId]` (match detail), `/players/fixtures/[fixtureId]` (fixture overview),
+- `/players/season/[seasonId]` (season index), `/players/season/[seasonId]/top-performers` (top scorers/assists),
+- `/players/gameweek/[gameweekId]` (gameweek stats)
+
+**11 admin web pages:**
+- `/admin/player-stats` (list with status filter), `/admin/player-stats/new` (manual entry form),
+- `/admin/player-stats/[statId]` (detail + lifecycle actions), `/admin/player-stats/season/[seasonId]` (season index),
+- `/admin/player-stats/season/[seasonId]/readiness` (readiness report), `/admin/player-stats/fixture/[fixtureId]` (fixture stats + bulk publish)
+
+**Key design decisions:**
+- `PlayerMatchStats` is the authoritative, provider-neutral production model; `FantasyPlayerMatchStat` is retained for fantasy scoring only
+- Season scope stored directly (not derived) — efficient querying at scale
+- DataStatus taxonomy: NO_DATA → PROVISIONAL → PARTIAL → VERIFIED → PUBLISHED
+- Live provider ingestion is foundation-ready but deferred to Sprint 3+ (no external calls)
+
+**Test gate:** 1188 API tests passing (42 new in `player-stats.service.spec.ts`). Both typechecks clean.

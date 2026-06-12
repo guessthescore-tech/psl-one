@@ -507,6 +507,15 @@ export class AdminOperationsService {
         warnings: [],
         recommendedAction: 'Admin engagement overview, unscoped ledger audit, and activation impact check available under /admin/engagement/.',
       },
+      {
+        moduleKey: 'PLAYER_STATS',
+        displayName: 'Player Match Statistics',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: true, isFoundational: true,
+        blockers: [],
+        warnings: ['Live provider ingestion requires Sprint 3+ integration contract'],
+        recommendedAction: 'Manual entry available now. Verify and publish stats per fixture before activation. Check readiness at /admin/player-stats/season/:seasonId/readiness.',
+      },
     ];
 
     return { seasonId, seasonName: season.name, modules };

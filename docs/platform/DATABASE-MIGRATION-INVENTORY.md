@@ -431,3 +431,26 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 - `FanAchievement` has no `seasonId` — intentionally global (achievements unlock once, cross-season by design).
 
 Unscoped legacy entries (null `seasonId` on `FanValueLedger`) are admin-visible only and not surfaced in fan-facing season leaderboards.
+
+---
+
+## Migration — STORY-34 (PSL Player Stats & Match Performance)
+
+**File:** `20260612000004_player_match_stats`
+
+**New enums:**
+- `player_match_stats_source`: `MANUAL`, `IMPORTED`, `PROVIDER`, `SYSTEM_DERIVED`
+- `player_match_stats_status`: `DRAFT`, `VERIFIED`, `PUBLISHED`, `LOCKED`
+
+**New table `player_match_stats`:** id, player_id (FK→players), fixture_id (FK→fixtures), team_id (FK→teams, nullable), season_id (FK→seasons), gameweek_id (FK→gameweeks, nullable), status (default DRAFT), source (default MANUAL), minutes_played, goals, assists, own_goals, yellow_cards, red_cards, penalties_missed, penalties_saved, saves, goals_conceded, clean_sheet, started, came_on_minute, subbed_off_minute, shots_on_target, shots_total, key_passes, tackles_won, interceptions, blocked_shots, aerial_duels_won, distance_run (float), pass_accuracy (float), dribble_success (float), rating (float), did_not_play, provider_stat_id, notes, verified_at, verified_by_user_id, published_at, created_at, updated_at
+
+**Unique constraint:** `(player_id, fixture_id)` — one authoritative stat entry per player per fixture.
+
+**Relation names (to avoid collision with FantasyPlayerMatchStat):**
+- Player→PlayerMatchStats: `playerStats` (existing `matchStats` = FantasyPlayerMatchStat)
+- Team→PlayerMatchStats: `statsEntries` (existing `playerMatchStats` = FantasyPlayerMatchStat)
+- Fixture→PlayerMatchStats: `playerMatchStats` (existing `fantasyMatchStats` = FantasyPlayerMatchStat)
+- Season→PlayerMatchStats: `playerMatchStats`
+- Gameweek→PlayerMatchStats: `playerMatchStats`
+
+**Purpose:** Authoritative production player match statistics, separate from fantasy-scoring-specific `FantasyPlayerMatchStat`. Supports status lifecycle (DRAFT→VERIFIED→PUBLISHED→LOCKED), manual entry, provider readiness, and season-scoped queries.

@@ -181,6 +181,7 @@ model Gameweek {
   playerGameweekScores FantasyPlayerGameweekScore[]
   fanValueLedger       FanValueLedger[]
   fantasyAutoSubs      FantasyAutoSubstitution[]
+  playerMatchStats     PlayerMatchStats[]           @relation("GameweekPlayerMatchStats")
 
   @@unique([seasonId, slug])
   @@map("gameweeks")
@@ -308,6 +309,7 @@ model Season {
   squadRegistrations       SeasonSquadRegistration[]
   fixtureImportBatches     FixtureImportBatch[]
   predictionRulesConfig    PredictionRulesConfig?
+  playerMatchStats         PlayerMatchStats[]           @relation("SeasonPlayerMatchStats")
 
   @@map("seasons")
 }
@@ -348,6 +350,7 @@ model Team {
   matchEvents          MatchEvent[]
   lineups              FixtureLineup[]
   playerMatchStats     FantasyPlayerMatchStat[]
+  statsEntries         PlayerMatchStats[]           @relation("TeamStatsEntries")
   seasonTeams          SeasonTeam[]
   clubProfile          ClubProfile?
   contentItems         ClubContentItem[]
@@ -383,6 +386,7 @@ model Player {
   prices                FantasyPlayerPrice[]
   priceHistory          FantasyPlayerPriceHistory[]
   matchStats            FantasyPlayerMatchStat[]
+  playerStats           PlayerMatchStats[]           @relation("PlayerStats")
   gameweekScores        FantasyPlayerGameweekScore[]
   autoSubsOut           FantasyAutoSubstitution[]    @relation("AutoSubOutPlayer")
   autoSubsIn            FantasyAutoSubstitution[]    @relation("AutoSubInPlayer")
@@ -446,6 +450,7 @@ model Fixture {
   ledgerEntries PredictionPointsLedger[]
   fantasyLedger     FantasyPointsLedger[]
   fantasyMatchStats FantasyPlayerMatchStat[]
+  playerMatchStats  PlayerMatchStats[]           @relation("FixturePlayerMatchStats")
   importRows        FixtureImportRow[]
 
   @@map("fixtures")
@@ -2063,6 +2068,26 @@ enum IntegrationProviderStatus {
   @@map("integration_provider_status")
 }
 
+// ── Player Stats ──────────────────────────────────────────────────────────────
+
+enum PlayerMatchStatsSource {
+  MANUAL
+  IMPORTED
+  PROVIDER
+  SYSTEM_DERIVED
+
+  @@map("player_match_stats_source")
+}
+
+enum PlayerMatchStatsStatus {
+  DRAFT
+  VERIFIED
+  PUBLISHED
+  LOCKED
+
+  @@map("player_match_stats_status")
+}
+
 model IntegrationProviderConfig {
   id                         String                    @id @default(uuid())
   providerType               IntegrationProviderType   @map("provider_type")
@@ -2080,4 +2105,57 @@ model IntegrationProviderConfig {
   updatedAt                  DateTime                  @updatedAt    @map("updated_at")
 
   @@map("integration_provider_configs")
+}
+
+model PlayerMatchStats {
+  id               String                  @id @default(uuid())
+  playerId         String                  @map("player_id")
+  fixtureId        String                  @map("fixture_id")
+  teamId           String?                 @map("team_id")
+  seasonId         String                  @map("season_id")
+  gameweekId       String?                 @map("gameweek_id")
+  status           PlayerMatchStatsStatus  @default(DRAFT)
+  source           PlayerMatchStatsSource  @default(MANUAL)
+  minutesPlayed    Int                     @default(0) @map("minutes_played")
+  goals            Int                     @default(0)
+  assists          Int                     @default(0)
+  ownGoals         Int                     @default(0) @map("own_goals")
+  yellowCards      Int                     @default(0) @map("yellow_cards")
+  redCards         Int                     @default(0) @map("red_cards")
+  penaltiesMissed  Int                     @default(0) @map("penalties_missed")
+  penaltiesSaved   Int                     @default(0) @map("penalties_saved")
+  saves            Int                     @default(0)
+  goalsConceded    Int                     @default(0) @map("goals_conceded")
+  cleanSheet       Boolean                 @default(false) @map("clean_sheet")
+  started          Boolean                 @default(false)
+  cameOnMinute     Int?                    @map("came_on_minute")
+  subbedOffMinute  Int?                    @map("subbed_off_minute")
+  shotsOnTarget    Int                     @default(0) @map("shots_on_target")
+  shotsTotal       Int                     @default(0) @map("shots_total")
+  keyPasses        Int                     @default(0) @map("key_passes")
+  tacklesWon       Int                     @default(0) @map("tackles_won")
+  interceptions    Int                     @default(0)
+  blockedShots     Int                     @default(0) @map("blocked_shots")
+  aerialDuelsWon   Int                     @default(0) @map("aerial_duels_won")
+  distanceRun      Float?                  @map("distance_run")
+  passAccuracy     Float?                  @map("pass_accuracy")
+  dribbleSuccess   Float?                  @map("dribble_success")
+  rating           Float?
+  didNotPlay       Boolean                 @default(false) @map("did_not_play")
+  providerStatId   String?                 @map("provider_stat_id")
+  notes            String?
+  verifiedAt       DateTime?               @map("verified_at")
+  verifiedByUserId String?                 @map("verified_by_user_id")
+  publishedAt      DateTime?               @map("published_at")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  player    Player   @relation("PlayerStats", fields: [playerId], references: [id])
+  fixture   Fixture  @relation("FixturePlayerMatchStats", fields: [fixtureId], references: [id])
+  team      Team?    @relation("TeamStatsEntries", fields: [teamId], references: [id])
+  season    Season   @relation("SeasonPlayerMatchStats", fields: [seasonId], references: [id])
+  gameweek  Gameweek? @relation("GameweekPlayerMatchStats", fields: [gameweekId], references: [id])
+
+  @@unique([playerId, fixtureId])
+  @@map("player_match_stats")
 }

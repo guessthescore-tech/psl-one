@@ -439,3 +439,28 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/engagement/[seasonId]/unscoped-ledger` | Unscoped ledger (admin-only) | PSL_ADMIN | `admin-engagement-client` | Entries with null seasonId; classification table |
 | `/admin/engagement/[seasonId]/season-scope-audit` | Season scope audit | PSL_ADMIN | `admin-engagement-client` | 10 checks; READY/READY_WITH_WARNINGS/BLOCKED |
 | `/admin/engagement/[seasonId]/activation-impact` | Activation impact | PSL_ADMIN | `admin-engagement-client` | WC preservation, PSL clean start, safety confirmations |
+
+## Player Stats — Fan Pages (STORY-34)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/players` | Players index | PUBLIC | — | Entry point to season stats, gameweeks, clubs |
+| `/players/[playerId]` | Player profile | PUBLIC | `players-client` | Career totals, team, position |
+| `/players/[playerId]/season/[seasonId]` | Player season stats | PUBLIC | `players-client` | Match-by-match history + season totals |
+| `/players/[playerId]/fixture/[fixtureId]` | Player match stat detail | PUBLIC | `players-client` | Full stat breakdown for one fixture |
+| `/players/fixtures/[fixtureId]` | Fixture player stats | PUBLIC | `players-client` | All players for a fixture |
+| `/players/season/[seasonId]` | Season stats index | PUBLIC | — | Links to top performers |
+| `/players/season/[seasonId]/top-performers` | Top scorers & assists | PUBLIC | `players-client` | Tab-switcher: scorers / assists |
+| `/players/gameweek/[gameweekId]` | Gameweek player stats | PUBLIC | `players-client` | All player stats for a gameweek |
+| `/players/season/[seasonId]/team/[teamId]/squad-stats` | Squad stats (fan) | PUBLIC | `players-client` | Aggregated squad stats (via API; no dedicated page) |
+
+## Player Stats — Admin Pages (STORY-34)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/player-stats` | Stats list | PSL_ADMIN | `admin-player-stats-client` | Filterable by status; Suspense for useSearchParams |
+| `/admin/player-stats/new` | New stat entry | PSL_ADMIN | `admin-player-stats-client` | Manual entry form (playerId + fixtureId) |
+| `/admin/player-stats/[statId]` | Stat detail + actions | PSL_ADMIN | `admin-player-stats-client` | Verify / Publish / Lock / Delete lifecycle |
+| `/admin/player-stats/season/[seasonId]` | Season stats admin | PSL_ADMIN | — | Links to readiness + filtered lists |
+| `/admin/player-stats/season/[seasonId]/readiness` | Season readiness | PSL_ADMIN | `admin-player-stats-client` | NO_DATA / PROVISIONAL / PARTIAL / VERIFIED / PUBLISHED |
+| `/admin/player-stats/fixture/[fixtureId]` | Fixture stats admin | PSL_ADMIN | `admin-player-stats-client` | Per-fixture list + bulk publish action |

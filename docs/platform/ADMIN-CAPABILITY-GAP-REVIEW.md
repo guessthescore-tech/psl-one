@@ -1,9 +1,9 @@
 # PSL One — Admin Capability Gap Review
 
 **Sprint:** 2  
-**Story:** STORY-33 PSL Leaderboards & Fan Value Season Scope (latest update)  
+**Story:** STORY-34 PSL Player Stats & Match Performance (latest update)  
 **Date:** 2026-06-12  
-**Status:** ACTIVE — reviewed at STORY-32 acceptance
+**Status:** ACTIVE — reviewed at STORY-34 acceptance
 
 ---
 
@@ -71,6 +71,7 @@
 | Prediction lock/settlement | BUILT_NOW | HIGH | Wire to live match results |
 | Peer challenges | BUILT_NOW | LOW | **FAN POINTS ONLY** — no stakes |
 | Leaderboards | BUILT_NOW | LOW | Season-scoped. WC/PSL data isolated. Admin engagement metrics available. STORY-33 complete. |
+| Player match stats | BUILT_NOW | HIGH | DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle. Admin entry + fan views. Source enum ready for live provider. |
 | Badges/achievements/fan value | BUILT_NOW | LOW | Review badge definitions for PSL |
 | Notifications | BUILT_NOW | MEDIUM | Wire email/push provider Sprint 3+ |
 
@@ -121,7 +122,7 @@
 
 | Capability | Status | Risk if Missing | Next Step |
 |---|---|---|---|
-| Create/prepare/switch/archive seasons | BUILT_NOW | CRITICAL | Activate PSL season when all 9 checks pass |
+| Create/prepare/switch/archive seasons | BUILT_NOW | CRITICAL | Activate PSL season when all 11 checks pass |
 | World Cup historical preservation | BUILT_NOW | HIGH | Do not delete WC data before WC ends |
 | Module readiness per season | BUILT_NOW | MEDIUM | Review before each season activation |
 | Season-scoped gameplay economy | BUILT_NOW | HIGH | Validate PSL season slug in all fan routes |
@@ -168,7 +169,8 @@
 1. **Import official PSL 2026/27 fixture schedule** — required to derive gameweeks and activate fantasy/prediction
 2. **Promote fantasy rules from PROVISIONAL to ACTIVE** — required for fan squad selection
 3. **Promote prediction rules from PROVISIONAL to ACTIVE** — required for fan predictions
-4. **Season switching — resolve all 9 checks** — required to activate PSL season
+4. **Season switching — resolve all 11 checks** — required to activate PSL season
+5. **Populate player match stats for finished fixtures** — PUBLISHED stats required to satisfy 11th season-switching readiness check (PLAYER_STATS WARNING)
 
 ## Sprint 3+ Required Before Revenue
 

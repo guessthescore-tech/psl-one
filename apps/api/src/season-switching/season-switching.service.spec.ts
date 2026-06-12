@@ -57,6 +57,7 @@ describe('SeasonSwitchingService', () => {
     clubProfile: { count: ReturnType<typeof vi.fn> };
     predictionRulesConfig: { findUnique: ReturnType<typeof vi.fn> };
     fanValueLedger: { count: ReturnType<typeof vi.fn> };
+    playerMatchStats: { count: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
   };
 
@@ -86,6 +87,7 @@ describe('SeasonSwitchingService', () => {
       clubProfile: { count: vi.fn().mockResolvedValue(16) },
       predictionRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'pred-cfg-1', status: 'PROVISIONAL' }) },
       fanValueLedger: { count: vi.fn().mockResolvedValue(0) },
+      playerMatchStats: { count: vi.fn().mockResolvedValue(0) },
       $transaction: vi.fn(),
     };
 
@@ -144,6 +146,8 @@ describe('SeasonSwitchingService', () => {
   describe('getSeasonSwitchReadiness', () => {
     it('returns READY when all checks pass', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
+      // player stats check passes: some stats, zero drafts
+      prisma.playerMatchStats.count.mockResolvedValueOnce(22).mockResolvedValueOnce(0);
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
@@ -200,12 +204,12 @@ describe('SeasonSwitchingService', () => {
       expect(result.activationStatus).toBe('READY_WITH_WARNINGS');
     });
 
-    it('includes all 10 checks', async () => {
+    it('includes all 11 checks', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
-      expect(result.checks).toHaveLength(10);
+      expect(result.checks).toHaveLength(11);
     });
   });
 
@@ -261,6 +265,8 @@ describe('SeasonSwitchingService', () => {
     beforeEach(() => {
       prisma.season.findUnique.mockResolvedValue(readySeason);
       prisma.season.findFirst.mockResolvedValue(mockActiveSeason());
+      // player stats check: some stats exist, none in DRAFT → OK
+      prisma.playerMatchStats.count.mockResolvedValueOnce(22).mockResolvedValueOnce(0);
 
       prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {

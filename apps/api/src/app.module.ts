@@ -27,6 +27,7 @@ import { PredictionCalibrationModule } from './prediction-calibration/prediction
 import { GameweekOperationsModule } from './gameweek-operations/gameweek-operations.module';
 import { AdminOperationsModule } from './admin-operations/admin-operations.module';
 import { EngagementModule } from './engagement/engagement.module';
+import { PlayerStatsModule } from './player-stats/player-stats.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { EngagementModule } from './engagement/engagement.module';
     GameweekOperationsModule,
     AdminOperationsModule,
     EngagementModule,
+    PlayerStatsModule,
     HealthModule,
   ],
   controllers: [VersionController],

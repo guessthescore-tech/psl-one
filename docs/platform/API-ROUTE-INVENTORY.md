@@ -667,3 +667,32 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/admin/engagement/:seasonId/unscoped-ledger` | PSL_ADMIN | Fan value entries with null seasonId (admin-visible only) |
 | GET | `/admin/engagement/:seasonId/season-scope-audit` | PSL_ADMIN | 10-check scope audit: READY / READY_WITH_WARNINGS / BLOCKED |
 | GET | `/admin/engagement/:seasonId/activation-impact` | PSL_ADMIN | Activation impact: WC preservation, PSL start, safety confirmations |
+
+## /players — Player Stats (STORY-34)
+
+**Purpose:** Authoritative player match statistics — per-player season aggregates, fixture stats, gameweek stats, top performers.
+
+### Fan routes (open)
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/players/:playerId/profile` | PUBLIC | Player profile with career stats summary (PUBLISHED/VERIFIED only) |
+| GET | `/players/:playerId/season/:seasonId/stats` | PUBLIC | Player season stats: match-by-match history + season totals |
+| GET | `/players/:playerId/fixture/:fixtureId/stats` | PUBLIC | Single player match stat detail |
+| GET | `/players/fixtures/:fixtureId/stats` | PUBLIC | All player stats for a fixture (PUBLISHED/VERIFIED only) |
+| GET | `/players/season/:seasonId/top-performers` | PUBLIC | Top scorers and top assists for a season |
+| GET | `/players/gameweek/:gameweekId/stats` | PUBLIC | All player stats for a gameweek |
+| GET | `/players/season/:seasonId/team/:teamId/squad-stats` | PUBLIC | Aggregated squad stats for a team in a season |
+
+### Admin routes
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/players/admin/stats` | PSL_ADMIN | List all stat entries with optional ?seasonId / ?fixtureId / ?status filters |
+| GET | `/players/admin/stats/season/:seasonId/readiness` | PSL_ADMIN | Season stats readiness: NO_DATA / PROVISIONAL / PARTIAL / VERIFIED / PUBLISHED |
+| GET | `/players/admin/stats/:id` | PSL_ADMIN | Single stat entry detail (all fields, all statuses) |
+| POST | `/players/admin/stats` | PSL_ADMIN | Upsert stat entry (derives seasonId, gameweekId from fixture) |
+| PUT | `/players/admin/stats/:id` | PSL_ADMIN | Update stat entry |
+| POST | `/players/admin/stats/:id/verify` | PSL_ADMIN | Transition DRAFT → VERIFIED, stamps verifiedAt + verifiedByUserId |
+| POST | `/players/admin/stats/:id/publish` | PSL_ADMIN | Transition VERIFIED → PUBLISHED, stamps publishedAt |
+| POST | `/players/admin/stats/:id/lock` | PSL_ADMIN | Transition PUBLISHED → LOCKED (immutable) |
+| POST | `/players/admin/stats/fixtures/:fixtureId/bulk-publish` | PSL_ADMIN | Publish all VERIFIED stats for a fixture in one call |
+| DELETE | `/players/admin/stats/:id` | PSL_ADMIN | Delete DRAFT or VERIFIED stat (PUBLISHED/LOCKED protected) |
