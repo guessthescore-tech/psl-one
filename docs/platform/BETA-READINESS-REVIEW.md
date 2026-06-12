@@ -1,7 +1,7 @@
 # PSL One — Beta Readiness Review
 
 **Purpose:** Assess platform readiness for World Cup 2026 beta testing  
-**Date:** 2026-06-12 (updated STORY-34)  
+**Date:** 2026-06-12 (updated STORY-35)  
 **Status:** BETA-READY (World Cup validation mode)
 
 ---
@@ -36,6 +36,8 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 | Live match dashboard | ✅ Ready | Admin-driven score/event management |
 | Player prices | ✅ Ready | Fantasy prices on all players |
 | Player match stats | ✅ Ready | DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle; admin entry pipeline; fan views |
+| Admin audit log | ✅ Ready | Append-only `AdminAuditLog`; playerStats publish/lock writes; other domain writes Sprint 3 |
+| Beta feedback panel | ✅ Ready | Overview, known issues, UX checklist, release notes at `/admin/beta-feedback` |
 
 ---
 
@@ -83,7 +85,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ### Flow 7: Create a Peer Challenge
 1. Go to `/challenges`
 2. Challenge another fan on a specific fixture
-3. Set Fan Value wager
+3. Set Fan Value challenge amount (fan points only — non-financial)
 4. Other fan accepts at `/challenges/[id]`
 5. After match: view settlement
 
@@ -193,7 +195,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 |-----------|--------|--------|
 | No email/SMS/push notifications | In-app only | Sprint 3 |
 | No real live sports data provider | Admin must push score/events manually | Sprint 2/3 |
-| Web pages use dev-token placeholder | Not secure for production | Sprint 2 UX pass |
+| Web pages used dev-token placeholder | Resolved in STORY-35: 34 pages migrated to `getBetaToken()` | Sprint 3 full session |
 | No rewards redemption workflow | Eligibility only, no fulfilment | Sprint 3 |
 | Fan Value has no monetary backing | Engagement metric only (by design) | — |
 | Prediction settlement is manual | Admin must trigger | Sprint 2 automation |
@@ -237,7 +239,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 9. QA Checklist
 
 ### Backend
-- [x] All 1188 API tests pass (updated STORY-34)
+- [x] All 1216 API tests pass (updated STORY-35)
 - [x] Prisma schema valid
 - [x] Seed runs cleanly on fresh database
 - [x] All migrations apply cleanly in sequence
@@ -248,14 +250,18 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - [x] Fantasy chip rules enforced (one active, one per type per season)
 - [x] Auto-sub records show correct skip reason when no eligible sub
 - [x] Player stats lifecycle: LOCKED blocks mutation; PUBLISHED blocks delete
+- [x] AdminAuditLog writes on playerStats publish/lock
+- [x] Beta feedback routes: PSL_ADMIN=200, FAN=403, unauth=401
 
 ### Frontend
 - [x] All 8 web tests pass
 - [x] TypeScript clean (0 errors)
-- [x] Web build succeeds (static + dynamic pages, 14 player-stats pages compiled)
+- [x] Web build succeeds (static + dynamic pages, 137 pages compiled)
 - [x] Admin pages require PSL_ADMIN JWT (return 401 otherwise)
 - [x] Fan pages render seeded competition, team, fixture data
 - [x] Admin command centre loads all 11 sections
+- [x] All 34 dev-token placeholders replaced with `getBetaToken()`
+- [x] Port defaults corrected to 4000 across all web clients
 
 ### Integration
 - [x] Prediction settlement → Fan Value entry created
@@ -268,7 +274,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 10. Go / No-Go Criteria
 
 ### GO ✅
-- API tests: 1188/1188 pass
+- API tests: 1216/1216 pass
 - Web typechecks: clean
 - Seed: runs without errors
 - Admin login: `admin@psl.co.za` authenticates successfully
@@ -279,7 +285,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - Player stats: LOCKED stat blocks mutation; fan sees only PUBLISHED/VERIFIED
 
 ### NO-GO 🚫
-- Any API test regression below 1188
+- Any API test regression below 1216
 - Prisma schema validation failure
 - Seed failure on fresh database
 - Auth bypass (PSL_ADMIN routes accessible without PSL_ADMIN role)

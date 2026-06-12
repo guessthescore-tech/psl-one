@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { getAdminSeasonContext, getSwitchHistory } from '@/lib/season-context-client';
 import Link from 'next/link';
+import { getBetaToken } from '@/lib/auth-client';
 
 interface SeasonRow {
   id: string;
@@ -31,8 +32,8 @@ export default function SeasonSwitchDetailPage({ params }: { params: Promise<{ s
 
   useEffect(() => {
     Promise.all([
-      getAdminSeasonContext('dev-token'),
-      getSwitchHistory(seasonId, 'dev-token'),
+      getAdminSeasonContext(getBetaToken()),
+      getSwitchHistory(seasonId, getBetaToken()),
     ])
       .then(([ctx, hist]) => {
         const c = ctx as { allSeasons: SeasonRow[] };

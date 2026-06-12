@@ -93,6 +93,9 @@ const makePrisma = () => ({
     upsert: vi.fn().mockResolvedValue(makeStat()),
     delete: vi.fn().mockResolvedValue(makeStat()),
   },
+  adminAuditLog: {
+    create: vi.fn().mockResolvedValue({ id: 'audit-1' }),
+  },
 });
 
 describe('PlayerStatsService', () => {

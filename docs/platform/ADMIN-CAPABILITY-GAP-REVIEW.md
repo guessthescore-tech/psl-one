@@ -1,9 +1,9 @@
 # PSL One — Admin Capability Gap Review
 
 **Sprint:** 2  
-**Story:** STORY-34 PSL Player Stats & Match Performance (latest update)  
+**Story:** STORY-35 Beta Feedback, Bug Fixes & UX Polish (latest update)  
 **Date:** 2026-06-12  
-**Status:** ACTIVE — reviewed at STORY-34 acceptance
+**Status:** ACTIVE — reviewed at STORY-35 acceptance
 
 ---
 
@@ -112,6 +112,11 @@
 | Capability | Status | Risk if Missing | Next Step |
 |---|---|---|---|
 | Admin dashboard KPIs | BUILT_NOW | LOW | Add Sprint 2 module counts |
+| Beta feedback overview | BUILT_NOW | LOW | `/admin/beta-feedback` — STORY-35 |
+| Beta known issues tracker | BUILT_NOW | LOW | `/admin/beta-feedback/known-issues` — 12 issues (KI-001 to KI-012) |
+| UX readiness checklist | BUILT_NOW | LOW | `/admin/beta-feedback/ux-checklist` — ~45 checks |
+| Release notes | BUILT_NOW | LOW | `/admin/beta-feedback/release-notes` — STORY-26 to STORY-35 |
+| Admin audit log | BUILT_NOW | MEDIUM | `AdminAuditLog` model; playerStats publish/lock writes; extend to other domains Sprint 3 |
 | Exportable reports | FUTURE_IMPLEMENTATION | LOW | Export builder Sprint 3+ |
 | A/B testing | FUTURE_IMPLEMENTATION | LOW | Feature flag service Sprint 3+ |
 | AI-assisted insights | FUTURE_IMPLEMENTATION | LOW | Sprint 4+ AI module |

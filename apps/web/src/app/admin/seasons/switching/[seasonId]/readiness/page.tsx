@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { getSwitchReadiness } from '@/lib/season-context-client';
 import Link from 'next/link';
+import { getBetaToken } from '@/lib/auth-client';
 
 interface ReadinessCheck {
   domain: string;
@@ -41,7 +42,7 @@ export default function SeasonReadinessPage({ params }: { params: Promise<{ seas
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSwitchReadiness(seasonId, 'dev-token')
+    getSwitchReadiness(seasonId, getBetaToken())
       .then((d: unknown) => setData(d as ReadinessData))
       .catch((e: unknown) => setError(String(e)));
   }, [seasonId]);

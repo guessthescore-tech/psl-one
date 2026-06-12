@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { createSystemActivity, createLiveMatchAlert, getAdminStats } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface AdminStats {
   total: number;
@@ -28,7 +28,7 @@ export default function AdminActivitySystemPage() {
     setStatsLoading(true);
     setStatsError(null);
     try {
-      const data = await getAdminStats(TOKEN);
+      const data = await getAdminStats(getBetaToken());
       setStats(data);
     } catch (e) {
       setStatsError(String(e));
@@ -40,7 +40,7 @@ export default function AdminActivitySystemPage() {
   async function handlePostSystem(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await createSystemActivity(TOKEN, {
+      await createSystemActivity(getBetaToken(), {
         type: systemForm.type,
         title: systemForm.title,
         body: systemForm.body,
@@ -56,7 +56,7 @@ export default function AdminActivitySystemPage() {
   async function handlePostAlert(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await createLiveMatchAlert(TOKEN, alertForm);
+      await createLiveMatchAlert(getBetaToken(), alertForm);
       setActionMsg('Live match alert posted');
       setAlertForm({ fixtureId: '', title: '', body: '' });
     } catch (e) {

@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { adminGetClubList } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface Club {
   id: string;
@@ -32,7 +32,7 @@ export default function AdminClubsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    adminGetClubList(TOKEN)
+    adminGetClubList(getBetaToken())
       .then(setClubs)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));

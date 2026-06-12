@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAdminSeasonContext } from '@/lib/season-context-client';
 import Link from 'next/link';
+import { getBetaToken } from '@/lib/auth-client';
 
 interface SeasonRow {
   id: string;
@@ -26,7 +27,7 @@ export default function SeasonContextPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getAdminSeasonContext('dev-token')
+    getAdminSeasonContext(getBetaToken())
       .then((d: unknown) => setData(d as ContextData))
       .catch((e: unknown) => setError(String(e)));
   }, []);

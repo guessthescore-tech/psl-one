@@ -1,10 +1,19 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { getToken } from './auth-client';
+
+const API = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
+
+function authedHeaders(): HeadersInit {
+  const token = getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-    credentials: 'include',
+    headers: { ...authedHeaders(), ...(init?.headers ?? {}) },
   });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${path}`);
   return res.json() as Promise<T>;

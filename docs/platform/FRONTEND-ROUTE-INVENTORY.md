@@ -464,3 +464,12 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/player-stats/season/[seasonId]` | Season stats admin | PSL_ADMIN | — | Links to readiness + filtered lists |
 | `/admin/player-stats/season/[seasonId]/readiness` | Season readiness | PSL_ADMIN | `admin-player-stats-client` | NO_DATA / PROVISIONAL / PARTIAL / VERIFIED / PUBLISHED |
 | `/admin/player-stats/fixture/[fixtureId]` | Fixture stats admin | PSL_ADMIN | `admin-player-stats-client` | Per-fixture list + bulk publish action |
+
+## Beta Feedback — Admin Pages (STORY-35)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/beta-feedback` | Beta overview | PSL_ADMIN | `beta-feedback-client` | Status banner, KPI cards, sub-page nav, recommended actions |
+| `/admin/beta-feedback/known-issues` | Known issues list | PSL_ADMIN | `beta-feedback-client` | 12 issues with severity/status badges |
+| `/admin/beta-feedback/ux-checklist` | UX checks grouped by area | PSL_ADMIN | `beta-feedback-client` | PASS/WARN/FAIL/PENDING with summary chips |
+| `/admin/beta-feedback/release-notes` | Release notes STORY-26 to STORY-35 | PSL_ADMIN | `beta-feedback-client` | Reverse-chronological; key deliverables + safety boundaries |

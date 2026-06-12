@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetClubPlayers } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface Player {
   id: string;
@@ -26,7 +26,7 @@ export default function AdminClubPlayersPage() {
 
   useEffect(() => {
     if (!id) return;
-    adminGetClubPlayers(TOKEN, id)
+    adminGetClubPlayers(getBetaToken(), id)
       .then(setPlayers)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));

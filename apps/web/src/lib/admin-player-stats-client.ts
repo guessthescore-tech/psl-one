@@ -1,7 +1,17 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { getToken } from './auth-client';
+
+const BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
+
+function authedHeaders(): HeadersInit {
+  const token = getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, init);
+  const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...authedHeaders(), ...(init?.headers ?? {}) } });
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`);
   return res.json() as Promise<T>;
 }
@@ -24,7 +34,6 @@ export const getSeasonStatsReadiness = (seasonId: string) =>
 export const upsertStat = (body: Record<string, unknown>) =>
   apiFetch('/players/admin/stats', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
 
@@ -38,7 +47,7 @@ export const lockStat = (id: string) =>
   apiFetch(`/players/admin/stats/${id}/lock`, { method: 'POST' });
 
 export const bulkPublishFixture = (fixtureId: string) =>
-  apiFetch(`/players/admin/stats/fixtures/${fixtureId}/bulk-publish`, { method: 'POST' });
+  apiFetch(`/players/admin/stats/fixture/${fixtureId}/bulk-publish`, { method: 'POST' });
 
 export const deleteStat = (id: string) =>
   apiFetch(`/players/admin/stats/${id}`, { method: 'DELETE' });

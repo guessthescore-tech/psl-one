@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getMyFeed, hideOwnActivity } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface FeedItem {
   id: string;
@@ -27,7 +27,7 @@ export default function MyActivityFeedPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getMyFeed(TOKEN, { limit: 20, offset: 0 });
+      const data = await getMyFeed(getBetaToken(), { limit: 20, offset: 0 });
       setItems(data.items);
       setTotal(data.total);
     } catch (e) {
@@ -41,7 +41,7 @@ export default function MyActivityFeedPage() {
 
   async function handleHide(id: string) {
     try {
-      await hideOwnActivity(TOKEN, id);
+      await hideOwnActivity(getBetaToken(), id);
       setActionMsg('Activity hidden');
       load();
     } catch (e) {

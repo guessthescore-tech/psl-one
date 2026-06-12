@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { getActivityDetail, addReaction, removeReaction } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 const REACTION_TYPES = ['LIKE', 'FIRE', 'CLAP', 'TROPHY', 'BALL'] as const;
 const REACTION_EMOJI: Record<string, string> = {
@@ -37,7 +37,7 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
     setLoading(true);
     setError(null);
     try {
-      const data = await getActivityDetail(TOKEN, id);
+      const data = await getActivityDetail(getBetaToken(), id);
       setItem(data);
     } catch (e) {
       setError(String(e));
@@ -52,9 +52,9 @@ export default function ActivityDetailPage({ params }: { params: Promise<{ id: s
     if (!item) return;
     try {
       if (hasIt) {
-        await removeReaction(TOKEN, item.id, reactionType);
+        await removeReaction(getBetaToken(), item.id, reactionType);
       } else {
-        await addReaction(TOKEN, item.id, reactionType);
+        await addReaction(getBetaToken(), item.id, reactionType);
       }
       setActionMsg(`Reaction ${hasIt ? 'removed' : 'added'}`);
       load();

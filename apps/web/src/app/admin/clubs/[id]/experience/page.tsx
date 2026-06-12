@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetClubExperience } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface ExperienceStatus {
   teamId: string;
@@ -38,7 +38,7 @@ export default function AdminClubExperiencePage() {
 
   useEffect(() => {
     if (!id) return;
-    adminGetClubExperience(TOKEN, id)
+    adminGetClubExperience(getBetaToken(), id)
       .then(setStatus)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));

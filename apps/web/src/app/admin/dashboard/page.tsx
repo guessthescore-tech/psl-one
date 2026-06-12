@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getFullDashboard } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 const SECTIONS = [
   { key: 'guess-the-score', label: 'Guess the Score', href: '/admin/dashboard/guess-the-score', color: 'bg-blue-50 border-blue-200' },
@@ -33,7 +33,7 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getFullDashboard(TOKEN)
+    getFullDashboard(getBetaToken())
       .then(setDashboard)
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));

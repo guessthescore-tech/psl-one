@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { use } from 'react';
 import { getSwitchPreview, activateSeason } from '@/lib/season-context-client';
+import { getBetaToken } from '@/lib/auth-client';
 
 interface SeasonRef {
   id: string;
@@ -45,7 +46,7 @@ export default function SeasonPreviewPage({ params }: { params: Promise<{ season
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    getSwitchPreview(seasonId, 'dev-token')
+    getSwitchPreview(seasonId, getBetaToken())
       .then((d: unknown) => setData(d as PreviewData))
       .catch((e: unknown) => setError(String(e)));
   }, [seasonId]);
@@ -59,7 +60,7 @@ export default function SeasonPreviewPage({ params }: { params: Promise<{ season
         acknowledgeWarnings: acknowledge,
       };
       if (note) body.activationNote = note;
-      await activateSeason(seasonId, body, 'dev-token');
+      await activateSeason(seasonId, body, getBetaToken());
       setActivated(true);
     } catch (e: unknown) {
       setActivationError(String(e));

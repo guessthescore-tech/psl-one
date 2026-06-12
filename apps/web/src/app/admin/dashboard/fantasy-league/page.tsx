@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getFantasyLeague } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function FantasyLeagueDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function FantasyLeagueDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getFantasyLeague(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getFantasyLeague(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   const leagues = (data?.leaguesByType ?? {}) as Record<string, number>;

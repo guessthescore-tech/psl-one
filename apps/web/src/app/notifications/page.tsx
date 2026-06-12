@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getInbox, markRead, markAllRead, archiveNotification } from '@/lib/notifications-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface NotifItem {
   id: string;
@@ -30,7 +30,7 @@ export default function NotificationsInboxPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getInbox(TOKEN, { ...(status ? { status } : {}), limit: 20, offset: 0 });
+      const data = await getInbox(getBetaToken(), { ...(status ? { status } : {}), limit: 20, offset: 0 });
       setItems(data.items);
       setTotal(data.total);
       setUnreadCount(data.unreadCount);
@@ -45,7 +45,7 @@ export default function NotificationsInboxPage() {
 
   async function handleMarkRead(id: string) {
     try {
-      await markRead(TOKEN, id);
+      await markRead(getBetaToken(), id);
       setActionMsg('Marked as read');
       load(statusFilter);
     } catch (e) {
@@ -55,7 +55,7 @@ export default function NotificationsInboxPage() {
 
   async function handleMarkAllRead() {
     try {
-      const res = await markAllRead(TOKEN);
+      const res = await markAllRead(getBetaToken());
       setActionMsg(`Marked ${res.updated} as read`);
       load(statusFilter);
     } catch (e) {
@@ -65,7 +65,7 @@ export default function NotificationsInboxPage() {
 
   async function handleArchive(id: string) {
     try {
-      await archiveNotification(TOKEN, id);
+      await archiveNotification(getBetaToken(), id);
       setActionMsg('Archived');
       load(statusFilter);
     } catch (e) {

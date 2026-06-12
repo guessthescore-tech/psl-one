@@ -696,3 +696,17 @@ All routes verified from source files in `apps/api/src/`.
 | POST | `/players/admin/stats/:id/lock` | PSL_ADMIN | Transition PUBLISHED → LOCKED (immutable) |
 | POST | `/players/admin/stats/fixtures/:fixtureId/bulk-publish` | PSL_ADMIN | Publish all VERIFIED stats for a fixture in one call |
 | DELETE | `/players/admin/stats/:id` | PSL_ADMIN | Delete DRAFT or VERIFIED stat (PUBLISHED/LOCKED protected) |
+
+
+## /admin/beta-feedback — Beta Feedback (STORY-35)
+
+**Purpose:** Computed beta-phase admin visibility: platform overview, known issues, UX checklist, and release notes. Read-only (no DB writes).
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/beta-feedback/overview` | PSL_ADMIN | Beta status, KPI counts, recommended next actions, safety boundaries |
+| GET | `/admin/beta-feedback/known-issues` | PSL_ADMIN | 12 known issues (KI-001 to KI-012) with severity, status, and mitigation |
+| GET | `/admin/beta-feedback/ux-checklist` | PSL_ADMIN | ~45 UX checks grouped by area with PASS/WARN/FAIL/PENDING status |
+| GET | `/admin/beta-feedback/release-notes` | PSL_ADMIN | Reverse-chronological story notes: STORY-26 through STORY-35 |
+
+**Notes:** All routes PSL_ADMIN only (401 unauthenticated, 403 FAN). Service is computed — no Prisma queries.

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAdminStats, getAdminRecentNotifications } from '@/lib/notifications-client';
-
-const TOKEN = 'dev-admin-token';
+import { getBetaToken } from '@/lib/auth-client';
 
 interface AdminStats {
   total: number;
@@ -40,7 +39,7 @@ export default function AdminNotificationsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([getAdminStats(TOKEN), getAdminRecentNotifications(TOKEN, 20)])
+    Promise.all([getAdminStats(getBetaToken()), getAdminRecentNotifications(getBetaToken(), 20)])
       .then(([s, r]) => {
         setStats(s);
         setRecent(r);

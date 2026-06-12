@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getUserAudience } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function UserAudienceDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function UserAudienceDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getUserAudience(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getUserAudience(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   const fansByClub = (data?.fansByFavouriteClub ?? []) as { teamId: string; count: number }[];

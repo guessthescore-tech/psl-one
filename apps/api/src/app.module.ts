@@ -28,6 +28,7 @@ import { GameweekOperationsModule } from './gameweek-operations/gameweek-operati
 import { AdminOperationsModule } from './admin-operations/admin-operations.module';
 import { EngagementModule } from './engagement/engagement.module';
 import { PlayerStatsModule } from './player-stats/player-stats.module';
+import { BetaFeedbackModule } from './beta-feedback/beta-feedback.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PlayerStatsModule } from './player-stats/player-stats.module';
     AdminOperationsModule,
     EngagementModule,
     PlayerStatsModule,
+    BetaFeedbackModule,
     HealthModule,
   ],
   controllers: [VersionController],

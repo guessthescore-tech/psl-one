@@ -252,7 +252,7 @@ Audit logs currently cover auth events (register, login, logout, password reset)
 
 **2. Dev-token placeholder on web pages**
 
-Several Sprint 1 web pages use a `dev-token` placeholder for local/demo API calls. This is acceptable for World Cup beta development but must be replaced with the real authenticated session and token flow before production launch. A UX pass is planned in STORY-33.
+Resolved in STORY-35: all 34 pages migrated from `const TOKEN = 'dev-token'` / inline `'dev-token'` to `getBetaToken()` (centralised in `auth-client.ts`). The beta helper is explicitly marked for removal in Sprint 3 when full session management is implemented.
 
 **3. CORS production readiness**
 
@@ -260,7 +260,7 @@ The API currently uses local development CORS settings (`localhost:3001` hardcod
 
 **4. Performance indexes**
 
-Some high-volume query paths should receive dedicated indexes before production-scale testing, especially fixtures, predictions, peer challenges, and fantasy leaderboard and scoring queries. No migrations required in Sprint 2 — deferred to Sprint 3 as a performance migration story.
+Resolved in STORY-35: migration `20260612000005` added composite indexes on Fixture, ScorePrediction, PredictionPointsLedger, FantasyGameweekScore, FanValueLedger, and PlayerMatchStats for 2M-fan scale. Peer challenge and fantasy leaderboard paths may need further indexing in Sprint 3 once load tested.
 
 **5. Admin user management**
 
@@ -271,7 +271,7 @@ Admin visibility exists through the command centre, but full user and role admin
 Sponsor Management, Reporting Centre, and Compliance/POPIA Governance are command-centre readiness sections in Sprint 1. Full operational sponsor management, report export centre, and compliance workflow engine belong in Sprint 3. Keep Sprint 2 focused on PSL Season Readiness, data validation, fixture and squad ingestion, competition switching, QA, and beta feedback.
 
 ### Testing
-- All existing 1188 API tests must remain green (updated after STORY-34)
+- All existing 1216 API tests must remain green (updated after STORY-35)
 - New tests should cover PSL-specific rule variants (30-round seasons, squad sizes)
 - Integration tests should cover full fixture-to-prediction-to-settlement lifecycle with PSL data
 

@@ -454,3 +454,26 @@ Unscoped legacy entries (null `seasonId` on `FanValueLedger`) are admin-visible 
 - Gameweek→PlayerMatchStats: `playerMatchStats`
 
 **Purpose:** Authoritative production player match statistics, separate from fantasy-scoring-specific `FantasyPlayerMatchStat`. Supports status lifecycle (DRAFT→VERIFIED→PUBLISHED→LOCKED), manual entry, provider readiness, and season-scoped queries.
+
+---
+
+## Migration — STORY-35 (Beta Feedback, Bug Fixes & UX Polish)
+
+**File:** `20260612000005_admin_audit_log_and_beta_indexes`
+
+**New table `admin_audit_logs`:** id (uuid), actor_user_id (nullable text), actor_role (nullable text), action (text), entity_type (text), entity_id (nullable text), route (nullable text), metadata (json), created_at (timestamp)
+
+**No FK to users table** — intentional. Audit log must be immutable and retain history even if the acting user is later deleted. Append-only by design.
+
+**Performance indexes added:**
+- `fixtures`: `(season_id, status, is_published)`, `(season_id, kickoff_at)`
+- `score_predictions`: `(user_id, status)`, `(fixture_id, status)`
+- `prediction_points_ledger`: `(user_id)`
+- `fantasy_gameweek_scores`: `(season_id, user_id)`, `(season_id, gameweek_id)`
+- `fan_value_ledger`: `(user_id, season_id)`
+- `player_match_stats`: `(season_id, status)`, `(player_id, season_id)`
+- `admin_audit_logs`: `(actor_user_id)`, `(entity_type, entity_id)`, `(created_at DESC)`, `(action)`
+
+**Audit log writes:** `PlayerStatsService.adminPublishStat()` and `adminLockStat()` now write to `admin_audit_logs` after each lifecycle transition. Actor identity passed from controller via optional `actorUserId` parameter.
+
+**Purpose:** Foundation for cross-domain admin audit trail; performance indexing for 2M-fan scale on high-volume query paths.

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetClubDetail, adminValidateClub } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface ClubDetail {
   id: string;
@@ -41,7 +41,7 @@ export default function AdminClubDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    adminGetClubDetail(TOKEN, id)
+    adminGetClubDetail(getBetaToken(), id)
       .then(setClub)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));
@@ -51,7 +51,7 @@ export default function AdminClubDetailPage() {
     if (!id) return;
     setValidating(true);
     try {
-      const result = await adminValidateClub(TOKEN, id);
+      const result = await adminValidateClub(getBetaToken(), id);
       setValidateResult(result);
     } catch (e) {
       setError(String(e));

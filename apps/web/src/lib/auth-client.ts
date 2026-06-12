@@ -9,6 +9,11 @@ export function getToken(): string | null {
   return localStorage.getItem('psl_access_token');
 }
 
+/** Beta-only: returns stored JWT or empty string. Unauthenticated requests correctly receive 401. Remove in Sprint 3 when full session management is implemented. */
+export function getBetaToken(): string {
+  return getToken() ?? '';
+}
+
 export function setToken(token: string): void {
   localStorage.setItem('psl_access_token', token);
 }

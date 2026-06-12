@@ -1178,3 +1178,47 @@ Provisional price bands (stored as integer × 10):
 - Live provider ingestion is foundation-ready but deferred to Sprint 3+ (no external calls)
 
 **Test gate:** 1188 API tests passing (42 new in `player-stats.service.spec.ts`). Both typechecks clean.
+
+---
+
+## STORY-35 — Beta Feedback, Bug Fixes & UX Polish
+
+**Goal:** Authentication clean-up (centralise `getBetaToken()`), performance indexing, audit log foundation, beta feedback module for admin, and UX polish across all web clients and pages.
+
+**Migration `20260612000005_admin_audit_log_and_beta_indexes`:**
+- New `AdminAuditLog` model — append-only cross-domain audit log. No FK to users table (intentional: immutability survives user deletion)
+- Performance indexes on Fixture, ScorePrediction, PredictionPointsLedger, FantasyGameweekScore, FanValueLedger, PlayerMatchStats for 2M-fan scale
+
+**Auth centralisation:**
+- `getBetaToken()` added to `apps/web/src/lib/auth-client.ts` — single export point for all beta pages (`return getToken() ?? ''`)
+- 29 pages that used `const TOKEN = 'dev-token'` migrated to `getBetaToken()`
+- 5 seasons-switching pages that used inline `'dev-token'` migrated to `getBetaToken()`
+- Port fixes: 5 web clients that defaulted to wrong port (3001 / 3000) corrected to `NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000'`
+- `admin-player-stats-client.ts`: added missing `authedHeaders()`, fixed `/fixtures/` → `/fixture/` path bug
+
+**AdminAuditLog writes:**
+- `PlayerStatsService.adminPublishStat()` and `adminLockStat()` write to `admin_audit_logs` after lifecycle transitions
+- Actor identity threaded from controller via optional `actorUserId` parameter
+
+**BetaFeedbackModule (new):**
+- `BetaFeedbackService` — computed/read-only: no DB queries, pure structured responses
+- 4 methods: `getOverview()`, `getKnownIssues()`, `getUxChecklist()`, `getReleaseNotes()`
+- `BetaFeedbackController` — 4 admin-gated routes: `GET /admin/beta-feedback/overview|known-issues|ux-checklist|release-notes`
+- `BetaFeedbackModule` registered in `AppModule`
+
+**4 admin web pages:**
+- `/admin/beta-feedback` — overview: status banner, KPI cards, sub-page nav, recommended actions
+- `/admin/beta-feedback/known-issues` — 12 issues (KI-001 to KI-012) with severity/status badges
+- `/admin/beta-feedback/ux-checklist` — checks grouped by area with PASS/WARN/FAIL/PENDING summary chips
+- `/admin/beta-feedback/release-notes` — reverse-chronological story notes with key deliverables and safety boundaries
+
+**UX polish:**
+- `admin/dashboard/league-management` raw JSON dump replaced with structured active season display
+- `BETA-READINESS-REVIEW.md` wager language corrected to `"fan points only — non-financial"`
+
+**Key design decisions:**
+- `BetaFeedbackService` is intentionally computed with no DB dependency — it documents platform state, not live telemetry. Sprint 3 can replace it with a real telemetry service.
+- `AdminAuditLog` has no FK to users — immutability requirement overrides relational integrity here
+- `getBetaToken()` is explicitly marked Sprint-2 temporary; Sprint 3 replaces with full session management
+
+**Test gate:** 1216 API tests passing (28 new in `beta-feedback.service.spec.ts`). Both typechecks clean. API build clean. Web build clean (137 static pages). 8 web tests passing.

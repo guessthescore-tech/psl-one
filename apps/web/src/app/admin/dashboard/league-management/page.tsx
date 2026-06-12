@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getLeagueManagement } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function LeagueManagementDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function LeagueManagementDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getLeagueManagement(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getLeagueManagement(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   const byStatus = (data?.seasonsByStatus ?? {}) as Record<string, number>;
@@ -73,12 +73,16 @@ export default function LeagueManagementDashboardPage() {
           </div>
 
           {/* Active Season */}
-          {Boolean(data.activeSeason) && (
-            <div className="border border-green-200 bg-green-50 rounded-lg p-4">
-              <h2 className="font-semibold text-green-800 mb-1">Active Season</h2>
-              <pre className="text-xs text-green-700 whitespace-pre-wrap">{JSON.stringify(data.activeSeason, null, 2)}</pre>
-            </div>
-          )}
+          {Boolean(data.activeSeason) && (() => {
+            const s = data.activeSeason as { name?: string; slug?: string; status?: string } | null;
+            return (
+              <div className="border border-green-200 bg-green-50 rounded-lg p-4">
+                <h2 className="font-semibold text-green-800 mb-1">Active Season</h2>
+                <p className="text-sm text-green-800 font-medium">{s?.name ?? '—'}</p>
+                <p className="text-xs text-green-600">{s?.slug} · {s?.status}</p>
+              </div>
+            );
+          })()}
 
           {/* Quick Links */}
           <div className="flex gap-2 flex-wrap">

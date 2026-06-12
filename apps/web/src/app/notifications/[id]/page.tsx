@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getNotificationDetail, markRead, archiveNotification } from '@/lib/notifications-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface NotifDetail {
   id: string;
@@ -31,7 +31,7 @@ export default function NotificationDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
-    getNotificationDetail(TOKEN, id)
+    getNotificationDetail(getBetaToken(), id)
       .then(setNotif)
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
@@ -40,7 +40,7 @@ export default function NotificationDetailPage() {
   async function handleMarkRead() {
     if (!notif) return;
     try {
-      const updated = await markRead(TOKEN, notif.id);
+      const updated = await markRead(getBetaToken(), notif.id);
       setNotif(updated);
       setActionMsg('Marked as read');
     } catch (e) {
@@ -51,7 +51,7 @@ export default function NotificationDetailPage() {
   async function handleArchive() {
     if (!notif) return;
     try {
-      const updated = await archiveNotification(TOKEN, notif.id);
+      const updated = await archiveNotification(getBetaToken(), notif.id);
       setNotif(updated);
       setActionMsg('Archived');
     } catch (e) {

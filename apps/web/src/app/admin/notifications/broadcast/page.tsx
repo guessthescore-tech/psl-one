@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { adminBroadcast } from '@/lib/notifications-client';
-
-const TOKEN = 'dev-admin-token';
+import { getBetaToken } from '@/lib/auth-client';
 
 const PRIORITIES = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
 
@@ -23,7 +22,7 @@ export default function AdminBroadcastPage() {
     setResult(null);
     setError(null);
     try {
-      const res = await adminBroadcast(TOKEN, {
+      const res = await adminBroadcast(getBetaToken(), {
         type: 'ADMIN_BROADCAST',
         title,
         body,

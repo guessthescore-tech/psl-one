@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getAdminFeed } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface FeedItem {
   id: string;
@@ -30,7 +30,7 @@ export default function AdminActivityFeedPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getAdminFeed(TOKEN, {
+      const data = await getAdminFeed(getBetaToken(), {
         ...(type ? { type } : {}),
         ...(status ? { status } : {}),
         limit: 50,

@@ -82,6 +82,8 @@ async function main() {
   await prisma.fantasyPlayerPrice.deleteMany();
 
   // Clear football data in dependency order
+  await prisma.adminAuditLog.deleteMany();
+  await prisma.playerMatchStats.deleteMany();
   await prisma.fantasyPlayerMatchStat.deleteMany();
   await prisma.fixtureLineup.deleteMany();
   await prisma.matchEvent.deleteMany();

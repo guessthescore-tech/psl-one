@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getCompliance } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function ComplianceDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function ComplianceDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getCompliance(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getCompliance(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   return (

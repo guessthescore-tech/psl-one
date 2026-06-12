@@ -308,7 +308,7 @@ export class PlayerStatsService {
     });
   }
 
-  async adminPublishStat(id: string) {
+  async adminPublishStat(id: string, actorUserId?: string) {
     const stat = await this.prisma.playerMatchStats.findUnique({ where: { id } });
     if (!stat) throw new NotFoundException(`PlayerMatchStats '${id}' not found`);
     if (stat.status === PlayerMatchStatsStatus.LOCKED) {
@@ -317,16 +317,40 @@ export class PlayerStatsService {
     if (stat.status === PlayerMatchStatsStatus.DRAFT) {
       throw new ForbiddenException('DRAFT stats must be VERIFIED before publishing');
     }
-    return this.prisma.playerMatchStats.update({
+    const updated = await this.prisma.playerMatchStats.update({
       where: { id },
       data: { status: PlayerMatchStatsStatus.PUBLISHED, publishedAt: new Date() },
     });
+    await this.prisma.adminAuditLog.create({
+      data: {
+        actorUserId: actorUserId ?? null,
+        actorRole: 'PSL_ADMIN',
+        action: 'PUBLISH_PLAYER_STAT',
+        entityType: 'PlayerMatchStats',
+        entityId: id,
+        route: `POST /players/admin/stats/${id}/publish`,
+        metadata: { playerId: stat.playerId, fixtureId: stat.fixtureId, seasonId: stat.seasonId },
+      },
+    });
+    return updated;
   }
 
-  async adminLockStat(id: string) {
+  async adminLockStat(id: string, actorUserId?: string) {
     const stat = await this.prisma.playerMatchStats.findUnique({ where: { id } });
     if (!stat) throw new NotFoundException(`PlayerMatchStats '${id}' not found`);
-    return this.prisma.playerMatchStats.update({ where: { id }, data: { status: PlayerMatchStatsStatus.LOCKED } });
+    const updated = await this.prisma.playerMatchStats.update({ where: { id }, data: { status: PlayerMatchStatsStatus.LOCKED } });
+    await this.prisma.adminAuditLog.create({
+      data: {
+        actorUserId: actorUserId ?? null,
+        actorRole: 'PSL_ADMIN',
+        action: 'LOCK_PLAYER_STAT',
+        entityType: 'PlayerMatchStats',
+        entityId: id,
+        route: `POST /players/admin/stats/${id}/lock`,
+        metadata: { playerId: stat.playerId, fixtureId: stat.fixtureId, seasonId: stat.seasonId },
+      },
+    });
+    return updated;
   }
 
   async adminBulkPublishFixture(fixtureId: string) {

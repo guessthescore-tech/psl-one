@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetSeasonTeams, adminRemoveTeamFromSeason, adminValidateSeasonParticipation } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface SeasonTeam {
   seasonId: string;
@@ -34,7 +34,7 @@ export default function AdminSeasonClubsPage() {
   async function loadTeams() {
     if (!seasonId) return;
     try {
-      const data = await adminGetSeasonTeams(TOKEN, seasonId);
+      const data = await adminGetSeasonTeams(getBetaToken(), seasonId);
       setTeams(data);
     } catch (e) {
       setError(String(e));
@@ -48,7 +48,7 @@ export default function AdminSeasonClubsPage() {
   async function handleValidate() {
     if (!seasonId) return;
     try {
-      const result = await adminValidateSeasonParticipation(TOKEN, seasonId);
+      const result = await adminValidateSeasonParticipation(getBetaToken(), seasonId);
       setValidation(result);
     } catch (e) {
       setError(String(e));
@@ -63,7 +63,7 @@ export default function AdminSeasonClubsPage() {
     if (!confirmed) return;
     setRemoving(teamId);
     try {
-      await adminRemoveTeamFromSeason(TOKEN, seasonId, teamId);
+      await adminRemoveTeamFromSeason(getBetaToken(), seasonId, teamId);
       await loadTeams();
     } catch (e) {
       setError(String(e));

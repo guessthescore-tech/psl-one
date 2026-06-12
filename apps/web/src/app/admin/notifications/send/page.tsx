@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { adminSendToUser } from '@/lib/notifications-client';
-
-const TOKEN = 'dev-admin-token';
+import { getBetaToken } from '@/lib/auth-client';
 
 const TYPES = [
   'SYSTEM', 'ADMIN_BROADCAST', 'FANTASY_DEADLINE', 'FANTASY_RESULT',
@@ -31,7 +30,7 @@ export default function AdminSendNotificationPage() {
     setResult(null);
     setError(null);
     try {
-      const res = await adminSendToUser(TOKEN, userId, {
+      const res = await adminSendToUser(getBetaToken(), userId, {
         type,
         title,
         body,

@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetClubShopReadiness } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface Product {
   id: string;
@@ -38,7 +38,7 @@ export default function AdminClubShopPage() {
 
   useEffect(() => {
     if (!id) return;
-    adminGetClubShopReadiness(TOKEN, id)
+    adminGetClubShopReadiness(getBetaToken(), id)
       .then(setData)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));

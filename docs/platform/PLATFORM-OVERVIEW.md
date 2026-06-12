@@ -1,6 +1,6 @@
 # PSL One — Platform Overview
 
-**Version:** Sprint 2 — STORY-34 complete  
+**Version:** Sprint 2 — STORY-35 complete  
 **Date:** 2026-06-12
 
 ---
@@ -26,12 +26,16 @@ Sprint 1 produced:
 - 108+ web pages (fan + admin)
 - Full admin command centre
 
-Sprint 2 (through STORY-34) added:
+Sprint 2 (through STORY-35) added:
 - Season-scoped leaderboards (Fan Value, Fantasy, Predictions, Achievements) — WC/PSL data isolation
 - Admin Engagement Metrics module — 10 routes, season scope audit, activation impact
 - Player Match Stats module — authoritative production stats, DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle
 - 11th season-switching readiness check (player stats pipeline)
-- 1188 API tests passing (up from 812)
+- Beta Feedback module — computed admin overview, known issues, UX checklist, release notes
+- AdminAuditLog model — append-only cross-domain audit trail foundation (no FK to users)
+- Performance indexes on 6 high-volume tables for 2M-fan scale
+- Auth centralisation — `getBetaToken()` replaces all `dev-token` placeholders across 34 web pages
+- 1216 API tests passing (up from 812)
 
 ---
 

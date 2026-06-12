@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getFixtureManagement } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function FixtureManagementDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function FixtureManagementDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getFixtureManagement(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getFixtureManagement(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   const byStatus = (data?.fixturesByStatus ?? {}) as Record<string, number>;

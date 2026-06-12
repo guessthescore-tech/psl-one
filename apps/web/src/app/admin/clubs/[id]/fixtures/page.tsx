@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { adminGetClubFixtures } from '@/lib/clubs-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface Fixture {
   id: string;
@@ -26,7 +26,7 @@ export default function AdminClubFixturesPage() {
 
   useEffect(() => {
     if (!id) return;
-    adminGetClubFixtures(TOKEN, id)
+    adminGetClubFixtures(getBetaToken(), id)
       .then(setFixtures)
       .catch((e: unknown) => setError(String(e)))
       .finally(() => setLoading(false));

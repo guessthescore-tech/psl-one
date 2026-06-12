@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getPreferences, updatePreferences } from '@/lib/notifications-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 const PREF_LABELS: Record<string, string> = {
   inAppEnabled: 'In-app notifications',
@@ -26,7 +26,7 @@ export default function NotificationPreferencesPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    getPreferences(TOKEN)
+    getPreferences(getBetaToken())
       .then(setPrefs)
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
@@ -38,7 +38,7 @@ export default function NotificationPreferencesPage() {
     setSaved(false);
     setError(null);
     try {
-      const updated = await updatePreferences(TOKEN, prefs);
+      const updated = await updatePreferences(getBetaToken(), prefs);
       setPrefs(updated);
       setSaved(true);
     } catch (e) {

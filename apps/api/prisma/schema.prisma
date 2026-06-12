@@ -453,6 +453,8 @@ model Fixture {
   playerMatchStats  PlayerMatchStats[]           @relation("FixturePlayerMatchStats")
   importRows        FixtureImportRow[]
 
+  @@index([seasonId, status, isPublished])
+  @@index([seasonId, kickoffAt])
   @@map("fixtures")
 }
 
@@ -592,6 +594,8 @@ model ScorePrediction {
   ledgerEntries          PredictionPointsLedger[]
 
   @@unique([userId, fixtureId])
+  @@index([userId, status])
+  @@index([fixtureId, status])
   @@map("score_predictions")
 }
 
@@ -637,6 +641,7 @@ model PredictionPointsLedger {
   prediction ScorePrediction? @relation(fields: [predictionId], references: [id])
   challenge  PeerChallenge?   @relation(fields: [challengeId], references: [id])
 
+  @@index([userId])
   @@map("prediction_points_ledger")
 }
 
@@ -1056,6 +1061,8 @@ model FantasyGameweekScore {
   valueLedger  FanValueLedger[]
 
   @@unique([fantasyTeamId, gameweekId])
+  @@index([seasonId, userId])
+  @@index([seasonId, gameweekId])
   @@map("fantasy_gameweek_scores")
 }
 
@@ -1143,6 +1150,7 @@ model FanValueLedger {
   gameweekScore FantasyGameweekScore? @relation(fields: [gameweekScoreId], references: [id])
 
   @@unique([sourceType, sourceId])
+  @@index([userId, seasonId])
   @@map("fan_value_ledger")
 }
 
@@ -2157,5 +2165,27 @@ model PlayerMatchStats {
   gameweek  Gameweek? @relation("GameweekPlayerMatchStats", fields: [gameweekId], references: [id])
 
   @@unique([playerId, fixtureId])
+  @@index([seasonId, status])
+  @@index([playerId, seasonId])
   @@map("player_match_stats")
+}
+
+// ── Admin Audit Log ───────────────────────────────────────────────────────────
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  actorUserId String?  @map("actor_user_id")
+  actorRole   String?  @map("actor_role")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String?  @map("entity_id")
+  route       String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([actorUserId])
+  @@index([entityType, entityId])
+  @@index([createdAt(sort: Desc)])
+  @@index([action])
+  @@map("admin_audit_logs")
 }

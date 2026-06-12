@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getGlobalFeed, addReaction, removeReaction } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 const REACTION_TYPES = ['LIKE', 'FIRE', 'CLAP', 'TROPHY', 'BALL'] as const;
 const REACTION_EMOJI: Record<string, string> = {
@@ -35,7 +35,7 @@ export default function ActivityFeedPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getGlobalFeed(TOKEN, { ...(type ? { type } : {}), limit: 20, offset: 0 });
+      const data = await getGlobalFeed(getBetaToken(), { ...(type ? { type } : {}), limit: 20, offset: 0 });
       setItems(data.items);
       setTotal(data.total);
     } catch (e) {
@@ -50,9 +50,9 @@ export default function ActivityFeedPage() {
   async function toggleReaction(itemId: string, reactionType: string, hasIt: boolean) {
     try {
       if (hasIt) {
-        await removeReaction(TOKEN, itemId, reactionType);
+        await removeReaction(getBetaToken(), itemId, reactionType);
       } else {
-        await addReaction(TOKEN, itemId, reactionType);
+        await addReaction(getBetaToken(), itemId, reactionType);
       }
       setActionMsg(`Reaction ${hasIt ? 'removed' : 'added'}`);
       load(typeFilter || undefined);

@@ -3,8 +3,8 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getAdminFeed, adminHideActivity, adminUnhideActivity } from '@/lib/activity-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 interface FeedItem {
   id: string;
@@ -35,7 +35,7 @@ function ModerationContent() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getAdminFeed(TOKEN, { limit: 50, offset: 0 });
+      const data = await getAdminFeed(getBetaToken(), { limit: 50, offset: 0 });
       setItems(data.items);
       setTotal(data.total);
     } catch (e) {
@@ -49,7 +49,7 @@ function ModerationContent() {
 
   async function handleHide(id: string) {
     try {
-      await adminHideActivity(TOKEN, id, hideReason || undefined);
+      await adminHideActivity(getBetaToken(), id, hideReason || undefined);
       setActionMsg('Item hidden');
       setHideReason('');
       setActiveItemId(null);
@@ -61,7 +61,7 @@ function ModerationContent() {
 
   async function handleUnhide(id: string) {
     try {
-      await adminUnhideActivity(TOKEN, id);
+      await adminUnhideActivity(getBetaToken(), id);
       setActionMsg('Item unhidden');
       load();
     } catch (e) {

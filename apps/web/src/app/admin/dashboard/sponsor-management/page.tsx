@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { getSponsorManagement } from '@/lib/admin-dashboard-client';
+import { getBetaToken } from '@/lib/auth-client';
 
-const TOKEN = 'dev-token';
 
 export default function SponsorManagementDashboardPage() {
   const [data, setData] = useState<Record<string, unknown> | null>(null);
@@ -11,7 +11,7 @@ export default function SponsorManagementDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getSponsorManagement(TOKEN).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
+    getSponsorManagement(getBetaToken()).then(setData).catch(e => setError(String(e))).finally(() => setLoading(false));
   }, []);
 
   const byStatus = (data?.rewardsByStatus ?? {}) as Record<string, number>;
