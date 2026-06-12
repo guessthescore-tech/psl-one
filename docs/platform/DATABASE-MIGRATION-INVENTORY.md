@@ -419,3 +419,15 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 - 9 `IntegrationProviderConfig` entries (all production-disabled): wallet-default (SANDBOX_READY), payment-default (PROVIDER_REQUIRED), checkout-default (PRODUCTION_DISABLED), ticketing-default (PROVIDER_REQUIRED), live-data-default (PROVIDER_REQUIRED), sponsor-activation-default (INTEGRATION_READY), rewards-redemption-default (COMPLIANCE_REQUIRED), notifications-default (SANDBOX_READY), analytics-default (SANDBOX_READY)
 
 **Safety note:** No secrets, API keys, credentials, tokens, or private keys stored. Non-sensitive readiness state only.
+
+---
+
+## Migration — STORY-33 (PSL Leaderboards & Fan Value Season Scope)
+
+**No new migration.** STORY-33 confirmed that:
+- `FanValueLedger.seasonId` already exists as a nullable column (added in STORY-19). No backfill applied. No forced reassignment of World Cup beta records.
+- `PredictionPointsLedger` derives season scope from `fixture.seasonId` via `findMany()` (Prisma limitation prevents `groupBy()` with relation filters).
+- `FantasyGameweekScore.seasonId` is a required column — always fully season-scoped.
+- `FanAchievement` has no `seasonId` — intentionally global (achievements unlock once, cross-season by design).
+
+Unscoped legacy entries (null `seasonId` on `FanValueLedger`) are admin-visible only and not surfaced in fan-facing season leaderboards.

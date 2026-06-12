@@ -58,7 +58,20 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/predictions/fixtures` | Fixtures to predict | FAN | `predictions-client` | Upcoming fixtures with open predictions |
 | `/predictions/fixtures/[id]` | Make/view prediction | FAN | `predictions-client` | Predict home/away score |
 | `/predictions/me` | My predictions | FAN | `predictions-client` | History, points, status breakdown |
-| `/leaderboards/predictions` | Prediction leaderboard | None | `predictions-client` | Top fans by points |
+| `/leaderboards/predictions` | Prediction leaderboard | None | `leaderboards-client` | Top fans by points, season-scoped |
+
+---
+
+## Leaderboards Pages (STORY-33)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/leaderboards` | Leaderboard overview | None | `leaderboards-client` | Top-5 snapshot across all 4 types; season selector |
+| `/leaderboards/overall` | Overall leaderboard | None | `leaderboards-client` | Fan Value based to avoid double-counting |
+| `/leaderboards/fan-value` | Fan Value leaderboard | None | `leaderboards-client` | Non-financial; season-scoped with WC accessible via `?seasonSlug=` |
+| `/leaderboards/fantasy` | Fantasy leaderboard | None | `leaderboards-client` | Points-only; no paid entry |
+| `/leaderboards/predictions` | Predictions leaderboard | None | `leaderboards-client` | Points-only; no wagering |
+| `/leaderboards/achievements` | Achievements leaderboard | None | `leaderboards-client` | Always ALL_TIME (cross-season by design) |
 
 ---
 
@@ -411,3 +424,18 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/operations/integrations/live-data` | Live sports data provider readiness detail | PSL_ADMIN | `admin-operations-client` | — |
 | `/admin/operations/integrations/sponsor-activation` | Sponsor activation readiness detail | PSL_ADMIN | `admin-operations-client` | — |
 | `/admin/operations/integrations/rewards-redemption` | Rewards redemption readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+
+## Admin Engagement Metrics Pages (STORY-33)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/engagement` | Engagement season index | PSL_ADMIN | `admin-engagement-client` | All seasons; links to overview + scope audit |
+| `/admin/engagement/[seasonId]` | Season engagement overview | PSL_ADMIN | `admin-engagement-client` | Fan value, fantasy, predictions, achievements summary; safety confirmations |
+| `/admin/engagement/[seasonId]/leaderboards` | Admin leaderboard snapshots | PSL_ADMIN | `admin-engagement-client` | Top-5 per type |
+| `/admin/engagement/[seasonId]/fan-value` | Fan value breakdown | PSL_ADMIN | `admin-engagement-client` | By type, by source, unscoped count, disclaimer |
+| `/admin/engagement/[seasonId]/fantasy` | Fantasy engagement detail | PSL_ADMIN | `admin-engagement-client` | Teams, leagues, net/gross points |
+| `/admin/engagement/[seasonId]/predictions` | Predictions engagement detail | PSL_ADMIN | `admin-engagement-client` | Points, count, settled, unique fans; season via fixture.seasonId |
+| `/admin/engagement/[seasonId]/achievements` | Achievements engagement | PSL_ADMIN | `admin-engagement-client` | ALL_TIME scope; fan value via achievements this season |
+| `/admin/engagement/[seasonId]/unscoped-ledger` | Unscoped ledger (admin-only) | PSL_ADMIN | `admin-engagement-client` | Entries with null seasonId; classification table |
+| `/admin/engagement/[seasonId]/season-scope-audit` | Season scope audit | PSL_ADMIN | `admin-engagement-client` | 10 checks; READY/READY_WITH_WARNINGS/BLOCKED |
+| `/admin/engagement/[seasonId]/activation-impact` | Activation impact | PSL_ADMIN | `admin-engagement-client` | WC preservation, PSL clean start, safety confirmations |

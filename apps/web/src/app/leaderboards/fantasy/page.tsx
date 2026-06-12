@@ -3,11 +3,11 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getPredictionsLeaderboard, type LeaderboardResult } from '@/lib/leaderboards-client';
+import { getFantasyLeaderboard, type LeaderboardResult } from '@/lib/leaderboards-client';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 
-function PredictionsLeaderboard() {
+function FantasyLeaderboard() {
   const searchParams = useSearchParams();
   const seasonSlug = searchParams.get('seasonSlug') ?? undefined;
   const [result, setResult] = useState<LeaderboardResult | null>(null);
@@ -15,7 +15,7 @@ function PredictionsLeaderboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getPredictionsLeaderboard(seasonSlug)
+    getFantasyLeaderboard(seasonSlug)
       .then(setResult)
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Failed'))
       .finally(() => setLoading(false));
@@ -25,7 +25,7 @@ function PredictionsLeaderboard() {
     <>
       {result && (
         <p className="text-xs text-gray-400 mb-4">
-          {result.seasonName ?? 'All Time'} · {result.scope} · Points-only, no wagering
+          {result.seasonName ?? 'All Time'} · {result.scope} · Points-only, no paid entry
         </p>
       )}
 
@@ -34,17 +34,17 @@ function PredictionsLeaderboard() {
 
       {result && !loading && (
         result.entries.length === 0 ? (
-          <p className="text-gray-400 text-sm">No predictions settled yet for this season.</p>
+          <p className="text-gray-400 text-sm">No fantasy scores recorded yet for this season.</p>
         ) : (
           <div className="space-y-2">
             {result.entries.map((e, i) => (
               <div
                 key={e.userId}
-                className={`flex items-center gap-4 rounded-lg p-4 ${i < 3 ? 'bg-white shadow-sm' : 'bg-white/60 border border-gray-100'}`}
+                className={`flex items-center gap-4 rounded-lg p-4 ${i < 3 ? 'bg-psl-navy text-white' : 'bg-white border border-gray-100'}`}
               >
                 <span className="text-xl w-8 text-center">{MEDAL[i] ?? <span className="text-sm font-mono text-gray-400">{e.rank}</span>}</span>
-                <p className="flex-1 font-semibold truncate text-psl-navy">{e.displayName ?? 'Fan'}</p>
-                <span className="font-bold text-lg text-psl-gold">{e.totalPoints} pts</span>
+                <p className="flex-1 font-semibold truncate">{e.displayName ?? 'Manager'}</p>
+                <span className={`font-bold text-lg ${i < 3 ? 'text-psl-gold' : 'text-psl-navy'}`}>{e.totalPoints} pts</span>
               </div>
             ))}
           </div>
@@ -54,18 +54,16 @@ function PredictionsLeaderboard() {
   );
 }
 
-export default function PredictionsLeaderboardPage() {
+export default function FantasyLeaderboardPage() {
   return (
     <main className="max-w-2xl mx-auto p-4">
       <div className="flex items-center gap-2 mb-4">
         <Link href="/leaderboards" className="text-sm text-psl-navy/60 hover:text-psl-navy">Leaderboards</Link>
         <span className="text-gray-300">/</span>
-        <Link href="/predictions" className="text-sm text-psl-navy/60 hover:text-psl-navy">Predictions</Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-xl font-bold text-psl-navy">Leaderboard</h1>
+        <h1 className="text-xl font-bold text-psl-navy">Fantasy Football</h1>
       </div>
       <Suspense fallback={<p className="text-gray-400 text-sm">Loading…</p>}>
-        <PredictionsLeaderboard />
+        <FantasyLeaderboard />
       </Suspense>
     </main>
   );

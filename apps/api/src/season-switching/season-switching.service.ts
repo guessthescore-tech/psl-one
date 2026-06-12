@@ -84,6 +84,7 @@ export class SeasonSwitchingService {
       this.checkClubProfiles(seasonId),
       this.checkPredictionReadiness(seasonId),
       this.checkMatchdayOperationsReadiness(seasonId),
+      this.checkEngagementSeasonScope(seasonId),
     ]);
 
     const blockers = checks.filter((c) => c.severity === 'BLOCKER' && !c.passed);
@@ -415,6 +416,27 @@ export class SeasonSwitchingService {
       detail: passed
         ? `${gameweeksCount} gameweek(s) ready, ${publishedFixtures} published fixture(s)`
         : 'Gameweeks exist but no published fixtures — publish fixtures before activation',
+    };
+  }
+
+  private async checkEngagementSeasonScope(seasonId: string): Promise<ReadinessCheck> {
+    const [directCount, unscopedCount] = await Promise.all([
+      this.prisma.fanValueLedger.count({ where: { seasonId } }),
+      this.prisma.fanValueLedger.count({ where: { seasonId: null } }),
+    ]);
+
+    const trulyBlockingUnscoped = unscopedCount > 100;
+
+    return {
+      domain: 'engagement',
+      label: 'Engagement season scope clean',
+      severity: 'WARNING',
+      passed: !trulyBlockingUnscoped,
+      detail: trulyBlockingUnscoped
+        ? `${unscopedCount} fan value entries have null seasonId — review unscoped ledger before activation (/admin/engagement/${seasonId}/unscoped-ledger)`
+        : directCount > 0
+          ? `${directCount} fan value entries scoped to this season. ${unscopedCount} legacy unscoped entries (admin-visible only).`
+          : `No fan value entries yet for this season. ${unscopedCount} legacy unscoped entries (admin-visible only, normal for new seasons).`,
     };
   }
 }

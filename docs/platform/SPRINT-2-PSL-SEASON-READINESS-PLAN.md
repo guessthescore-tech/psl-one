@@ -174,19 +174,20 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-33 — Beta Feedback, Bug Fixes & UX Polish
+### STORY-33 — PSL Leaderboards & Fan Value Season Scope ✅ COMPLETE
 
-**Goal:** Address bugs and UX issues discovered during World Cup beta.
+**Goal:** Season-scoped leaderboards, harden Fan Value season scope, admin engagement metrics module, 10th season-switching readiness check.
 
-**Work:**
-- Collect and triage World Cup beta feedback
-- Fix any prediction scoring edge cases
-- Fix any fantasy transfer or deadline edge cases
-- Polish key fan flows (registration, team creation, prediction making)
-- Wire real auth token management in web app (replace dev-token placeholder)
-- Improve error handling and empty state messages on key pages
+**Delivered:**
+- `LeaderboardsModule` fully rewritten: 7 fan routes, season-aware, `?seasonSlug=` historical access
+- `EngagementModule` (new): 10 admin routes under `/admin/engagement/`, `PSL_ADMIN`-only
+- `SeasonSwitchingService`: 10th check `checkEngagementSeasonScope` added
+- `AdminOperationsService`: 2 new checklist items, 2 new season modules (LEADERBOARDS, ENGAGEMENT_METRICS)
+- 6 fan web pages, 10 admin web pages, 2 new web clients
+- WC/PSL data isolation confirmed; no migration needed; World Cup history preserved
+- 1170 API tests passing (82 new). Typecheck clean. Build clean.
 
-**Acceptance:** Top 10 beta feedback items addressed; no P1 bugs open.
+**Acceptance:** Season-scoped leaderboards live. Admin engagement metrics visible. 10th readiness check active.
 
 ---
 

@@ -1082,3 +1082,50 @@ Provisional price bands (stored as integer × 10):
 - Peer challenges: `FAN_POINTS_ONLY` — no monetary stakes
 
 **Test gate:** 1088 API tests passing (51 new). Typecheck clean. Seed passes. Build clean.
+
+---
+
+## STORY-33 — PSL Leaderboards & Fan Value Season Scope (Sprint 2)
+
+**Modules:** `LeaderboardsModule` (rewritten), `EngagementModule` (new) in `apps/api/src/`
+
+**Goal:** Season-scoped leaderboards (WC/PSL data isolation), admin engagement metrics module, 10th season-switching readiness check.
+
+**No new migration:** `FanValueLedger.seasonId` already existed as nullable. `PredictionPointsLedger` season derived from `fixture.seasonId`. `FantasyGameweekScore.seasonId` is required. `FanAchievement` intentionally global (cross-season by design).
+
+**LeaderboardsService (rewritten):**
+- Season resolution: `resolveSeasonFromSlug`, `getActiveSeason`, `getLeaderboardSeasons` (with `leaderboardUrl`)
+- Season-aware leaderboards: `getFanValueLeaderboard`, `getFantasyLeaderboard`, `getPredictionsLeaderboard`, `getAchievementsLeaderboard`, `getOverallLeaderboard`, `getLeaderboardOverview`
+- Predictions: uses `findMany({ where: { fixture: { seasonId } } })` + JS aggregation (Prisma `groupBy` can't filter via relations)
+- Achievements: always `ALL_TIME` scope (cross-season by design)
+- Overall: delegates to Fan Value to avoid double-counting
+
+**LeaderboardsController (rewritten):** 7 routes, all with `?seasonSlug=` query param defaulting to active season.
+
+**EngagementService (new):** 10 methods:
+- `listEngagementSeasons`, `getEngagementOverview`, `getEngagementLeaderboards`
+- `getEngagementFanValue`, `getEngagementFantasy`, `getEngagementPredictions`, `getEngagementAchievements`
+- `getUnscopedLedger` — entries with `seasonId IS NULL`, classified by `SeasonScopeSrc`
+- `getSeasonScopeAudit` — 10 checks, READY/READY_WITH_WARNINGS/BLOCKED
+- `getActivationImpact` — WC preservation, PSL clean start, safety confirmations
+
+**EngagementController:** 10 routes under `GET /admin/engagement/...`, all `PSL_ADMIN`-gated.
+
+**SeasonSwitchingService:** Added 10th readiness check `checkEngagementSeasonScope` (WARNING severity, triggers on >100 null-seasonId fan value entries).
+
+**AdminOperationsService:** Updated `getLaunchReadiness` (2 new checklist items), `getSeasonModuleReadiness` (2 new modules: `LEADERBOARDS`, `ENGAGEMENT_METRICS`).
+
+**2 new web clients:** `leaderboards-client.ts`, `admin-engagement-client.ts`
+
+**6 fan web pages** under `/leaderboards/`: overview, overall, fan-value, fantasy, predictions, achievements
+**10 admin web pages** under `/admin/engagement/`: season index, overview, leaderboards, fan-value, fantasy, predictions, achievements, unscoped-ledger, season-scope-audit, activation-impact
+
+**Key design decisions:**
+- Leaderboard default = active season; historical via `?seasonSlug=`
+- Overall leaderboard = Fan Value only (prevents double-counting from multiple engagement sources)
+- Predictions season scope: derived from `fixture.seasonId`, not stored on `PredictionPointsLedger`
+- Achievements: intentionally global (unlock once, persist across seasons) — no season filter
+- Unscoped legacy entries: admin-visible only, not surfaced in fan-facing season leaderboards
+- `SeasonScopeSource` taxonomy: `DIRECT` → `DERIVED_GAMEWEEK` → `DERIVED_PREDICTION` → `DERIVED_PEER_CHALLENGE` → `DERIVED_FIXTURE` → `LEGACY_UNSCOPED`
+
+**Test gate:** 1170 API tests passing (82 new). Typecheck clean. Seed passes. Build clean.

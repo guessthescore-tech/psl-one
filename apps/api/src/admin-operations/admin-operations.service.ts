@@ -258,6 +258,8 @@ export class AdminOperationsService {
       { area: 'No real-money gameplay', status: 'PASS', detail: 'Fantasy and Guess the Score are points-only' },
       { area: 'No production live-provider ingestion', status: 'PASS', detail: 'LiveMatchProviderInterface uses stub/mock provider only' },
       { area: 'World Cup data preservation', status: 'PASS', detail: 'WC gameweeks/fantasy/predictions untouched by PSL calibration' },
+      { area: 'Engagement season scope', status: 'PASS', detail: 'FanValueLedger.seasonId exists (nullable). Predictions derive from fixture.seasonId. PSL leaderboard starts clean.' },
+      { area: 'Leaderboard season isolation', status: 'PASS', detail: 'Season-scoped leaderboards active — WC and PSL data do not mix. World Cup accessible via seasonSlug query param.' },
     ];
 
     const passCount = checklist.filter((c) => c.status === 'PASS').length;
@@ -276,7 +278,7 @@ export class AdminOperationsService {
         'Import official PSL 2026/27 fixtures (when available, typically August)',
         'Derive gameweeks and deadlines from PSL fixtures',
         'Promote fantasy and prediction rules from PROVISIONAL to ACTIVE',
-        'Run season switching readiness check — resolve all 9 checks',
+        'Run season switching readiness check — resolve all 10 checks (includes engagement scope check)',
         'Activate PSL season to replace World Cup beta',
         'Select wallet, payment, checkout, and ticketing providers (Sprint 3+)',
         'Complete compliance review for payment and wallet providers',
@@ -486,6 +488,24 @@ export class AdminOperationsService {
         blockers: ['No live data provider contract'],
         warnings: ['LiveMatchProviderInterface ready for wiring. Manual override available.'],
         recommendedAction: 'Opta/Stats Perform/Sportradar contract Sprint 3+',
+      },
+      {
+        moduleKey: 'LEADERBOARDS',
+        displayName: 'Season-Scoped Leaderboards',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: true, isProductionEnabled: true, isFoundational: false,
+        blockers: [],
+        warnings: [],
+        recommendedAction: 'Fan Value, Fantasy, Predictions, Achievements leaderboards active. Season-scoped by default. WC accessible via seasonSlug.',
+      },
+      {
+        moduleKey: 'ENGAGEMENT_METRICS',
+        displayName: 'Admin Engagement Metrics',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: true, isProductionEnabled: true, isFoundational: false,
+        blockers: [],
+        warnings: [],
+        recommendedAction: 'Admin engagement overview, unscoped ledger audit, and activation impact check available under /admin/engagement/.',
       },
     ];
 

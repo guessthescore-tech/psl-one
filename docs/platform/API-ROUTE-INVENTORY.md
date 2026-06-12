@@ -148,11 +148,19 @@ All routes verified from source files in `apps/api/src/`.
 
 ---
 
-## /leaderboards — Leaderboards
+## /leaderboards — Season-Scoped Leaderboards (STORY-33)
+
+**Purpose:** Fan-facing season-scoped leaderboards. Default to active season. `?seasonSlug=` for historical access.
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| GET | `/leaderboards/predictions` | None | Prediction points leaderboard (seasonId filter) |
+| GET | `/leaderboards` | None | Overview snapshot: top-5 from all 4 leaderboard types |
+| GET | `/leaderboards/seasons` | None | All seasons with leaderboard URLs |
+| GET | `/leaderboards/overall?seasonSlug=` | None | Overall leaderboard (Fan Value, avoids double-counting) |
+| GET | `/leaderboards/fan-value?seasonSlug=` | None | Fan Value leaderboard by season (non-financial) |
+| GET | `/leaderboards/fantasy?seasonSlug=` | None | Fantasy leaderboard by season (points-only) |
+| GET | `/leaderboards/predictions?seasonSlug=` | None | Predictions leaderboard by season (points-only) |
+| GET | `/leaderboards/achievements` | None | Achievements leaderboard (always ALL_TIME, cross-season) |
 
 ---
 
@@ -642,3 +650,20 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/admin/operations/integrations/live-data` | PSL_ADMIN | Live sports data provider readiness detail |
 | GET | `/admin/operations/integrations/sponsor-activation` | PSL_ADMIN | Sponsor activation readiness detail |
 | GET | `/admin/operations/integrations/rewards-redemption` | PSL_ADMIN | Rewards redemption readiness detail |
+
+## /admin/engagement — Admin Engagement Metrics (STORY-33)
+
+**Purpose:** Season-scoped admin visibility into fan engagement, leaderboard health, unscoped ledger audit, and activation impact.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/engagement/seasons` | PSL_ADMIN | All seasons available for engagement analysis |
+| GET | `/admin/engagement/:seasonId/overview` | PSL_ADMIN | Full engagement overview: FanValue, Fantasy, Predictions, Achievements, safety confirmations |
+| GET | `/admin/engagement/:seasonId/leaderboards` | PSL_ADMIN | Top-5 leaderboard snapshots across all types |
+| GET | `/admin/engagement/:seasonId/fan-value` | PSL_ADMIN | Fan value engagement: totals, by-type, by-source, unscoped count |
+| GET | `/admin/engagement/:seasonId/fantasy` | PSL_ADMIN | Fantasy engagement: net points, teams, leagues |
+| GET | `/admin/engagement/:seasonId/predictions` | PSL_ADMIN | Prediction engagement: points, count, settled, unique fans |
+| GET | `/admin/engagement/:seasonId/achievements` | PSL_ADMIN | Achievement engagement: global unlocked count, fan value via achievements |
+| GET | `/admin/engagement/:seasonId/unscoped-ledger` | PSL_ADMIN | Fan value entries with null seasonId (admin-visible only) |
+| GET | `/admin/engagement/:seasonId/season-scope-audit` | PSL_ADMIN | 10-check scope audit: READY / READY_WITH_WARNINGS / BLOCKED |
+| GET | `/admin/engagement/:seasonId/activation-impact` | PSL_ADMIN | Activation impact: WC preservation, PSL start, safety confirmations |

@@ -1,7 +1,7 @@
 # PSL One — Admin Capability Gap Review
 
 **Sprint:** 2  
-**Story:** STORY-32 Admin Operations QA, Control Plane & Launch Integration Readiness  
+**Story:** STORY-33 PSL Leaderboards & Fan Value Season Scope (latest update)  
 **Date:** 2026-06-12  
 **Status:** ACTIVE — reviewed at STORY-32 acceptance
 
@@ -70,7 +70,7 @@
 | Prediction rules config | BUILT_NOW | HIGH | **POINTS-ONLY** — no wagering |
 | Prediction lock/settlement | BUILT_NOW | HIGH | Wire to live match results |
 | Peer challenges | BUILT_NOW | LOW | **FAN POINTS ONLY** — no stakes |
-| Leaderboards | BUILT_NOW | MEDIUM | Confirm PSL leaderboard structure |
+| Leaderboards | BUILT_NOW | LOW | Season-scoped. WC/PSL data isolated. Admin engagement metrics available. STORY-33 complete. |
 | Badges/achievements/fan value | BUILT_NOW | LOW | Review badge definitions for PSL |
 | Notifications | BUILT_NOW | MEDIUM | Wire email/push provider Sprint 3+ |
 
