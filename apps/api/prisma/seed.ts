@@ -74,6 +74,9 @@ async function main() {
   // Clear season switch audit data
   await prisma.seasonSwitchAudit.deleteMany();
 
+  // Clear prediction calibration config (depends on season)
+  await prisma.predictionRulesConfig.deleteMany();
+
   // Clear fantasy player prices/history before deleting players
   await prisma.fantasyPlayerPriceHistory.deleteMany();
   await prisma.fantasyPlayerPrice.deleteMany();
@@ -812,6 +815,24 @@ async function main() {
     pslRegCount++;
   }
   console.log(`  ✓ PSL squad registrations: ${pslRegCount} (PROVISIONAL)`);
+
+  // PSL PredictionRulesConfig — provisional calibration values (10/5/3/0 matches existing scoring engine)
+  await prisma.predictionRulesConfig.upsert({
+    where: { seasonId: pslSeason.id },
+    create: {
+      seasonId: pslSeason.id,
+      correctScorePoints: 10,
+      correctGoalDifferencePoints: 5,
+      correctResultPoints: 3,
+      participationPoints: 0,
+      challengeWinPoints: 0,
+      challengeDrawPoints: 0,
+      lockMinutesBeforeKickoff: 0,
+      status: 'PROVISIONAL',
+    },
+    update: {},
+  });
+  console.log(`  ✓ PSL PredictionRulesConfig seeded (PROVISIONAL — 10/5/3/0 scoring)`);
 
   console.log('');
   console.log('Seed complete.');

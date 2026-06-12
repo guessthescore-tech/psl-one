@@ -39,7 +39,7 @@ const makePrismaMock = () => ({
 const FUTURE = new Date(Date.now() + 86_400_000);
 const PAST = new Date(Date.now() - 86_400_000);
 
-const MOCK_SCHEDULED = { id: 'f1', status: 'SCHEDULED', kickoffAt: FUTURE, homeScore: null, awayScore: null };
+const MOCK_SCHEDULED = { id: 'f1', status: 'SCHEDULED', kickoffAt: FUTURE, homeScore: null, awayScore: null, isPublished: true };
 const MOCK_FINISHED = { id: 'f1', status: 'FINISHED', kickoffAt: PAST, homeScore: 2, awayScore: 1 };
 const MOCK_LIVE = { id: 'f1', status: 'LIVE', kickoffAt: PAST };
 

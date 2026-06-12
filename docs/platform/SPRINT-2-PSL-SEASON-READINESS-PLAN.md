@@ -114,18 +114,24 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-30 — Guess the Score PSL Season Calibration
+### STORY-30 — Guess the Score PSL Season Calibration ✅ COMPLETE (2026-06-12)
 
-**Goal:** Validate Guess the Score works for PSL fixtures.
+**Goal:** Make Guess the Score / Predictions fully PSL-season aware.
 
-**Work:**
-- Verify prediction lock/settle cycle works for PSL fixture timeline
-- Calibrate prediction point values (consider PSL scoring patterns vs. WC)
-- Test: admin can lock predictions 1 hour before kickoff
-- Test: admin can settle predictions after final whistle
-- Test: void works for postponed PSL fixtures
+**Work completed:**
+- Migration `20260612000001_prediction_rules_config`: `PredictionRulesConfig` model + `PredictionRulesStatus` enum
+- `PredictionCalibrationService` — 10 methods: `getCalibrationSeasons`, `getCalibrationReadiness`, `getPredictionRules`, `createProvisionalRules`, `updatePredictionRules`, `getFixtureEligibility`, `getLockReadiness`, `getSettlementReadiness`, `getPeerChallengeReadiness`, `getActivationImpact`
+- `PredictionCalibrationController` at `@Controller('predictions/admin/calibration')` — 11 PSL_ADMIN routes
+- `PredictionCalibrationModule` registered in AppModule
+- `PredictionsService` extended: `isPublished` filter on `createPrediction`, `getMyPredictions` season filter, `listEligibleFixtures`, `getSingleFixtureEligibility`
+- `PredictionsController` extended: `GET /predictions/fixtures?seasonSlug=`, `GET /predictions/fixtures/:id/eligibility`, `GET /predictions/me?seasonSlug=`
+- `SeasonSwitchingService` updated: 8th readiness check `checkPredictionReadiness` (WARNING severity)
+- Seed updated: PSL `PredictionRulesConfig` upserted (PROVISIONAL, 10/5/3/0 scoring — matches existing engine)
+- `prediction-calibration-client.ts` — 12 typed API wrappers
+- 9 admin web pages under `/admin/predictions/calibration/`
+- 23 new spec tests; total 998 API tests passing
 
-**Acceptance:** Full prediction lifecycle tested against PSL fixtures.
+**Acceptance:** Admin can view all seasons' prediction calibration status; create provisional PSL prediction rules; view fixture eligibility for predictions; monitor lock, settlement, and challenge readiness. Season switching readiness now has 8 checks (prediction rules added). World Cup prediction history preserved. All values clearly PROVISIONAL. No gambling mechanics.
 
 ---
 

@@ -385,3 +385,16 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 - 1 `FantasyRulesConfig` for PSL season (`halfwayGameweek: 15`, `seasonGameweekCount: 30`)
 - 96 `FantasyPlayerPrice` records (provisional price bands, idempotent `update: {}`)
 - 96 `SeasonSquadRegistration` records (`status: PROVISIONAL`, `source: PLACEHOLDER`, idempotent `update: {}`)
+
+## Migration `20260612000001_prediction_rules_config` (STORY-30)
+
+**Applied:** 2026-06-12 (local dev via `prisma migrate deploy`)
+
+**Adds:**
+- Enum `prediction_rules_status`: `PROVISIONAL`, `ACTIVE`
+- Table `prediction_rules_configs`: id, season_id (UNIQUE FK → seasons), correct_score_points (default 10), correct_goal_difference_points (default 5), correct_result_points (default 3), participation_points (default 0), challenge_win_points (default 0), challenge_draw_points (default 0), lock_minutes_before_kickoff (default 0), status, created_at, updated_at
+
+**Seed additions:**
+- 1 `PredictionRulesConfig` for PSL season (PROVISIONAL, 10/5/3/0 scoring — matches existing `calculatePoints()` function)
+
+**Purpose:** Per-season prediction calibration record. Enables season switching readiness to check prediction rules are configured. Does not change the scoring engine (`scoring.ts` remains hardcoded at 10/5/3/0 for compatibility). Admins can promote to ACTIVE once PSL season is confirmed.

@@ -954,3 +954,44 @@ Provisional price bands (stored as integer × 10):
 - `/admin/fantasy/calibration/[seasonId]/activation-impact` — impact summary before season switching
 
 **Test gate:** 975 API tests passing (21 new in `fantasy-calibration.service.spec.ts`). Typecheck clean. API and web build clean. Seed passes. Schema validates. All 13 admin routes verified locally. RBAC confirmed: FAN=403, unauth=401. PSL season switching readiness WARNINGs resolved.
+
+---
+
+## STORY-30 — Guess the Score PSL Season Calibration
+
+**Files created:**
+- `apps/api/prisma/migrations/20260612000001_prediction_rules_config/migration.sql` — `PredictionRulesStatus` enum, `prediction_rules_configs` table
+- `apps/api/src/prediction-calibration/prediction-calibration.service.ts` — 10 methods: seasons list, readiness check, CRUD rules, fixture eligibility, lock/settlement/challenge readiness, activation impact
+- `apps/api/src/prediction-calibration/prediction-calibration.controller.ts` — 11 PSL_ADMIN routes at `predictions/admin/calibration`
+- `apps/api/src/prediction-calibration/prediction-calibration.module.ts` — PrismaModule + AuthModule imports
+- `apps/api/src/prediction-calibration/prediction-calibration.service.spec.ts` — 23 Vitest tests
+- `apps/web/src/lib/prediction-calibration-client.ts` — 12 typed API wrappers
+
+**Files modified:**
+- `apps/api/prisma/schema.prisma` — `PredictionRulesStatus` enum, `PredictionRulesConfig` model, `Season.predictionRulesConfig` relation
+- `apps/api/prisma/seed.ts` — PSL `PredictionRulesConfig` upserted (PROVISIONAL, 10/5/3/0)
+- `apps/api/src/app.module.ts` — `PredictionCalibrationModule` registered
+- `apps/api/src/predictions/predictions.service.ts` — `isPublished` filter on `createPrediction`, `getMyPredictions` season filter, `listEligibleFixtures`, `getSingleFixtureEligibility`
+- `apps/api/src/predictions/predictions.controller.ts` — `GET /predictions/fixtures`, `GET /predictions/fixtures/:id/eligibility`, `GET /predictions/me?seasonSlug=`
+- `apps/api/src/season-switching/season-switching.service.ts` — 8th readiness check `checkPredictionReadiness` (WARNING severity)
+- `apps/api/src/season-switching/season-switching.service.spec.ts` — mock updated with `predictionRulesConfig`, length check updated from 7→8
+- `apps/api/src/predictions/predictions.service.spec.ts` — `MOCK_SCHEDULED` updated with `isPublished: true`
+
+**9 admin web pages:**
+- `/admin/predictions/calibration` — season list
+- `/admin/predictions/calibration/[seasonId]` — dashboard
+- `/admin/predictions/calibration/[seasonId]/readiness` — readiness detail
+- `/admin/predictions/calibration/[seasonId]/rules` — rules config with inline editing
+- `/admin/predictions/calibration/[seasonId]/fixtures` — fixture eligibility table
+- `/admin/predictions/calibration/[seasonId]/locks` — lock state per fixture
+- `/admin/predictions/calibration/[seasonId]/settlement` — settlement readiness
+- `/admin/predictions/calibration/[seasonId]/peer-challenges` — peer challenge counts (fan points only)
+- `/admin/predictions/calibration/[seasonId]/activation-impact` — activation summary
+
+**Key design decisions:**
+- `PredictionRulesConfig` is a calibration/readiness record only — it does NOT wire into `scoring.ts` (which remains hardcoded at 10/5/3/0). The scoring engine does not need a code change; PSL defaults match WC values exactly.
+- `createPrediction` now rejects unpublished fixtures with `BadRequestException('Fixture is not available for predictions')` — ensures fans can only predict on published fixtures.
+- Season switching now has 8 readiness checks (was 7) — prediction rules is WARNING severity (not BLOCKER).
+- `getMyPredictions` extended with optional `seasonSlug` query param for season-aware fan history.
+
+**Test gate:** 998 API tests passing (23 new in `prediction-calibration.service.spec.ts`). Typecheck clean. Seed passes. All 11 admin routes + 3 fan route extensions verified locally. RBAC confirmed. Season switching readiness shows 8 checks with prediction domain. World Cup prediction history preserved (no deletions).

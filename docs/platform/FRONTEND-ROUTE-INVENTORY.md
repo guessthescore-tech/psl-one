@@ -373,3 +373,17 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/fantasy/calibration/[seasonId]/players` | Player price readiness: counts by position; generate provisional prices button | PSL_ADMIN | `fantasy-calibration-client` | PROVISIONAL prices |
 | `/admin/fantasy/calibration/[seasonId]/gameweeks` | Gameweek readiness: fixture linkage, deadline status; derive deadlines from fixtures | PSL_ADMIN | `fantasy-calibration-client` | — |
 | `/admin/fantasy/calibration/[seasonId]/activation-impact` | Activation impact summary; links to Season Switching for final activation | PSL_ADMIN | `fantasy-calibration-client` | Links to /admin/seasons/switching |
+
+## Admin — Prediction Calibration (STORY-30)
+
+| Route | Purpose | Auth | Client | Notes |
+|-------|---------|------|--------|-------|
+| `/admin/predictions/calibration` | List all seasons with prediction calibration status (rules configured, rules status) | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]` | Season prediction dashboard: readiness status, nav to sub-pages | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/readiness` | Detailed readiness breakdown: all checks with severity and detail | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/rules` | View/create/update prediction rules config; inline field editing; promote to ACTIVE | PSL_ADMIN | `prediction-calibration-client` | PROVISIONAL label |
+| `/admin/predictions/calibration/[seasonId]/fixtures` | Per-fixture eligibility: published, kickoff, status, ineligibility reasons | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/locks` | Lock readiness: open vs locked per fixture, lock reason, pending prediction count | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/settlement` | Settlement readiness: FINISHED fixtures with results ready to settle | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/peer-challenges` | Peer challenge counts by status for published fixtures. Fan points only — no stakes or wagers. | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/predictions/calibration/[seasonId]/activation-impact` | Fixture, rules, and prediction count summary before season activation | PSL_ADMIN | `prediction-calibration-client` | — |

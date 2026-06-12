@@ -292,21 +292,22 @@ model Season {
   sourceUrl     String?      @map("source_url")
   importedAt    DateTime?    @map("imported_at")
 
-  competition           Competition               @relation(fields: [competitionId], references: [id])
-  fixtures              Fixture[]
-  groups                Group[]
-  fantasyTeams          FantasyTeam[]
-  gameweeks             Gameweek[]
-  playerPrices          FantasyPlayerPrice[]
-  leagues               FantasyLeague[]
-  cups                  FantasyCup[]
-  rulesConfig           FantasyRulesConfig?
-  gameweekScores        FantasyGameweekScore[]
-  fanValueLedger        FanValueLedger[]
-  fantasyAutoSubs       FantasyAutoSubstitution[]
-  seasonTeams           SeasonTeam[]
-  squadRegistrations    SeasonSquadRegistration[]
-  fixtureImportBatches  FixtureImportBatch[]
+  competition              Competition               @relation(fields: [competitionId], references: [id])
+  fixtures                 Fixture[]
+  groups                   Group[]
+  fantasyTeams             FantasyTeam[]
+  gameweeks                Gameweek[]
+  playerPrices             FantasyPlayerPrice[]
+  leagues                  FantasyLeague[]
+  cups                     FantasyCup[]
+  rulesConfig              FantasyRulesConfig?
+  gameweekScores           FantasyGameweekScore[]
+  fanValueLedger           FanValueLedger[]
+  fantasyAutoSubs          FantasyAutoSubstitution[]
+  seasonTeams              SeasonTeam[]
+  squadRegistrations       SeasonSquadRegistration[]
+  fixtureImportBatches     FixtureImportBatch[]
+  predictionRulesConfig    PredictionRulesConfig?
 
   @@map("seasons")
 }
@@ -1995,4 +1996,32 @@ model SeasonSwitchAudit {
   @@index([toSeasonId])
   @@index([createdAt(sort: Desc)])
   @@map("season_switch_audits")
+}
+
+// ── Prediction Calibration ────────────────────────────────────────────────────
+
+enum PredictionRulesStatus {
+  PROVISIONAL
+  ACTIVE
+
+  @@map("prediction_rules_status")
+}
+
+model PredictionRulesConfig {
+  id                          String                @id @default(uuid())
+  seasonId                    String                @unique @map("season_id")
+  correctScorePoints          Int                   @default(10) @map("correct_score_points")
+  correctGoalDifferencePoints Int                   @default(5)  @map("correct_goal_difference_points")
+  correctResultPoints         Int                   @default(3)  @map("correct_result_points")
+  participationPoints         Int                   @default(0)  @map("participation_points")
+  challengeWinPoints          Int                   @default(0)  @map("challenge_win_points")
+  challengeDrawPoints         Int                   @default(0)  @map("challenge_draw_points")
+  lockMinutesBeforeKickoff    Int                   @default(0)  @map("lock_minutes_before_kickoff")
+  status                      PredictionRulesStatus @default(PROVISIONAL) @map("status")
+  createdAt                   DateTime              @default(now()) @map("created_at")
+  updatedAt                   DateTime              @updatedAt    @map("updated_at")
+
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@map("prediction_rules_configs")
 }

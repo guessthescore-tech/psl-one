@@ -23,6 +23,7 @@ import { ClubExperienceModule } from './club-experience/club-experience.module';
 import { FixtureImportModule } from './fixture-import/fixture-import.module';
 import { SeasonSwitchingModule } from './season-switching/season-switching.module';
 import { FantasyCalibrationModule } from './fantasy-calibration/fantasy-calibration.module';
+import { PredictionCalibrationModule } from './prediction-calibration/prediction-calibration.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { FantasyCalibrationModule } from './fantasy-calibration/fantasy-calibrat
     FixtureImportModule,
     SeasonSwitchingModule,
     FantasyCalibrationModule,
+    PredictionCalibrationModule,
     HealthModule,
   ],
   controllers: [VersionController],

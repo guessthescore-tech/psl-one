@@ -55,6 +55,7 @@ describe('SeasonSwitchingService', () => {
     fantasyRulesConfig: { findUnique: ReturnType<typeof vi.fn> };
     fantasyPlayerPrice: { count: ReturnType<typeof vi.fn> };
     clubProfile: { count: ReturnType<typeof vi.fn> };
+    predictionRulesConfig: { findUnique: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
   };
 
@@ -82,6 +83,7 @@ describe('SeasonSwitchingService', () => {
       fantasyRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'cfg-1' }) },
       fantasyPlayerPrice: { count: vi.fn().mockResolvedValue(200) },
       clubProfile: { count: vi.fn().mockResolvedValue(16) },
+      predictionRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'pred-cfg-1', status: 'PROVISIONAL' }) },
       $transaction: vi.fn(),
     };
 
@@ -196,12 +198,12 @@ describe('SeasonSwitchingService', () => {
       expect(result.activationStatus).toBe('READY_WITH_WARNINGS');
     });
 
-    it('includes all 7 checks', async () => {
+    it('includes all 8 checks', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
-      expect(result.checks).toHaveLength(7);
+      expect(result.checks).toHaveLength(8);
     });
   });
 

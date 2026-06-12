@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -19,8 +19,8 @@ export class PredictionsController {
   }
 
   @Get('me')
-  getMyPredictions(@CurrentUser() user: TokenPayload) {
-    return this.predictionsService.getMyPredictions(user.sub);
+  getMyPredictions(@CurrentUser() user: TokenPayload, @Query('seasonSlug') seasonSlug?: string) {
+    return this.predictionsService.getMyPredictions(user.sub, seasonSlug);
   }
 
   @Get('me/:fixtureId')
@@ -42,9 +42,19 @@ export class PredictionsController {
 
   // Static prefix routes before :id to avoid NestJS route conflicts
 
+  @Get('fixtures')
+  listEligibleFixtures(@Query('seasonSlug') seasonSlug?: string) {
+    return this.predictionsService.listEligibleFixtures(seasonSlug);
+  }
+
   @Get('fixtures/:fixtureId/lock-state')
   getFixtureLockState(@Param('fixtureId') fixtureId: string) {
     return this.predictionsService.getFixtureLockState(fixtureId);
+  }
+
+  @Get('fixtures/:fixtureId/eligibility')
+  getFixtureEligibility(@Param('fixtureId') fixtureId: string) {
+    return this.predictionsService.getSingleFixtureEligibility(fixtureId);
   }
 
   @Get('gameweek/:gameweekId')

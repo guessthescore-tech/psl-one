@@ -48,12 +48,14 @@ export class PredictionsService {
       where: { id: dto.fixtureId },
       select: {
         id: true,
+        isPublished: true,
         status: true,
         kickoffAt: true,
         gameweek: { select: { predictionDeadlineAt: true } },
       },
     });
     if (!fixture) throw new NotFoundException(`Fixture '${dto.fixtureId}' not found`);
+    if (!fixture.isPublished) throw new BadRequestException('Fixture is not available for predictions');
     this.assertPredictionOpen(fixture);
 
     try {
@@ -107,12 +109,106 @@ export class PredictionsService {
     });
   }
 
-  getMyPredictions(userId: string) {
+  async getMyPredictions(userId: string, seasonSlug?: string) {
+    let fixtureIds: string[] | undefined;
+    if (seasonSlug) {
+      const season = await this.prisma.season.findUnique({
+        where: { slug: seasonSlug },
+        select: { id: true },
+      });
+      if (!season) return [];
+      const fixtures = await this.prisma.fixture.findMany({
+        where: { seasonId: season.id },
+        select: { id: true },
+      });
+      fixtureIds = fixtures.map((f) => f.id);
+    }
+
     return this.prisma.scorePrediction.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(fixtureIds !== undefined ? { fixtureId: { in: fixtureIds } } : {}),
+      },
       include: PREDICTION_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async listEligibleFixtures(seasonSlug?: string) {
+    const seasonWhere = seasonSlug
+      ? await this.prisma.season
+          .findUnique({ where: { slug: seasonSlug }, select: { id: true } })
+          .then((s) => (s ? { seasonId: s.id } : null))
+      : {};
+
+    if (seasonWhere === null) return [];
+
+    const fixtures = await this.prisma.fixture.findMany({
+      where: { isPublished: true, ...seasonWhere },
+      select: {
+        id: true,
+        kickoffAt: true,
+        status: true,
+        round: true,
+        season: { select: { id: true, name: true, slug: true } },
+        homeTeam: { select: { id: true, name: true, shortName: true, slug: true } },
+        awayTeam: { select: { id: true, name: true, shortName: true, slug: true } },
+        gameweek: { select: { id: true, name: true, predictionDeadlineAt: true } },
+      },
+      orderBy: { kickoffAt: 'asc' },
+    });
+
+    const now = new Date();
+    return fixtures.map((f) => {
+      const isLocked =
+        f.status === 'FINISHED' ||
+        f.status === 'LIVE' ||
+        f.status === 'HALF_TIME' ||
+        f.status === 'POSTPONED' ||
+        f.status === 'CANCELLED' ||
+        f.kickoffAt <= now ||
+        (f.gameweek?.predictionDeadlineAt ? f.gameweek.predictionDeadlineAt <= now : false);
+      return { ...f, isLocked };
+    });
+  }
+
+  async getSingleFixtureEligibility(fixtureId: string) {
+    const fixture = await this.prisma.fixture.findUnique({
+      where: { id: fixtureId },
+      select: {
+        id: true,
+        isPublished: true,
+        kickoffAt: true,
+        status: true,
+        round: true,
+        homeTeam: { select: { name: true, shortName: true } },
+        awayTeam: { select: { name: true, shortName: true } },
+        gameweek: { select: { id: true, name: true, predictionDeadlineAt: true } },
+      },
+    });
+    if (!fixture) throw new NotFoundException(`Fixture '${fixtureId}' not found`);
+
+    const now = new Date();
+    const reasons: string[] = [];
+    if (!fixture.isPublished) reasons.push('Fixture not published');
+    if (['FINISHED', 'CANCELLED', 'POSTPONED'].includes(fixture.status)) {
+      reasons.push(`Fixture status: ${fixture.status}`);
+    }
+    if (fixture.kickoffAt <= now) reasons.push('Kickoff has passed');
+    const deadline = fixture.gameweek?.predictionDeadlineAt;
+    if (deadline && deadline <= now) reasons.push('Gameweek deadline passed');
+
+    return {
+      fixtureId,
+      isEligible: reasons.length === 0,
+      isPublished: fixture.isPublished,
+      kickoffAt: fixture.kickoffAt,
+      status: fixture.status,
+      match: `${fixture.homeTeam.name} vs ${fixture.awayTeam.name}`,
+      gameweekName: fixture.gameweek?.name ?? null,
+      predictionDeadlineAt: deadline ?? null,
+      ineligibilityReasons: reasons,
+    };
   }
 
   async getMyPredictionForFixture(userId: string, fixtureId: string) {

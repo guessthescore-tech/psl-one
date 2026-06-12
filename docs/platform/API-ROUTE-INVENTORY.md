@@ -575,3 +575,29 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/fantasy/admin/calibration/:seasonId/gameweeks` | PSL_ADMIN | Gameweek readiness: fixture linkage and deadline status |
 | POST | `/fantasy/admin/calibration/:seasonId/gameweeks/derive-deadlines` | PSL_ADMIN | Derive transfer/prediction deadlines from earliest fixture kickoff (−90 min) |
 | GET | `/fantasy/admin/calibration/:seasonId/activation-impact` | PSL_ADMIN | Summary of platform state impact if season is activated |
+
+## /predictions/admin/calibration — PSL Prediction Calibration (STORY-30)
+
+**Purpose:** Admin-only PSL prediction calibration workflow. Configure prediction rules, view fixture eligibility, monitor lock/settlement/challenge readiness. All values are provisional and clearly marked as such. No gambling mechanics.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/predictions/admin/calibration` | PSL_ADMIN | List all seasons with prediction calibration status |
+| GET | `/predictions/admin/calibration/:seasonId` | PSL_ADMIN | Calibration readiness dashboard (READY / READY_WITH_WARNINGS / BLOCKED) |
+| GET | `/predictions/admin/calibration/:seasonId/readiness` | PSL_ADMIN | Detailed readiness check breakdown |
+| GET | `/predictions/admin/calibration/:seasonId/rules` | PSL_ADMIN | Get current prediction rules config (null if not set) |
+| POST | `/predictions/admin/calibration/:seasonId/rules` | PSL_ADMIN | Create provisional PSL prediction rules (10/5/3/0 scoring — matches engine defaults) |
+| PATCH | `/predictions/admin/calibration/:seasonId/rules` | PSL_ADMIN | Update specific prediction rules fields or promote to ACTIVE |
+| GET | `/predictions/admin/calibration/:seasonId/fixture-eligibility` | PSL_ADMIN | Per-fixture eligibility: published, kickoff status, reasons |
+| GET | `/predictions/admin/calibration/:seasonId/lock-readiness` | PSL_ADMIN | Lock readiness: open vs locked, lock reason per fixture |
+| GET | `/predictions/admin/calibration/:seasonId/settlement-readiness` | PSL_ADMIN | Settlement readiness: finished fixtures with results ready to settle |
+| GET | `/predictions/admin/calibration/:seasonId/peer-challenge-readiness` | PSL_ADMIN | Peer challenge counts by status for published fixtures |
+| GET | `/predictions/admin/calibration/:seasonId/activation-impact` | PSL_ADMIN | Impact summary: fixtures, rules config, prediction counts |
+
+## /predictions — Fan Prediction Routes Extended (STORY-30)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/predictions/fixtures` | JWT | List published, prediction-eligible fixtures (optionally filtered by `?seasonSlug=`) |
+| GET | `/predictions/fixtures/:fixtureId/eligibility` | JWT | Per-fixture eligibility check with ineligibility reasons |
+| GET | `/predictions/me?seasonSlug=` | JWT | Fan predictions filtered by season slug (no seasonSlug = all predictions) |

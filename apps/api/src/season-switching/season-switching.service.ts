@@ -82,6 +82,7 @@ export class SeasonSwitchingService {
       this.checkFantasyRulesConfig(seasonId),
       this.checkFantasyPlayerPrices(seasonId),
       this.checkClubProfiles(seasonId),
+      this.checkPredictionReadiness(seasonId),
     ]);
 
     const blockers = checks.filter((c) => c.severity === 'BLOCKER' && !c.passed);
@@ -372,6 +373,19 @@ export class SeasonSwitchingService {
       detail: passed
         ? `All ${teams.length} clubs have profiles`
         : `${profileCount}/${teams.length} clubs have profiles`,
+    };
+  }
+
+  private async checkPredictionReadiness(seasonId: string): Promise<ReadinessCheck> {
+    const config = await this.prisma.predictionRulesConfig.findUnique({ where: { seasonId } });
+    return {
+      domain: 'predictions',
+      label: 'Prediction rules configured',
+      severity: 'WARNING',
+      passed: config !== null,
+      detail: config
+        ? `Prediction rules configured (${config.status})`
+        : 'No PredictionRulesConfig — create provisional prediction rules before activation',
     };
   }
 }
