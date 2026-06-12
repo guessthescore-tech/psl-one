@@ -300,3 +300,25 @@ Sprint 3 will introduce:
 - **CI/CD Pipeline:** Automated quality gates on every PR
 
 The platform architecture already supports these additions without breaking existing bounded contexts.
+
+---
+
+## Commercial Readiness (Sprint 2, STORY-32)
+
+All commercial modules are **production-disabled by default**. The `IntegrationProviderConfig` model stores non-sensitive readiness state only — no credentials, API keys, or secrets.
+
+| Module | Status | Notes |
+|---|---|---|
+| Wallet | SANDBOX_READY | Provider contract + compliance required before production |
+| Payments | PROVIDER_REQUIRED | No provider selected |
+| Checkout | PRODUCTION_DISABLED | Explicitly disabled; sandbox config seeded |
+| Ticketing | PROVIDER_REQUIRED | Ticketing provider RFP Sprint 3+ |
+| Live Data | PROVIDER_REQUIRED | LiveMatchProviderInterface ready; stub only |
+| Sponsor Activation | INTEGRATION_READY | Admin shell; no live activation |
+| Rewards Redemption | COMPLIANCE_REQUIRED | Eligibility engine built; provider Sprint 3+ |
+| Notifications | SANDBOX_READY | Provider wiring Sprint 3+ |
+| Analytics | SANDBOX_READY | DataDog/Amplitude integration Sprint 3+ |
+
+**Gameplay Economy:** Fantasy and Guess the Score are POINTS-ONLY — no paid entry, no real-money mechanics.
+
+**Commercial Economy:** Disabled for Sprint 2 beta. All commercial capabilities require provider contracts and/or compliance approval before production activation.

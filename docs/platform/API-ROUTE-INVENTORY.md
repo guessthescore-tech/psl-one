@@ -621,3 +621,24 @@ All routes verified from source files in `apps/api/src/`.
 | POST | `/gameweeks/admin/operations/:seasonId/derive-deadlines` | PSL_ADMIN | Derive transfer/prediction deadlines with mode and buffer options |
 | POST | `/gameweeks/admin/operations/:seasonId/validate` | PSL_ADMIN | Comprehensive season gameweek validation |
 | GET | `/predictions/me?seasonSlug=` | JWT | Fan predictions filtered by season slug (no seasonSlug = all predictions) |
+
+## /admin/operations — Admin Operations Control Plane (STORY-32)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/operations/overview` | PSL_ADMIN | Admin operations overview: sections, summary, safety note |
+| GET | `/admin/operations/capability-review` | PSL_ADMIN | 9-category capability gap review with status and evidence |
+| GET | `/admin/operations/launch-readiness` | PSL_ADMIN | Full launch readiness checklist with pass/fail/pending counts |
+| GET | `/admin/operations/module-readiness/:seasonId` | PSL_ADMIN | Per-season module readiness: 19 modules with status and blockers |
+| GET | `/admin/operations/smoke-tests/routes` | PSL_ADMIN | Deterministic route inventory (static smoke test list) |
+| GET | `/admin/operations/smoke-tests/rbac` | PSL_ADMIN | RBAC definitions: PSL_ADMIN / FAN / UNAUTHENTICATED role boundaries |
+| GET | `/admin/operations/smoke-tests/workflows` | PSL_ADMIN | Key workflow summaries with readiness and blockers |
+| POST | `/admin/operations/smoke-tests/run` | PSL_ADMIN | Run static smoke test checks (no live HTTP calls) |
+| GET | `/admin/operations/integrations/providers` | PSL_ADMIN | All IntegrationProviderConfig records (non-sensitive readiness state) |
+| GET | `/admin/operations/integrations/commercial-readiness` | PSL_ADMIN | Commercial readiness summary: gameplay economy + provider statuses |
+| GET | `/admin/operations/integrations/wallet-payments` | PSL_ADMIN | Wallet and payment provider readiness detail |
+| GET | `/admin/operations/integrations/checkout-commerce` | PSL_ADMIN | Checkout and commerce readiness detail |
+| GET | `/admin/operations/integrations/ticketing` | PSL_ADMIN | Ticket inventory and issuance readiness detail |
+| GET | `/admin/operations/integrations/live-data` | PSL_ADMIN | Live sports data provider readiness detail |
+| GET | `/admin/operations/integrations/sponsor-activation` | PSL_ADMIN | Sponsor activation readiness detail |
+| GET | `/admin/operations/integrations/rewards-redemption` | PSL_ADMIN | Rewards redemption readiness detail |

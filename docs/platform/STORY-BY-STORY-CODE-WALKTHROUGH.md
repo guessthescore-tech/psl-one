@@ -1022,3 +1022,63 @@ Provisional price bands (stored as integer × 10):
 - All fantasy impact uses `calibrationStatus` (not `activationStatus`); prediction impact uses `activationStatus` (not `status`) due to different service interfaces
 
 **Test gate:** 998 API tests passing (23 new in `prediction-calibration.service.spec.ts`). Typecheck clean. Seed passes. All 11 admin routes + 3 fan route extensions verified locally. RBAC confirmed. Season switching readiness shows 8 checks with prediction domain. World Cup prediction history preserved (no deletions).
+
+---
+
+## STORY-31 — Gameweek & Matchday Operations Readiness (Sprint 2)
+
+**Module:** `GameweekOperationsModule` (`apps/api/src/gameweek-operations/`)
+
+**Goal:** Admin operations layer for gameweek lifecycle, deadline derivation, and matchday control readiness.
+
+**New files:**
+- `gameweek-operations.service.ts` — 16 methods for season overview, per-gameweek status, deadlines, fixture assignment, fantasy/prediction impact, matchday control
+- `gameweek-operations.controller.ts` — 15 routes under `GET/POST /gameweeks/admin/operations/...`, all `PSL_ADMIN`-gated
+- `derive-deadlines.dto.ts` — `mode` (`MISSING_ONLY` | `OVERWRITE_DERIVED_ONLY`), buffer options
+- `gameweek-operations.service.spec.ts` — 39 tests
+
+**Season switching:** 9th readiness check `checkMatchdayOperationsReadiness` added (WARNING severity).
+
+**Computed types:** `GameweekOperationalStatus`, `MatchdayReadinessStatus` — not persisted.
+
+**12 web pages** under `/admin/gameweeks/operations/`.
+
+**Test gate:** 1037 API tests passing. All 15 routes verified. RBAC confirmed.
+
+---
+
+## STORY-32 — Admin Operations QA, Control Plane & Launch Integration Readiness (Sprint 2)
+
+**Module:** `AdminOperationsModule` (`apps/api/src/admin-operations/`)
+
+**Goal:** Platform control plane for capability gap review, launch readiness, season module readiness, route smoke tests, and integration provider readiness.
+
+**Migration:** `20260612000002_integration_provider_config`
+- 3 new enums: `IntegrationProviderType`, `IntegrationProviderMode`, `IntegrationProviderStatus`
+- New model: `IntegrationProviderConfig` — non-sensitive readiness state only, no secrets
+
+**New files:**
+- `admin-operations.service.ts` — 17 methods: overview, capability review, launch readiness, season module readiness, smoke tests, 7 integration provider readiness methods
+- `admin-operations.controller.ts` — 17 routes under `GET/POST /admin/operations/...`, all `PSL_ADMIN`-gated
+- `admin-operations.module.ts` — imports `PrismaModule`, `AuthModule`
+- `admin-operations.service.spec.ts` — 51 tests
+
+**Seed additions:** 9 `IntegrationProviderConfig` entries (all `isProductionEnabled: false`):
+- wallet-default (SANDBOX_READY), payment-default (PROVIDER_REQUIRED), checkout-default (PRODUCTION_DISABLED), ticketing-default (PROVIDER_REQUIRED), live-data-default (PROVIDER_REQUIRED), sponsor-activation-default (INTEGRATION_READY), rewards-redemption-default (COMPLIANCE_REQUIRED), notifications-default (SANDBOX_READY), analytics-default (SANDBOX_READY)
+
+**Capability status taxonomy (read-only computed):**
+`BUILT_NOW`, `PARTIALLY_BUILT`, `ADMIN_SHELL_READY`, `FOUNDATION_READY`, `INTEGRATION_READY`, `SANDBOX_READY`, `PROVIDER_REQUIRED`, `COMPLIANCE_REQUIRED`, `CONTRACT_REQUIRED`, `PRODUCTION_DISABLED`, `ENABLED`, `FUTURE_IMPLEMENTATION`
+
+**12 web pages** under `/admin/operations/`; **web client** at `apps/web/src/lib/admin-operations-client.ts`.
+
+**Doc:** `docs/platform/ADMIN-CAPABILITY-GAP-REVIEW.md` — 9 capability categories, 60+ capabilities reviewed.
+
+**Key design decisions:**
+- `IntegrationProviderConfig` stores readiness state only — no secrets, API keys, tokens, or credentials
+- Module readiness is computed per-season at request time (no persisted `SeasonModuleConfig`)
+- Smoke test route inventory is a deterministic static list — no live HTTP calls in service
+- All commercial modules: `PRODUCTION_DISABLED` or `PROVIDER_REQUIRED` — production money movement disabled by default
+- Fantasy and Guess the Score confirmed `POINTS-ONLY` — not connected to wallet/payment providers
+- Peer challenges: `FAN_POINTS_ONLY` — no monetary stakes
+
+**Test gate:** 1088 API tests passing (51 new). Typecheck clean. Seed passes. Build clean.

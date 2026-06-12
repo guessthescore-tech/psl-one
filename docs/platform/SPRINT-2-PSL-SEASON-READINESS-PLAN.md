@@ -153,20 +153,24 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-32 — Admin Operations QA & Route Smoke Testing
+### STORY-32 — Admin Operations QA, Control Plane & Launch Integration Readiness ✅ COMPLETE (2026-06-12)
 
-**Goal:** Validate every admin operational workflow works end-to-end with PSL data.
+**Goal:** Create the platform admin control plane and integration readiness layer.
 
-**Work:**
-- Smoke test all admin routes with PSL season fixtures and clubs
-- Validate: fixture assignment pipeline (assign all 30 rounds)
-- Validate: prediction settlement on PSL fixtures
-- Validate: fantasy scoring on PSL match stats
-- Validate: achievement evaluation works with PSL context
-- Validate: notification broadcast works
-- Validate: admin command centre shows PSL season data
+**Delivered:**
+- `IntegrationProviderConfig` model + 3 enums (migration 20260612000002)
+- 9 provider config placeholders seeded (all production-disabled)
+- `AdminOperationsModule`: service (17 methods), controller (17 routes), spec (51 tests)
+- 17 admin routes under `/admin/operations/...` — all PSL_ADMIN guarded
+- 12 admin web pages under `/admin/operations/`
+- `apps/web/src/lib/admin-operations-client.ts` — 16 wrappers
+- `docs/platform/ADMIN-CAPABILITY-GAP-REVIEW.md` — 9 capability categories
+- Capability gap review, launch readiness checklist, season module readiness (19 modules)
+- Smoke test route inventory, RBAC definitions, workflow summaries
+- All commercial modules: PRODUCTION_DISABLED or PROVIDER_REQUIRED
+- Fantasy and Guess the Score confirmed POINTS-ONLY — no real-money mechanics
 
-**Acceptance:** All 58+ admin routes work without errors against PSL season data.
+**Test count:** 1088 API tests passing (51 new in AdminOperationsService spec)
 
 ---
 

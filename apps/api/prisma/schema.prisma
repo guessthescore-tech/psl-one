@@ -2025,3 +2025,59 @@ model PredictionRulesConfig {
 
   @@map("prediction_rules_configs")
 }
+
+// ── Integration Provider Configuration ───────────────────────────────────────
+
+enum IntegrationProviderType {
+  WALLET
+  PAYMENT
+  CHECKOUT
+  TICKETING
+  LIVE_DATA
+  SPONSOR_ACTIVATION
+  REWARDS_REDEMPTION
+  NOTIFICATIONS
+  ANALYTICS
+
+  @@map("integration_provider_type")
+}
+
+enum IntegrationProviderMode {
+  MOCK
+  SANDBOX
+  PRODUCTION
+
+  @@map("integration_provider_mode")
+}
+
+enum IntegrationProviderStatus {
+  NOT_CONFIGURED
+  PROVIDER_REQUIRED
+  CONTRACT_REQUIRED
+  COMPLIANCE_REQUIRED
+  SANDBOX_READY
+  INTEGRATION_READY
+  PRODUCTION_DISABLED
+  ENABLED
+
+  @@map("integration_provider_status")
+}
+
+model IntegrationProviderConfig {
+  id                         String                    @id @default(uuid())
+  providerType               IntegrationProviderType   @map("provider_type")
+  providerKey                String                    @unique @map("provider_key")
+  displayName                String                    @map("display_name")
+  mode                       IntegrationProviderMode   @default(MOCK) @map("mode")
+  status                     IntegrationProviderStatus @default(NOT_CONFIGURED) @map("status")
+  isEnabled                  Boolean                   @default(false) @map("is_enabled")
+  isProductionEnabled        Boolean                   @default(false) @map("is_production_enabled")
+  requiresComplianceApproval Boolean                   @default(false) @map("requires_compliance_approval")
+  requiresContractApproval   Boolean                   @default(false) @map("requires_contract_approval")
+  lastHealthCheckAt          DateTime?                 @map("last_health_check_at")
+  notes                      String?
+  createdAt                  DateTime                  @default(now()) @map("created_at")
+  updatedAt                  DateTime                  @updatedAt    @map("updated_at")
+
+  @@map("integration_provider_configs")
+}

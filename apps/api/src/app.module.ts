@@ -25,6 +25,7 @@ import { SeasonSwitchingModule } from './season-switching/season-switching.modul
 import { FantasyCalibrationModule } from './fantasy-calibration/fantasy-calibration.module';
 import { PredictionCalibrationModule } from './prediction-calibration/prediction-calibration.module';
 import { GameweekOperationsModule } from './gameweek-operations/gameweek-operations.module';
+import { AdminOperationsModule } from './admin-operations/admin-operations.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { GameweekOperationsModule } from './gameweek-operations/gameweek-operati
     FantasyCalibrationModule,
     PredictionCalibrationModule,
     GameweekOperationsModule,
+    AdminOperationsModule,
     HealthModule,
   ],
   controllers: [VersionController],

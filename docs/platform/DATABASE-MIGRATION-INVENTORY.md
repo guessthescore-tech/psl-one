@@ -404,3 +404,18 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 **No seed additions required.** All data is derived from existing `Gameweek`, `Fixture`, `FantasyRulesConfig`, and `PredictionRulesConfig` records.
 
 **Purpose:** Per-season prediction calibration record. Enables season switching readiness to check prediction rules are configured. Does not change the scoring engine (`scoring.ts` remains hardcoded at 10/5/3/0 for compatibility). Admins can promote to ACTIVE once PSL season is confirmed.
+
+## Migration 20260612000002 — STORY-32 (Admin Operations Control Plane)
+
+**File:** `apps/api/prisma/migrations/20260612000002_integration_provider_config/migration.sql`
+
+**Adds:**
+- Enum `integration_provider_type`: `WALLET`, `PAYMENT`, `CHECKOUT`, `TICKETING`, `LIVE_DATA`, `SPONSOR_ACTIVATION`, `REWARDS_REDEMPTION`, `NOTIFICATIONS`, `ANALYTICS`
+- Enum `integration_provider_mode`: `MOCK`, `SANDBOX`, `PRODUCTION`
+- Enum `integration_provider_status`: `NOT_CONFIGURED`, `PROVIDER_REQUIRED`, `CONTRACT_REQUIRED`, `COMPLIANCE_REQUIRED`, `SANDBOX_READY`, `INTEGRATION_READY`, `PRODUCTION_DISABLED`, `ENABLED`
+- Table `integration_provider_configs`: id, provider_type, provider_key (UNIQUE), display_name, mode (default MOCK), status (default NOT_CONFIGURED), is_enabled (default false), is_production_enabled (default false), requires_compliance_approval (default false), requires_contract_approval (default false), last_health_check_at, notes, created_at, updated_at
+
+**Seed additions:**
+- 9 `IntegrationProviderConfig` entries (all production-disabled): wallet-default (SANDBOX_READY), payment-default (PROVIDER_REQUIRED), checkout-default (PRODUCTION_DISABLED), ticketing-default (PROVIDER_REQUIRED), live-data-default (PROVIDER_REQUIRED), sponsor-activation-default (INTEGRATION_READY), rewards-redemption-default (COMPLIANCE_REQUIRED), notifications-default (SANDBOX_READY), analytics-default (SANDBOX_READY)
+
+**Safety note:** No secrets, API keys, credentials, tokens, or private keys stored. Non-sensitive readiness state only.

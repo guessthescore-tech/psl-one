@@ -399,3 +399,15 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/gameweeks/operations/[seasonId]/activation-impact` | Cross-domain activation readiness aggregation by domain | PSL_ADMIN | `gameweek-operations-client` | — |
 | `/admin/gameweeks/operations/[seasonId]/matchday-control` | Matchday control panel: safety flags, status counts, validate action | PSL_ADMIN | `gameweek-operations-client` | — |
 | `/admin/predictions/calibration/[seasonId]/activation-impact` | Fixture, rules, and prediction count summary before season activation | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/operations` | Admin operations control plane: section index, summary stats | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/capability-review` | 9-category capability gap review table with status, evidence, risk | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/launch-readiness` | Launch readiness checklist: pass/fail/pending, blockers, next steps | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/module-readiness/[seasonId]` | Per-season module readiness: 19 modules, blockers, warnings | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/smoke-tests` | Route smoke tests: tabbed view of routes, RBAC, workflows, run results | PSL_ADMIN | `admin-operations-client` | Run button |
+| `/admin/operations/integrations` | Integration providers index: all configs, commercial readiness summary | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/wallet-payments` | Wallet & payments readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/checkout-commerce` | Checkout & commerce readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/ticketing` | Ticketing readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/live-data` | Live sports data provider readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/sponsor-activation` | Sponsor activation readiness detail | PSL_ADMIN | `admin-operations-client` | — |
+| `/admin/operations/integrations/rewards-redemption` | Rewards redemption readiness detail | PSL_ADMIN | `admin-operations-client` | — |

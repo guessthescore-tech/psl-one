@@ -834,6 +834,39 @@ async function main() {
   });
   console.log(`  ✓ PSL PredictionRulesConfig seeded (PROVISIONAL — 10/5/3/0 scoring)`);
 
+  // Integration Provider Configs — non-sensitive readiness state only, no credentials
+  const integrationProviders = [
+    { providerKey: 'wallet-default', displayName: 'Fan Wallet Provider', providerType: 'WALLET', mode: 'SANDBOX', status: 'SANDBOX_READY', requiresComplianceApproval: true, requiresContractApproval: true, notes: 'Production disabled. Fantasy and Guess the Score remain POINTS-ONLY. Real-money wallet requires provider contract and compliance sign-off.' },
+    { providerKey: 'payment-default', displayName: 'Payment Gateway Provider', providerType: 'PAYMENT', mode: 'MOCK', status: 'PROVIDER_REQUIRED', requiresComplianceApproval: true, requiresContractApproval: true, notes: 'No payment provider selected. Production disabled.' },
+    { providerKey: 'checkout-default', displayName: 'Checkout / Commerce Provider', providerType: 'CHECKOUT', mode: 'SANDBOX', status: 'PRODUCTION_DISABLED', requiresComplianceApproval: true, requiresContractApproval: true, notes: 'Production checkout explicitly disabled. Sandbox config only. No real orders.' },
+    { providerKey: 'ticketing-default', displayName: 'Ticket Inventory Provider', providerType: 'TICKETING', mode: 'MOCK', status: 'PROVIDER_REQUIRED', requiresComplianceApproval: false, requiresContractApproval: true, notes: 'No ticketing provider selected. No real ticket issuance.' },
+    { providerKey: 'live-data-default', displayName: 'Live Sports Data Provider', providerType: 'LIVE_DATA', mode: 'MOCK', status: 'PROVIDER_REQUIRED', requiresComplianceApproval: false, requiresContractApproval: true, notes: 'Stub/mock provider only. No production ingestion. LiveMatchProviderInterface ready for wiring.' },
+    { providerKey: 'sponsor-activation-default', displayName: 'Sponsor Activation Platform', providerType: 'SPONSOR_ACTIVATION', mode: 'MOCK', status: 'INTEGRATION_READY', requiresComplianceApproval: true, requiresContractApproval: true, notes: 'Admin shell ready. No live sponsor campaign activation.' },
+    { providerKey: 'rewards-redemption-default', displayName: 'Rewards Redemption Provider', providerType: 'REWARDS_REDEMPTION', mode: 'MOCK', status: 'COMPLIANCE_REQUIRED', requiresComplianceApproval: true, requiresContractApproval: true, notes: 'RewardReadinessModule built. Eligibility checks only. Production redemption disabled.' },
+    { providerKey: 'notifications-default', displayName: 'Notifications Provider (Email/Push)', providerType: 'NOTIFICATIONS', mode: 'SANDBOX', status: 'SANDBOX_READY', requiresComplianceApproval: false, requiresContractApproval: false, notes: 'Notifications queued but not delivered. Wire email/push provider in Sprint 3+.' },
+    { providerKey: 'analytics-default', displayName: 'Analytics & Data Provider', providerType: 'ANALYTICS', mode: 'SANDBOX', status: 'SANDBOX_READY', requiresComplianceApproval: false, requiresContractApproval: false, notes: 'Admin KPIs built. Wire DataDog/Amplitude in Sprint 3+.' },
+  ] as const;
+
+  for (const p of integrationProviders) {
+    await prisma.integrationProviderConfig.upsert({
+      where: { providerKey: p.providerKey },
+      create: {
+        providerKey: p.providerKey,
+        displayName: p.displayName,
+        providerType: p.providerType as any,
+        mode: p.mode as any,
+        status: p.status as any,
+        isEnabled: false,
+        isProductionEnabled: false,
+        requiresComplianceApproval: p.requiresComplianceApproval,
+        requiresContractApproval: p.requiresContractApproval,
+        notes: p.notes,
+      },
+      update: { displayName: p.displayName, notes: p.notes },
+    });
+  }
+  console.log(`  ✓ ${integrationProviders.length} IntegrationProviderConfig entries seeded (all production-disabled)`);
+
   console.log('');
   console.log('Seed complete.');
   console.log(`  Competition : ${competition.name}`);
