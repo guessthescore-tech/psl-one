@@ -135,17 +135,21 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
-### STORY-31 — Club Content & Editorial Readiness
+### STORY-31 — PSL Gameweek & Matchday Operations Readiness ✅ COMPLETE (2026-06-12)
 
-**Goal:** Each PSL club has basic editorial content ready before season launch.
+**Goal:** Operational bridge between imported fixtures and fan-facing gameplay. PSL_ADMIN users can see whether each matchday is operationally ready.
 
-**Work:**
-- Ensure all clubs have: name, slug, shortName, country, logoUrl
-- Add club descriptions and history (brief editorial content)
-- Validate: team detail page renders correctly for all 16 PSL clubs
-- Validate: club logos display correctly
+**Work completed:**
+- `GameweekOperationsModule` — thin orchestration layer, no new schema; delegates to `FixtureImportService`, `FantasyCalibrationService`, `PredictionCalibrationService`
+- `GameweekOperationsService` — 16 methods; computes `GameweekOperationalStatus` and `MatchdayReadinessStatus` at request time (not persisted)
+- `GameweekOperationsController` at `@Controller('gameweeks/admin/operations')` — 15 PSL_ADMIN routes
+- `DeriveDeadlinesDto` — mode (`MISSING_ONLY` | `OVERWRITE_DERIVED_ONLY`), `fantasyBufferMinutes`, `predictionBufferMinutes`
+- `SeasonSwitchingService` updated: 9th readiness check `checkMatchdayOperationsReadiness` (WARNING severity)
+- `gameweek-operations-client.ts` — 15 typed API wrappers
+- 12 admin web pages under `/admin/gameweeks/operations/`
+- 39 new spec tests; total 1037 API tests passing
 
-**Acceptance:** All PSL club pages render with correct content and branding.
+**Acceptance:** Admin can see per-gameweek operational status; derive gameweeks from fixtures; derive deadlines with configurable buffer; inspect fantasy and prediction impact; view matchday control panel with safety flags. Season switching now has 9 readiness checks. No new schema or migrations.
 
 ---
 

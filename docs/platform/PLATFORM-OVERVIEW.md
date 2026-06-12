@@ -270,7 +270,26 @@ All queries are aggregation-only (count, groupBy, aggregate) — no new Prisma m
 
 ---
 
-## 16. Future Commerce Readiness
+## 16. Gameweek & Matchday Operations Readiness (STORY-31)
+
+`GameweekOperationsModule` is the operational bridge between imported fixtures and fan-facing gameplay. It gives PSL_ADMIN users a full read on whether each matchday is ready to open to fans.
+
+**15 admin API routes** under `/gameweeks/admin/operations/`:
+- Season list, overview, per-gameweek status, single-gameweek detail
+- Readiness, deadlines, fixture assignment, fantasy impact, prediction impact, publication readiness, activation impact, matchday control panel
+- Actions: derive gameweeks, derive deadlines (MISSING_ONLY | OVERWRITE_DERIVED_ONLY), validate
+
+**Computed operational status** (not persisted, derived at request time):
+- `GameweekOperationalStatus`: DRAFT → READY_TO_REVIEW → READY_TO_PUBLISH → OPEN → LOCKED → IN_PROGRESS → FINALIZING → COMPLETE; plus NEEDS_REVIEW, HISTORICAL
+- `MatchdayReadinessStatus`: READY | READY_WITH_WARNINGS | BLOCKED | IN_PROGRESS | CLOSED | HISTORICAL
+
+Season switching now has **9 readiness checks** (matchday operations is the 9th, WARNING severity).
+
+No new Prisma models or migrations — all status is derived from existing `Gameweek`, `Fixture`, and calibration data.
+
+---
+
+## 17. Future Commerce Readiness
 
 Sprint 3 will introduce:
 - **Sponsor Management:** Campaign creation, activation, fan targeting

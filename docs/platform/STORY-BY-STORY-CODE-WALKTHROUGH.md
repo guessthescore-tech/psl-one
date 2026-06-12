@@ -994,4 +994,31 @@ Provisional price bands (stored as integer × 10):
 - Season switching now has 8 readiness checks (was 7) — prediction rules is WARNING severity (not BLOCKER).
 - `getMyPredictions` extended with optional `seasonSlug` query param for season-aware fan history.
 
+---
+
+## STORY-31 — PSL Gameweek & Matchday Operations Readiness
+
+**New module:** `apps/api/src/gameweek-operations/`
+
+- `GameweekOperationsModule` — thin orchestration layer, no new schema; delegates to `FixtureImportService`, `FantasyCalibrationService`, `PredictionCalibrationService`
+- `GameweekOperationsService` — 13 read methods + 3 action methods; computes `GameweekOperationalStatus` and `MatchdayReadinessStatus` at request time (not persisted)
+- `GameweekOperationsController` — 15 routes under `GET/POST /gameweeks/admin/operations/...`, all `PSL_ADMIN`-gated
+- `DeriveDeadlinesDto` — `mode` (`MISSING_ONLY` | `OVERWRITE_DERIVED_ONLY`), `fantasyBufferMinutes`, `predictionBufferMinutes`
+
+**Season switching:** 9th readiness check `checkMatchdayOperationsReadiness` added (WARNING severity).
+
+**Computed types (not persisted):**
+- `GameweekOperationalStatus`: DRAFT | READY_TO_REVIEW | READY_TO_PUBLISH | OPEN | LOCKED | IN_PROGRESS | FINALIZING | COMPLETE | NEEDS_REVIEW | HISTORICAL
+- `MatchdayReadinessStatus`: READY | READY_WITH_WARNINGS | BLOCKED | IN_PROGRESS | CLOSED | HISTORICAL
+
+**12 web pages** under `/admin/gameweeks/operations/`; **web client** at `apps/web/src/lib/gameweek-operations-client.ts`.
+
+**Key design decisions:**
+- No new Prisma models or migrations — `Gameweek` model is already complete
+- Operational status is derived from existing `GameweekStatus` + fixture counts + deadline validity
+- `deriveGameweeks` delegates entirely to `FixtureImportService.autoCreateGameweeks()`
+- `deriveDeadlines` computes from earliest fixture kickoff minus buffer minutes; skips past gameweeks and those without fixtures
+- Season switching 9th check is WARNING (not BLOCKER) — gameweeks optional at activation time
+- All fantasy impact uses `calibrationStatus` (not `activationStatus`); prediction impact uses `activationStatus` (not `status`) due to different service interfaces
+
 **Test gate:** 998 API tests passing (23 new in `prediction-calibration.service.spec.ts`). Typecheck clean. Seed passes. All 11 admin routes + 3 fan route extensions verified locally. RBAC confirmed. Season switching readiness shows 8 checks with prediction domain. World Cup prediction history preserved (no deletions).

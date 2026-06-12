@@ -83,6 +83,7 @@ export class SeasonSwitchingService {
       this.checkFantasyPlayerPrices(seasonId),
       this.checkClubProfiles(seasonId),
       this.checkPredictionReadiness(seasonId),
+      this.checkMatchdayOperationsReadiness(seasonId),
     ]);
 
     const blockers = checks.filter((c) => c.severity === 'BLOCKER' && !c.passed);
@@ -386,6 +387,34 @@ export class SeasonSwitchingService {
       detail: config
         ? `Prediction rules configured (${config.status})`
         : 'No PredictionRulesConfig — create provisional prediction rules before activation',
+    };
+  }
+
+  private async checkMatchdayOperationsReadiness(seasonId: string): Promise<ReadinessCheck> {
+    const [gameweeksCount, publishedFixtures] = await Promise.all([
+      this.prisma.gameweek.count({ where: { seasonId } }),
+      this.prisma.fixture.count({ where: { seasonId, isPublished: true } }),
+    ]);
+
+    if (gameweeksCount === 0) {
+      return {
+        domain: 'matchday',
+        label: 'Matchday operations ready',
+        severity: 'WARNING',
+        passed: false,
+        detail: 'No gameweeks — derive gameweeks from fixtures before activation',
+      };
+    }
+
+    const passed = publishedFixtures > 0;
+    return {
+      domain: 'matchday',
+      label: 'Matchday operations ready',
+      severity: 'WARNING',
+      passed,
+      detail: passed
+        ? `${gameweeksCount} gameweek(s) ready, ${publishedFixtures} published fixture(s)`
+        : 'Gameweeks exist but no published fixtures — publish fixtures before activation',
     };
   }
 }

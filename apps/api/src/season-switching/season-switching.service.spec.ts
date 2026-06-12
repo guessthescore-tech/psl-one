@@ -184,11 +184,11 @@ describe('SeasonSwitchingService', () => {
 
     it('checks fixtures published separately from loaded', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
-      // checkFixturesCommitted → count #1, checkFixturesPublished total → count #2, published → count #3
-      prisma.fixture.count
-        .mockResolvedValueOnce(30)  // checkFixturesCommitted: 30 loaded
-        .mockResolvedValueOnce(30)  // checkFixturesPublished: total
-        .mockResolvedValueOnce(0);  // checkFixturesPublished: published = 0
+      // Use mockImplementation to distinguish isPublished:true from total counts
+      // checkMatchdayOperationsReadiness also uses isPublished:true, so 0 applies there too
+      prisma.fixture.count.mockImplementation(({ where }: { where?: { isPublished?: boolean } } = {}) =>
+        Promise.resolve(where?.isPublished === true ? 0 : 30),
+      );
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
@@ -198,12 +198,12 @@ describe('SeasonSwitchingService', () => {
       expect(result.activationStatus).toBe('READY_WITH_WARNINGS');
     });
 
-    it('includes all 8 checks', async () => {
+    it('includes all 9 checks', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
-      expect(result.checks).toHaveLength(8);
+      expect(result.checks).toHaveLength(9);
     });
   });
 

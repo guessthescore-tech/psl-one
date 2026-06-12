@@ -397,4 +397,10 @@ The seed script (`apps/api/prisma/seed.ts`) must execute in this order to satisf
 **Seed additions:**
 - 1 `PredictionRulesConfig` for PSL season (PROVISIONAL, 10/5/3/0 scoring — matches existing `calculatePoints()` function)
 
+## No Migration — STORY-31 (Gameweek & Matchday Operations Readiness)
+
+**No schema changes.** The `Gameweek` model already contains all required fields (`transferDeadlineAt`, `predictionDeadlineAt`, `status`, `round`, `name`, `seasonId`). The `GameweekOperationsModule` is a thin orchestration layer that computes operational status at request time from existing models — no new tables, columns, or enums were added.
+
+**No seed additions required.** All data is derived from existing `Gameweek`, `Fixture`, `FantasyRulesConfig`, and `PredictionRulesConfig` records.
+
 **Purpose:** Per-season prediction calibration record. Enables season switching readiness to check prediction rules are configured. Does not change the scoring engine (`scoring.ts` remains hardcoded at 10/5/3/0 for compatibility). Admins can promote to ACTIVE once PSL season is confirmed.

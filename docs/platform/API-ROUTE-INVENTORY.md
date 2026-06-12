@@ -600,4 +600,24 @@ All routes verified from source files in `apps/api/src/`.
 |--------|-------|------|-------------|
 | GET | `/predictions/fixtures` | JWT | List published, prediction-eligible fixtures (optionally filtered by `?seasonSlug=`) |
 | GET | `/predictions/fixtures/:fixtureId/eligibility` | JWT | Per-fixture eligibility check with ineligibility reasons |
+
+## /gameweeks/admin/operations — Gameweek & Matchday Operations (STORY-31)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/gameweeks/admin/operations/seasons` | PSL_ADMIN | List all seasons with gameweek/fixture metadata |
+| GET | `/gameweeks/admin/operations/:seasonId/overview` | PSL_ADMIN | Season operations overview: status, blockers, warnings, next action |
+| GET | `/gameweeks/admin/operations/:seasonId/gameweeks` | PSL_ADMIN | Per-gameweek computed operational status list |
+| GET | `/gameweeks/admin/operations/:seasonId/gameweeks/:gameweekId` | PSL_ADMIN | Single gameweek operational detail |
+| GET | `/gameweeks/admin/operations/:seasonId/readiness` | PSL_ADMIN | Season gameweek readiness: fixture assignment coverage |
+| GET | `/gameweeks/admin/operations/:seasonId/deadlines` | PSL_ADMIN | Per-gameweek deadline validity |
+| GET | `/gameweeks/admin/operations/:seasonId/fixture-assignment` | PSL_ADMIN | Cross-domain fixture assignment: validation, conflicts, gameweek coverage |
+| GET | `/gameweeks/admin/operations/:seasonId/fantasy-impact` | PSL_ADMIN | Fantasy calibration status and gameweek readiness |
+| GET | `/gameweeks/admin/operations/:seasonId/prediction-impact` | PSL_ADMIN | Prediction calibration, lock readiness, fixture eligibility |
+| GET | `/gameweeks/admin/operations/:seasonId/publication-readiness` | PSL_ADMIN | Fixture publication status and per-gameweek breakdown |
+| GET | `/gameweeks/admin/operations/:seasonId/activation-impact` | PSL_ADMIN | Cross-domain activation readiness aggregation |
+| GET | `/gameweeks/admin/operations/:seasonId/matchday-control` | PSL_ADMIN | Full matchday control panel: safety flags, status counts, next actions |
+| POST | `/gameweeks/admin/operations/:seasonId/gameweeks/derive` | PSL_ADMIN | Derive gameweeks from fixtures (delegates to autoCreateGameweeks) |
+| POST | `/gameweeks/admin/operations/:seasonId/derive-deadlines` | PSL_ADMIN | Derive transfer/prediction deadlines with mode and buffer options |
+| POST | `/gameweeks/admin/operations/:seasonId/validate` | PSL_ADMIN | Comprehensive season gameweek validation |
 | GET | `/predictions/me?seasonSlug=` | JWT | Fan predictions filtered by season slug (no seasonSlug = all predictions) |

@@ -386,4 +386,16 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/predictions/calibration/[seasonId]/locks` | Lock readiness: open vs locked per fixture, lock reason, pending prediction count | PSL_ADMIN | `prediction-calibration-client` | — |
 | `/admin/predictions/calibration/[seasonId]/settlement` | Settlement readiness: FINISHED fixtures with results ready to settle | PSL_ADMIN | `prediction-calibration-client` | — |
 | `/admin/predictions/calibration/[seasonId]/peer-challenges` | Peer challenge counts by status for published fixtures. Fan points only — no stakes or wagers. | PSL_ADMIN | `prediction-calibration-client` | — |
+| `/admin/gameweeks/operations` | Season list for gameweek operations | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]` | Season operations overview: status tiles, nav to sub-areas | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/gameweeks` | Per-gameweek operational status table; derive gameweeks action | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/gameweeks/[gameweekId]` | Single gameweek operational detail | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/readiness` | Season gameweek readiness: fixture assignment coverage, unassigned count | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/deadlines` | Per-gameweek deadline validity; derive deadlines (MISSING_ONLY / OVERWRITE_DERIVED_ONLY) | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/fixture-assignment` | Fixture assignment: validation issues, conflicts, gameweek coverage | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/fantasy-impact` | Fantasy calibration status and gameweek readiness | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/prediction-impact` | Prediction activation status, lock readiness, eligibility counts | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/publication` | Fixture publication status and per-gameweek breakdown | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/activation-impact` | Cross-domain activation readiness aggregation by domain | PSL_ADMIN | `gameweek-operations-client` | — |
+| `/admin/gameweeks/operations/[seasonId]/matchday-control` | Matchday control panel: safety flags, status counts, validate action | PSL_ADMIN | `gameweek-operations-client` | — |
 | `/admin/predictions/calibration/[seasonId]/activation-impact` | Fixture, rules, and prediction count summary before season activation | PSL_ADMIN | `prediction-calibration-client` | — |
