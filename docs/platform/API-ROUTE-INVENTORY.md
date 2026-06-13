@@ -698,15 +698,55 @@ All routes verified from source files in `apps/api/src/`.
 | DELETE | `/players/admin/stats/:id` | PSL_ADMIN | Delete DRAFT or VERIFIED stat (PUBLISHED/LOCKED protected) |
 
 
-## /admin/beta-feedback — Beta Feedback (STORY-35)
+## /admin/squad-import — Squad Import (STORY-36)
+
+**Purpose:** Import and manage PSL player squad registrations via batch lifecycle (DRAFT → VALIDATED/HAS_WARNINGS/BLOCKED → IMPORTED → PUBLISHED → CANCELLED). Includes duplicate detection, readiness checks, and activation dry-run.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/squad-import/seasons` | PSL_ADMIN | List seasons with importBatchCount + squadRegistrationCount |
+| GET | `/admin/squad-import/:seasonId/overview` | PSL_ADMIN | Season overview with latestBatch and registration summary |
+| GET | `/admin/squad-import/:seasonId/batches` | PSL_ADMIN | List all import batches for the season |
+| GET | `/admin/squad-import/:seasonId/batches/:batchId` | PSL_ADMIN | Single batch detail with row counts |
+| GET | `/admin/squad-import/:seasonId/batches/:batchId/rows` | PSL_ADMIN | All rows for a batch with validation messages |
+| POST | `/admin/squad-import/:seasonId/batches` | PSL_ADMIN | Create a new manual import batch with rows |
+| POST | `/admin/squad-import/:seasonId/batches/:batchId/validate` | PSL_ADMIN | Validate batch rows; updates batch to VALIDATED/HAS_WARNINGS/BLOCKED |
+| POST | `/admin/squad-import/:seasonId/batches/:batchId/import` | PSL_ADMIN | Import VALIDATED/HAS_WARNINGS batch; creates players + PROVISIONAL registrations |
+| POST | `/admin/squad-import/:seasonId/batches/:batchId/publish` | PSL_ADMIN | Publish IMPORTED batch; promotes PROVISIONAL → CONFIRMED registrations |
+| POST | `/admin/squad-import/:seasonId/batches/:batchId/cancel` | PSL_ADMIN | Cancel batch (blocked if PUBLISHED) |
+| GET | `/admin/squad-import/:seasonId/duplicates` | PSL_ADMIN | Rows with non-null duplicatePlayerIds |
+| GET | `/admin/squad-import/:seasonId/readiness` | PSL_ADMIN | 4-check readiness (BLOCKED/READY_WITH_WARNINGS/READY) |
+| GET | `/admin/squad-import/:seasonId/activation-impact` | PSL_ADMIN | Registration counts and batch impact summary |
+| GET | `/admin/squad-import/:seasonId/activation-dry-run` | PSL_ADMIN | Read-only dry run; dryRunOnly+activationWillNotBePerformed always true |
+
+## /admin/fantasy-price-calibration — Fantasy Price Calibration (STORY-36)
+
+**Purpose:** Set and validate fantasy player prices with bounds from FantasyRulesConfig. Prices are game-value only — no cash value. Batch lifecycle: validate → publish.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/fantasy-price-calibration/seasons` | PSL_ADMIN | List seasons with rulesConfig price bounds, price counts |
+| GET | `/admin/fantasy-price-calibration/:seasonId/overview` | PSL_ADMIN | Overview with missingPriceCount, invalidPriceCount, latestBatch |
+| GET | `/admin/fantasy-price-calibration/:seasonId/players` | PSL_ADMIN | All registered players with price status and validity |
+| GET | `/admin/fantasy-price-calibration/:seasonId/missing-prices` | PSL_ADMIN | Registered players with no fantasy price |
+| GET | `/admin/fantasy-price-calibration/:seasonId/invalid-prices` | PSL_ADMIN | Prices outside [minPrice, maxPrice] with violation type |
+| PATCH | `/admin/fantasy-price-calibration/:seasonId/players/:playerId` | PSL_ADMIN | Update a single player's price; validates bounds; writes history + audit |
+| POST | `/admin/fantasy-price-calibration/:seasonId/bulk-apply-defaults` | PSL_ADMIN | Apply default prices to all unpriced players; idempotent (skips priced) |
+| POST | `/admin/fantasy-price-calibration/:seasonId/validate` | PSL_ADMIN | Creates FantasyPriceCalibrationBatch (VALIDATED or HAS_WARNINGS) |
+| POST | `/admin/fantasy-price-calibration/:seasonId/publish` | PSL_ADMIN | Publishes latest VALIDATED/HAS_WARNINGS batch |
+| GET | `/admin/fantasy-price-calibration/:seasonId/readiness` | PSL_ADMIN | 4-check readiness gate for price calibration |
+| GET | `/admin/fantasy-price-calibration/:seasonId/activation-impact` | PSL_ADMIN | Price coverage counts and warnings |
+| GET | `/admin/fantasy-price-calibration/:seasonId/activation-dry-run` | PSL_ADMIN | Read-only; dryRunOnly+pricesHaveNoCashValue+activationWillNotBePerformed always true |
+
+## /admin/beta-feedback — Beta Feedback (STORY-35, updated STORY-36)
 
 **Purpose:** Computed beta-phase admin visibility: platform overview, known issues, UX checklist, and release notes. Read-only (no DB writes).
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| GET | `/admin/beta-feedback/overview` | PSL_ADMIN | Beta status, KPI counts, recommended next actions, safety boundaries |
-| GET | `/admin/beta-feedback/known-issues` | PSL_ADMIN | 12 known issues (KI-001 to KI-012) with severity, status, and mitigation |
-| GET | `/admin/beta-feedback/ux-checklist` | PSL_ADMIN | ~45 UX checks grouped by area with PASS/WARN/FAIL/PENDING status |
-| GET | `/admin/beta-feedback/release-notes` | PSL_ADMIN | Reverse-chronological story notes: STORY-26 through STORY-35 |
+| GET | `/admin/beta-feedback/overview` | PSL_ADMIN | Beta status, KPI counts (completedStories=11), recommended next actions, safety boundaries |
+| GET | `/admin/beta-feedback/known-issues` | PSL_ADMIN | 15 known issues (KI-001 to KI-015) with severity, status, and mitigation |
+| GET | `/admin/beta-feedback/ux-checklist` | PSL_ADMIN | ~57 UX checks grouped by area (squad import + price calibration areas added) |
+| GET | `/admin/beta-feedback/release-notes` | PSL_ADMIN | Reverse-chronological story notes: STORY-26 through STORY-36 |
 
 **Notes:** All routes PSL_ADMIN only (401 unauthenticated, 403 FAN). Service is computed — no Prisma queries.

@@ -300,6 +300,8 @@ export class AdminOperationsService {
       fixtureCount, publishedFixtures, gwCount, teamCount, profileCount,
       priceCount, fantasyConfig, predictionConfig, achievementDefsCount,
       rewardDefsCount, shopProductCount,
+      squadRegistrationCount, confirmedRegistrationCount, latestImportBatch,
+      latestPriceCalibrationBatch,
     ] = await Promise.all([
       this.prisma.fixture.count({ where: { seasonId } }),
       this.prisma.fixture.count({ where: { seasonId, isPublished: true } }),
@@ -312,7 +314,29 @@ export class AdminOperationsService {
       this.prisma.achievementDefinition.count(),
       this.prisma.rewardReadinessDefinition.count(),
       this.prisma.clubShopProduct.count(),
+      this.prisma.seasonSquadRegistration.count({ where: { seasonId } }),
+      this.prisma.seasonSquadRegistration.count({ where: { seasonId, status: 'CONFIRMED' } }),
+      this.prisma.squadImportBatch.findFirst({ where: { seasonId }, orderBy: { createdAt: 'desc' }, select: { status: true, blockedRows: true } }),
+      this.prisma.fantasyPriceCalibrationBatch.findFirst({ where: { seasonId }, orderBy: { createdAt: 'desc' }, select: { status: true } }),
     ]);
+
+    const squadImportWarnings: string[] = [
+      ...(squadRegistrationCount === 0 ? ['No squad registrations — import PSL squad data'] : []),
+      ...(confirmedRegistrationCount === 0 && squadRegistrationCount > 0 ? ['No confirmed registrations — publish an import batch'] : []),
+      ...(latestImportBatch?.status === 'BLOCKED' ? [`Latest import batch is BLOCKED (${latestImportBatch.blockedRows} blocked rows)`] : []),
+    ];
+
+    const minPrice = (fantasyConfig as { minPrice?: number } | null)?.minPrice ?? 40;
+    const maxPrice = (fantasyConfig as { maxPrice?: number } | null)?.maxPrice ?? 200;
+
+    const priceCalibrationBlockers: string[] = fantasyConfig ? [] : ['No FantasyRulesConfig — create before calibrating prices'];
+    const priceCalibrationWarnings: string[] = [
+      ...(priceCount < squadRegistrationCount && squadRegistrationCount > 0 ? [`${squadRegistrationCount - priceCount} registered players have no fantasy price`] : []),
+      ...(latestPriceCalibrationBatch === null ? ['No price calibration batch — run validate + publish'] : []),
+      ...(latestPriceCalibrationBatch?.status !== 'PUBLISHED' && latestPriceCalibrationBatch !== null ? ['Latest calibration batch not yet published'] : []),
+    ];
+
+    void minPrice; void maxPrice;
 
     const modules: ModuleReadinessItem[] = [
       {
@@ -515,6 +539,30 @@ export class AdminOperationsService {
         blockers: [],
         warnings: ['Live provider ingestion requires Sprint 3+ integration contract'],
         recommendedAction: 'Manual entry available now. Verify and publish stats per fixture before activation. Check readiness at /admin/player-stats/season/:seasonId/readiness.',
+      },
+      {
+        moduleKey: 'SQUAD_IMPORT',
+        displayName: 'Squad Import & Player Registration',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: true, isFoundational: true,
+        blockers: [],
+        warnings: squadImportWarnings,
+        recommendedAction: squadImportWarnings.length > 0
+          ? 'Import and publish PSL squad data before activation. Run duplicate detection and resolve any blocked rows.'
+          : 'Squad import pipeline ready. Create manual import batch at /admin/squad-import/:seasonId/batches/manual.',
+      },
+      {
+        moduleKey: 'FANTASY_PRICE_CALIBRATION',
+        displayName: 'Fantasy Price Calibration',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: true, isProductionEnabled: true, isFoundational: true,
+        blockers: priceCalibrationBlockers,
+        warnings: priceCalibrationWarnings,
+        recommendedAction: priceCalibrationBlockers.length > 0
+          ? 'Create FantasyRulesConfig before price calibration'
+          : priceCalibrationWarnings.length > 0
+            ? 'Apply default prices and run validate + publish at /admin/fantasy-price-calibration/:seasonId/'
+            : 'Price calibration complete. Fantasy prices are points-only with no cash value.',
       },
     ];
 

@@ -56,14 +56,16 @@ export class BetaFeedbackService {
       uxChecklistWarnings: checklist.filter((c) => c.status === 'WARN').length,
       uxChecklistFails: checklist.filter((c) => c.status === 'FAIL').length,
       releaseReadiness: 'WORLD_CUP_BETA_READY_PSL_PENDING',
-      completedStories: 10,
+      completedStories: 11,
       apiTestCount: 1270,
-      webPageCount: 165,
+      webPageCount: 182,
       recommendedNextActions: [
+        'Import official PSL 2026/27 squad data via /admin/squad-import',
         'Import official PSL 2026/27 fixture schedule via /admin/fixtures/imports',
+        'Publish fantasy price calibration batch after reviewing player prices',
         'Promote PSL fantasy rules from PROVISIONAL to ACTIVE',
         'Promote PSL prediction rules from PROVISIONAL to ACTIVE',
-        'Resolve all 11 season-switching readiness checks before PSL activation',
+        'Resolve all 13 season-switching readiness checks before PSL activation',
         'Wire real auth session — admin users must log in at /login before accessing admin pages',
         'Sprint 3: live sports data provider contract',
         'Sprint 3: production deployment to AWS ECS',
@@ -99,7 +101,7 @@ export class BetaFeedbackService {
 
   getReleaseNotes(): { notes: ReleaseNote[]; currentVersion: string; note: string } {
     return {
-      currentVersion: 'Sprint 2 — STORY-35',
+      currentVersion: 'Sprint 2 — STORY-36',
       notes: this.getReleaseNotesList(),
       note: 'Release notes cover Sprint 2 stories. Sprint 1 foundation committed in feat: complete sprint 1 fan platform foundation.',
     };
@@ -239,6 +241,39 @@ export class BetaFeedbackService {
         sprint: 'Sprint 3',
         resolution: 'Run query plan analysis on production RDS before launch.',
       },
+      {
+        id: 'KI-013',
+        title: 'Official PSL squad data not yet available',
+        severity: 'HIGH',
+        category: 'Data Readiness',
+        description:
+          'The squad import pipeline (STORY-36) is live but official PSL 2026/27 player registration data has not been received. 96 provisional placeholder registrations are seeded. Season activation is blocked until confirmed squad registrations exist.',
+        status: 'TRACKED',
+        sprint: 'Sprint 2 — post World Cup',
+        resolution: 'Use /admin/squad-import to import official PSL squad data once received from the league.',
+      },
+      {
+        id: 'KI-014',
+        title: 'Unresolved squad import duplicates may block season readiness',
+        severity: 'MEDIUM',
+        category: 'Data Quality',
+        description:
+          'Squad import duplicate detection uses normalised name matching within a team. When official data arrives, duplicate candidates must be reviewed at /admin/squad-import/:seasonId/duplicates before proceeding with publish.',
+        status: 'TRACKED',
+        sprint: 'Sprint 2 — post World Cup',
+        resolution: 'Review /admin/squad-import/:seasonId/duplicates and resolve all BLOCKER rows before publishing import batch.',
+      },
+      {
+        id: 'KI-015',
+        title: 'Missing or invalid fantasy prices will block price calibration batch publish',
+        severity: 'MEDIUM',
+        category: 'Data Quality',
+        description:
+          'Fantasy prices must be set for all registered players within minPrice/maxPrice bounds before the calibration batch can be published. Players with missing prices show at /admin/fantasy-price-calibration/:seasonId/missing-prices; invalid prices at /admin/fantasy-price-calibration/:seasonId/invalid-prices.',
+        status: 'TRACKED',
+        sprint: 'Sprint 2 — post World Cup',
+        resolution: 'Use bulk-apply-defaults to seed prices, then review and adjust. Publish calibration batch once all prices are valid.',
+      },
     ];
   }
 
@@ -260,7 +295,7 @@ export class BetaFeedbackService {
       { area: 'PSL Season', check: 'PSL season not accidentally active', status: 'PASS', notes: 'PSL season requires explicit activation through 11-check readiness gate' },
       { area: 'PSL Season', check: 'PSL fixtures unpublished by default', status: 'PASS', notes: 'Import pipeline sets isPublished=false; admin must publish explicitly' },
       { area: 'PSL Season', check: 'PSL leaderboards start clean', status: 'PASS', notes: 'Season-scoped; PSL season has no entries until activated' },
-      { area: 'PSL Season', check: 'PSL 11-check readiness gate enforced', status: 'PASS', notes: '11 checks including player_stats readiness' },
+      { area: 'PSL Season', check: 'PSL 13-check readiness gate enforced', status: 'PASS', notes: '13 checks including squad_import and fantasy_price_calibration readiness (STORY-36)' },
 
       // Fantasy
       { area: 'Fantasy', check: 'Fantasy is points-only — no paid entry', status: 'PASS', notes: 'No real-money mechanics anywhere in fantasy module' },
@@ -304,14 +339,30 @@ export class BetaFeedbackService {
       { area: 'Club Experience', check: 'Club shop is CATALOGUE_ONLY', status: 'PASS', notes: 'No real checkout, orders, or payments. Commerce deferred to Sprint 3.' },
 
       // Admin Control Plane
-      { area: 'Admin Control Plane', check: 'All 11 season-switching checks visible', status: 'PASS', notes: 'AdminOperationsService + SeasonSwitchingService' },
-      { area: 'Admin Control Plane', check: 'Module readiness covers all Sprint 2 modules', status: 'PASS', notes: 'Including PLAYER_STATS, LEADERBOARDS, ENGAGEMENT_METRICS' },
+      { area: 'Admin Control Plane', check: 'All 13 season-switching checks visible', status: 'PASS', notes: 'AdminOperationsService + SeasonSwitchingService; 2 new checks added in STORY-36' },
+      { area: 'Admin Control Plane', check: 'Module readiness covers all Sprint 2 modules', status: 'PASS', notes: 'Including SQUAD_IMPORT, FANTASY_PRICE_CALIBRATION, PLAYER_STATS, LEADERBOARDS' },
       { area: 'Admin Control Plane', check: 'Launch readiness checklist accurate', status: 'PASS', notes: 'All commercial modules PRODUCTION_DISABLED or PROVIDER_REQUIRED' },
 
       // Integration Readiness
       { area: 'Integration Readiness', check: 'No live provider credentials in codebase', status: 'PASS', notes: 'IntegrationProviderConfig stores no secrets' },
       { area: 'Integration Readiness', check: 'Live data provider is stub-only', status: 'PASS', notes: 'LiveMatchProviderInterface ready for injection; no real provider' },
       { area: 'Integration Readiness', check: 'Commerce providers are production-disabled', status: 'PASS', notes: 'Wallet, payments, checkout, ticketing all explicitly disabled' },
+
+      // Squad Import
+      { area: 'Squad Import', check: 'Import lifecycle DRAFT→VALIDATED→IMPORTED→PUBLISHED enforced', status: 'PASS', notes: 'Each state transition validated in SquadImportService' },
+      { area: 'Squad Import', check: 'BLOCKER rows prevent batch import', status: 'PASS', notes: 'validateBatch sets status=BLOCKED if any row has BLOCKER-severity issues' },
+      { area: 'Squad Import', check: 'Duplicate detection active within team', status: 'PASS', notes: 'Normalised name match; BLOCKER for active duplicate, WARNING for possible duplicate' },
+      { area: 'Squad Import', check: 'Activation dry-run is read-only', status: 'PASS', notes: 'dryRunOnly: true, activationWillNotBePerformed: true always set' },
+      { area: 'Squad Import', check: 'Squad import writes audit logs', status: 'PASS', notes: 'All mutations write to AdminAuditLog via writeAuditLog helper' },
+      { area: 'Squad Import', check: 'Official PSL squad data pending (KI-013)', status: 'WARN', notes: 'Only provisional placeholder registrations seeded; official data awaited post-WC' },
+
+      // Fantasy Price Calibration
+      { area: 'Fantasy Price Calibration', check: 'Price bounds enforced from FantasyRulesConfig', status: 'PASS', notes: 'minPrice=40, maxPrice=200, defaultPrice=55 by default; configurable per season' },
+      { area: 'Fantasy Price Calibration', check: 'Prices are fantasy-game values only — no cash value', status: 'PASS', notes: 'pricesHaveNoCashValue: true declared in activation dry-run response' },
+      { area: 'Fantasy Price Calibration', check: 'Bulk default application skips priced players', status: 'PASS', notes: 'bulkApplyDefaults is idempotent — will not overwrite existing prices' },
+      { area: 'Fantasy Price Calibration', check: 'Calibration batch publish requires prior validation', status: 'PASS', notes: 'publishCalibration throws if no VALIDATED/HAS_WARNINGS batch exists' },
+      { area: 'Fantasy Price Calibration', check: 'Price calibration writes audit logs', status: 'PASS', notes: 'updatePlayerPrice and bulkApplyDefaults write AdminAuditLog entries' },
+      { area: 'Fantasy Price Calibration', check: 'Missing/invalid prices surfaced in readiness check', status: 'PASS', notes: '13th season-switching check; WARNING for missing prices, invalid prices, unpublished calibration' },
 
       // Mobile / Responsive
       { area: 'Mobile / Responsive', check: 'Grid layouts use responsive classes', status: 'WARN', notes: 'Most pages use grid-cols-1 md:grid-cols-2 but not all pages audited for mobile' },
@@ -399,7 +450,7 @@ export class BetaFeedbackService {
       },
       {
         story: 'STORY-35',
-        commit: 'pending',
+        commit: 'b5d7f6b',
         title: 'Beta Feedback, Bug Fixes & UX Polish',
         summary: 'Auth session cleanup (getBetaToken centralised); AdminAuditLog model; performance indexes; BetaFeedbackModule; port bug fixes; league-management JSON fix; BETA-READINESS review updated.',
         keyDeliverables: [
@@ -411,9 +462,34 @@ export class BetaFeedbackService {
           'auth headers added to admin-player-stats-client',
           '4 admin beta feedback web pages',
           'All dev-token pages updated to use getBetaToken()',
+          '1216 API tests passing',
         ],
         safetyBoundaries: [
           'No new product scope. No production commercial integrations. No real-money mechanics. No live provider ingestion.',
+        ],
+      },
+      {
+        story: 'STORY-36',
+        commit: 'pending',
+        title: 'Squad Import, Player Price Finalisation & Activation Dry Run',
+        summary: 'SquadImportModule with full import lifecycle (DRAFT→VALIDATED→IMPORTED→PUBLISHED→CANCELLED); FantasyPriceCalibrationModule with price bounds from FantasyRulesConfig; activation dry-run endpoints; 2 new season-switching readiness checks (13 total); SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION in AdminOperations.',
+        keyDeliverables: [
+          'SquadImportModule: 14 admin routes; batch/row lifecycle; BLOCKER/WARNING validation; duplicate detection; idempotent import',
+          'FantasyPriceCalibrationModule: 12 admin routes; price bounds enforcement; bulk defaults; calibration batch publish',
+          'FantasyRulesConfig extended: minPrice (40), maxPrice (200), defaultPrice (55)',
+          'SquadImportBatch, SquadImportRow, FantasyPriceCalibrationBatch models — migration 20260612000006',
+          '2 new season-switching readiness checks (squad_import, fantasy_price_calibration) — 13 total',
+          'SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION modules added to AdminOperationsService',
+          '17 admin web pages (9 squad import + 8 price calibration)',
+          '2 new web clients (squad-import-client.ts, fantasy-price-calibration-client.ts)',
+          'All squad/price mutations write to AdminAuditLog',
+          'Activation dry-run: dryRunOnly + activationWillNotBePerformed + pricesHaveNoCashValue safety confirmations',
+        ],
+        safetyBoundaries: [
+          'Fantasy prices are game-value only — no cash value, market value, transfer fee, or betting odds.',
+          'Squad import is manual/admin-triggered only — no external PSL data provider calls.',
+          'Activation dry-run is strictly read-only — no state mutations.',
+          'No paid entry, no real-money mechanics, no live provider ingestion.',
         ],
       },
     ];

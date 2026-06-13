@@ -473,3 +473,30 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/beta-feedback/known-issues` | Known issues list | PSL_ADMIN | `beta-feedback-client` | 12 issues with severity/status badges |
 | `/admin/beta-feedback/ux-checklist` | UX checks grouped by area | PSL_ADMIN | `beta-feedback-client` | PASS/WARN/FAIL/PENDING with summary chips |
 | `/admin/beta-feedback/release-notes` | Release notes STORY-26 to STORY-35 | PSL_ADMIN | `beta-feedback-client` | Reverse-chronological; key deliverables + safety boundaries |
+
+## Squad Import — Admin Pages (STORY-36)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/squad-import` | Season list | PSL_ADMIN | `squad-import-client` | Lists seasons with batch counts and registration counts |
+| `/admin/squad-import/[seasonId]` | Season overview | PSL_ADMIN | `squad-import-client` | Registration summary, recent batches, nav links |
+| `/admin/squad-import/[seasonId]/batches` | Batch list | PSL_ADMIN | `squad-import-client` | All batches with row counts per status; links to detail/rows |
+| `/admin/squad-import/[seasonId]/batches/[batchId]` | Batch detail + actions | PSL_ADMIN | `squad-import-client` | Validate / Import / Publish / Cancel lifecycle buttons |
+| `/admin/squad-import/[seasonId]/batches/[batchId]/rows` | Batch row table | PSL_ADMIN | `squad-import-client` | All rows with validationStatus, messages, positions |
+| `/admin/squad-import/[seasonId]/duplicates` | Duplicate detection | PSL_ADMIN | `squad-import-client` | Rows with duplicatePlayerIds; BLOCKER vs WARNING |
+| `/admin/squad-import/[seasonId]/readiness` | Import readiness | PSL_ADMIN | `squad-import-client` | 4-check gate: TEAMS_REGISTERED, SQUAD_REGISTRATIONS_EXIST, CONFIRMED, LATEST_BATCH |
+| `/admin/squad-import/[seasonId]/activation-impact` | Activation impact | PSL_ADMIN | `squad-import-client` | Registration counts, latest batch stats, warnings |
+| `/admin/squad-import/[seasonId]/activation-dry-run` | Activation dry run | PSL_ADMIN | `squad-import-client` | Read-only; dryRunOnly + safetyConfirmations display |
+
+## Fantasy Price Calibration — Admin Pages (STORY-36)
+
+| Path | Purpose | Auth | API Client | Notes |
+|------|---------|------|-----------|-------|
+| `/admin/fantasy-price-calibration` | Season list | PSL_ADMIN | `fantasy-price-calibration-client` | Lists seasons with price bounds, counts, calibration batch count |
+| `/admin/fantasy-price-calibration/[seasonId]` | Calibration overview | PSL_ADMIN | `fantasy-price-calibration-client` | Missing/invalid counts, Apply Defaults + Validate + Publish actions |
+| `/admin/fantasy-price-calibration/[seasonId]/players` | Player price table | PSL_ADMIN | `fantasy-price-calibration-client` | Inline price editing; validity indicator |
+| `/admin/fantasy-price-calibration/[seasonId]/missing-prices` | Missing prices | PSL_ADMIN | `fantasy-price-calibration-client` | Players without price; bulk apply defaults button |
+| `/admin/fantasy-price-calibration/[seasonId]/invalid-prices` | Invalid prices | PSL_ADMIN | `fantasy-price-calibration-client` | Prices outside bounds; BELOW_MINIMUM / ABOVE_MAXIMUM violation |
+| `/admin/fantasy-price-calibration/[seasonId]/readiness` | Calibration readiness | PSL_ADMIN | `fantasy-price-calibration-client` | 4-check gate including published batch check |
+| `/admin/fantasy-price-calibration/[seasonId]/activation-impact` | Activation impact | PSL_ADMIN | `fantasy-price-calibration-client` | Coverage counts, missing/invalid, warnings; links to dry run |
+| `/admin/fantasy-price-calibration/[seasonId]/activation-dry-run` | Activation dry run | PSL_ADMIN | `fantasy-price-calibration-client` | Read-only; pricesHaveNoCashValue + safety confirmations |

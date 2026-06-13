@@ -307,9 +307,12 @@ model Season {
   fantasyAutoSubs          FantasyAutoSubstitution[]
   seasonTeams              SeasonTeam[]
   squadRegistrations       SeasonSquadRegistration[]
-  fixtureImportBatches     FixtureImportBatch[]
-  predictionRulesConfig    PredictionRulesConfig?
-  playerMatchStats         PlayerMatchStats[]           @relation("SeasonPlayerMatchStats")
+  fixtureImportBatches         FixtureImportBatch[]
+  predictionRulesConfig        PredictionRulesConfig?
+  playerMatchStats             PlayerMatchStats[]                @relation("SeasonPlayerMatchStats")
+  squadImportBatches           SquadImportBatch[]
+  squadImportRows              SquadImportRow[]
+  fantasyPriceCalibrationBatches FantasyPriceCalibrationBatch[]
 
   @@map("seasons")
 }
@@ -1279,6 +1282,11 @@ model FantasyRulesConfig {
 
   season Season @relation(fields: [seasonId], references: [id])
 
+  // Player price bounds (fantasy points only — no cash value)
+  minPrice     Int @default(40)  @map("min_price")
+  maxPrice     Int @default(200) @map("max_price")
+  defaultPrice Int @default(55)  @map("default_price")
+
   @@map("fantasy_rules_configs")
 }
 
@@ -2168,6 +2176,149 @@ model PlayerMatchStats {
   @@index([seasonId, status])
   @@index([playerId, seasonId])
   @@map("player_match_stats")
+}
+
+// ── Squad Import Workflow ─────────────────────────────────────────────────────
+
+enum SquadImportBatchStatus {
+  DRAFT
+  VALIDATED
+  HAS_WARNINGS
+  BLOCKED
+  IMPORTED
+  PUBLISHED
+  CANCELLED
+
+  @@map("squad_import_batch_status")
+}
+
+enum SquadImportBatchSourceType {
+  MANUAL
+  CSV_UPLOAD
+  ADMIN_ENTRY
+  PROVIDER_STUB
+
+  @@map("squad_import_batch_source_type")
+}
+
+enum SquadImportRowValidationStatus {
+  PENDING
+  VALID
+  WARNING
+  BLOCKED
+  IMPORTED
+  SKIPPED
+
+  @@map("squad_import_row_validation_status")
+}
+
+model SquadImportBatch {
+  id                String                     @id @default(uuid())
+  seasonId          String                     @map("season_id")
+  competitionId     String?                    @map("competition_id")
+  sourceType        SquadImportBatchSourceType @default(MANUAL) @map("source_type")
+  originalFilename  String?                    @map("original_filename")
+  status            SquadImportBatchStatus     @default(DRAFT)
+  totalRows         Int                        @default(0) @map("total_rows")
+  validRows         Int                        @default(0) @map("valid_rows")
+  warningRows       Int                        @default(0) @map("warning_rows")
+  blockedRows       Int                        @default(0) @map("blocked_rows")
+  importedRows      Int                        @default(0) @map("imported_rows")
+  publishedRows     Int                        @default(0) @map("published_rows")
+  notes             String?
+  createdByUserId   String?                    @map("created_by_user_id")
+  createdAt         DateTime                   @default(now()) @map("created_at")
+  updatedAt         DateTime                   @updatedAt @map("updated_at")
+  validatedAt       DateTime?                  @map("validated_at")
+  importedAt        DateTime?                  @map("imported_at")
+  publishedAt       DateTime?                  @map("published_at")
+  cancelledAt       DateTime?                  @map("cancelled_at")
+
+  season Season          @relation(fields: [seasonId], references: [id])
+  rows   SquadImportRow[]
+
+  @@index([seasonId])
+  @@index([status])
+  @@index([seasonId, status])
+  @@index([createdAt(sort: Desc)])
+  @@map("squad_import_batches")
+}
+
+model SquadImportRow {
+  id                    String                          @id @default(uuid())
+  batchId               String                          @map("batch_id")
+  rowNumber             Int                             @map("row_number")
+  rawData               Json                            @default("{}") @map("raw_data")
+  seasonId              String                          @map("season_id")
+  teamId                String?                         @map("team_id")
+  matchedPlayerId       String?                         @map("matched_player_id")
+  proposedPlayerName    String                          @map("proposed_player_name")
+  proposedDisplayName   String?                         @map("proposed_display_name")
+  proposedPosition      String                          @map("proposed_position")
+  proposedShirtNumber   Int?                            @map("proposed_shirt_number")
+  proposedNationality   String?                         @map("proposed_nationality")
+  proposedDateOfBirth   DateTime?                       @map("proposed_date_of_birth") @db.Date
+  proposedStatus        String?                         @map("proposed_status")
+  proposedFantasyPrice  Int?                            @map("proposed_fantasy_price")
+  duplicatePlayerIds    Json?                           @map("duplicate_player_ids")
+  validationStatus      SquadImportRowValidationStatus  @default(PENDING) @map("validation_status")
+  validationMessages    Json?                           @map("validation_messages")
+  isImportable          Boolean                         @default(false) @map("is_importable")
+  importedPlayerId      String?                         @map("imported_player_id")
+  importedRegistrationId String?                        @map("imported_registration_id")
+  createdAt             DateTime                        @default(now()) @map("created_at")
+  updatedAt             DateTime                        @updatedAt @map("updated_at")
+
+  batch SquadImportBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  season Season           @relation(fields: [seasonId], references: [id])
+
+  @@index([batchId])
+  @@index([validationStatus])
+  @@index([matchedPlayerId])
+  @@index([seasonId])
+  @@index([teamId])
+  @@index([batchId, validationStatus])
+  @@map("squad_import_rows")
+}
+
+// ── Fantasy Price Calibration ─────────────────────────────────────────────────
+
+enum FantasyPriceCalibrationBatchStatus {
+  DRAFT
+  VALIDATED
+  HAS_WARNINGS
+  BLOCKED
+  PUBLISHED
+  CANCELLED
+
+  @@map("fantasy_price_calibration_batch_status")
+}
+
+model FantasyPriceCalibrationBatch {
+  id                    String                               @id @default(uuid())
+  seasonId              String                               @map("season_id")
+  status                FantasyPriceCalibrationBatchStatus   @default(DRAFT)
+  minPrice              Int                                  @default(40) @map("min_price")
+  maxPrice              Int                                  @default(200) @map("max_price")
+  defaultPrice          Int                                  @default(55) @map("default_price")
+  missingPriceCount     Int                                  @default(0) @map("missing_price_count")
+  invalidPriceCount     Int                                  @default(0) @map("invalid_price_count")
+  calibratedPlayerCount Int                                  @default(0) @map("calibrated_player_count")
+  publishedPlayerCount  Int                                  @default(0) @map("published_player_count")
+  notes                 String?
+  createdByUserId       String?                              @map("created_by_user_id")
+  createdAt             DateTime                             @default(now()) @map("created_at")
+  updatedAt             DateTime                             @updatedAt @map("updated_at")
+  validatedAt           DateTime?                            @map("validated_at")
+  publishedAt           DateTime?                            @map("published_at")
+  cancelledAt           DateTime?                            @map("cancelled_at")
+
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@index([seasonId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("fantasy_price_calibration_batches")
 }
 
 // ── Admin Audit Log ───────────────────────────────────────────────────────────

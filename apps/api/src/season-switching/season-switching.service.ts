@@ -86,6 +86,8 @@ export class SeasonSwitchingService {
       this.checkMatchdayOperationsReadiness(seasonId),
       this.checkEngagementSeasonScope(seasonId),
       this.checkPlayerStatsReadiness(seasonId),
+      this.checkSquadImportReadiness(seasonId),
+      this.checkFantasyPriceCalibrationReadiness(seasonId),
     ]);
 
     const blockers = checks.filter((c) => c.severity === 'BLOCKER' && !c.passed);
@@ -477,6 +479,99 @@ export class SeasonSwitchingService {
       detail: draftCount > 0
         ? `${draftCount} player stat entries still in DRAFT across ${finishedFixtures} completed fixtures`
         : `Player stats pipeline ready — ${statsCount} entries across ${finishedFixtures} completed fixtures`,
+    };
+  }
+
+  private async checkSquadImportReadiness(seasonId: string): Promise<ReadinessCheck> {
+    const [teamCount, registrationCount, confirmedCount] = await Promise.all([
+      this.prisma.seasonTeam.count({ where: { seasonId } }),
+      this.prisma.seasonSquadRegistration.count({ where: { seasonId } }),
+      this.prisma.seasonSquadRegistration.count({ where: { seasonId, status: 'CONFIRMED' } }),
+    ]);
+
+    if (teamCount < 2) {
+      return {
+        domain: 'squad_import',
+        label: 'Squad import ready',
+        severity: 'BLOCKER',
+        passed: false,
+        detail: 'No teams in season — register teams before importing squad data',
+      };
+    }
+
+    if (registrationCount === 0) {
+      return {
+        domain: 'squad_import',
+        label: 'Squad import ready',
+        severity: 'WARNING',
+        passed: false,
+        detail: 'No squad registrations — run squad import before activation for real PSL player data',
+      };
+    }
+
+    return {
+      domain: 'squad_import',
+      label: 'Squad import ready',
+      severity: 'WARNING',
+      passed: confirmedCount > 0,
+      detail: confirmedCount > 0
+        ? `${confirmedCount} confirmed squad registrations (${registrationCount - confirmedCount} provisional)`
+        : `${registrationCount} provisional registrations — publish an import batch to confirm`,
+    };
+  }
+
+  private async checkFantasyPriceCalibrationReadiness(seasonId: string): Promise<ReadinessCheck> {
+    const rulesConfig = await this.prisma.fantasyRulesConfig.findUnique({ where: { seasonId } });
+
+    if (!rulesConfig) {
+      return {
+        domain: 'fantasy_price_calibration',
+        label: 'Fantasy price calibration ready',
+        severity: 'WARNING',
+        passed: false,
+        detail: 'No FantasyRulesConfig — create rules config before price calibration',
+      };
+    }
+
+    const minPrice = rulesConfig.minPrice;
+    const maxPrice = rulesConfig.maxPrice;
+
+    const [registrations, pricesSet, invalidPrices] = await Promise.all([
+      this.prisma.seasonSquadRegistration.count({ where: { seasonId } }),
+      this.prisma.fantasyPlayerPrice.count({ where: { seasonId } }),
+      this.prisma.fantasyPlayerPrice.count({
+        where: { seasonId, OR: [{ price: { lt: minPrice } }, { price: { gt: maxPrice } }] },
+      }),
+    ]);
+
+    const missing = Math.max(0, registrations - pricesSet);
+
+    if (missing > 0 || invalidPrices > 0) {
+      return {
+        domain: 'fantasy_price_calibration',
+        label: 'Fantasy price calibration ready',
+        severity: 'WARNING',
+        passed: false,
+        detail: [
+          missing > 0 ? `${missing} registered players have no fantasy price` : '',
+          invalidPrices > 0 ? `${invalidPrices} prices outside range [${minPrice}–${maxPrice}]` : '',
+        ].filter(Boolean).join('; '),
+      };
+    }
+
+    const latestPublished = await this.prisma.fantasyPriceCalibrationBatch.findFirst({
+      where: { seasonId, status: 'PUBLISHED' },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      domain: 'fantasy_price_calibration',
+      label: 'Fantasy price calibration ready',
+      severity: 'WARNING',
+      passed: latestPublished !== null,
+      detail: latestPublished
+        ? `${pricesSet} player prices calibrated and published (fantasy points only)`
+        : `${pricesSet} prices set but no published calibration batch — run validate + publish`,
     };
   }
 }

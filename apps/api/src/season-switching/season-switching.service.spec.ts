@@ -58,6 +58,8 @@ describe('SeasonSwitchingService', () => {
     predictionRulesConfig: { findUnique: ReturnType<typeof vi.fn> };
     fanValueLedger: { count: ReturnType<typeof vi.fn> };
     playerMatchStats: { count: ReturnType<typeof vi.fn> };
+    seasonSquadRegistration: { count: ReturnType<typeof vi.fn> };
+    fantasyPriceCalibrationBatch: { findFirst: ReturnType<typeof vi.fn> };
     $transaction: ReturnType<typeof vi.fn>;
   };
 
@@ -82,12 +84,15 @@ describe('SeasonSwitchingService', () => {
       },
       fixture: { count: vi.fn().mockResolvedValue(30) },
       gameweek: { count: vi.fn().mockResolvedValue(30) },
-      fantasyRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'cfg-1' }) },
-      fantasyPlayerPrice: { count: vi.fn().mockResolvedValue(200) },
+      fantasyRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'cfg-1', minPrice: 40, maxPrice: 200 }) },
+      fantasyPlayerPrice: { count: vi.fn().mockImplementation(({ where }: { where?: { OR?: unknown } }) =>
+        Promise.resolve(where?.OR ? 0 : 96)) },
       clubProfile: { count: vi.fn().mockResolvedValue(16) },
       predictionRulesConfig: { findUnique: vi.fn().mockResolvedValue({ id: 'pred-cfg-1', status: 'PROVISIONAL' }) },
       fanValueLedger: { count: vi.fn().mockResolvedValue(0) },
       playerMatchStats: { count: vi.fn().mockResolvedValue(0) },
+      seasonSquadRegistration: { count: vi.fn().mockResolvedValue(96) },
+      fantasyPriceCalibrationBatch: { findFirst: vi.fn().mockResolvedValue({ id: 'cb-1', status: 'PUBLISHED' }) },
       $transaction: vi.fn(),
     };
 
@@ -204,12 +209,12 @@ describe('SeasonSwitchingService', () => {
       expect(result.activationStatus).toBe('READY_WITH_WARNINGS');
     });
 
-    it('includes all 11 checks', async () => {
+    it('includes all 13 checks', async () => {
       prisma.season.findUnique.mockResolvedValue(mockSeason());
 
       const result = await service.getSeasonSwitchReadiness('season-1');
 
-      expect(result.checks).toHaveLength(11);
+      expect(result.checks).toHaveLength(13);
     });
   });
 

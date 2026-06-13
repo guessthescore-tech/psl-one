@@ -1222,3 +1222,66 @@ Provisional price bands (stored as integer × 10):
 - `getBetaToken()` is explicitly marked Sprint-2 temporary; Sprint 3 replaces with full session management
 
 **Test gate:** 1216 API tests passing (28 new in `beta-feedback.service.spec.ts`). Both typechecks clean. API build clean. Web build clean (137 static pages). 8 web tests passing.
+
+---
+
+## STORY-36 — Squad Import, Player Price Finalisation & Activation Dry Run
+
+**Goal:** Squad import pipeline (DRAFT→VALIDATED→IMPORTED→PUBLISHED); fantasy price calibration with bounds from FantasyRulesConfig; 2 new season-switching readiness checks (13 total); SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION in AdminOperationsModule; activation dry-run endpoints.
+
+**Migration `20260612000006_squad_import_price_calibration`:**
+- 4 new enums: `SquadImportBatchStatus`, `SquadImportBatchSourceType`, `SquadImportRowValidationStatus`, `FantasyPriceCalibrationBatchStatus`
+- `FantasyRulesConfig` extended: `minPrice INT DEFAULT 40`, `maxPrice INT DEFAULT 200`, `defaultPrice INT DEFAULT 55`
+- `SquadImportBatch` model: 14 fields; FK to Season; indexed on (seasonId), (status), (seasonId, status), (createdAt DESC)
+- `SquadImportRow` model: 21 fields; FK to SquadImportBatch (CASCADE) and Season; indexed on (batchId), (validationStatus), (matchedPlayerId), (seasonId), (teamId), (batchId, validationStatus)
+- `FantasyPriceCalibrationBatch` model: 13 fields; FK to Season; indexed on (seasonId), (status), (seasonId, status), (createdAt DESC)
+
+**SquadImportModule:**
+- `SquadImportService` — 14 methods: `getImportSeasons`, `getImportOverview`, `listBatches`, `getBatch`, `listRows`, `createManualBatch`, `validateBatch`, `importBatch`, `publishBatch`, `cancelBatch`, `getDuplicates`, `getReadiness`, `getActivationImpact`, `getActivationDryRun`
+- Validation in `validateBatch`: BLOCKER (invalid position, missing team, team not in season, price out of bounds, duplicate with active registration); WARNING (missing price, possible duplicate, missing shirt number, missing nationality)
+- Import is idempotent: finds existing player by name+teamId; skips existing SeasonSquadRegistration
+- Duplicate detection: normalised name match (lowercase, alphanumeric) within teamId
+- Activation dry-run: `dryRunOnly: true`, `activationWillNotBePerformed: true`, safety confirmations (fantasyPointsOnly, fanValueNonFinancial)
+- All mutations write to `AdminAuditLog` via `writeAuditLog` private helper
+- 14 admin-gated routes under `@Controller('admin/squad-import')`
+
+**FantasyPriceCalibrationModule:**
+- `FantasyPriceCalibrationService` — 11 methods: `getSeasons`, `getOverview`, `listPlayers`, `listMissingPrices`, `listInvalidPrices`, `updatePlayerPrice`, `bulkApplyDefaults`, `validateCalibration`, `publishCalibration`, `getReadiness`, `getActivationImpact`, `getActivationDryRun`
+- Price bounds read from `FantasyRulesConfig.minPrice/maxPrice`; fallback to 40/200
+- `bulkApplyDefaults`: uses `defaultPrice` from config or position-based default (GK/DEF=50, MID=55, FWD=60); skips already-priced players (idempotent)
+- `validateCalibration`: creates `FantasyPriceCalibrationBatch` (VALIDATED or HAS_WARNINGS); `publishCalibration` requires prior validated batch
+- Activation dry-run: `pricesHaveNoCashValue: true` always set; `dryRunOnly: true`
+- All mutations write to `AdminAuditLog`
+- 12 admin-gated routes under `@Controller('admin/fantasy-price-calibration')`
+
+**Season switching (13 checks):**
+- Check 12 `checkSquadImportReadiness`: BLOCKER if teamCount < 2; WARNING if no registrations or no confirmed registrations
+- Check 13 `checkFantasyPriceCalibrationReadiness`: WARNING if no rulesConfig, missing prices, invalid prices, or no published calibration batch
+- `getSeasonSwitchReadiness` now runs 13 checks in parallel (was 11)
+
+**AdminOperationsModule:**
+- `getSeasonModuleReadiness` now includes SQUAD_IMPORT and FANTASY_PRICE_CALIBRATION as BUILT_NOW modules
+- Added to data queries: `squadRegistrationCount`, `confirmedRegistrationCount`, `latestImportBatch`, `latestPriceCalibrationBatch`
+
+**BetaFeedbackService updates:**
+- `completedStories: 11`, `currentVersion: 'Sprint 2 — STORY-36'`
+- STORY-36 release note added to `getReleaseNotesList()`
+- KI-013 (official PSL squad data pending), KI-014 (unresolved duplicates), KI-015 (missing prices) added
+- Squad Import and Fantasy Price Calibration UX areas added to checklist
+- Season-switching check count updated from 11 to 13 in checklist and overview
+
+**Web clients:**
+- `apps/web/src/lib/squad-import-client.ts` — 14 methods using `getBetaToken()`
+- `apps/web/src/lib/fantasy-price-calibration-client.ts` — 12 methods using `getBetaToken()`
+
+**Web pages (17 new):**
+- Squad Import (9): `/admin/squad-import`, `[seasonId]`, `[seasonId]/batches`, `[seasonId]/batches/[batchId]`, `[seasonId]/batches/[batchId]/rows`, `[seasonId]/duplicates`, `[seasonId]/readiness`, `[seasonId]/activation-impact`, `[seasonId]/activation-dry-run`
+- Price Calibration (8): `/admin/fantasy-price-calibration`, `[seasonId]`, `[seasonId]/players`, `[seasonId]/missing-prices`, `[seasonId]/invalid-prices`, `[seasonId]/readiness`, `[seasonId]/activation-impact`, `[seasonId]/activation-dry-run`
+
+**Key design decisions:**
+- `FantasyPlayerPrice` has no status field — batch-level tracking via `FantasyPriceCalibrationBatch` avoids touching existing price records
+- Import idempotency: `importBatch` checks for existing `SeasonSquadRegistration` before creating — safe to re-run
+- Prices safety: `pricesHaveNoCashValue: true` and "fantasy points only — no cash value" language in BadRequestException message enforces no-monetary-value contract
+- Duplicate detection is normalised name match only (not fuzzy) — simple, fast, deterministic
+
+**Test gate:** 1293 API tests passing (77 new: 49 squad-import + 28 price-calibration). Both typechecks clean. API build clean. Web build clean.

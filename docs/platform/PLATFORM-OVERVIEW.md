@@ -26,7 +26,7 @@ Sprint 1 produced:
 - 108+ web pages (fan + admin)
 - Full admin command centre
 
-Sprint 2 (through STORY-35) added:
+Sprint 2 (through STORY-36) added:
 - Season-scoped leaderboards (Fan Value, Fantasy, Predictions, Achievements) — WC/PSL data isolation
 - Admin Engagement Metrics module — 10 routes, season scope audit, activation impact
 - Player Match Stats module — authoritative production stats, DRAFT→VERIFIED→PUBLISHED→LOCKED lifecycle
@@ -35,7 +35,12 @@ Sprint 2 (through STORY-35) added:
 - AdminAuditLog model — append-only cross-domain audit trail foundation (no FK to users)
 - Performance indexes on 6 high-volume tables for 2M-fan scale
 - Auth centralisation — `getBetaToken()` replaces all `dev-token` placeholders across 34 web pages
-- 1216 API tests passing (up from 812)
+- Squad Import module — full batch lifecycle (DRAFT→VALIDATED→IMPORTED→PUBLISHED), duplicate detection, idempotent player create/find, SeasonSquadRegistration PROVISIONAL→CONFIRMED
+- Fantasy Price Calibration module — bounds-validated price workflow, bulk defaults, FantasyPriceCalibrationBatch lifecycle, `pricesHaveNoCashValue: true` safety flag
+- 12th + 13th season-switching readiness checks (squad import, price calibration)
+- Activation dry-run pattern — read-only simulation with safety confirmations, no state changes
+- FantasyRulesConfig extended with `minPrice`, `maxPrice`, `defaultPrice` bounds
+- 1293 API tests passing (up from 812)
 
 ---
 
@@ -128,7 +133,7 @@ Client → JwtAuthGuard (validates JWT) → RolesGuard (checks roles) → Contro
 - **Styling:** Tailwind CSS
 - **State:** TanStack Query (configured, limited usage in Sprint 1)
 - **Pages:** Both `'use client'` (interactive) and static pages
-- **API clients:** 24 typed client modules in `apps/web/src/lib/`
+- **API clients:** 26 typed client modules in `apps/web/src/lib/`
 
 ---
 

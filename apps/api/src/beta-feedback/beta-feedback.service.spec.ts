@@ -41,7 +41,7 @@ describe('BetaFeedbackService', () => {
 
     it('completedStories matches story count', () => {
       const result = service.getOverview();
-      expect(result.completedStories).toBe(10);
+      expect(result.completedStories).toBe(11);
     });
   });
 
@@ -153,12 +153,12 @@ describe('BetaFeedbackService', () => {
       expect(Array.isArray(result.notes)).toBe(true);
     });
 
-    it('includes stories STORY-26 through STORY-35', () => {
+    it('includes stories STORY-26 through STORY-36', () => {
       const result = service.getReleaseNotes();
       const stories = result.notes.map((n) => n.story);
       expect(stories).toContain('STORY-26');
-      expect(stories).toContain('STORY-34');
       expect(stories).toContain('STORY-35');
+      expect(stories).toContain('STORY-36');
     });
 
     it('STORY-35 includes beta polish deliverables', () => {
@@ -181,9 +181,9 @@ describe('BetaFeedbackService', () => {
       expect(story29!.safetyBoundaries.some((s) => s.toLowerCase().includes('points-only'))).toBe(true);
     });
 
-    it('currentVersion includes STORY-35', () => {
+    it('currentVersion includes STORY-36', () => {
       const result = service.getReleaseNotes();
-      expect(result.currentVersion).toContain('STORY-35');
+      expect(result.currentVersion).toContain('STORY-36');
     });
   });
 });

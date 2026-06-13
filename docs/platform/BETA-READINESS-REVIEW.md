@@ -1,7 +1,7 @@
 # PSL One — Beta Readiness Review
 
 **Purpose:** Assess platform readiness for World Cup 2026 beta testing  
-**Date:** 2026-06-12 (updated STORY-35)  
+**Date:** 2026-06-13 (updated STORY-36)  
 **Status:** BETA-READY (World Cup validation mode)
 
 ---
@@ -239,7 +239,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 9. QA Checklist
 
 ### Backend
-- [x] All 1216 API tests pass (updated STORY-35)
+- [x] All 1293 API tests pass (updated STORY-36)
 - [x] Prisma schema valid
 - [x] Seed runs cleanly on fresh database
 - [x] All migrations apply cleanly in sequence
@@ -252,15 +252,19 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - [x] Player stats lifecycle: LOCKED blocks mutation; PUBLISHED blocks delete
 - [x] AdminAuditLog writes on playerStats publish/lock
 - [x] Beta feedback routes: PSL_ADMIN=200, FAN=403, unauth=401
+- [x] Squad import batch lifecycle: DRAFT→VALIDATED→IMPORTED→PUBLISHED, duplicates detected
+- [x] Fantasy price calibration: bounds validation, bulk defaults, `pricesHaveNoCashValue: true` enforced
+- [x] Season switching: 13 readiness checks (squad import + price calibration added STORY-36)
+- [x] Activation dry-run: read-only, `dryRunOnly: true`, `activationWillNotBePerformed: true`
 
 ### Frontend
 - [x] All 8 web tests pass
 - [x] TypeScript clean (0 errors)
-- [x] Web build succeeds (static + dynamic pages, 137 pages compiled)
+- [x] Web build succeeds (static + dynamic pages compiled, 17 new pages STORY-36)
 - [x] Admin pages require PSL_ADMIN JWT (return 401 otherwise)
 - [x] Fan pages render seeded competition, team, fixture data
-- [x] Admin command centre loads all 11 sections
-- [x] All 34 dev-token placeholders replaced with `getBetaToken()`
+- [x] Admin command centre loads all module readiness sections (SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION added)
+- [x] All dev-token placeholders replaced with `getBetaToken()`
 - [x] Port defaults corrected to 4000 across all web clients
 
 ### Integration
@@ -274,7 +278,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 ## 10. Go / No-Go Criteria
 
 ### GO ✅
-- API tests: 1216/1216 pass
+- API tests: 1293/1293 pass
 - Web typechecks: clean
 - Seed: runs without errors
 - Admin login: `admin@psl.co.za` authenticates successfully
@@ -285,7 +289,7 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - Player stats: LOCKED stat blocks mutation; fan sees only PUBLISHED/VERIFIED
 
 ### NO-GO 🚫
-- Any API test regression below 1216
+- Any API test regression below 1293
 - Prisma schema validation failure
 - Seed failure on fresh database
 - Auth bypass (PSL_ADMIN routes accessible without PSL_ADMIN role)

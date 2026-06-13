@@ -216,6 +216,45 @@ The platform supports multiple competitions simultaneously. WC 2026 data can rem
 
 ---
 
+### STORY-35 — Beta Feedback, Bug Fixes & UX Polish ✅ COMPLETE (2026-06-12)
+
+**Goal:** Centralise beta token helper, harden audit logging, add performance indexes, and collect structured beta feedback.
+
+**Work completed:**
+- `getBetaToken()` centralised in `apps/web/src/lib/auth-client.ts`; all 34 prior pages migrated from inline `'dev-token'`
+- `AdminAuditLog` model added; `AdminOperationsService` writes audit entries for destructive operations
+- Migration `20260612000005_performance_indexes`: composite indexes on `Fixture`, `ScorePrediction`, `PredictionPointsLedger`, `FantasyGameweekScore`, `FanValueLedger`, `PlayerMatchStats`
+- `BetaFeedbackModule` — `BetaFeedbackService` (7 methods), `BetaFeedbackController` (6 routes), `BetaFeedbackAdminController` (4 admin routes)
+- 4 admin web pages under `/admin/beta-feedback/`
+- 28 new spec tests; total 1216 API tests passing
+
+**Acceptance criteria met:** All web pages use `getBetaToken()`. Admin audit logs visible. Performance indexes deployed. Beta feedback API operational. RBAC enforced. All gate checks pass.
+
+---
+
+### STORY-36 — PSL Squad Import, Player Price Finalisation & Activation Dry Run ✅ COMPLETE (2026-06-13)
+
+**Goal:** Full squad import pipeline with lifecycle management, fantasy price finalisation workflow, and a read-only activation dry-run for safe season launch.
+
+**Work completed:**
+- Migration `20260612000006_squad_import_and_price_calibration`: 4 enums (`SquadImportBatchStatus`, `SquadImportRowStatus`, `SquadImportRowIssue`, `FantasyPriceCalibrationStatus`), `squad_import_batches`, `squad_import_rows`, `fantasy_price_calibration_batches` tables
+- `FantasyRulesConfig` extended: `minPrice Int @default(40)`, `maxPrice Int @default(200)`, `defaultPrice Int @default(55)`
+- `SquadImportService` (14 methods): `createManualBatch`, `validateBatch` (BLOCKER + WARNING checks), `importBatch` (idempotent player create/find, `SeasonSquadRegistration` PROVISIONAL), `publishBatch` (PROVISIONAL→CONFIRMED), `cancelBatch`, `getDuplicates`, `getReadiness`, `getActivationImpact`, `getActivationDryRun`
+- `FantasyPriceCalibrationService` (12 methods): `updatePlayerPrice` (validates bounds), `bulkApplyDefaults` (position-based: GK/DEF=50, MID=55, FWD=60), `validateCalibration` (creates `FantasyPriceCalibrationBatch`), `publishCalibration`, `getActivationDryRun` (`pricesHaveNoCashValue: true`)
+- `SeasonSwitchingService`: 12th check `checkSquadImportReadiness`, 13th check `checkFantasyPriceCalibrationReadiness` — season switching now has **13 checks**
+- `AdminOperationsService`: SQUAD_IMPORT and FANTASY_PRICE_CALIBRATION added to module readiness list (BUILT_NOW)
+- `apps/web/src/lib/squad-import-client.ts` — 14 typed API wrappers
+- `apps/web/src/lib/fantasy-price-calibration-client.ts` — 12 typed API wrappers
+- 9 squad import admin web pages + 8 fantasy price calibration admin web pages = 17 new pages
+- Activation dry-run: `dryRunOnly: true`, `activationWillNotBePerformed: true`, safety confirmations including `pricesHaveNoCashValue: true`
+- 77 new spec tests; total 1293 API tests passing
+
+**Acceptance criteria met:** Admin can import squads via batch lifecycle (DRAFT→VALIDATED/HAS_WARNINGS/BLOCKED→IMPORTED→PUBLISHED); duplicate detection via normalised name matching; fantasy prices validated within config bounds; bulk defaults applied by position; price calibration batch published; dry-run simulates activation without state changes. Season switching has 13 checks. SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION modules BUILT_NOW. RBAC enforced (401/403). Web typecheck clean. Web build clean. All gate checks pass.
+
+**Safety boundaries enforced:** `pricesHaveNoCashValue: true` on all price operations. No cash value, market value, or monetary meaning assigned to player prices. Fantasy and Guess the Score remain points-only. Fan Value non-financial. No production money movement or checkout mechanics introduced.
+
+---
+
 ## What NOT to do in Sprint 2
 
 - Do not implement commerce or sponsor activation
@@ -271,7 +310,7 @@ Admin visibility exists through the command centre, but full user and role admin
 Sponsor Management, Reporting Centre, and Compliance/POPIA Governance are command-centre readiness sections in Sprint 1. Full operational sponsor management, report export centre, and compliance workflow engine belong in Sprint 3. Keep Sprint 2 focused on PSL Season Readiness, data validation, fixture and squad ingestion, competition switching, QA, and beta feedback.
 
 ### Testing
-- All existing 1216 API tests must remain green (updated after STORY-35)
+- All existing 1293 API tests must remain green (updated after STORY-36)
 - New tests should cover PSL-specific rule variants (30-round seasons, squad sizes)
 - Integration tests should cover full fixture-to-prediction-to-settlement lifecycle with PSL data
 

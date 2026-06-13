@@ -52,6 +52,9 @@ describe('AdminOperationsService', () => {
     achievementDefinition: { count: ReturnType<typeof vi.fn> };
     rewardReadinessDefinition: { count: ReturnType<typeof vi.fn> };
     clubShopProduct: { count: ReturnType<typeof vi.fn> };
+    seasonSquadRegistration: { count: ReturnType<typeof vi.fn> };
+    squadImportBatch: { findFirst: ReturnType<typeof vi.fn> };
+    fantasyPriceCalibrationBatch: { findFirst: ReturnType<typeof vi.fn> };
   };
 
   beforeEach(async () => {
@@ -82,6 +85,9 @@ describe('AdminOperationsService', () => {
       achievementDefinition: { count: vi.fn().mockResolvedValue(17) },
       rewardReadinessDefinition: { count: vi.fn().mockResolvedValue(6) },
       clubShopProduct: { count: vi.fn().mockResolvedValue(0) },
+      seasonSquadRegistration: { count: vi.fn().mockResolvedValue(96) },
+      squadImportBatch: { findFirst: vi.fn().mockResolvedValue({ id: 'batch-1', status: 'PUBLISHED' }) },
+      fantasyPriceCalibrationBatch: { findFirst: vi.fn().mockResolvedValue({ id: 'cb-1', status: 'PUBLISHED' }) },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -248,6 +254,20 @@ describe('AdminOperationsService', () => {
       const result = await service.getSeasonModuleReadiness('season-1');
       const pred = result.modules.find((m) => m.moduleKey === 'PREDICTIONS');
       expect(pred?.isPointsOnly).toBe(true);
+    });
+
+    it('SQUAD_IMPORT module is BUILT_NOW', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'SQUAD_IMPORT');
+      expect(module?.status).toBe('BUILT_NOW');
+      expect(module?.isProductionEnabled).toBe(true);
+    });
+
+    it('FANTASY_PRICE_CALIBRATION module is BUILT_NOW', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'FANTASY_PRICE_CALIBRATION');
+      expect(module?.status).toBe('BUILT_NOW');
+      expect(module?.isProductionEnabled).toBe(true);
     });
 
     it('throws NotFoundException for unknown season', async () => {

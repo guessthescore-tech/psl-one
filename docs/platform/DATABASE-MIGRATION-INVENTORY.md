@@ -477,3 +477,38 @@ Unscoped legacy entries (null `seasonId` on `FanValueLedger`) are admin-visible 
 **Audit log writes:** `PlayerStatsService.adminPublishStat()` and `adminLockStat()` now write to `admin_audit_logs` after each lifecycle transition. Actor identity passed from controller via optional `actorUserId` parameter.
 
 **Purpose:** Foundation for cross-domain admin audit trail; performance indexing for 2M-fan scale on high-volume query paths.
+
+---
+
+## Migration — STORY-36 (Squad Import, Player Price Finalisation & Activation Dry Run)
+
+**File:** `20260612000006_squad_import_price_calibration`
+
+**New enums:**
+- `squad_import_batch_status`: DRAFT | VALIDATED | HAS_WARNINGS | BLOCKED | IMPORTED | PUBLISHED | CANCELLED
+- `squad_import_batch_source_type`: MANUAL | CSV_UPLOAD | OFFICIAL_API | PLACEHOLDER
+- `squad_import_row_validation_status`: PENDING | VALID | WARNING | BLOCKED | IMPORTED
+- `fantasy_price_calibration_batch_status`: DRAFT | VALIDATED | HAS_WARNINGS | PUBLISHED | CANCELLED
+
+**Altered table `fantasy_rules_configs`:** Added 3 columns:
+- `min_price INT DEFAULT 40` — minimum allowed fantasy price
+- `max_price INT DEFAULT 200` — maximum allowed fantasy price
+- `default_price INT DEFAULT 55` — default price applied via bulk-apply-defaults
+
+Existing rows get defaults via `DEFAULT` constraint. No backfill required.
+
+**New table `squad_import_batches`:** id (uuid), season_id (FK→seasons), source_type (enum), status (enum), notes (text nullable), total_rows (int), valid_rows (int), warning_rows (int), blocked_rows (int), imported_rows (int), published_rows (int), created_by_user_id (text nullable), validated_at (timestamp nullable), imported_at (timestamp nullable), published_at (timestamp nullable), cancelled_at (timestamp nullable), created_at, updated_at
+
+Indexes: `(season_id)`, `(status)`, `(season_id, status)`, `(created_at DESC)`
+
+**New table `squad_import_rows`:** id (uuid), batch_id (FK→squad_import_batches CASCADE), row_number (int), season_id (FK→seasons), team_id (text nullable), proposed_player_name (text), proposed_display_name (text nullable), proposed_position (text), proposed_shirt_number (int nullable), proposed_nationality (text nullable), proposed_date_of_birth (timestamp nullable), proposed_fantasy_price (int nullable), raw_data (json), validation_status (enum), validation_messages (json nullable), is_importable (bool nullable), matched_player_id (text nullable), imported_player_id (text nullable), imported_registration_id (text nullable), duplicate_player_ids (json nullable), created_at, updated_at
+
+Indexes: `(batch_id)`, `(validation_status)`, `(matched_player_id)`, `(season_id)`, `(team_id)`, `(batch_id, validation_status)`
+
+**New table `fantasy_price_calibration_batches`:** id (uuid), season_id (FK→seasons), status (enum), min_price (int), max_price (int), default_price (int), missing_price_count (int), invalid_price_count (int), calibrated_player_count (int), published_player_count (int), created_by_user_id (text nullable), validated_at (timestamp nullable), published_at (timestamp nullable), created_at, updated_at
+
+Indexes: `(season_id)`, `(status)`, `(season_id, status)`, `(created_at DESC)`
+
+**Season model additions:** `squadImportBatches`, `squadImportRows`, `fantasyPriceCalibrationBatches` relation arrays.
+
+**Purpose:** Squad import lifecycle with full validation and idempotent import. Fantasy price calibration batch tracking. Price bounds configuration on FantasyRulesConfig for season-specific price policy.

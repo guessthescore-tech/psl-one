@@ -1,9 +1,9 @@
 # PSL One — Admin Capability Gap Review
 
 **Sprint:** 2  
-**Story:** STORY-35 Beta Feedback, Bug Fixes & UX Polish (latest update)  
-**Date:** 2026-06-12  
-**Status:** ACTIVE — reviewed at STORY-35 acceptance
+**Story:** STORY-36 PSL Squad Import, Player Price Finalisation & Activation Dry Run (latest update)  
+**Date:** 2026-06-13  
+**Status:** ACTIVE — reviewed at STORY-36 acceptance
 
 ---
 
@@ -64,7 +64,8 @@
 | Capability | Status | Risk if Missing | Note |
 |---|---|---|---|
 | Fantasy rules config | BUILT_NOW | HIGH | **POINTS-ONLY** — no paid entry |
-| Fantasy player pricing | BUILT_NOW | HIGH | 96 provisional prices seeded |
+| Fantasy player pricing | BUILT_NOW | HIGH | Full price calibration pipeline (STORY-36): bounds validation, bulk defaults, FantasyPriceCalibrationBatch lifecycle, `pricesHaveNoCashValue: true` |
+| Squad import pipeline | BUILT_NOW | HIGH | Full batch lifecycle DRAFT→VALIDATED→IMPORTED→PUBLISHED, duplicate detection, PROVISIONAL→CONFIRMED registration (STORY-36) |
 | Fantasy transfer deadlines | BUILT_NOW | HIGH | Derive from PSL fixtures |
 | Fantasy leagues/cups | BUILT_NOW | MEDIUM | Create global league at PSL launch |
 | Prediction rules config | BUILT_NOW | HIGH | **POINTS-ONLY** — no wagering |
@@ -113,9 +114,9 @@
 |---|---|---|---|
 | Admin dashboard KPIs | BUILT_NOW | LOW | Add Sprint 2 module counts |
 | Beta feedback overview | BUILT_NOW | LOW | `/admin/beta-feedback` — STORY-35 |
-| Beta known issues tracker | BUILT_NOW | LOW | `/admin/beta-feedback/known-issues` — 12 issues (KI-001 to KI-012) |
+| Beta known issues tracker | BUILT_NOW | LOW | `/admin/beta-feedback/known-issues` — 15 issues (KI-001 to KI-015) |
 | UX readiness checklist | BUILT_NOW | LOW | `/admin/beta-feedback/ux-checklist` — ~45 checks |
-| Release notes | BUILT_NOW | LOW | `/admin/beta-feedback/release-notes` — STORY-26 to STORY-35 |
+| Release notes | BUILT_NOW | LOW | `/admin/beta-feedback/release-notes` — STORY-26 to STORY-36 |
 | Admin audit log | BUILT_NOW | MEDIUM | `AdminAuditLog` model; playerStats publish/lock writes; extend to other domains Sprint 3 |
 | Exportable reports | FUTURE_IMPLEMENTATION | LOW | Export builder Sprint 3+ |
 | A/B testing | FUTURE_IMPLEMENTATION | LOW | Feature flag service Sprint 3+ |
@@ -127,7 +128,7 @@
 
 | Capability | Status | Risk if Missing | Next Step |
 |---|---|---|---|
-| Create/prepare/switch/archive seasons | BUILT_NOW | CRITICAL | Activate PSL season when all 11 checks pass |
+| Create/prepare/switch/archive seasons | BUILT_NOW | CRITICAL | Activate PSL season when all 13 checks pass (STORY-36 added checks 12 + 13) |
 | World Cup historical preservation | BUILT_NOW | HIGH | Do not delete WC data before WC ends |
 | Module readiness per season | BUILT_NOW | MEDIUM | Review before each season activation |
 | Season-scoped gameplay economy | BUILT_NOW | HIGH | Validate PSL season slug in all fan routes |
@@ -174,8 +175,10 @@
 1. **Import official PSL 2026/27 fixture schedule** — required to derive gameweeks and activate fantasy/prediction
 2. **Promote fantasy rules from PROVISIONAL to ACTIVE** — required for fan squad selection
 3. **Promote prediction rules from PROVISIONAL to ACTIVE** — required for fan predictions
-4. **Season switching — resolve all 11 checks** — required to activate PSL season
+4. **Season switching — resolve all 13 checks** — required to activate PSL season (12th: squad import, 13th: price calibration — STORY-36)
 5. **Populate player match stats for finished fixtures** — PUBLISHED stats required to satisfy 11th season-switching readiness check (PLAYER_STATS WARNING)
+6. **Publish squad import batch** — PROVISIONAL registrations require PUBLISHED batch for 12th check to pass
+7. **Publish price calibration batch** — FantasyPriceCalibrationBatch PUBLISHED required for 13th check to pass
 
 ## Sprint 3+ Required Before Revenue
 

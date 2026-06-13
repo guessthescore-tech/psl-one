@@ -29,6 +29,8 @@ import { AdminOperationsModule } from './admin-operations/admin-operations.modul
 import { EngagementModule } from './engagement/engagement.module';
 import { PlayerStatsModule } from './player-stats/player-stats.module';
 import { BetaFeedbackModule } from './beta-feedback/beta-feedback.module';
+import { SquadImportModule } from './squad-import/squad-import.module';
+import { FantasyPriceCalibrationModule } from './fantasy-price-calibration/fantasy-price-calibration.module';
 
 @Module({
   imports: [
@@ -59,6 +61,8 @@ import { BetaFeedbackModule } from './beta-feedback/beta-feedback.module';
     EngagementModule,
     PlayerStatsModule,
     BetaFeedbackModule,
+    SquadImportModule,
+    FantasyPriceCalibrationModule,
     HealthModule,
   ],
   controllers: [VersionController],

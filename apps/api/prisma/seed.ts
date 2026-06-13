@@ -67,6 +67,13 @@ async function main() {
   await prisma.peerChallenge.deleteMany();
   await prisma.scorePrediction.deleteMany();
 
+  // Clear squad import data (depend on season)
+  await prisma.squadImportRow.deleteMany();
+  await prisma.squadImportBatch.deleteMany();
+
+  // Clear price calibration batch data (depend on season)
+  await prisma.fantasyPriceCalibrationBatch.deleteMany();
+
   // Clear fixture import data (depend on season and fixture)
   await prisma.fixtureImportRow.deleteMany();
   await prisma.fixtureImportBatch.deleteMany();
