@@ -56,9 +56,9 @@ export class BetaFeedbackService {
       uxChecklistWarnings: checklist.filter((c) => c.status === 'WARN').length,
       uxChecklistFails: checklist.filter((c) => c.status === 'FAIL').length,
       releaseReadiness: 'WORLD_CUP_BETA_READY_PSL_PENDING',
-      completedStories: 11,
-      apiTestCount: 1270,
-      webPageCount: 182,
+      completedStories: 12,
+      apiTestCount: 1452,
+      webPageCount: 275,
       recommendedNextActions: [
         'Import official PSL 2026/27 squad data via /admin/squad-import',
         'Import official PSL 2026/27 fixture schedule via /admin/fixtures/imports',
@@ -66,10 +66,14 @@ export class BetaFeedbackService {
         'Promote PSL fantasy rules from PROVISIONAL to ACTIVE',
         'Promote PSL prediction rules from PROVISIONAL to ACTIVE',
         'Resolve all 13 season-switching readiness checks before PSL activation',
+        'Create sponsors and publish campaigns via /admin/sponsors and /admin/campaigns',
+        'Set rightsStatus=CLEAR on media assets before publishing to fans',
         'Wire real auth session — admin users must log in at /login before accessing admin pages',
         'Sprint 3: live sports data provider contract',
         'Sprint 3: production deployment to AWS ECS',
         'Sprint 3: email/SMS/push notification provider',
+        'Sprint 3: wallet provider production contract and compliance approval',
+        'Sprint 3: media rights contract and CDN provider',
       ],
       safetyStatus: 'COMPLIANT',
       generatedAt: new Date().toISOString(),
@@ -101,7 +105,7 @@ export class BetaFeedbackService {
 
   getReleaseNotes(): { notes: ReleaseNote[]; currentVersion: string; note: string } {
     return {
-      currentVersion: 'Sprint 2 — STORY-36',
+      currentVersion: 'Sprint 2 — STORY-37',
       notes: this.getReleaseNotesList(),
       note: 'Release notes cover Sprint 2 stories. Sprint 1 foundation committed in feat: complete sprint 1 fan platform foundation.',
     };
@@ -274,6 +278,61 @@ export class BetaFeedbackService {
         sprint: 'Sprint 2 — post World Cup',
         resolution: 'Use bulk-apply-defaults to seed prices, then review and adjust. Publish calibration batch once all prices are valid.',
       },
+      {
+        id: 'KI-016',
+        title: 'Production media streaming and CDN not configured',
+        severity: 'HIGH',
+        category: 'Infrastructure',
+        description:
+          'The media catalogue is FOUNDATION_READY. Media assets can be created and managed. However, production video streaming, CDN delivery, and DRM are not configured. LIVE_STREAM assets are metadata-only. playbackUrl is a local/test placeholder. Media availability does not imply that PSL One owns streaming rights.',
+        status: 'TRACKED',
+        sprint: 'Sprint 3',
+        resolution: 'Secure media rights contract, configure CDN provider, implement DRM Sprint 3+.',
+      },
+      {
+        id: 'KI-017',
+        title: 'Wallet production contract and credentials not configured',
+        severity: 'HIGH',
+        category: 'Integration',
+        description:
+          'The wallet integration is SANDBOX_READY. Silicon Enterprise Wallet adapter is a deterministic sandbox — no outbound calls, no real financial transactions. Production wallet linking requires: provider contract, production credentials (stored outside database), KYC implementation, and compliance approval. PSL One does not hold customer funds.',
+        status: 'TRACKED',
+        sprint: 'Sprint 3',
+        resolution: 'Wallet provider contract and compliance Sprint 3+. Credentials must be stored in secrets manager (not PostgreSQL).',
+      },
+      {
+        id: 'KI-018',
+        title: 'Webhook signature verification not production-ready',
+        severity: 'HIGH',
+        category: 'Security',
+        description:
+          'The sandbox webhook route (/admin/wallet/webhooks/:providerSlug/sandbox) is admin-protected and idempotent. Production webhooks require: HMAC/signature verification, replay protection, timestamp validation, IP controls, secret storage outside PostgreSQL, and a dead-letter/retry strategy. None of these are implemented in STORY-37.',
+        status: 'TRACKED',
+        sprint: 'Sprint 3',
+        resolution: 'Implement production webhook security controls before enabling live provider callbacks Sprint 3+.',
+      },
+      {
+        id: 'KI-019',
+        title: 'Financial settlement, KYC, and production fraud controls not implemented',
+        severity: 'HIGH',
+        category: 'Compliance',
+        description:
+          'STORY-37 does not implement: regulated KYC, financial settlement, real money movement, production fraud scoring, customer balance custody, or production reversal mechanics. All STORY-37 wallet transactions are sandbox records. Fan Value remains non-financial. Campaign rewards of type WALLET_CREDIT_PENDING_PROVIDER remain PROVIDER_PENDING.',
+        status: 'TRACKED',
+        sprint: 'Sprint 3',
+        resolution: 'Implement full compliance and financial controls Sprint 3+ under legal/compliance guidance.',
+      },
+      {
+        id: 'KI-020',
+        title: 'Domain event outbox/transactional event bus not implemented',
+        severity: 'MEDIUM',
+        category: 'Architecture',
+        description:
+          'STORY-37 uses direct service calls and .catch(() => null) for optional side-effects (notifications, activity feed). A transactional outbox pattern with Kafka or a reliable event bus is required for production-grade domain event delivery. Campaign completion, reward issuance, and wallet link events may not reliably reach all consumers under load.',
+        status: 'TRACKED',
+        sprint: 'Sprint 3',
+        resolution: 'Implement Kafka transactional outbox for cross-context domain events Sprint 3+.',
+      },
     ];
   }
 
@@ -364,6 +423,46 @@ export class BetaFeedbackService {
       { area: 'Fantasy Price Calibration', check: 'Price calibration writes audit logs', status: 'PASS', notes: 'updatePlayerPrice and bulkApplyDefaults write AdminAuditLog entries' },
       { area: 'Fantasy Price Calibration', check: 'Missing/invalid prices surfaced in readiness check', status: 'PASS', notes: '13th season-switching check; WARNING for missing prices, invalid prices, unpublished calibration' },
 
+      // Media Catalogue
+      { area: 'Media Catalogue', check: 'Fan media list filters to PUBLIC + CLEAR rights only', status: 'PASS', notes: 'listPublicMedia enforces visibility=PUBLIC and rightsStatus=CLEAR' },
+      { area: 'Media Catalogue', check: 'Rights notice shown on all media assets', status: 'PASS', notes: 'mediaRightsNotice returned on adminPublishMedia: availability does not imply streaming rights' },
+      { area: 'Media Catalogue', check: 'Admin publish blocked if rights not CLEAR', status: 'PASS', notes: 'adminPublishMedia throws BadRequestException if rightsStatus !== CLEAR' },
+      { area: 'Media Catalogue', check: 'No copyrighted player images served', status: 'PASS', notes: 'Seed uses placeholder/generic URLs only; no Opta/Stats Perform images' },
+      { area: 'Media Catalogue', check: 'Media engagement events deduplicated by idempotency key', status: 'PASS', notes: 'P2002 caught silently on duplicate idempotencyKey; returns recorded:false' },
+
+      // Campaign Discovery & Participation
+      { area: 'Campaign Discovery', check: 'Fan sees only PUBLISHED campaigns', status: 'PASS', notes: 'listPublicCampaigns filters to status=PUBLISHED; targetingRulesJson excluded from fan response' },
+      { area: 'Campaign Discovery', check: 'Campaign lifecycle enforced (DRAFT→PENDING_APPROVAL→APPROVED→PUBLISHED→PAUSED→COMPLETED→ARCHIVED)', status: 'PASS', notes: 'assertTransition() throws BadRequestException on invalid transitions' },
+      { area: 'Campaign Discovery', check: 'Fan identity always from JWT, never from request body', status: 'PASS', notes: 'All fan campaign routes use req.user.sub for fanUserId' },
+      { area: 'Campaign Discovery', check: 'Participation is idempotent (safe to re-call)', status: 'PASS', notes: 'startParticipation returns existing participation if already started' },
+      { area: 'Campaign Discovery', check: 'Max participations per fan enforced', status: 'PASS', notes: 'maxParticipationsPerFan counted excluding DISQUALIFIED entries' },
+      { area: 'Campaign Discovery', check: 'SCAN_QR and SHARE_CONTENT actions route to MANUAL_REVIEW', status: 'PASS', notes: 'completeAction assigns MANUAL_REVIEW status for those action types' },
+
+      // Reward Claim
+      { area: 'Reward Claim', check: 'Reward issuance is atomic (inventory decrement + fan reward)', status: 'PASS', notes: 'issueReward uses $transaction to increment inventoryIssued with create' },
+      { area: 'Reward Claim', check: 'Duplicate reward issuance blocked by idempotency key', status: 'PASS', notes: 'Unique constraint on fanReward.idempotencyKey; P2002 caught silently' },
+      { area: 'Reward Claim', check: 'FAN_VALUE_POINTS rewards post to FanValueLedger', status: 'PASS', notes: 'sourceType=CAMPAIGN_REWARD, valueType=CAMPAIGN_POINTS, metadataJson has nonFinancial:true' },
+      { area: 'Reward Claim', check: 'Fan Value reward safety copy present in all issuance metadata', status: 'PASS', notes: 'noCashValue:true and fanValuePointsAreNotMoney:true in reward metadataJson' },
+
+      // Wallet Sandbox Linking
+      { area: 'Wallet Sandbox', check: 'Wallet integration operates in sandbox mode only', status: 'PASS', notes: 'WalletProviderStatus.SANDBOX; all adapter methods return sandboxOnly:true' },
+      { area: 'Wallet Sandbox', check: 'No real-money transactions in sandbox mode', status: 'PASS', notes: 'SiliconEnterpriseSandboxWalletAdapter has zero outbound HTTP calls; deterministic only' },
+      { area: 'Wallet Sandbox', check: 'KYC disclaimer present on wallet link confirmation', status: 'PASS', notes: 'kycDisclaimer: "Sandbox KYC is not regulated verification. No real identity check performed."' },
+      { area: 'Wallet Sandbox', check: 'PSL One does not hold customer funds disclaimer shown', status: 'PASS', notes: 'safetyNote on fanGetWalletStatus; disclaimer on wallet reward issuance' },
+      { area: 'Wallet Sandbox', check: 'Provider customer refs masked in fan response', status: 'PASS', notes: 'fanGetWalletStatus masks providerCustomerRef and providerWalletRef to null' },
+      { area: 'Wallet Sandbox', check: 'Wallet unlink preserves audit trail (update not delete)', status: 'PASS', notes: 'fanUnlinkWallet sets status=UNLINKED, never deletes WalletLink row' },
+      { area: 'Wallet Sandbox', check: 'Production wallet integration disabled', status: 'PASS', notes: 'WALLET_TRANSACTIONS readiness: isProductionEnabled:false, isCommercial:true — separate production gate required' },
+
+      // Admin Campaign Lifecycle
+      { area: 'Admin Campaign Lifecycle', check: 'All campaign mutations write audit logs', status: 'PASS', notes: 'createCampaign, updateCampaign, all lifecycle transitions write AdminAuditLog' },
+      { area: 'Admin Campaign Lifecycle', check: 'Campaign approval fields not visible to fans', status: 'PASS', notes: 'FAN_SAFE_SELECT excludes targetingRulesJson, createdByUserId, approvedByUserId' },
+      { area: 'Admin Campaign Lifecycle', check: 'Sponsor contact details not exposed to fans', status: 'PASS', notes: 'PUBLIC_SPONSOR_SELECT excludes primaryContactName, primaryContactEmail, notes' },
+
+      // Campaign Analytics
+      { area: 'Campaign Analytics', check: 'Analytics aggregation does not expose fan identity', status: 'PASS', notes: 'getCampaignAnalytics uses count queries only; no individual fan rows returned' },
+      { area: 'Campaign Analytics', check: 'Daily snapshot is idempotent (safe to recalculate)', status: 'PASS', notes: 'recalculateDailySnapshot upserts on unique (campaignId, snapshotDate)' },
+      { area: 'Campaign Analytics', check: 'Media engagement count short-circuits when no assets', status: 'PASS', notes: 'Returns 0 immediately if campaign has no linked media assets' },
+
       // Mobile / Responsive
       { area: 'Mobile / Responsive', check: 'Grid layouts use responsive classes', status: 'WARN', notes: 'Most pages use grid-cols-1 md:grid-cols-2 but not all pages audited for mobile' },
       { area: 'Mobile / Responsive', check: 'Tables have overflow-x-auto', status: 'WARN', notes: 'Some admin tables may lack overflow wrapper on mobile' },
@@ -371,6 +470,10 @@ export class BetaFeedbackService {
       // Safety Copy
       { area: 'Safety Copy', check: 'No product-facing gambling/wagering language', status: 'PASS', notes: 'Peer challenges use "fan points" not "wager/bet/stake". Safety notes use appropriate disclaimers.' },
       { area: 'Safety Copy', check: 'PRODUCTION_DISABLED labels visible on commerce', status: 'PASS', notes: 'All integration provider configs show production-disabled status' },
+      { area: 'Safety Copy', check: 'Fan Value non-financial disclaimer present in campaign rewards', status: 'PASS', notes: '"Fan Value points are non-cash loyalty points" copy enforced in reward metadata and service responses' },
+      { area: 'Safety Copy', check: 'Wallet sandbox disclaimer shown to fans', status: 'PASS', notes: '"Wallet integration is operating in sandbox mode. No real financial transactions are processed."' },
+      { area: 'Safety Copy', check: 'Wallet provider disclaimer shown (PSL does not hold funds)', status: 'PASS', notes: '"Wallet services are provided by an external wallet provider. PSL One does not hold customer funds directly."' },
+      { area: 'Safety Copy', check: 'Media rights notice shown on asset publish', status: 'PASS', notes: '"Media availability does not imply that PSL One owns streaming rights." returned on publish' },
     ];
   }
 
@@ -470,7 +573,7 @@ export class BetaFeedbackService {
       },
       {
         story: 'STORY-36',
-        commit: 'pending',
+        commit: '6b04435',
         title: 'Squad Import, Player Price Finalisation & Activation Dry Run',
         summary: 'SquadImportModule with full import lifecycle (DRAFT→VALIDATED→IMPORTED→PUBLISHED→CANCELLED); FantasyPriceCalibrationModule with price bounds from FantasyRulesConfig; activation dry-run endpoints; 2 new season-switching readiness checks (13 total); SQUAD_IMPORT + FANTASY_PRICE_CALIBRATION in AdminOperations.',
         keyDeliverables: [
@@ -490,6 +593,33 @@ export class BetaFeedbackService {
           'Squad import is manual/admin-triggered only — no external PSL data provider calls.',
           'Activation dry-run is strictly read-only — no state mutations.',
           'No paid entry, no real-money mechanics, no live provider ingestion.',
+        ],
+      },
+      {
+        story: 'STORY-37',
+        commit: 'pending',
+        title: 'Media, Sponsor Campaigns & Wallet Activation Foundation',
+        summary: 'Six new bounded contexts: MediaModule (catalogue, rights, engagement), SponsorsModule, CampaignsModule (full lifecycle + approval), CampaignRewardsModule (atomic issuance + FanValue integration), WalletIntegrationModule (sandbox only — SiliconEnterpriseSandboxWalletAdapter), CampaignAnalyticsModule. 22 new enums, 13 new tables, migration 20260612000007.',
+        keyDeliverables: [
+          'MediaModule: 12 routes (5 fan + 7 admin); rights-gate on publish; engagement deduplication',
+          'SponsorsModule: 4 admin routes; PUBLIC_SPONSOR_SELECT hides contact fields',
+          'CampaignsModule: 19 routes (5 fan + 14 admin); full DRAFT→ARCHIVED lifecycle; MANUAL_REVIEW for SCAN_QR/SHARE_CONTENT',
+          'CampaignRewardsModule: 8 fan routes + 4 admin routes; $transaction for atomic issuance; FanValueLedger integration',
+          'WalletIntegrationModule: 4 fan + 6 admin routes; SiliconEnterpriseSandboxWalletAdapter (zero outbound calls)',
+          'CampaignAnalyticsModule: 3 admin routes; aggregate-only queries; idempotent daily snapshots',
+          'PREFERENCE_TYPE_MAP extended: CAMPAIGN_STARTED, CAMPAIGN_COMPLETED, REWARD_ISSUED, WALLET_LINKED',
+          '7 new module readiness entries in AdminOperationsService',
+          '152 new API tests; 1452 total passing',
+        ],
+        safetyBoundaries: [
+          'Fan Value is non-financial. Campaign reward points carry noCashValue:true and fanValuePointsAreNotMoney:true.',
+          'Wallet integration is SANDBOX mode only. No real financial transactions. No production credentials.',
+          'SiliconEnterpriseSandboxWalletAdapter makes zero outbound HTTP calls — fully deterministic.',
+          'No real-money wallet, payments, checkout, orders, fulfilment, refunds, or production rewards redemption.',
+          'Fantasy and Guess the Score remain points-only. No paid entry.',
+          'Media rights notice enforced: availability does not imply PSL One owns streaming rights.',
+          'LIVE_MEDIA module readiness: RIGHTS_REQUIRED — production CDN/DRM not configured.',
+          'No external provider calls (Opta, Stats Perform, Sportradar, API-Football, FIFA, PSL).',
         ],
       },
     ];

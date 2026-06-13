@@ -270,6 +270,43 @@ describe('AdminOperationsService', () => {
       expect(module?.isProductionEnabled).toBe(true);
     });
 
+    it('MEDIA module is FOUNDATION_READY', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'MEDIA');
+      expect(module?.status).toBe('FOUNDATION_READY');
+    });
+
+    it('SPONSOR_CAMPAIGNS module is FOUNDATION_READY', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'SPONSOR_CAMPAIGNS');
+      expect(module?.status).toBe('FOUNDATION_READY');
+    });
+
+    it('CAMPAIGN_REWARDS module is SANDBOX_READY', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'CAMPAIGN_REWARDS');
+      expect(module?.status).toBe('SANDBOX_READY');
+    });
+
+    it('WALLET_INTEGRATION module is SANDBOX_READY', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'WALLET_INTEGRATION');
+      expect(module?.status).toBe('SANDBOX_READY');
+    });
+
+    it('WALLET_TRANSACTIONS is PRODUCTION_DISABLED', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'WALLET_TRANSACTIONS');
+      expect(module?.status).toBe('PRODUCTION_DISABLED');
+      expect(module?.isProductionEnabled).toBe(false);
+    });
+
+    it('CAMPAIGN_ANALYTICS module is FOUNDATION_READY', async () => {
+      const result = await service.getSeasonModuleReadiness('season-1');
+      const module = result.modules.find((m) => m.moduleKey === 'CAMPAIGN_ANALYTICS');
+      expect(module?.status).toBe('FOUNDATION_READY');
+    });
+
     it('throws NotFoundException for unknown season', async () => {
       prisma.season.findUnique.mockResolvedValue(null);
       await expect(service.getSeasonModuleReadiness('unknown')).rejects.toThrow(NotFoundException);

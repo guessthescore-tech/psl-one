@@ -41,7 +41,7 @@ describe('BetaFeedbackService', () => {
 
     it('completedStories matches story count', () => {
       const result = service.getOverview();
-      expect(result.completedStories).toBe(11);
+      expect(result.completedStories).toBe(12);
     });
   });
 
@@ -153,12 +153,13 @@ describe('BetaFeedbackService', () => {
       expect(Array.isArray(result.notes)).toBe(true);
     });
 
-    it('includes stories STORY-26 through STORY-36', () => {
+    it('includes stories STORY-26 through STORY-37', () => {
       const result = service.getReleaseNotes();
       const stories = result.notes.map((n) => n.story);
       expect(stories).toContain('STORY-26');
       expect(stories).toContain('STORY-35');
       expect(stories).toContain('STORY-36');
+      expect(stories).toContain('STORY-37');
     });
 
     it('STORY-35 includes beta polish deliverables', () => {
@@ -181,9 +182,17 @@ describe('BetaFeedbackService', () => {
       expect(story29!.safetyBoundaries.some((s) => s.toLowerCase().includes('points-only'))).toBe(true);
     });
 
-    it('currentVersion includes STORY-36', () => {
+    it('currentVersion includes STORY-37', () => {
       const result = service.getReleaseNotes();
-      expect(result.currentVersion).toContain('STORY-36');
+      expect(result.currentVersion).toContain('STORY-37');
+    });
+
+    it('STORY-37 safety boundaries include wallet sandbox and fan value disclaimers', () => {
+      const result = service.getReleaseNotes();
+      const story37 = result.notes.find((n) => n.story === 'STORY-37');
+      expect(story37).toBeDefined();
+      expect(story37!.safetyBoundaries.some((s) => s.toLowerCase().includes('sandbox'))).toBe(true);
+      expect(story37!.safetyBoundaries.some((s) => s.toLowerCase().includes('non-financial'))).toBe(true);
     });
   });
 });

@@ -512,3 +512,61 @@ Indexes: `(season_id)`, `(status)`, `(season_id, status)`, `(created_at DESC)`
 **Season model additions:** `squadImportBatches`, `squadImportRows`, `fantasyPriceCalibrationBatches` relation arrays.
 
 **Purpose:** Squad import lifecycle with full validation and idempotent import. Fantasy price calibration batch tracking. Price bounds configuration on FantasyRulesConfig for season-specific price policy.
+
+---
+
+## Migration — STORY-37 (Media, Sponsor Campaigns & Wallet Activation Foundation)
+
+**File:** `20260612000007_media_campaign_wallet_foundation`
+
+**New enums (22):**
+- `media_asset_type`: VIDEO, AUDIO, IMAGE, ARTICLE, LIVESTREAM, PODCAST
+- `media_rights_status`: UNKNOWN, RIGHTS_REQUIRED, CLEARED, PUBLIC_DOMAIN, LICENSED, EMBARGOED
+- `media_content_rating`: GENERAL, TEEN, MATURE, RESTRICTED
+- `media_asset_status`: DRAFT, SCHEDULED, PUBLISHED, ARCHIVED, REMOVED
+- `sponsor_status`: PROSPECT, ACTIVE, PAUSED, EXPIRED, BLACKLISTED
+- `campaign_status`: DRAFT, PENDING_APPROVAL, APPROVED, PUBLISHED, PAUSED, COMPLETED, ARCHIVED
+- `campaign_audience_type`: ALL_FANS, CLUB_FANS, PREMIUM_FANS, TARGETED
+- `campaign_action_type`: WATCH_VIDEO, CLICK_CTA, SHARE_CONTENT, PREDICT_MATCH, SCAN_QR, ANSWER_QUIZ, REGISTER, FOLLOW_CLUB
+- `action_validation_status`: PENDING, VALID, INVALID, MANUAL_REVIEW, EXPIRED
+- `fan_campaign_participation_status`: STARTED, IN_PROGRESS, COMPLETED, REWARDED, DISQUALIFIED, EXPIRED
+- `campaign_reward_type`: FAN_VALUE_POINTS, DIGITAL_VOUCHER, PHYSICAL_PRIZE, EXPERIENCE, EXCLUSIVE_CONTENT, BADGE
+- `fan_reward_status`: ISSUED, CLAIMED, REDEEMED, EXPIRED, CANCELLED
+- `wallet_provider_status`: SANDBOX, STAGING, PRODUCTION, DEPRECATED
+- `wallet_link_status`: PENDING, LINKED, UNLINKED, SUSPENDED, FAILED
+- `wallet_transaction_type`: DEPOSIT, WITHDRAWAL, REWARD_CREDIT, REWARD_DEBIT, ADJUSTMENT, FEE
+- `wallet_transaction_status`: PENDING, COMPLETED, FAILED, REVERSED
+- `campaign_analytics_status`: PENDING, PROCESSING, READY, ERROR
+- `FanValueSourceType` extension: added `CAMPAIGN_REWARD`, `WALLET_BONUS`
+- `FanValueType` extension: added `CAMPAIGN_EARN`, `WALLET_EARN`
+- `NotificationType` extension: added `CAMPAIGN_STARTED`, `REWARD_ISSUED`, `WALLET_LINKED`
+- `ActivityFeedType` extension: added `CAMPAIGN_JOINED`, `REWARD_EARNED`
+
+**New tables (13):**
+1. `media_assets` — id, title, slug, type, rights_status, content_rating, status, club_id (FK nullable), season_id (FK nullable), tags (json), view_count, completion_count, admin_audit fields
+2. `media_asset_engagements` — fan_id, media_asset_id, viewed_at, completed_at; unique(fan_id, media_asset_id)
+3. `sponsor_profiles` — id, name, slug, status, logo_url, website_url, primary_contact (admin-only fields), notes
+4. `sponsor_campaigns` — id, title, slug, sponsor_id (FK), status, audience_type, starts_at, ends_at, fan_value_points_per_completion, requires_wallet_linked, requires_age_confirmation, max_participations_per_fan, targeting_rules (admin-only json)
+5. `campaign_actions` — id, campaign_id (FK), action_type, title, description, is_required, order, config (json)
+6. `fan_campaign_participations` — id, campaign_id (FK), fan_user_id, status, completed_at; unique(campaign_id, fan_user_id)
+7. `fan_campaign_action_completions` — id, participation_id (FK), campaign_action_id (FK), fan_user_id, validation_status, idempotency_key (unique), metadata (json); unique(participation_id, campaign_action_id)
+8. `campaign_reward_definitions` — id, campaign_id (FK), reward_type, title, description, value_json, inventory_limit (nullable), inventory_used, is_active
+9. `fan_campaign_rewards` — id, campaign_id (FK), participation_id (FK), fan_user_id, reward_definition_id (FK), reward_type, status, idempotency_key (unique), expires_at, redemption_ref, metadata (json)
+10. `wallet_providers` — id, slug (unique), name, status, config_json, sandbox_config_json
+11. `fan_wallet_links` — id, fan_user_id, provider_id (FK), status, provider_ref (unique per provider), linked_at, unlinked_at; unique(fan_user_id, provider_id)
+12. `fan_wallet_transactions` — id, fan_user_id, link_id (FK), transaction_type, status, amount_points, idempotency_key (unique), provider_tx_ref, metadata (json)
+13. `campaign_analytics_snapshots` — id, campaign_id (FK unique), status, participant_count, completion_count, reward_count, conversion_rate (float), avg_actions_per_fan (float), snapshot_date, recalculated_at
+
+**ALTER TYPE additions:**
+- `FanValueSourceType`: + CAMPAIGN_REWARD, WALLET_BONUS
+- `FanValueType`: + CAMPAIGN_EARN, WALLET_EARN
+- `NotificationType`: + CAMPAIGN_STARTED, REWARD_ISSUED, WALLET_LINKED
+- `ActivityFeedType`: + CAMPAIGN_JOINED, REWARD_EARNED
+
+**Key constraints:**
+- `fan_campaign_participations.@@unique([campaign_id, fan_user_id])` — one participation record per fan per campaign (MVP max = 1)
+- `fan_wallet_links.@@unique([fan_user_id, provider_id])` — one link per fan per provider
+- `fan_campaign_action_completions.idempotency_key` — global idempotency across all completions
+- `fan_campaign_rewards.idempotency_key` — global idempotency across all rewards
+
+**Purpose:** Foundation for media asset management (rights-aware), sponsor profile management, campaign lifecycle with action completion and reward issuance, wallet sandbox integration (no real funds held), and campaign analytics. All wallet operations are sandbox-only; no production financial transactions.

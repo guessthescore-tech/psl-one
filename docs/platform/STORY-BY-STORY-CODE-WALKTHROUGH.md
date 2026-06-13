@@ -1285,3 +1285,94 @@ Provisional price bands (stored as integer × 10):
 - Duplicate detection is normalised name match only (not fuzzy) — simple, fast, deterministic
 
 **Test gate:** 1293 API tests passing (77 new: 49 squad-import + 28 price-calibration). Both typechecks clean. API build clean. Web build clean.
+
+---
+
+## STORY-37 — PSL One Media, Sponsor Campaigns & Wallet Activation Foundation
+
+**Sprint:** 2  
+**Status:** Complete  
+**Test gate:** 1452 API tests passing (159 new). Typechecks clean. Builds clean. Seed clean.
+
+### What Was Built
+
+Six new bounded contexts added as NestJS feature modules, one Prisma migration, nine web clients, and 25 web pages.
+
+**Bounded contexts:**
+
+1. **MediaModule** (`apps/api/src/media/`) — `MediaService` + `MediaController`. Manages media assets through DRAFT→PUBLISHED→ARCHIVED lifecycle. Rights-gating: assets with `rightsStatus !== 'CLEARED'` and `rightsStatus !== 'PUBLIC_DOMAIN'` are blocked from fan publishing. Fan views and completions are tracked in `MediaAssetEngagement`. `PUBLIC_MEDIA_SELECT` excludes internal admin fields. Safety copy mandatory in every fan-facing response.
+
+2. **SponsorsModule** (`apps/api/src/sponsors/`) — `SponsorsService` + `SponsorsController`. Sponsor profile CRUD (PSL_ADMIN only). `PUBLIC_SPONSOR_SELECT` strips `primaryContactName`, `primaryContactEmail`, `notes`. Fan-facing sponsor detail available via campaign context only (no direct fan sponsor route).
+
+3. **CampaignsModule** (`apps/api/src/campaigns/`) — `CampaignsService` + `CampaignsController`. Campaign lifecycle: DRAFT → PENDING_APPROVAL → APPROVED → PUBLISHED ↔ PAUSED → COMPLETED → ARCHIVED. `assertTransition()` enforces valid transitions. Fan routes: list/get published campaigns, start participation (idempotent), complete actions (`POST /fan/campaigns/:campaignId/actions/:actionId/complete` — `:campaignId` used to look up participation via `@@unique([campaignId, fanUserId])`), get progress. Admin routes: full CRUD + lifecycle mutations + actions + participations listing.
+
+4. **CampaignRewardsModule** (`apps/api/src/campaign-rewards/`) — `CampaignRewardsService` + `CampaignRewardsController`. Reward definitions per campaign. Idempotent reward claim via `idempotencyKey` unique constraint (P2002 caught silently). `$transaction` block: atomically issue reward + increment `inventoryUsed`. Fan can claim and redeem. Safety copy for wallet integration mandatory on all reward responses.
+
+5. **WalletIntegrationModule** (`apps/api/src/wallet-integration/`) — `WalletIntegrationService` + `WalletIntegrationController`. Zero-outbound adapter: `SiliconEnterpriseSandboxWalletAdapter` generates deterministic sandbox refs without calling any external service. Fan can link/confirm/unlink a wallet. Admin can list providers, links, transactions, and process sandbox webhooks. All responses include SANDBOX_ONLY safety copy. `PRODUCTION_DISABLED` module-readiness status in AdminOperations.
+
+6. **CampaignAnalyticsModule** (`apps/api/src/campaign-analytics/`) — `CampaignAnalyticsService` + `CampaignAnalyticsController`. Snapshot-based analytics stored in `CampaignAnalyticsSnapshot`. Recalculate endpoint triggers async-style recalculation (synchronous in MVP). Sponsor-level analytics aggregate across all their campaigns. Status: PENDING → PROCESSING → READY.
+
+### Key Design Decisions
+
+- **`completeAction` uses `campaignId` not `participationId` in URL** — The route `POST /fan/campaigns/:campaignId/actions/:actionId/complete` takes `campaignId` and looks up the participation via `@@unique([campaignId, fanUserId])`. This is consumer-friendly (client never needs to know the participationId) and enforced by the unique constraint.
+
+- **Participation uniqueness: `@@unique([campaignId, fanUserId])`** — One participation record per fan per campaign. `maxParticipationsPerFan` is set to 1 in seed; the `startParticipation` service method is idempotent (returns existing participation if already started). MVP coherence: the unique constraint IS the enforcement.
+
+- **`FAN_SAFE_SELECT` for campaigns** — Strips `targetingRulesJson`, `createdByUserId`, `approvedByUserId` from fan responses. Prevents leaking internal marketing strategy.
+
+- **AdminAuditLog writes** — Campaign lifecycle mutations (create, submit-for-approval, approve, reject, publish, pause, resume, complete, archive, add-action), sponsor mutations, media mutations (create, publish, archive), reward definition mutations all write to `AdminAuditLog`. Fan reward claim/redeem writes to `FanValueLedger` but not `AdminAuditLog` (fan-initiated, not admin action).
+
+- **`RIGHTS_REQUIRED` module-readiness status** — Added to `CapabilityStatus` union in `admin-operations.service.ts` for the Media module. `SANDBOX_READY` for wallet. `PRODUCTION_DISABLED` for all three new fan-facing modules.
+
+- **Route mismatches fixed** — Client calls `/fan/campaigns/:id/start` (not `/participate`), `/admin/campaigns/:id/submit-for-approval` (not `/submit`). `adminGetCampaignParticipations` backed by `GET admin/campaigns/:id/participations` controller route.
+
+### File Map
+
+```
+apps/api/src/
+  media/                         media.module.ts, media.service.ts, media.controller.ts, media.service.spec.ts
+  sponsors/                      sponsors.module.ts, sponsors.service.ts, sponsors.controller.ts, sponsors.service.spec.ts
+  campaigns/                     campaigns.module.ts, campaigns.service.ts, campaigns.controller.ts, campaigns.service.spec.ts
+  campaign-rewards/              campaign-rewards.module.ts, …service, …controller, …spec
+  wallet-integration/            wallet-integration.module.ts, …service (SiliconEnterpriseSandboxWalletAdapter), …controller, …spec
+  campaign-analytics/            campaign-analytics.module.ts, …service, …controller, …spec
+
+apps/web/src/lib/
+  media-client.ts               fan media routes (listPublicMedia, recordMediaView, etc.)
+  admin-media-client.ts         admin media CRUD + lifecycle
+  sponsors-client.ts            admin sponsor CRUD
+  campaigns-client.ts           fan campaign routes (startCampaignParticipation → /start, completeCampaignAction)
+  admin-campaigns-client.ts     admin campaign lifecycle (submit → /submit-for-approval)
+  campaign-rewards-client.ts    fan claim/redeem + admin definitions/issuance
+  wallet-client.ts              fan wallet link/confirm/unlink
+  admin-wallet-client.ts        admin provider/links/transactions/sandbox-webhook
+  campaign-analytics-client.ts  admin analytics get/recalculate/sponsor
+
+apps/web/src/app/
+  media/                        page.tsx (catalogue), [slug]/page.tsx (detail)
+  clubs/[slug]/media/           page.tsx (club media filter)
+  campaigns/                    page.tsx (fan list), [slug]/page.tsx (fan detail)
+  my-rewards/                   page.tsx
+  wallet/                       page.tsx
+  admin/media/                  page.tsx, new/page.tsx, [mediaId]/page.tsx
+  admin/sponsors/               page.tsx, new/page.tsx, [sponsorId]/page.tsx
+  admin/campaigns/              page.tsx, new/page.tsx, [campaignId]/page.tsx, [campaignId]/actions/page.tsx,
+                                [campaignId]/rewards/page.tsx, [campaignId]/analytics/page.tsx
+  admin/reward-definitions/     page.tsx
+  admin/campaign-rewards/       page.tsx
+  admin/wallet/                 page.tsx, providers/page.tsx, links/page.tsx, transactions/page.tsx
+
+prisma/migrations/
+  20260612000007_media_campaign_wallet_foundation/   migration.sql (22 enum types, 13 tables)
+```
+
+### Safety Boundaries
+
+- No real-money wallet: `SiliconEnterpriseSandboxWalletAdapter` generates deterministic sandbox refs; zero outbound calls
+- Fan Value rewards are non-financial loyalty points (safety copy in all reward + wallet API responses)
+- Media rights gate: `rightsStatus !== 'CLEARED' && rightsStatus !== 'PUBLIC_DOMAIN'` blocks publishing
+- No copyrighted images stored; seed uses placeholder URLs only
+- `NEXT_PUBLIC_API_BASE_URL` convention applied to all 9 new web clients
+- `PRODUCTION_DISABLED` / `RIGHTS_REQUIRED` / `SANDBOX_READY` statuses returned in AdminOperations capability map
+
+**Test gate:** 1452 API tests passing (49 spec files). Both typechecks clean. API build clean. Web build clean (275 pages). Seed clean.

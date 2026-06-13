@@ -67,6 +67,21 @@ async function main() {
   await prisma.peerChallenge.deleteMany();
   await prisma.scorePrediction.deleteMany();
 
+  // Clear STORY-37 data (media, campaigns, rewards, wallet) — must come before sponsors/teams
+  await prisma.campaignAnalyticsSnapshot.deleteMany();
+  await prisma.fanCampaignActionCompletion.deleteMany();
+  await prisma.fanCampaignParticipation.deleteMany();
+  await prisma.fanReward.deleteMany();
+  await prisma.rewardDefinition.deleteMany();
+  await prisma.campaignAction.deleteMany();
+  await prisma.mediaEngagementEvent.deleteMany();
+  await prisma.mediaAsset.deleteMany();
+  await prisma.walletTransaction.deleteMany();
+  await prisma.walletLink.deleteMany();
+  await prisma.walletProviderDetail.deleteMany();
+  await prisma.sponsorCampaign.deleteMany();
+  await prisma.sponsor.deleteMany();
+
   // Clear squad import data (depend on season)
   await prisma.squadImportRow.deleteMany();
   await prisma.squadImportBatch.deleteMany();
@@ -875,6 +890,125 @@ async function main() {
     });
   }
   console.log(`  ✓ ${integrationProviders.length} IntegrationProviderConfig entries seeded (all production-disabled)`);
+
+  // ── STORY-37: Silicon Enterprise Sandbox Wallet Provider ──────────────────
+  // Seeding operational metadata only. No API keys. No secrets. SANDBOX mode.
+  // PSL One does not hold regulated funds. Wallet linking is sandbox-only.
+  const walletProviderConfig = await prisma.integrationProviderConfig.upsert({
+    where: { providerKey: 'silicon-enterprise-wallet' },
+    create: {
+      providerKey: 'silicon-enterprise-wallet',
+      displayName: 'Silicon Enterprise Wallet',
+      providerType: 'WALLET',
+      mode: 'SANDBOX',
+      status: 'SANDBOX_READY',
+      isEnabled: false,
+      isProductionEnabled: false,
+      requiresComplianceApproval: true,
+      requiresContractApproval: true,
+      notes: 'External wallet integration partner. PSL One does not hold regulated funds. Sandbox mode only.',
+    },
+    update: {},
+  });
+  await prisma.walletProviderDetail.upsert({
+    where: { slug: 'silicon-enterprise-wallet' },
+    create: {
+      integrationProviderConfigId: walletProviderConfig.id,
+      name: 'Silicon Enterprise Wallet',
+      slug: 'silicon-enterprise-wallet',
+      providerType: 'MOBILE_WALLET',
+      status: 'SANDBOX',
+      publicDisplayName: 'Silicon Enterprise Wallet (Sandbox)',
+      authType: 'NONE',
+      contactName: 'Brian Mather',
+      contactEmail: 'brian.mather@siliconenterprise.com',
+      notes: 'External wallet integration partner. PSL One does not hold regulated funds. Sandbox mode only. No production credentials stored.',
+    },
+    update: {},
+  });
+  console.log(`  ✓ Silicon Enterprise Wallet provider seeded (SANDBOX, admin-only metadata)`);
+
+  // ── STORY-37: Demo Sponsor (clearly fictional) ────────────────────────────
+  const demoSponsor = await prisma.sponsor.upsert({
+    where: { slug: 'demo-sponsor' },
+    create: {
+      name: 'Demo Sponsor',
+      slug: 'demo-sponsor',
+      sector: 'Technology',
+      status: 'PROSPECT',
+    },
+    update: {},
+  });
+  console.log(`  ✓ Demo Sponsor seeded (PROSPECT, fictional)`);
+
+  // ── STORY-37: Draft media asset (no copyrighted content) ─────────────────
+  await prisma.mediaAsset.upsert({
+    where: { slug: 'test-media-asset' },
+    create: {
+      title: 'Test Media Asset',
+      slug: 'test-media-asset',
+      description: 'Placeholder media asset for testing. No copyrighted content.',
+      mediaType: 'ARTICLE',
+      contentCategory: 'OTHER',
+      visibility: 'DRAFT',
+      rightsStatus: 'PENDING_REVIEW',
+      isFeatured: false,
+      isLowDataAvailable: false,
+    },
+    update: {},
+  });
+  console.log(`  ✓ Test Media Asset seeded (DRAFT, no copyrighted content)`);
+
+  // ── STORY-37: Draft campaign with one action ──────────────────────────────
+  const draftCampaign = await prisma.sponsorCampaign.upsert({
+    where: { slug: 'sandbox-campaign' },
+    create: {
+      title: 'Sandbox Campaign',
+      slug: 'sandbox-campaign',
+      description: 'Demonstration campaign for testing. Not published.',
+      sponsorId: demoSponsor.id,
+      campaignType: 'OTHER',
+      status: 'DRAFT',
+      startsAt: new Date('2026-08-01T00:00:00Z'),
+      endsAt: new Date('2026-09-30T23:59:59Z'),
+      audienceScope: 'GLOBAL',
+      requiresWalletLinked: false,
+      requiresAgeConfirmation: false,
+    },
+    update: {},
+  });
+  const existingAction = await prisma.campaignAction.findFirst({ where: { campaignId: draftCampaign.id } });
+  if (!existingAction) {
+    await prisma.campaignAction.create({
+      data: {
+        campaignId: draftCampaign.id,
+        title: 'Click the call to action',
+        actionType: 'CLICK_CTA',
+        pointsAwarded: 10,
+        displayOrder: 1,
+        isRequired: true,
+      },
+    });
+  }
+  console.log(`  ✓ Sandbox Campaign seeded (DRAFT) with one CLICK_CTA action`);
+
+  // ── STORY-37: Fan Value reward definition ─────────────────────────────────
+  await prisma.rewardDefinition.upsert({
+    where: { id: 'reward-def-fan-value-demo' },
+    create: {
+      id: 'reward-def-fan-value-demo',
+      title: 'Campaign Fan Value Reward',
+      description: 'Demonstration Fan Value reward. Non-financial — points only. No cash value.',
+      rewardType: 'FAN_VALUE_POINTS',
+      campaignId: draftCampaign.id,
+      sponsorId: demoSponsor.id,
+      pointsAmount: 50,
+      displayValue: '50 Fan Value points',
+      isActive: true,
+    },
+    update: {},
+  });
+  console.log(`  ✓ Fan Value reward definition seeded (50 pts, non-financial, no cash value)`);
 
   console.log('');
   console.log('Seed complete.');

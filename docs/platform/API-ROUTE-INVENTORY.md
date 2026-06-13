@@ -738,15 +738,133 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/admin/fantasy-price-calibration/:seasonId/activation-impact` | PSL_ADMIN | Price coverage counts and warnings |
 | GET | `/admin/fantasy-price-calibration/:seasonId/activation-dry-run` | PSL_ADMIN | Read-only; dryRunOnly+pricesHaveNoCashValue+activationWillNotBePerformed always true |
 
-## /admin/beta-feedback — Beta Feedback (STORY-35, updated STORY-36)
+## /admin/beta-feedback — Beta Feedback (STORY-35, updated STORY-37)
 
 **Purpose:** Computed beta-phase admin visibility: platform overview, known issues, UX checklist, and release notes. Read-only (no DB writes).
 
 | Method | Route | Auth | Description |
 |--------|-------|------|-------------|
-| GET | `/admin/beta-feedback/overview` | PSL_ADMIN | Beta status, KPI counts (completedStories=11), recommended next actions, safety boundaries |
-| GET | `/admin/beta-feedback/known-issues` | PSL_ADMIN | 15 known issues (KI-001 to KI-015) with severity, status, and mitigation |
-| GET | `/admin/beta-feedback/ux-checklist` | PSL_ADMIN | ~57 UX checks grouped by area (squad import + price calibration areas added) |
-| GET | `/admin/beta-feedback/release-notes` | PSL_ADMIN | Reverse-chronological story notes: STORY-26 through STORY-36 |
+| GET | `/admin/beta-feedback/overview` | PSL_ADMIN | Beta status, KPI counts (completedStories=12, apiTestCount=1452, webPageCount=241), safety boundaries |
+| GET | `/admin/beta-feedback/known-issues` | PSL_ADMIN | 20 known issues (KI-001 to KI-020) including media rights, wallet, webhook, financial settlement |
+| GET | `/admin/beta-feedback/ux-checklist` | PSL_ADMIN | ~90 UX checks including media catalogue, campaign discovery, reward claim, wallet sandbox, safety copy |
+| GET | `/admin/beta-feedback/release-notes` | PSL_ADMIN | Reverse-chronological story notes: STORY-26 through STORY-37 |
 
 **Notes:** All routes PSL_ADMIN only (401 unauthenticated, 403 FAN). Service is computed — no Prisma queries.
+
+## /fan/media — Media Catalogue (STORY-37)
+
+**Purpose:** Fan-facing media browse and engagement tracking. No auth required to browse; auth required for engagement events.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan/media` | Public | List PUBLIC+CLEAR media assets. Supports ?clubId=&type= filters. |
+| GET | `/fan/media/:slug` | Public | Get media asset by slug. |
+| GET | `/fan/clubs/:clubId/media` | Public | Get media assets for a specific club. |
+| POST | `/fan/media/:id/view` | Fan | Record a view engagement event (idempotent by idempotencyKey). |
+| POST | `/fan/media/:id/complete` | Fan | Record a completion engagement event (idempotent by idempotencyKey). |
+
+**Notes:** Idempotency keys prevent duplicate engagement records (P2002 caught silently). Rights notice included on all public asset responses.
+
+## /admin/media — Media Management (STORY-37)
+
+**Purpose:** Admin management of media asset lifecycle from DRAFT through ARCHIVED.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/media` | PSL_ADMIN | List all media assets with optional status/type/clubId filters. |
+| POST | `/admin/media` | PSL_ADMIN | Create new media asset (starts as DRAFT). |
+| GET | `/admin/media/:id` | PSL_ADMIN | Get media asset detail. |
+| PATCH | `/admin/media/:id` | PSL_ADMIN | Update media asset metadata. |
+| POST | `/admin/media/:id/publish` | PSL_ADMIN | Publish asset (requires rightsStatus=CLEAR; returns mediaRightsNotice). |
+| POST | `/admin/media/:id/archive` | PSL_ADMIN | Archive media asset. |
+
+## /admin/sponsors — Sponsor Management (STORY-37)
+
+**Purpose:** Admin CRUD for sponsor organisations. Contact fields never exposed to fans.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/sponsors` | PSL_ADMIN | List sponsors. Optional ?status=&sector= filters. |
+| POST | `/admin/sponsors` | PSL_ADMIN | Create sponsor. |
+| GET | `/admin/sponsors/:id` | PSL_ADMIN | Get sponsor detail (includes contact fields). |
+| PATCH | `/admin/sponsors/:id` | PSL_ADMIN | Update sponsor. |
+| GET | `/admin/sponsors/:id/analytics` | PSL_ADMIN | Aggregate analytics across sponsor's campaigns. |
+
+## /fan/campaigns — Campaign Discovery (STORY-37)
+
+**Purpose:** Fan-facing campaign discovery and participation. All fan routes require JWT auth. Fan identity from JWT only.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan/campaigns` | Fan | List PUBLISHED campaigns within active time window. FAN_SAFE_SELECT (no targeting rules). |
+| GET | `/fan/campaigns/:slug` | Fan | Get campaign by slug. |
+| POST | `/fan/campaigns/:id/participate` | Fan | Start participation (idempotent — returns existing if already started). |
+| POST | `/fan/campaigns/:id/actions/:actionId/complete` | Fan | Complete an action. SCAN_QR/SHARE_CONTENT → MANUAL_REVIEW. |
+| GET | `/fan/campaigns/:id/progress` | Fan | Get fan's participation progress for a campaign. |
+
+## /admin/campaigns — Campaign Management (STORY-37)
+
+**Purpose:** Admin campaign lifecycle management. Enforces DRAFT→PENDING_APPROVAL→APPROVED→PUBLISHED→PAUSED↔PUBLISHED→COMPLETED→ARCHIVED.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/campaigns` | PSL_ADMIN | List campaigns. Optional ?sponsorId=&status= filters. |
+| POST | `/admin/campaigns` | PSL_ADMIN | Create campaign (starts as DRAFT). |
+| GET | `/admin/campaigns/:id` | PSL_ADMIN | Get campaign detail. |
+| PATCH | `/admin/campaigns/:id` | PSL_ADMIN | Update campaign. |
+| POST | `/admin/campaigns/:id/submit` | PSL_ADMIN | Submit for approval (DRAFT → PENDING_APPROVAL). |
+| POST | `/admin/campaigns/:id/approve` | PSL_ADMIN | Approve (PENDING_APPROVAL → APPROVED). |
+| POST | `/admin/campaigns/:id/reject` | PSL_ADMIN | Reject (PENDING_APPROVAL → REJECTED). |
+| POST | `/admin/campaigns/:id/publish` | PSL_ADMIN | Publish (APPROVED → PUBLISHED). |
+| POST | `/admin/campaigns/:id/pause` | PSL_ADMIN | Pause (PUBLISHED → PAUSED). |
+| POST | `/admin/campaigns/:id/resume` | PSL_ADMIN | Resume (PAUSED → PUBLISHED). |
+| POST | `/admin/campaigns/:id/complete` | PSL_ADMIN | Complete (PUBLISHED/PAUSED → COMPLETED). |
+| POST | `/admin/campaigns/:id/archive` | PSL_ADMIN | Archive (COMPLETED → ARCHIVED). |
+| POST | `/admin/campaigns/:id/actions` | PSL_ADMIN | Add campaign action. |
+| GET | `/admin/campaigns/:id/participations` | PSL_ADMIN | List all fan participations. |
+| GET | `/admin/campaigns/:id/analytics` | PSL_ADMIN | Get campaign analytics (aggregate-only). |
+| POST | `/admin/campaigns/:id/analytics/recalculate` | PSL_ADMIN | Recalculate daily analytics snapshot (idempotent). |
+
+## /fan/rewards — Campaign Rewards (STORY-37)
+
+**Purpose:** Fan reward claiming and redemption. Fan Value points carry non-financial safety metadata.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan/rewards` | Fan | List fan's campaign rewards. |
+| GET | `/fan/rewards/:id` | Fan | Get reward detail. |
+| POST | `/fan/rewards/:id/claim` | Fan | Claim reward (idempotent by idempotencyKey). |
+| POST | `/fan/rewards/:id/redeem` | Fan | Redeem reward. WALLET_CREDIT_PENDING_PROVIDER → PROVIDER_PENDING. |
+
+## /admin/reward-definitions — Reward Definitions (STORY-37)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/reward-definitions` | PSL_ADMIN | List all reward definitions. |
+| POST | `/admin/reward-definitions` | PSL_ADMIN | Create reward definition. |
+| PATCH | `/admin/reward-definitions/:id` | PSL_ADMIN | Update reward definition. |
+| GET | `/admin/rewards` | PSL_ADMIN | List all fan rewards across the system. |
+
+## /fan/wallet — Wallet Integration (STORY-37)
+
+**Purpose:** Fan-facing wallet sandbox linking. Sandbox mode only — no real transactions.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/fan/wallet/status` | Fan | Get wallet link status. Masks providerCustomerRef/providerWalletRef. Returns safetyNote and sandboxMode=true. |
+| POST | `/fan/wallet/link/start` | Fan | Start wallet link flow (SANDBOX only). |
+| POST | `/fan/wallet/link/confirm` | Fan | Confirm wallet link (includes kycDisclaimer). |
+| POST | `/fan/wallet/unlink` | Fan | Unlink wallet. Preserves audit trail (soft-delete only). |
+
+## /admin/wallet — Wallet Provider Admin (STORY-37)
+
+**Purpose:** Admin management of wallet providers, fan links, and sandbox transactions.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/wallet/providers` | PSL_ADMIN | List wallet providers. |
+| POST | `/admin/wallet/providers` | PSL_ADMIN | Register wallet provider. |
+| PATCH | `/admin/wallet/providers/:id` | PSL_ADMIN | Update wallet provider. |
+| GET | `/admin/wallet/links` | PSL_ADMIN | List all fan wallet links. |
+| GET | `/admin/wallet/transactions` | PSL_ADMIN | List all wallet transactions. |
+| POST | `/admin/wallet/webhooks/:providerSlug/sandbox` | PSL_ADMIN | Process sandbox webhook (verifies SANDBOX status; writes WEBHOOK_EVENT + AdminAuditLog). |

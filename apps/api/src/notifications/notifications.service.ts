@@ -61,6 +61,10 @@ const PREFERENCE_TYPE_MAP: Record<NotificationType, keyof UpdatePreferencesDto |
   SYSTEM: 'systemEnabled',
   LIVE_MATCH_ALERT: 'systemEnabled',
   ADMIN_BROADCAST: 'systemEnabled',
+  CAMPAIGN_STARTED: null,
+  CAMPAIGN_COMPLETED: null,
+  REWARD_ISSUED: 'rewardsEnabled',
+  WALLET_LINKED: null,
 };
 
 // ── Service ───────────────────────────────────────────────────────────────────

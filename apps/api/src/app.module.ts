@@ -31,6 +31,12 @@ import { PlayerStatsModule } from './player-stats/player-stats.module';
 import { BetaFeedbackModule } from './beta-feedback/beta-feedback.module';
 import { SquadImportModule } from './squad-import/squad-import.module';
 import { FantasyPriceCalibrationModule } from './fantasy-price-calibration/fantasy-price-calibration.module';
+import { MediaModule } from './media/media.module';
+import { SponsorsModule } from './sponsors/sponsors.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { CampaignRewardsModule } from './campaign-rewards/campaign-rewards.module';
+import { WalletIntegrationModule } from './wallet-integration/wallet-integration.module';
+import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics.module';
 
 @Module({
   imports: [
@@ -63,6 +69,12 @@ import { FantasyPriceCalibrationModule } from './fantasy-price-calibration/fanta
     BetaFeedbackModule,
     SquadImportModule,
     FantasyPriceCalibrationModule,
+    MediaModule,
+    SponsorsModule,
+    CampaignsModule,
+    CampaignRewardsModule,
+    WalletIntegrationModule,
+    CampaignAnalyticsModule,
     HealthModule,
   ],
   controllers: [VersionController],

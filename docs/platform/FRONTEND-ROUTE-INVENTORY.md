@@ -500,3 +500,40 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/fantasy-price-calibration/[seasonId]/readiness` | Calibration readiness | PSL_ADMIN | `fantasy-price-calibration-client` | 4-check gate including published batch check |
 | `/admin/fantasy-price-calibration/[seasonId]/activation-impact` | Activation impact | PSL_ADMIN | `fantasy-price-calibration-client` | Coverage counts, missing/invalid, warnings; links to dry run |
 | `/admin/fantasy-price-calibration/[seasonId]/activation-dry-run` | Activation dry run | PSL_ADMIN | `fantasy-price-calibration-client` | Read-only; pricesHaveNoCashValue + safety confirmations |
+
+## STORY-37 — Media, Sponsor Campaigns & Wallet (25 new pages)
+
+### Fan Pages
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/media` | Media Catalogue | Public | `media-client` | Lists PUBLIC+CLEAR assets; media rights notice shown |
+| `/media/[slug]` | Media Detail | Public | `media-client` | Records view event on load; content player placeholder (CDN not configured) |
+| `/clubs/[slug]/media` | Club Media | Public | `media-client` | Filtered by clubId; links to /media/[slug] |
+| `/campaigns` | Fan Campaigns | Fan | `campaigns-client` | Lists PUBLISHED campaigns; FV pts displayed per campaign |
+| `/campaigns/[slug]` | Campaign Detail | Fan | `campaigns-client` | Join, complete actions, progress; MANUAL_REVIEW note for SCAN_QR/SHARE_CONTENT |
+| `/my-rewards` | My Rewards | Fan | `campaign-rewards-client` | Fan's issued rewards; redeem button for CLAIMED rewards; wallet safety copy |
+| `/wallet` | My Wallet | Fan | `wallet-client` | Sandbox only; link/confirm/unlink flow; KYC and fund-holding disclaimers |
+
+### Admin Pages
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/admin/media` | Media Catalogue | PSL_ADMIN | `admin-media-client` | List all media assets; rights warning banner |
+| `/admin/media/new` | New Media Asset | PSL_ADMIN | `admin-media-client` | Create DRAFT asset; rightsStatus selector |
+| `/admin/media/[mediaId]` | Media Detail | PSL_ADMIN | `admin-media-client` | Publish (requires CLEAR rights); archive; engagement counts |
+| `/admin/sponsors` | Sponsors | PSL_ADMIN | `sponsors-client` | List sponsors; link to campaigns; status badges |
+| `/admin/sponsors/new` | New Sponsor | PSL_ADMIN | `sponsors-client` | Create sponsor; contact fields admin-only |
+| `/admin/sponsors/[sponsorId]` | Sponsor Detail | PSL_ADMIN | `sponsors-client` + `campaign-analytics-client` | Status update; analytics summary |
+| `/admin/campaigns` | Campaigns | PSL_ADMIN | `admin-campaigns-client` | List all campaigns; ?sponsorId filter; Suspense-wrapped for useSearchParams |
+| `/admin/campaigns/new` | New Campaign | PSL_ADMIN | `admin-campaigns-client` | Create DRAFT campaign; sponsor selector |
+| `/admin/campaigns/[campaignId]` | Campaign Detail | PSL_ADMIN | `admin-campaigns-client` | Lifecycle buttons; links to actions/rewards/analytics sub-pages |
+| `/admin/campaigns/[campaignId]/actions` | Campaign Actions | PSL_ADMIN | `admin-campaigns-client` | Add/view actions; MANUAL_REVIEW note; only editable in DRAFT |
+| `/admin/campaigns/[campaignId]/rewards` | Campaign Rewards | PSL_ADMIN | `campaign-rewards-client` | Reward definitions; add new with type/inventory controls; wallet safety copy |
+| `/admin/campaigns/[campaignId]/analytics` | Campaign Analytics | PSL_ADMIN | `campaign-analytics-client` | 6 KPI tiles; recalculate button; participant/reward breakdowns |
+| `/admin/reward-definitions` | Reward Definitions | PSL_ADMIN | `campaign-rewards-client` | All definitions across campaigns; FV disclaimer |
+| `/admin/campaign-rewards` | Campaign Rewards Issued | PSL_ADMIN | `campaign-rewards-client` | All fan rewards; status table; wallet safety copy |
+| `/admin/wallet` | Wallet Integration | PSL_ADMIN | — | Hub page; sandbox warning; links to providers/links/transactions |
+| `/admin/wallet/providers` | Wallet Providers | PSL_ADMIN | `admin-wallet-client` | List providers; activate/deactivate toggle |
+| `/admin/wallet/links` | Fan Wallet Links | PSL_ADMIN | `admin-wallet-client` | Fan link status table; audit trail note |
+| `/admin/wallet/transactions` | Wallet Transactions | PSL_ADMIN | `admin-wallet-client` | Sandbox transaction log; PRODUCTION_DISABLED notice |

@@ -18,6 +18,7 @@ export type CapabilityStatus =
   | 'PRODUCTION_DISABLED'
   | 'ENABLED'
   | 'FUTURE_IMPLEMENTATION'
+  | 'RIGHTS_REQUIRED'
   | 'NOT_ALLOWED_IN_CURRENT_STORY';
 
 export interface ModuleReadinessItem {
@@ -563,6 +564,80 @@ export class AdminOperationsService {
           : priceCalibrationWarnings.length > 0
             ? 'Apply default prices and run validate + publish at /admin/fantasy-price-calibration/:seasonId/'
             : 'Price calibration complete. Fantasy prices are points-only with no cash value.',
+      },
+      {
+        moduleKey: 'MEDIA',
+        displayName: 'Media Catalogue',
+        status: 'FOUNDATION_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: true,
+        blockers: [],
+        warnings: [
+          'Media availability does not imply that PSL One owns streaming rights. Public availability requires an approved rights status.',
+          'No production CDN or streaming configured. LIVE_STREAM is metadata-only.',
+        ],
+        recommendedAction: 'Create media assets at /admin/media. Set rightsStatus=CLEAR before publishing. Production streaming requires Sprint 3+ rights contract.',
+      },
+      {
+        moduleKey: 'LIVE_MEDIA',
+        displayName: 'Live Media Streaming',
+        status: 'RIGHTS_REQUIRED',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: false,
+        blockers: ['Media rights contract required', 'Production CDN not configured', 'Production DRM not configured'],
+        warnings: ['LIVE_STREAM assets are metadata/readiness only in STORY-37'],
+        recommendedAction: 'Secure media rights contract and CDN provider Sprint 3+.',
+      },
+      {
+        moduleKey: 'SPONSOR_CAMPAIGNS',
+        displayName: 'Sponsor Campaign Engine',
+        status: 'FOUNDATION_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: true,
+        blockers: [],
+        warnings: ['Campaign approval workflow requires at least one PSL_ADMIN user', 'No sponsor self-service role implemented yet'],
+        recommendedAction: 'Create sponsors at /admin/sponsors. Create campaigns at /admin/campaigns. Campaigns require APPROVED status before publishing.',
+      },
+      {
+        moduleKey: 'CAMPAIGN_REWARDS',
+        displayName: 'Campaign Reward Issuance',
+        status: 'SANDBOX_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: true,
+        blockers: [],
+        warnings: [
+          'Fan Value rewards use the existing non-financial ledger (CAMPAIGN_POINTS). No cash value.',
+          'Wallet credit rewards remain PROVIDER_PENDING until provider contract Sprint 3+.',
+          'Airtime/data bundle rewards require provider contract.',
+        ],
+        recommendedAction: 'Create reward definitions at /admin/reward-definitions. FAN_VALUE_POINTS rewards are functional. Non-FV types are provider-pending.',
+      },
+      {
+        moduleKey: 'WALLET_INTEGRATION',
+        displayName: 'Wallet Provider Integration',
+        status: 'SANDBOX_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: false,
+        blockers: ['No production wallet provider contract', 'Production KYC not implemented'],
+        warnings: [
+          'Wallet integration is operating in sandbox mode. No real financial transactions are processed.',
+          'PSL One does not hold customer funds directly. Wallet services provided by external partner.',
+          'Silicon Enterprise Wallet seeded as SANDBOX-only. No production credentials.',
+        ],
+        recommendedAction: 'Sandbox wallet link flow available at /fan/wallet. Production requires contract + compliance Sprint 3+.',
+      },
+      {
+        moduleKey: 'WALLET_TRANSACTIONS',
+        displayName: 'Wallet Transactions (Production)',
+        status: 'PRODUCTION_DISABLED',
+        isCommercial: true, isPointsOnly: false, isProductionEnabled: false, isFoundational: false,
+        blockers: ['Production wallet contract required', 'Compliance sign-off required', 'Real KYC not implemented'],
+        warnings: ['All wallet transactions in STORY-37 are sandbox records only'],
+        recommendedAction: 'Enable production wallet transactions only after Sprint 3+ provider contract and compliance approval.',
+      },
+      {
+        moduleKey: 'CAMPAIGN_ANALYTICS',
+        displayName: 'Campaign Analytics',
+        status: 'FOUNDATION_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: true,
+        blockers: [],
+        warnings: ['Analytics derived from stored records only. No external analytics platform wired.'],
+        recommendedAction: 'View campaign analytics at /admin/campaigns/:id/analytics. Recalculate daily snapshots. Wire Amplitude/DataDog Sprint 3+.',
       },
     ];
 

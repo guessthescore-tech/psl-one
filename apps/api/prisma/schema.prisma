@@ -1108,6 +1108,9 @@ enum FanValueSourceType {
   SPONSOR_ENGAGEMENT_READY
   REWARD_ELIGIBILITY_READY
   ADMIN_ADJUSTMENT
+  CAMPAIGN_REWARD
+
+  @@map("FanValueSourceType")
 }
 
 enum FanValueType {
@@ -1117,6 +1120,9 @@ enum FanValueType {
   ACHIEVEMENT_POINTS
   LOYALTY_POINTS
   REWARD_CREDITS_READY
+  CAMPAIGN_POINTS
+
+  @@map("FanValueType")
 }
 
 enum FanValueStatus {
@@ -1522,6 +1528,12 @@ enum NotificationType {
   REWARD_ELIGIBLE
   LIVE_MATCH_ALERT
   ADMIN_BROADCAST
+  CAMPAIGN_STARTED
+  CAMPAIGN_COMPLETED
+  REWARD_ISSUED
+  WALLET_LINKED
+
+  @@map("notification_type")
 }
 
 enum NotificationStatus {
@@ -1590,6 +1602,12 @@ enum ActivityFeedType {
   LIVE_MATCH_ALERT
   FAN_VALUE_MILESTONE
   ADMIN_POST
+  CAMPAIGN_STARTED
+  CAMPAIGN_COMPLETED
+  REWARD_ISSUED
+  WALLET_LINKED
+
+  @@map("activity_feed_type")
 }
 
 enum ActivityVisibility {
@@ -2339,4 +2357,605 @@ model AdminAuditLog {
   @@index([createdAt(sort: Desc)])
   @@index([action])
   @@map("admin_audit_logs")
+}
+
+// ── Media Catalogue ────────────────────────────────────────────────────────────
+
+enum MediaType {
+  VIDEO
+  LIVE_STREAM
+  SHORT_FORM
+  AUDIO
+  ARTICLE
+
+  @@map("MediaType")
+}
+
+enum MediaContentCategory {
+  MATCH_HIGHLIGHTS
+  INTERVIEW
+  TRAINING
+  PRESS_CONFERENCE
+  DOCUMENTARY
+  CLUB_NEWS
+  SPONSOR_BRANDED
+  FAN_CONTENT
+  ACADEMY
+  WOMENS_FOOTBALL
+  LEGENDS
+  EDUCATION
+  OTHER
+
+  @@map("MediaContentCategory")
+}
+
+enum MediaVisibility {
+  DRAFT
+  INTERNAL
+  PUBLIC
+  PREMIUM
+  ARCHIVED
+
+  @@map("MediaVisibility")
+}
+
+enum MediaRightsStatus {
+  CLEAR
+  RESTRICTED
+  EXPIRED
+  PENDING_REVIEW
+
+  @@map("MediaRightsStatus")
+}
+
+enum MediaEngagementEventType {
+  VIEW
+  COMPLETE
+  CTA_CLICK
+
+  @@map("MediaEngagementEventType")
+}
+
+model MediaAsset {
+  id                  String               @id @default(uuid())
+  title               String
+  slug                String               @unique
+  description         String?
+  mediaType           MediaType            @map("media_type")
+  contentCategory     MediaContentCategory @default(OTHER) @map("content_category")
+  clubId              String?              @map("club_id")
+  competitionId       String?              @map("competition_id")
+  seasonId            String?              @map("season_id")
+  fixtureId           String?              @map("fixture_id")
+  playerId            String?              @map("player_id")
+  sponsorId           String?              @map("sponsor_id")
+  campaignId          String?              @map("campaign_id")
+  thumbnailUrl        String?              @map("thumbnail_url")
+  playbackUrl         String?              @map("playback_url")
+  durationSeconds     Int?                 @map("duration_seconds")
+  streamStartAt       DateTime?            @map("stream_start_at")
+  streamEndAt         DateTime?            @map("stream_end_at")
+  visibility          MediaVisibility      @default(DRAFT)
+  rightsStatus        MediaRightsStatus    @default(PENDING_REVIEW) @map("rights_status")
+  isFeatured          Boolean              @default(false) @map("is_featured")
+  isLowDataAvailable  Boolean              @default(false) @map("is_low_data_available")
+  createdByUserId     String?              @map("created_by_user_id")
+  publishedAt         DateTime?            @map("published_at")
+  archivedAt          DateTime?            @map("archived_at")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  engagementEvents    MediaEngagementEvent[]
+
+  @@index([visibility, rightsStatus])
+  @@index([clubId])
+  @@index([mediaType])
+  @@index([createdAt(sort: Desc)])
+  @@map("media_assets")
+}
+
+model MediaEngagementEvent {
+  id              String                   @id @default(uuid())
+  mediaAssetId    String                   @map("media_asset_id")
+  fanUserId       String                   @map("fan_user_id")
+  eventType       MediaEngagementEventType @map("event_type")
+  idempotencyKey  String?                  @unique @map("idempotency_key")
+  progressPercent Int?                     @map("progress_percent")
+  metadataJson    Json?                    @map("metadata_json")
+  createdAt       DateTime                 @default(now()) @map("created_at")
+
+  mediaAsset      MediaAsset               @relation(fields: [mediaAssetId], references: [id])
+
+  @@index([mediaAssetId])
+  @@index([fanUserId])
+  @@index([eventType])
+  @@map("media_engagement_events")
+}
+
+// ── Sponsor Management ─────────────────────────────────────────────────────────
+
+enum SponsorStatus {
+  PROSPECT
+  ACTIVE
+  PAUSED
+  EXPIRED
+
+  @@map("SponsorStatus")
+}
+
+model Sponsor {
+  id                   String        @id @default(uuid())
+  name                 String
+  slug                 String        @unique
+  sector               String?
+  logoUrl              String?       @map("logo_url")
+  websiteUrl           String?       @map("website_url")
+  primaryContactName   String?       @map("primary_contact_name")
+  primaryContactEmail  String?       @map("primary_contact_email")
+  status               SponsorStatus @default(PROSPECT)
+  createdAt            DateTime      @default(now()) @map("created_at")
+  updatedAt            DateTime      @updatedAt @map("updated_at")
+
+  campaigns            SponsorCampaign[]
+  rewardDefinitions    RewardDefinition[]
+
+  @@index([status])
+  @@map("sponsors")
+}
+
+// ── Campaign Management ────────────────────────────────────────────────────────
+
+enum CampaignType {
+  PREDICTION
+  QUIZ
+  POLL
+  WATCH_AND_WIN
+  CHECK_IN
+  SCAN_TO_WIN
+  FANTASY_CHALLENGE
+  VOTE_PLAYER_OF_MATCH
+  REWARD_DROP
+  CLUB_MISSION
+  SPONSOR_OFFER
+  CONTENT_UNLOCK
+  OTHER
+
+  @@map("CampaignType")
+}
+
+enum CampaignStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+  PAUSED
+  COMPLETED
+  REJECTED
+  ARCHIVED
+
+  @@map("CampaignStatus")
+}
+
+enum CampaignAudienceScope {
+  GLOBAL
+  CLUB
+  FIXTURE
+  COMPETITION
+  SEASON
+  SEGMENT
+
+  @@map("CampaignAudienceScope")
+}
+
+enum CampaignActionType {
+  WATCH_MEDIA
+  ANSWER_QUIZ
+  VOTE
+  PREDICT_SCORE
+  JOIN_FANTASY_CHALLENGE
+  CHECK_IN
+  SCAN_QR
+  CLICK_CTA
+  LINK_WALLET
+  SHARE_CONTENT
+  COMPLETE_PROFILE
+  OTHER
+
+  @@map("CampaignActionType")
+}
+
+enum ParticipationStatus {
+  STARTED
+  IN_PROGRESS
+  COMPLETED
+  REWARDED
+  DISQUALIFIED
+
+  @@map("ParticipationStatus")
+}
+
+enum ActionValidationStatus {
+  PENDING
+  VALID
+  INVALID
+  MANUAL_REVIEW
+
+  @@map("ActionValidationStatus")
+}
+
+model SponsorCampaign {
+  id                     String                @id @default(uuid())
+  title                  String
+  slug                   String                @unique
+  description            String                @default("")
+  sponsorId              String?               @map("sponsor_id")
+  clubId                 String?               @map("club_id")
+  competitionId          String?               @map("competition_id")
+  seasonId               String?               @map("season_id")
+  fixtureId              String?               @map("fixture_id")
+  campaignType           CampaignType          @default(OTHER) @map("campaign_type")
+  status                 CampaignStatus        @default(DRAFT)
+  startsAt               DateTime              @map("starts_at")
+  endsAt                 DateTime              @map("ends_at")
+  audienceScope          CampaignAudienceScope @default(GLOBAL) @map("audience_scope")
+  creativeImageUrl       String?               @map("creative_image_url")
+  creativeVideoUrl       String?               @map("creative_video_url")
+  callToActionLabel      String?               @map("call_to_action_label")
+  callToActionUrl        String?               @map("call_to_action_url")
+  termsAndConditions     String?               @map("terms_and_conditions")
+  rewardPolicyJson       Json?                 @map("reward_policy_json")
+  targetingRulesJson     Json?                 @map("targeting_rules_json")
+  maxParticipationsPerFan Int?                 @map("max_participations_per_fan")
+  requiresWalletLinked   Boolean               @default(false) @map("requires_wallet_linked")
+  requiresContentWatch   Boolean               @default(false) @map("requires_content_watch")
+  requiresAgeConfirmation Boolean              @default(false) @map("requires_age_confirmation")
+  createdByUserId        String?               @map("created_by_user_id")
+  approvedByUserId       String?               @map("approved_by_user_id")
+  approvedAt             DateTime?             @map("approved_at")
+  publishedAt            DateTime?             @map("published_at")
+  pausedAt               DateTime?             @map("paused_at")
+  completedAt            DateTime?             @map("completed_at")
+  archivedAt             DateTime?             @map("archived_at")
+  createdAt              DateTime              @default(now()) @map("created_at")
+  updatedAt              DateTime              @updatedAt @map("updated_at")
+
+  sponsor                Sponsor?              @relation(fields: [sponsorId], references: [id])
+  actions                CampaignAction[]
+  participations         FanCampaignParticipation[]
+  analyticsSnapshots     CampaignAnalyticsSnapshot[]
+  rewardDefinitions      RewardDefinition[]
+  fanRewards             FanReward[]
+
+  @@index([status])
+  @@index([sponsorId])
+  @@index([clubId])
+  @@index([startsAt, endsAt])
+  @@map("sponsor_campaigns")
+}
+
+model CampaignAction {
+  id                   String             @id @default(uuid())
+  campaignId           String             @map("campaign_id")
+  title                String
+  description          String?
+  actionType           CampaignActionType @default(OTHER) @map("action_type")
+  requiredMediaAssetId String?            @map("required_media_asset_id")
+  pointsAwarded        Int                @default(0) @map("points_awarded")
+  displayOrder         Int                @default(0) @map("display_order")
+  isRequired           Boolean            @default(true) @map("is_required")
+  validationRulesJson  Json?              @map("validation_rules_json")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  campaign             SponsorCampaign    @relation(fields: [campaignId], references: [id])
+  completions          FanCampaignActionCompletion[]
+
+  @@index([campaignId])
+  @@map("campaign_actions")
+}
+
+model FanCampaignParticipation {
+  id           String              @id @default(uuid())
+  campaignId   String              @map("campaign_id")
+  fanUserId    String              @map("fan_user_id")
+  status       ParticipationStatus @default(STARTED)
+  startedAt    DateTime            @default(now()) @map("started_at")
+  completedAt  DateTime?           @map("completed_at")
+  rewardedAt   DateTime?           @map("rewarded_at")
+  metadataJson Json?               @map("metadata_json")
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+
+  campaign     SponsorCampaign     @relation(fields: [campaignId], references: [id])
+  actionCompletions FanCampaignActionCompletion[]
+
+  @@unique([campaignId, fanUserId])
+  @@index([fanUserId])
+  @@index([status])
+  @@map("fan_campaign_participations")
+}
+
+model FanCampaignActionCompletion {
+  id               String                 @id @default(uuid())
+  participationId  String                 @map("participation_id")
+  campaignActionId String                 @map("campaign_action_id")
+  fanUserId        String                 @map("fan_user_id")
+  completedAt      DateTime               @default(now()) @map("completed_at")
+  validationStatus ActionValidationStatus @default(PENDING) @map("validation_status")
+  idempotencyKey   String?                @unique @map("idempotency_key")
+  metadataJson     Json?                  @map("metadata_json")
+  createdAt        DateTime               @default(now()) @map("created_at")
+
+  participation    FanCampaignParticipation @relation(fields: [participationId], references: [id])
+  campaignAction   CampaignAction           @relation(fields: [campaignActionId], references: [id])
+
+  @@unique([participationId, campaignActionId])
+  @@index([fanUserId])
+  @@map("fan_campaign_action_completions")
+}
+
+// ── Campaign Reward Issuance ────────────────────────────────────────────────────
+
+enum RewardType {
+  FAN_VALUE_POINTS
+  BADGE
+  VOUCHER
+  AIRTIME
+  DATA_BUNDLE
+  TICKET_DISCOUNT
+  MERCHANDISE_DISCOUNT
+  CONTENT_ACCESS
+  EXPERIENCE_ENTRY
+  WALLET_CREDIT_PENDING_PROVIDER
+  OTHER
+
+  @@map("RewardType")
+}
+
+enum FanRewardStatus {
+  ISSUED
+  CLAIMED
+  REDEEMED
+  EXPIRED
+  CANCELLED
+  PROVIDER_PENDING
+  PROVIDER_FAILED
+
+  @@map("FanRewardStatus")
+}
+
+model RewardDefinition {
+  id                  String     @id @default(uuid())
+  title               String
+  description         String?
+  rewardType          RewardType @map("reward_type")
+  sponsorId           String?    @map("sponsor_id")
+  clubId              String?    @map("club_id")
+  campaignId          String?    @map("campaign_id")
+  pointsAmount        Int?       @map("points_amount")
+  displayValue        String?    @map("display_value")
+  displayCurrency     String?    @map("display_currency")
+  inventoryLimit      Int?       @map("inventory_limit")
+  inventoryIssued     Int        @default(0) @map("inventory_issued")
+  providerReference   String?    @map("provider_reference")
+  expiresAt           DateTime?  @map("expires_at")
+  termsAndConditions  String?    @map("terms_and_conditions")
+  isActive            Boolean    @default(true) @map("is_active")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  sponsor             Sponsor?   @relation(fields: [sponsorId], references: [id])
+  campaign            SponsorCampaign? @relation(fields: [campaignId], references: [id])
+  fanRewards          FanReward[]
+
+  @@index([rewardType])
+  @@index([sponsorId])
+  @@index([isActive])
+  @@map("reward_definitions")
+}
+
+model FanReward {
+  id                   String          @id @default(uuid())
+  rewardDefinitionId   String          @map("reward_definition_id")
+  fanUserId            String          @map("fan_user_id")
+  campaignId           String?         @map("campaign_id")
+  status               FanRewardStatus @default(ISSUED)
+  issuedAt             DateTime        @default(now()) @map("issued_at")
+  claimedAt            DateTime?       @map("claimed_at")
+  redeemedAt           DateTime?       @map("redeemed_at")
+  expiresAt            DateTime?       @map("expires_at")
+  walletTransactionId  String?         @map("wallet_transaction_id")
+  voucherReference     String?         @map("voucher_reference")
+  idempotencyKey       String?         @unique @map("idempotency_key")
+  metadataJson         Json?           @map("metadata_json")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  rewardDefinition     RewardDefinition   @relation(fields: [rewardDefinitionId], references: [id])
+  campaign             SponsorCampaign?   @relation(fields: [campaignId], references: [id])
+
+  @@index([fanUserId])
+  @@index([status])
+  @@index([rewardDefinitionId])
+  @@map("fan_rewards")
+}
+
+// ── Wallet Integration ─────────────────────────────────────────────────────────
+
+enum WalletProviderType {
+  MOBILE_WALLET
+  BANKING_PARTNER
+  PAYMENT_GATEWAY
+  VOUCHER_PROVIDER
+  OTHER
+
+  @@map("WalletProviderType")
+}
+
+enum WalletProviderStatus {
+  SANDBOX
+  ACTIVE
+  PAUSED
+  DISABLED
+
+  @@map("WalletProviderStatus")
+}
+
+enum WalletAuthType {
+  API_KEY
+  OAUTH2
+  MTLS
+  HMAC
+  NONE
+
+  @@map("WalletAuthType")
+}
+
+enum WalletLinkStatus {
+  NOT_LINKED
+  LINK_PENDING
+  LINKED
+  SUSPENDED
+  UNLINKED
+  FAILED
+
+  @@map("WalletLinkStatus")
+}
+
+enum WalletKycStatus {
+  UNKNOWN
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+
+  @@map("WalletKycStatus")
+}
+
+enum WalletTransactionType {
+  LINK_WALLET
+  UNLINK_WALLET
+  PAYMENT_INITIATED
+  PAYMENT_CONFIRMED
+  PAYMENT_FAILED
+  REWARD_ISSUANCE_REQUESTED
+  REWARD_ISSUED
+  REWARD_FAILED
+  VOUCHER_REDEEMED
+  REVERSAL
+  WEBHOOK_EVENT
+
+  @@map("WalletTransactionType")
+}
+
+enum WalletTransactionStatus {
+  CREATED
+  PENDING
+  SUCCESS
+  FAILED
+  REVERSED
+  CANCELLED
+
+  @@map("WalletTransactionStatus")
+}
+
+model WalletProviderDetail {
+  id                         String               @id @default(uuid())
+  integrationProviderConfigId String              @unique @map("integration_provider_config_id")
+  name                       String
+  slug                       String               @unique
+  providerType               WalletProviderType   @default(MOBILE_WALLET) @map("provider_type")
+  status                     WalletProviderStatus @default(SANDBOX)
+  publicDisplayName          String?              @map("public_display_name")
+  baseUrl                    String?              @map("base_url")
+  authType                   WalletAuthType       @default(NONE) @map("auth_type")
+  contactName                String?              @map("contact_name")
+  contactEmail               String?              @map("contact_email")
+  notes                      String?
+  createdAt                  DateTime             @default(now()) @map("created_at")
+  updatedAt                  DateTime             @updatedAt @map("updated_at")
+
+  walletLinks                WalletLink[]
+  walletTransactions         WalletTransaction[]
+
+  @@map("wallet_provider_details")
+}
+
+model WalletLink {
+  id                  String           @id @default(uuid())
+  fanUserId           String           @map("fan_user_id")
+  walletProviderId    String           @map("wallet_provider_id")
+  providerCustomerRef String?          @map("provider_customer_ref")
+  providerWalletRef   String?          @map("provider_wallet_ref")
+  status              WalletLinkStatus @default(NOT_LINKED)
+  kycStatus           WalletKycStatus  @default(UNKNOWN) @map("kyc_status")
+  linkedAt            DateTime?        @map("linked_at")
+  lastVerifiedAt      DateTime?        @map("last_verified_at")
+  unlinkedAt          DateTime?        @map("unlinked_at")
+  metadataJson        Json?            @map("metadata_json")
+  createdAt           DateTime         @default(now()) @map("created_at")
+  updatedAt           DateTime         @updatedAt @map("updated_at")
+
+  walletProvider      WalletProviderDetail @relation(fields: [walletProviderId], references: [id])
+
+  @@unique([fanUserId, walletProviderId])
+  @@index([fanUserId])
+  @@index([status])
+  @@map("wallet_links")
+}
+
+model WalletTransaction {
+  id                  String                  @id @default(uuid())
+  walletProviderId    String                  @map("wallet_provider_id")
+  fanUserId           String?                 @map("fan_user_id")
+  walletLinkId        String?                 @map("wallet_link_id")
+  transactionType     WalletTransactionType   @map("transaction_type")
+  status              WalletTransactionStatus @default(CREATED)
+  amount              Decimal?                @db.Decimal(18, 6)
+  currency            String?
+  providerReference   String?                 @map("provider_reference")
+  idempotencyKey      String?                 @unique @map("idempotency_key")
+  requestSummaryJson  Json?                   @map("request_summary_json")
+  responseSummaryJson Json?                   @map("response_summary_json")
+  errorCode           String?                 @map("error_code")
+  errorMessage        String?                 @map("error_message")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
+
+  walletProvider      WalletProviderDetail    @relation(fields: [walletProviderId], references: [id])
+
+  @@index([fanUserId])
+  @@index([walletProviderId])
+  @@index([transactionType])
+  @@index([createdAt(sort: Desc)])
+  @@map("wallet_transactions")
+}
+
+// ── Campaign Analytics ─────────────────────────────────────────────────────────
+
+model CampaignAnalyticsSnapshot {
+  id                   String          @id @default(uuid())
+  campaignId           String          @map("campaign_id")
+  snapshotDate         DateTime        @map("snapshot_date") @db.Date
+  impressions          Int             @default(0)
+  uniqueParticipants   Int             @default(0) @map("unique_participants")
+  completedParticipants Int            @default(0) @map("completed_participants")
+  actionsCompleted     Int             @default(0) @map("actions_completed")
+  rewardsIssued        Int             @default(0) @map("rewards_issued")
+  rewardsRedeemed      Int             @default(0) @map("rewards_redeemed")
+  videoViews           Int             @default(0) @map("video_views")
+  videoCompletions     Int             @default(0) @map("video_completions")
+  ctaClicks            Int             @default(0) @map("cta_clicks")
+  walletLinksStarted   Int             @default(0) @map("wallet_links_started")
+  walletLinksCompleted Int             @default(0) @map("wallet_links_completed")
+  metadataJson         Json?           @map("metadata_json")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  campaign             SponsorCampaign @relation(fields: [campaignId], references: [id])
+
+  @@unique([campaignId, snapshotDate])
+  @@index([campaignId])
+  @@map("campaign_analytics_snapshots")
 }
