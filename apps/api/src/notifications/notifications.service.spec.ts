@@ -408,7 +408,7 @@ describe('NotificationsService', () => {
   // ── Live match alert ──────────────────────────────────────────────────────────
 
   describe('createLiveMatchAlert', () => {
-    it('notifies all active users', async () => {
+    it('notifies all active users in a single batch', async () => {
       prisma.user.findMany.mockResolvedValue([{ id: 'u1' }, { id: 'u2' }]);
       prisma.notificationPreference.findUnique.mockResolvedValue(null);
       prisma.notification.findUnique.mockResolvedValue(null);
@@ -420,6 +420,150 @@ describe('NotificationsService', () => {
       });
       expect(result.fixtureId).toBe('fix-1');
       expect(result.notified).toBe(2);
+    });
+
+    it('processes users across multiple batches without loading all at once', async () => {
+      // batchSize=3, two batches: [u1,u2,u3] then [u4,u5]
+      prisma.user.findMany
+        .mockResolvedValueOnce([{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }])
+        .mockResolvedValueOnce([{ id: 'u4' }, { id: 'u5' }]);
+      prisma.notificationPreference.findUnique.mockResolvedValue(null);
+      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.create.mockResolvedValue(mockNotification());
+
+      const result = await service.createLiveMatchAlert(
+        { fixtureId: 'fix-2', title: 'KO', body: 'Kickoff' },
+        3, // batchSize
+      );
+
+      expect(result.notified).toBe(5);
+      // findMany called twice (two batches)
+      expect(prisma.user.findMany).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ── Admin broadcast batching ──────────────────────────────────────────────────
+
+  describe('createAdminBroadcast batching', () => {
+    it('processes all users across multiple batches', async () => {
+      // batchSize=2, three batches: [u1,u2], [u3,u4], [u5]
+      prisma.user.findMany
+        .mockResolvedValueOnce([{ id: 'u1' }, { id: 'u2' }])
+        .mockResolvedValueOnce([{ id: 'u3' }, { id: 'u4' }])
+        .mockResolvedValueOnce([{ id: 'u5' }]);
+      prisma.notificationPreference.findUnique.mockResolvedValue(null);
+      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.create.mockResolvedValue(mockNotification());
+
+      const result = await service.createAdminBroadcast(
+        { type: NotificationType.ADMIN_BROADCAST, title: 'Hello', body: 'World' },
+        2, // batchSize
+      );
+
+      expect(result.broadcastTo).toBe(5);
+      // 3 batches → findMany called 3 times
+      expect(prisma.user.findMany).toHaveBeenCalledTimes(3);
+    });
+
+    it('uses cursor from last item in previous batch', async () => {
+      prisma.user.findMany
+        .mockResolvedValueOnce([{ id: 'aaa' }, { id: 'bbb' }])
+        .mockResolvedValueOnce([{ id: 'ccc' }]);
+      prisma.notificationPreference.findUnique.mockResolvedValue(null);
+      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.create.mockResolvedValue(mockNotification());
+
+      await service.createAdminBroadcast(
+        { type: NotificationType.ADMIN_BROADCAST, title: 'T', body: 'B' },
+        2,
+      );
+
+      const secondCall = (prisma.user.findMany as ReturnType<typeof vi.fn>).mock.calls[1]?.[0];
+      // Second call must pass cursor pointing to last item of first batch
+      expect(secondCall?.cursor).toEqual({ id: 'bbb' });
+      expect(secondCall?.skip).toBe(1);
+    });
+
+    it('returns broadcastTo=0, delivered=0 when no active users exist', async () => {
+      prisma.user.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.createAdminBroadcast(
+        { type: NotificationType.ADMIN_BROADCAST, title: 'Empty', body: 'No users' },
+        50,
+      );
+
+      expect(result.broadcastTo).toBe(0);
+      expect(result.delivered).toBe(0);
+      expect(prisma.user.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws BadRequestException for batchSize < 1', async () => {
+      await expect(
+        service.createAdminBroadcast(
+          { type: NotificationType.ADMIN_BROADCAST, title: 'T', body: 'B' },
+          0,
+        ),
+      ).rejects.toThrow('batchSize must be between 1 and');
+    });
+
+    it('throws BadRequestException for batchSize > 500', async () => {
+      await expect(
+        service.createAdminBroadcast(
+          { type: NotificationType.ADMIN_BROADCAST, title: 'T', body: 'B' },
+          501,
+        ),
+      ).rejects.toThrow('batchSize must be between 1 and');
+    });
+
+    it('delivered count excludes users who opted out of notifications', async () => {
+      // Two users: one with notifications disabled
+      prisma.user.findMany.mockResolvedValueOnce([{ id: 'opt-in' }, { id: 'opt-out' }]);
+      prisma.notificationPreference.findUnique
+        .mockResolvedValueOnce(mockPrefs({ inAppEnabled: true }))  // opt-in
+        .mockResolvedValueOnce(mockPrefs({ inAppEnabled: false })); // opt-out (SYSTEM would still go)
+      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.create.mockResolvedValue(mockNotification());
+
+      const result = await service.createAdminBroadcast(
+        { type: NotificationType.ADMIN_BROADCAST, title: 'T', body: 'B' },
+        50,
+      );
+
+      // broadcastTo counts all users in the batch
+      expect(result.broadcastTo).toBe(2);
+    });
+  });
+
+  // ── createLiveMatchAlert batch validation ─────────────────────────────────
+
+  describe('createLiveMatchAlert batch validation', () => {
+    it('throws BadRequestException for batchSize = 0', async () => {
+      await expect(
+        service.createLiveMatchAlert(
+          { fixtureId: 'f-1', title: 'Goal!', body: 'It went in' },
+          0,
+        ),
+      ).rejects.toThrow('batchSize must be between 1 and');
+    });
+
+    it('throws BadRequestException for batchSize > 500', async () => {
+      await expect(
+        service.createLiveMatchAlert(
+          { fixtureId: 'f-1', title: 'Goal!', body: 'It went in' },
+          501,
+        ),
+      ).rejects.toThrow('batchSize must be between 1 and');
+    });
+
+    it('returns totalNotified=0 when no active users', async () => {
+      prisma.user.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.createLiveMatchAlert(
+        { fixtureId: 'f-empty', title: 'KO', body: 'Match started' },
+        50,
+      );
+
+      expect(result.notified).toBe(0);
     });
   });
 });

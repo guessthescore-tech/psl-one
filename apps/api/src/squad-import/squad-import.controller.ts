@@ -4,12 +4,13 @@ import {
   Get,
   Param,
   Post,
-  Request,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { TokenPayload } from '../auth/providers/auth.provider.interface';
 import { SquadImportService, CreateManualBatchDto } from './squad-import.service';
 
 @Controller('admin/squad-import')
@@ -47,45 +48,45 @@ export class SquadImportController {
   createManualBatch(
     @Param('seasonId') seasonId: string,
     @Body() dto: CreateManualBatchDto,
-    @Request() req: { user?: { userId?: string } },
+    @CurrentUser() user: TokenPayload,
   ) {
-    return this.squadImportService.createManualBatch(seasonId, dto, req.user?.userId);
+    return this.squadImportService.createManualBatch(seasonId, dto, user.sub);
   }
 
   @Post(':seasonId/batches/:batchId/validate')
   validateBatch(
     @Param('seasonId') seasonId: string,
     @Param('batchId') batchId: string,
-    @Request() req: { user?: { userId?: string } },
+    @CurrentUser() user: TokenPayload,
   ) {
-    return this.squadImportService.validateBatch(seasonId, batchId, req.user?.userId);
+    return this.squadImportService.validateBatch(seasonId, batchId, user.sub);
   }
 
   @Post(':seasonId/batches/:batchId/import')
   importBatch(
     @Param('seasonId') seasonId: string,
     @Param('batchId') batchId: string,
-    @Request() req: { user?: { userId?: string } },
+    @CurrentUser() user: TokenPayload,
   ) {
-    return this.squadImportService.importBatch(seasonId, batchId, req.user?.userId);
+    return this.squadImportService.importBatch(seasonId, batchId, user.sub);
   }
 
   @Post(':seasonId/batches/:batchId/publish')
   publishBatch(
     @Param('seasonId') seasonId: string,
     @Param('batchId') batchId: string,
-    @Request() req: { user?: { userId?: string } },
+    @CurrentUser() user: TokenPayload,
   ) {
-    return this.squadImportService.publishBatch(seasonId, batchId, req.user?.userId);
+    return this.squadImportService.publishBatch(seasonId, batchId, user.sub);
   }
 
   @Post(':seasonId/batches/:batchId/cancel')
   cancelBatch(
     @Param('seasonId') seasonId: string,
     @Param('batchId') batchId: string,
-    @Request() req: { user?: { userId?: string } },
+    @CurrentUser() user: TokenPayload,
   ) {
-    return this.squadImportService.cancelBatch(seasonId, batchId, req.user?.userId);
+    return this.squadImportService.cancelBatch(seasonId, batchId, user.sub);
   }
 
   @Get(':seasonId/duplicates')

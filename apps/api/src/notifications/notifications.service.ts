@@ -1,4 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+
+const DEFAULT_NOTIFICATION_BATCH_SIZE = 250;
+const MAX_NOTIFICATION_BATCH_SIZE = 500;
 import {
   NotificationChannel,
   NotificationDeliveryStatus,
@@ -171,21 +174,46 @@ export class NotificationsService {
     return this._createNotification({ ...dto, userId: targetUserId });
   }
 
-  async createAdminBroadcast(dto: AdminBroadcastDto) {
-    const users = await this.prisma.user.findMany({
-      select: { id: true },
-      where: { isActive: true },
-    });
-    const userIds = users.map(u => u.id);
-    const results = await this.createManyInAppNotifications(userIds, {
+  async createAdminBroadcast(dto: AdminBroadcastDto, batchSize = DEFAULT_NOTIFICATION_BATCH_SIZE) {
+    if (batchSize < 1 || batchSize > MAX_NOTIFICATION_BATCH_SIZE) {
+      throw new BadRequestException(
+        `batchSize must be between 1 and ${MAX_NOTIFICATION_BATCH_SIZE}`,
+      );
+    }
+    const payload: Omit<CreateNotificationDto, 'userId'> = {
       type: dto.type,
       title: dto.title,
       body: dto.body,
       ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
       ...(dto.actionUrl !== undefined ? { actionUrl: dto.actionUrl } : {}),
       ...(dto.metadataJson !== undefined ? { metadataJson: dto.metadataJson } : {}),
-    });
-    return { broadcastTo: userIds.length, delivered: results.length };
+    };
+
+    let totalBroadcastTo = 0;
+    let totalDelivered = 0;
+    let cursor: string | undefined;
+
+    do {
+      const batch = await this.prisma.user.findMany({
+        select: { id: true },
+        where: { isActive: true },
+        take: batchSize,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { id: 'asc' },
+      });
+
+      if (batch.length === 0) break;
+
+      const userIds = batch.map(u => u.id);
+      const results = await this.createManyInAppNotifications(userIds, payload);
+      totalBroadcastTo += batch.length;
+      totalDelivered += results.length;
+
+      cursor = batch[batch.length - 1]!.id;
+      if (batch.length < batchSize) break;
+    } while (true);
+
+    return { broadcastTo: totalBroadcastTo, delivered: totalDelivered };
   }
 
   async createFantasyDeadlineAlert(dto: { gameweekId: string; deadlineAt: Date; gameweekName: string }) {
@@ -206,13 +234,13 @@ export class NotificationsService {
     return { notified: results.length, gameweekId: dto.gameweekId };
   }
 
-  async createLiveMatchAlert(dto: { fixtureId: string; title: string; body: string }) {
-    const users = await this.prisma.user.findMany({
-      select: { id: true },
-      where: { isActive: true },
-    });
-    const userIds = users.map(u => u.id);
-    const results = await this.createManyInAppNotifications(userIds, {
+  async createLiveMatchAlert(dto: { fixtureId: string; title: string; body: string }, batchSize = DEFAULT_NOTIFICATION_BATCH_SIZE) {
+    if (batchSize < 1 || batchSize > MAX_NOTIFICATION_BATCH_SIZE) {
+      throw new BadRequestException(
+        `batchSize must be between 1 and ${MAX_NOTIFICATION_BATCH_SIZE}`,
+      );
+    }
+    const payload: Omit<CreateNotificationDto, 'userId'> = {
       type: NotificationType.LIVE_MATCH_ALERT,
       title: dto.title,
       body: dto.body,
@@ -220,8 +248,31 @@ export class NotificationsService {
       sourceType: 'FIXTURE',
       sourceId: dto.fixtureId,
       actionUrl: `/football/match-centre`,
-    });
-    return { notified: results.length, fixtureId: dto.fixtureId };
+    };
+
+    let totalNotified = 0;
+    let cursor: string | undefined;
+
+    do {
+      const batch = await this.prisma.user.findMany({
+        select: { id: true },
+        where: { isActive: true },
+        take: batchSize,
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        orderBy: { id: 'asc' },
+      });
+
+      if (batch.length === 0) break;
+
+      const userIds = batch.map(u => u.id);
+      const results = await this.createManyInAppNotifications(userIds, payload);
+      totalNotified += results.length;
+
+      cursor = batch[batch.length - 1]!.id;
+      if (batch.length < batchSize) break;
+    } while (true);
+
+    return { notified: totalNotified, fixtureId: dto.fixtureId };
   }
 
   // ── Fan inbox ────────────────────────────────────────────────────────────────

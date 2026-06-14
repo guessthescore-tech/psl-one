@@ -156,19 +156,18 @@ export class LeaderboardsService {
     let rows: Array<{ userId: string; totalPoints: number }>;
 
     if (effectiveSeasonId) {
-      // Derive season from fixture.seasonId — cannot use groupBy with relation filter
-      const entries = await this.prisma.predictionPointsLedger.findMany({
-        where: { fixture: { seasonId: effectiveSeasonId } },
-        select: { userId: true, points: true },
-      });
-      const aggregated = new Map<string, number>();
-      for (const e of entries) {
-        aggregated.set(e.userId, (aggregated.get(e.userId) ?? 0) + e.points);
-      }
-      rows = [...aggregated.entries()]
-        .map(([userId, totalPoints]) => ({ userId, totalPoints }))
-        .sort((a, b) => b.totalPoints - a.totalPoints)
-        .slice(0, limit);
+      // groupBy does not support cross-relation where; use parameterised raw SQL instead
+      // to avoid loading the full ledger into Node memory.
+      const rawRows = await this.prisma.$queryRaw<Array<{ user_id: string; total_points: bigint }>>`
+        SELECT ppl.user_id, SUM(ppl.points) AS total_points
+        FROM prediction_points_ledger ppl
+        INNER JOIN fixtures f ON f.id = ppl.fixture_id
+        WHERE f.season_id = ${effectiveSeasonId}
+        GROUP BY ppl.user_id
+        ORDER BY total_points DESC, ppl.user_id ASC
+        LIMIT ${limit}
+      `;
+      rows = rawRows.map(r => ({ userId: r.user_id, totalPoints: Number(r.total_points) }));
     } else {
       const grouped = await this.prisma.predictionPointsLedger.groupBy({
         by: ['userId'],

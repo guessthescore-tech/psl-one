@@ -50,11 +50,20 @@ Created 2026-06-14 documenting decisions made and validated during Sprint 2 deli
 
 ---
 
+## Sprint 3 ADRs — ADR-027 onwards
+
+| ADR | Title | Status | Story |
+|-----|-------|--------|-------|
+| [ADR-027](ADR-027.md) | Durable Event Processing Deferred Pending Measured Requirement | PROPOSED | S3-INFRA-00 |
+
+---
+
 ## ADR Numbering Convention
 
 - `ADR-001` through `ADR-011` — Sprint 0 architecture planning (3-digit, committed)
 - `ADR-012` through `ADR-026` — Sprint 2 validated decisions (3-digit, continuing series)
-- Next ADR: `ADR-027`
+- `ADR-027` onwards — Sprint 3 decisions
+- Next ADR: `ADR-028`
 
 ---
 

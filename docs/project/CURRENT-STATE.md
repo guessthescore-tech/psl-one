@@ -3,7 +3,7 @@
 **Purpose:** Verified point-in-time platform state  
 **Audience:** Product owners, programme managers, architects, QA leads  
 **Status:** Current  
-**Last verified:** 2026-06-14 (STORY-39 commit `08e3852`)  
+**Last verified:** 2026-06-14 (S3-INFRA-00 implemented, awaiting acceptance)  
 **Source of truth:** git log, test output, prisma migrate status  
 
 ---
@@ -42,11 +42,11 @@ Full recent history (newest first):
 
 | Metric | Count | Source |
 |--------|-------|--------|
-| API unit test files | 54 | `find apps/api/src -name "*.spec.ts" \| wc -l` |
-| API tests passing | 1,560 | `pnpm --filter @psl-one/api test` |
+| API unit test files | 61 | `find apps/api/src -name "*.spec.ts" \| wc -l` (after S3-INFRA-00) |
+| API tests passing | 1,645 | `pnpm --filter @psl-one/api test` (verified S3-INFRA-00 gate run 2026-06-14) |
 | Web spec files | 3 | `find apps/web/src -name "*.spec.ts" \| wc -l` |
 | Web pages (`page.tsx`) | 337 | `find apps/web/src/app -name "page.tsx" \| wc -l` |
-| Prisma migrations | 38 | `find apps/api/prisma/migrations -maxdepth 1 -type d \| wc -l` minus root |
+| Prisma migrations | 39 | `find apps/api/prisma/migrations -maxdepth 1 -type d \| wc -l` minus root |
 | NestJS modules | 25+ | `find apps/api/src -name "*.module.ts" \| wc -l` |
 
 ---
@@ -121,7 +121,7 @@ Full recent history (newest first):
 | Item | Severity | Story |
 |------|----------|-------|
 | localStorage JWT (no httpOnly cookies) | HIGH | Sprint 3 auth hardening |
-| No rate limiting | HIGH | Sprint 3 WAF/API Gateway |
+| No rate limiting at WAF/API gateway layer | HIGH | Sprint 3 WAF/API Gateway (auth endpoints have in-process guard) |
 | No production secret management | HIGH | Sprint 3 (AWS Secrets Manager) |
 | `getBetaToken()` still returns empty string as fallback | MEDIUM | Sprint 3 session management |
 | No E2E test suite | MEDIUM | Sprint 3 QA |
@@ -156,5 +156,6 @@ All 13 season-switching readiness checks must pass before activation:
 
 | Story | Title | Status |
 |-------|-------|--------|
+| S3-INFRA-00 | Security & Performance Hardening Gate | IMPLEMENTED — awaiting acceptance |
 | STORY-40 | Official PSL Data Finalisation | RESERVED — do not implement |
-| Sprint 3 | Production Infrastructure & Deployment | PLANNED |
+| S3-INFRA-01 | Containerisation & Staging Deployment (ECS, CloudFront, CI/CD) | PLANNED |

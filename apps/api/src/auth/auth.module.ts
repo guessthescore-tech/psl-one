@@ -7,6 +7,23 @@ import { AuthController } from './auth.controller';
 import { LocalJwtProvider } from './providers/local-jwt.provider';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import {
+  PasswordResetNotifier,
+  ConsolePasswordResetNotifier,
+  NullPasswordResetNotifier,
+} from './providers/password-reset-notifier';
+import { AuthThrottleGuard } from './guards/auth-throttle.guard';
+
+export function passwordResetNotifierFactory(config: ConfigService): PasswordResetNotifier {
+  const env = config.get<string>('NODE_ENV') ?? 'development';
+  // ConsolePasswordResetNotifier only in isolated local development.
+  // test / staging / production all use NullPasswordResetNotifier so raw
+  // tokens are never written to shared or structured logs.
+  if (env === 'development') {
+    return new ConsolePasswordResetNotifier();
+  }
+  return new NullPasswordResetNotifier(config);
+}
 
 @Module({
   imports: [
@@ -20,7 +37,18 @@ import { RolesGuard } from './guards/roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalJwtProvider, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    LocalJwtProvider,
+    JwtAuthGuard,
+    RolesGuard,
+    AuthThrottleGuard,
+    {
+      provide: PasswordResetNotifier,
+      inject: [ConfigService],
+      useFactory: passwordResetNotifierFactory,
+    },
+  ],
   exports: [JwtAuthGuard, LocalJwtProvider, RolesGuard],
 })
 export class AuthModule {}

@@ -1,15 +1,15 @@
 # PSL One — Migration Reference
 
-**Purpose:** Ordered list of all 38 database migrations  
+**Purpose:** Ordered list of all 39 database migrations  
 **Audience:** Backend engineers  
-**Status:** Current as of STORY-39  
+**Status:** Current as of S3-INFRA-00 (Sprint 3 Security & Performance Hardening Gate)  
 **Last verified:** 2026-06-14  
 
 ---
 
 ## Migration Count
 
-**Total migrations:** 38 (as of STORY-39)
+**Total migrations:** 39 (as of S3-INFRA-00)
 
 ---
 
@@ -61,6 +61,7 @@ These early migrations establish the core schema. Exact timestamps vary; see `ap
 | `20260613000001_social_prediction_match_centre` | STORY-38 | SocialPredictionListing, SocialPredictionMatch, SocialPredictionPointsEntry, MatchEvent, LiveMatchSession |
 | `20260613000002_direct_challenges_campaign_triggers` | STORY-38 | DirectChallenge, MarketplaceListing, ChallengeIdempotency, CampaignTriggerLog extensions |
 | `20260614000001_beta_launch_readiness` | STORY-39 | BetaCohort, BetaCohortMember, SeasonActivationApproval |
+| `20260615000001_security_performance_hardening` | S3-INFRA-00 | Additive indexes for confirmed high-volume query paths: match_events(fixture_id, minute), fantasy_points_ledger(fantasy_team_id, fixture_id), prediction_points_ledger(fixture_id) |
 
 ---
 

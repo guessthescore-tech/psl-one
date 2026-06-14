@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { AuditEvent, ConsentPurpose, UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocalJwtProvider } from './providers/local-jwt.provider';
+import { PasswordResetNotifier } from './providers/password-reset-notifier';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
@@ -37,6 +38,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private authProvider: LocalJwtProvider,
+    private passwordResetNotifier: PasswordResetNotifier,
   ) {}
 
   async register(dto: RegisterDto, userAgent?: string): Promise<RegisterResult> {
@@ -195,8 +197,7 @@ export class AuthService {
 
       await this.writeAuditLog(user.id, AuditEvent.PASSWORD_RESET_REQUEST, true, userAgent);
 
-      // In production this is sent via SES. In local dev, log to console.
-      console.log(`[DEV] Password reset token for ${email}: ${rawToken}`);
+      await this.passwordResetNotifier.sendPasswordResetEmail(email, rawToken);
     } else {
       await this.writeAuditLog(null, AuditEvent.PASSWORD_RESET_REQUEST, false, userAgent);
     }

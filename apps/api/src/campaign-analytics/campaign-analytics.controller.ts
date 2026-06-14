@@ -14,6 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TokenPayload } from '../auth/providers/auth.provider.interface';
 import { CampaignAnalyticsService } from './campaign-analytics.service';
+import { RecalculateSnapshotDto } from './dto/recalculate-snapshot.dto';
 
 @Controller()
 export class CampaignAnalyticsController {
@@ -32,7 +33,7 @@ export class CampaignAnalyticsController {
   @HttpCode(HttpStatus.OK)
   recalculateDailySnapshot(
     @Param('id') id: string,
-    @Body() body: { snapshotDate?: string },
+    @Body() body: RecalculateSnapshotDto,
     @CurrentUser() user: TokenPayload,
   ) {
     const snapshotDate = body.snapshotDate ? new Date(body.snapshotDate) : undefined;

@@ -14,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { AuthThrottleGuard } from './guards/auth-throttle.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { TokenPayload } from './providers/auth.provider.interface';
 
@@ -22,6 +23,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.CREATED)
   async register(
     @Body() dto: RegisterDto,
@@ -35,6 +37,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto, @Headers('user-agent') ua: string) {
     return this.authService.login(dto, ua);
@@ -59,6 +62,7 @@ export class AuthController {
   }
 
   @Post('password-reset/request')
+  @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.OK)
   async requestPasswordReset(
     @Body() dto: PasswordResetRequestDto,
@@ -69,6 +73,7 @@ export class AuthController {
   }
 
   @Post('password-reset/confirm')
+  @UseGuards(AuthThrottleGuard)
   @HttpCode(HttpStatus.OK)
   async confirmPasswordReset(
     @Body() dto: PasswordResetConfirmDto,

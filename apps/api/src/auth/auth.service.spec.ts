@@ -7,6 +7,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { LocalJwtProvider } from './providers/local-jwt.provider';
+import type { PasswordResetNotifier } from './providers/password-reset-notifier';
 import type { RegisterDto } from './dto/register.dto';
 
 vi.mock('bcrypt', () => ({
@@ -47,6 +48,10 @@ const makeProviderMock = () => ({
   logout: vi.fn().mockResolvedValue(undefined),
 });
 
+const makeNotifierMock = () => ({
+  sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
+});
+
 const VALID_REGISTER_DTO: RegisterDto = {
   email: 'fan@pslone.co.za',
   password: 'Password1!',
@@ -58,13 +63,14 @@ describe('AuthService', () => {
   let authService: AuthService;
   let prisma: ReturnType<typeof makePrismaMock>;
   let provider: ReturnType<typeof makeProviderMock>;
+  let notifier: ReturnType<typeof makeNotifierMock>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
     provider = makeProviderMock();
+    notifier = makeNotifierMock();
 
-    // Callback-style $transaction delegates to a fresh mock that mirrors the outer mock
     prisma.$transaction = vi.fn().mockImplementation(async (arg: unknown) => {
       if (typeof arg === 'function') {
         const tx = {
@@ -76,7 +82,11 @@ describe('AuthService', () => {
       return Promise.all(arg as Promise<unknown>[]);
     });
 
-    authService = new AuthService(prisma as unknown as PrismaService, provider as unknown as LocalJwtProvider);
+    authService = new AuthService(
+      prisma as unknown as PrismaService,
+      provider as unknown as LocalJwtProvider,
+      notifier as unknown as PasswordResetNotifier,
+    );
   });
 
   // ── 1. Register success ───────────────────────────────────────────────────
@@ -101,7 +111,6 @@ describe('AuthService', () => {
     const result = await authService.register(VALID_REGISTER_DTO);
 
     expect(result).toEqual({ enumerable: false });
-    // No token in the response
     expect((result as { accessToken?: string }).accessToken).toBeUndefined();
   });
 
@@ -164,7 +173,46 @@ describe('AuthService', () => {
     );
   });
 
-  // ── 8. Password reset request does not enumerate ──────────────────────────
+  // ── 7. Password reset: raw token delivered to notifier, not to console ────
+  it('requestPasswordReset passes raw token to notifier, never logs it', async () => {
+    const consoleSpy = vi.spyOn(console, 'log');
+    (prisma.user.findUnique as Mock).mockResolvedValue({ id: 'uid-1', isActive: true });
+
+    await authService.requestPasswordReset('fan@pslone.co.za');
+
+    // Notifier was called with the email and some token
+    expect(notifier.sendPasswordResetEmail).toHaveBeenCalledWith(
+      'fan@pslone.co.za',
+      expect.any(String),
+    );
+
+    // The raw token must not appear in any console.log call
+    const rawTokenPassed = (notifier.sendPasswordResetEmail as Mock).mock.calls[0]?.[1] as string;
+    expect(rawTokenPassed.length).toBeGreaterThan(0);
+    const logCalls = consoleSpy.mock.calls.flat().join(' ');
+    expect(logCalls).not.toContain(rawTokenPassed);
+
+    consoleSpy.mockRestore();
+  });
+
+  // ── 8. Password reset: only the hash is stored in DB, not the raw token ───
+  it('requestPasswordReset stores tokenHash in DB, not raw token', async () => {
+    (prisma.user.findUnique as Mock).mockResolvedValue({ id: 'uid-1', isActive: true });
+
+    await authService.requestPasswordReset('fan@pslone.co.za');
+
+    const createCall = (prisma.passwordResetToken.create as Mock).mock.calls[0]?.[0] as {
+      data: { tokenHash: string };
+    };
+    const storedHash = createCall.data.tokenHash;
+    const rawTokenPassed = (notifier.sendPasswordResetEmail as Mock).mock.calls[0]?.[1] as string;
+
+    // The value stored is the SHA-256 hash of the raw token, not the token itself
+    expect(storedHash).toBe(createHash('sha256').update(rawTokenPassed).digest('hex'));
+    expect(storedHash).not.toBe(rawTokenPassed);
+  });
+
+  // ── 9. Password reset request does not enumerate ──────────────────────────
   it('requestPasswordReset resolves without error for unknown email', async () => {
     (prisma.user.findUnique as Mock).mockResolvedValue(null);
 
@@ -172,7 +220,8 @@ describe('AuthService', () => {
       authService.requestPasswordReset('ghost@nowhere.co.za'),
     ).resolves.toBeUndefined();
 
-    // Audit log written with null userId to track the attempt
+    expect(notifier.sendPasswordResetEmail).not.toHaveBeenCalled();
+
     expect(prisma.authAuditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ userId: null, event: AuditEvent.PASSWORD_RESET_REQUEST, success: false }),
@@ -180,7 +229,7 @@ describe('AuthService', () => {
     );
   });
 
-  // ── 9. Password reset confirm works ──────────────────────────────────────
+  // ── 10. Password reset confirm works ──────────────────────────────────────
   it('confirmPasswordReset updates password when token is valid', async () => {
     const rawToken = 'valid-raw-token-abc123';
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
@@ -201,7 +250,7 @@ describe('AuthService', () => {
   });
 });
 
-// ── 7. /auth/me requires auth ─────────────────────────────────────────────
+// ── JwtAuthGuard requires Authorization header ────────────────────────────
 describe('JwtAuthGuard', () => {
   it('throws UnauthorizedException when no Authorization header is present', async () => {
     const mockProvider = { verifyToken: vi.fn() } as unknown as LocalJwtProvider;
@@ -210,6 +259,21 @@ describe('JwtAuthGuard', () => {
     const ctx = {
       switchToHttp: () => ({
         getRequest: () => ({ headers: {} }),
+      }),
+    } as unknown as ExecutionContext;
+
+    await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('throws UnauthorizedException when Bearer token is invalid', async () => {
+    const mockProvider = {
+      verifyToken: vi.fn().mockRejectedValue(new Error('invalid')),
+    } as unknown as LocalJwtProvider;
+    const guard = new JwtAuthGuard(mockProvider);
+
+    const ctx = {
+      switchToHttp: () => ({
+        getRequest: () => ({ headers: { authorization: 'Bearer bad-token' } }),
       }),
     } as unknown as ExecutionContext;
 

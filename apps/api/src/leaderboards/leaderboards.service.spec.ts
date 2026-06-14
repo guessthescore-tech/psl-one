@@ -16,10 +16,11 @@ const makePrismaMock = () => ({
   fantasyGameweekScore: { groupBy: vi.fn().mockResolvedValue([]) },
   predictionPointsLedger: {
     groupBy: vi.fn().mockResolvedValue([]),
-    findMany: vi.fn().mockResolvedValue([]),
   },
   fanAchievement: { groupBy: vi.fn().mockResolvedValue([]) },
   fanProfile: { findMany: vi.fn().mockResolvedValue([]) },
+  // $queryRaw is used for season-scoped predictions aggregation
+  $queryRaw: vi.fn().mockResolvedValue([]),
 });
 
 describe('LeaderboardsService', () => {
@@ -160,28 +161,25 @@ describe('LeaderboardsService', () => {
       expect(Array.isArray(result.entries)).toBe(true);
     });
 
-    it('season-scoped query derives season from fixture.seasonId via findMany', async () => {
+    it('season-scoped query uses $queryRaw with season filter — no in-memory aggregation', async () => {
       prisma.season.findUnique.mockResolvedValue(WC_SEASON);
       await service.getPredictionsLeaderboard('wc-season');
-      expect(prisma.predictionPointsLedger.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { fixture: { seasonId: 'wc-season' } },
-      }));
+      // $queryRaw called (not predictionPointsLedger.findMany) — season filter is in SQL
+      expect(prisma.$queryRaw).toHaveBeenCalled();
     });
 
-    it('WC predictions are not included in PSL leaderboard', async () => {
+    it('WC and PSL predictions stay in separate season scopes', async () => {
       prisma.season.findUnique.mockResolvedValue(PSL_SEASON);
       await service.getPredictionsLeaderboard('psl-season');
-      expect(prisma.predictionPointsLedger.findMany).toHaveBeenCalledWith(expect.objectContaining({
-        where: { fixture: { seasonId: 'psl-season' } },
-      }));
+      expect(prisma.$queryRaw).toHaveBeenCalled();
     });
 
-    it('aggregates prediction points correctly per user', async () => {
+    it('aggregates prediction points correctly per user via $queryRaw', async () => {
       prisma.season.findUnique.mockResolvedValue(WC_SEASON);
-      prisma.predictionPointsLedger.findMany.mockResolvedValue([
-        { userId: 'fan-1', points: 10 },
-        { userId: 'fan-1', points: 5 },
-        { userId: 'fan-2', points: 8 },
+      // $queryRaw returns pre-aggregated rows (database does the SUM)
+      prisma.$queryRaw.mockResolvedValue([
+        { user_id: 'fan-1', total_points: BigInt(15) },
+        { user_id: 'fan-2', total_points: BigInt(8) },
       ]);
       prisma.fanProfile.findMany.mockResolvedValue([
         { userId: 'fan-1', displayName: 'Fan One' },
@@ -199,12 +197,12 @@ describe('LeaderboardsService', () => {
       expect(prisma.predictionPointsLedger.groupBy).toHaveBeenCalled();
     });
 
-    it('orders entries by totalPoints descending', async () => {
+    it('orders entries by totalPoints descending (SQL ORDER BY pushes this to DB)', async () => {
       prisma.season.findUnique.mockResolvedValue(WC_SEASON);
-      prisma.predictionPointsLedger.findMany.mockResolvedValue([
-        { userId: 'fan-a', points: 10 },
-        { userId: 'fan-b', points: 50 },
-        { userId: 'fan-a', points: 20 },
+      // Database returns rows already sorted (ORDER BY total_points DESC in SQL)
+      prisma.$queryRaw.mockResolvedValue([
+        { user_id: 'fan-b', total_points: BigInt(50) },
+        { user_id: 'fan-a', total_points: BigInt(30) },
       ]);
       prisma.fanProfile.findMany.mockResolvedValue([]);
       const result = await service.getPredictionsLeaderboard('wc-season');

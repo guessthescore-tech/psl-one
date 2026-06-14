@@ -503,6 +503,7 @@ model MatchEvent {
   player        Player? @relation(fields: [playerId], references: [id])
   relatedPlayer Player? @relation("MatchEventRelatedPlayer", fields: [relatedPlayerId], references: [id])
 
+  @@index([fixtureId, minute])
   @@map("match_events")
 }
 
@@ -665,6 +666,7 @@ model PredictionPointsLedger {
   challenge  PeerChallenge?   @relation(fields: [challengeId], references: [id])
 
   @@index([userId])
+  @@index([fixtureId])
   @@map("prediction_points_ledger")
 }
 
@@ -820,6 +822,8 @@ model FantasyPointsLedger {
   player      Player      @relation(fields: [playerId], references: [id])
   fixture     Fixture     @relation(fields: [fixtureId], references: [id])
 
+  @@index([fantasyTeamId, fixtureId])
+  @@index([fantasyTeamId])
   @@map("fantasy_points_ledger")
 }
 
