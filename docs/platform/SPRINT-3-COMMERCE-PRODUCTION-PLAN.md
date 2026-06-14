@@ -1,5 +1,8 @@
 # PSL One — Sprint 3: Commerce & Production Readiness Plan
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Sprint:** Sprint 3  
 **Theme:** Commerce, Sponsor Activation, Production Deployment, First Product Launch  
 **Trigger:** PSL season calibration complete, platform ready for public launch  

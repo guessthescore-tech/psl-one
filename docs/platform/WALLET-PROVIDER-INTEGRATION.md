@@ -1,5 +1,8 @@
 # PSL One — Wallet Provider Integration Guide
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Status:** Sandbox only — PRODUCTION_DISABLED  
 **Sprint:** 2 (STORY-37)
 

@@ -1,5 +1,8 @@
 # PSL One — Sprint 2: PSL Season Readiness Plan
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Sprint:** Sprint 2  
 **Theme:** PSL Season Data & Operating Model Readiness  
 **Trigger:** World Cup ends, official PSL season data becomes available  

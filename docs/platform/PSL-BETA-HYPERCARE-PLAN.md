@@ -1,5 +1,8 @@
 # PSL Beta Hypercare Plan
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 > Status: DRAFT  
 > Last updated: 2026-06-14 (STORY-39)  
 > Hypercare period: First 14 days after beta cohort invite

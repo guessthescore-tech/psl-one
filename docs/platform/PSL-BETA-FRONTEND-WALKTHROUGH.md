@@ -1,5 +1,8 @@
 # PSL Beta Frontend Walkthrough
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 > Status: READY  
 > Last updated: 2026-06-14 (STORY-39)  
 > Total pages: 336 (319 from STORY-38 + 17 admin beta-launch + 1 fan /beta)

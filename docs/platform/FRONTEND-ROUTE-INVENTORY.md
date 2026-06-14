@@ -1,5 +1,8 @@
 # PSL One — Frontend Route Inventory
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Framework:** Next.js 14 App Router  
 **Base URL (local):** `http://localhost:3001`  
 **Auth:** Bearer token from login (stored in component state; `dev-token` placeholder in Sprint 1)  

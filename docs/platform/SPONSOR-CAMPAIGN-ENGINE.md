@@ -1,5 +1,8 @@
 # PSL One — Sponsor Campaign Engine
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Story:** STORY-37  
 **Sprint:** 2  
 **Status:** Sandbox-ready; production requires sponsor onboarding and media rights

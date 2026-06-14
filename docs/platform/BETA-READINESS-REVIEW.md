@@ -1,5 +1,8 @@
 # PSL One — Beta Readiness Review
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Purpose:** Assess platform readiness for World Cup 2026 beta testing  
 **Date:** 2026-06-13 (updated STORY-36)  
 **Status:** BETA-READY (World Cup validation mode)

@@ -1,5 +1,8 @@
 # PSL One — Platform Overview
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Version:** Sprint 2 — STORY-35 complete  
 **Date:** 2026-06-12
 

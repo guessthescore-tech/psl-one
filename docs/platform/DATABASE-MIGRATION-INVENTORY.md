@@ -1,5 +1,8 @@
 # PSL One — Database Migration Inventory
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Database:** Local PostgreSQL  
 **Database name:** `psl_identity_dev`  
 **Connection pattern:** `postgresql://localhost:5432/psl_identity_dev` (credentials in `.env`, never committed)  

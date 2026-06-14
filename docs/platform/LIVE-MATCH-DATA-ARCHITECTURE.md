@@ -1,5 +1,8 @@
 # PSL One — Live Match Data Architecture
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Story:** STORY-38  
 **Status:** FOUNDATION_READY (official provider: PROVIDER_REQUIRED)
 

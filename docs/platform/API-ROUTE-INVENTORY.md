@@ -1,5 +1,8 @@
 # PSL One — API Route Inventory
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Base URL (local):** `http://localhost:4000`  
 **Auth header:** `Authorization: Bearer <jwt>`  
 **Roles:** `FAN`, `PSL_ADMIN`  

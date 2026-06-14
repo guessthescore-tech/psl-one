@@ -1,5 +1,8 @@
 # PSL One — Expert Review After Sprint 1
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Date:** 2026-06-11  
 **Sprint:** 1 Final (812 API tests, 8 web tests, 25 stories complete)  
 **Scope:** Full codebase review using all seven expert lenses before STORY-26 begins  

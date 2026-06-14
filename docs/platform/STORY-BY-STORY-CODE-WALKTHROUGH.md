@@ -1,5 +1,8 @@
 # PSL One — Story-by-Story Code Walkthrough
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 This document explains what each Sprint 1 story built, how the code works, and where the files live. It is intended for engineers joining the project.
 
 ---

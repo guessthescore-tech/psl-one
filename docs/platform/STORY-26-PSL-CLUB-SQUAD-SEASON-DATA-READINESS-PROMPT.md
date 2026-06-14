@@ -1,5 +1,8 @@
 # STORY-26 — PSL Club, Squad & Season Data Readiness
 
+> **Historical Implementation Record** — This document was created during Sprint delivery as a working reference. It may be superseded by content in `docs/architecture/`, `docs/engineering/`, `docs/reference/`, or `docs/domain/`. Do not use as the canonical source for system behaviour.
+
+
 **Sprint:** Sprint 2 — PSL Season Readiness  
 **Theme:** Transition from World Cup beta data to PSL season operating mode  
 **Goal:** Ensure all PSL clubs and their squads are accurately represented in the system and ready for the 2026/27 season, without breaking WC 2026 historical data
