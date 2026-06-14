@@ -158,10 +158,20 @@ These documents were created during Sprint 1 and Sprint 2 as implementation reco
 
 ---
 
+## AI Agent Tooling
+
+| Document | Purpose |
+|----------|---------|
+| [AI Agent Workflow](engineering/AI-AGENT-WORKFLOW.md) | How Claude Code and Codex agents are configured and used |
+| [AGENTS.md](../AGENTS.md) | Codex adapter instructions (equivalent of CLAUDE.md) |
+| [CLAUDE.md](../CLAUDE.md) | Claude Code adapter instructions |
+
+---
+
 ## Handover Records
 
 | Document | Purpose |
 |----------|---------|
-| [STORY-39 Handover](../STORY-39-HANDOVER.md) | Sprint 2 final handover |
-| [STORY-38 Handover](../STORY-38-HANDOVER.md) | STORY-38 handover |
-| [Sprint 1 Final Handover](../SPRINT-1-FINAL-HANDOVER.md) | Sprint 1 handover |
+| [STORY-39 Handover](history/handovers/STORY-39-HANDOVER.md) | Sprint 2 final handover |
+| [STORY-38 Handover](history/handovers/STORY-38-HANDOVER.md) | STORY-38 handover |
+| [Sprint 1 Final Handover](history/handovers/SPRINT-1-FINAL-HANDOVER.md) | Sprint 1 handover |

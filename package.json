@@ -14,7 +14,9 @@
     "typecheck": "turbo run typecheck",
     "dev": "turbo run dev",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
-    "clean": "turbo run clean && rimraf node_modules"
+    "clean": "turbo run clean && rimraf node_modules",
+    "codex:validate": "node scripts/validate-codex-project.mjs",
+    "docs:validate": "node scripts/validate-docs.mjs"
   },
   "devDependencies": {
     "turbo": "^2.0.0",

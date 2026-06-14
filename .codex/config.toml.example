@@ -1,0 +1,36 @@
+# PSL One — Codex configuration reference
+# Compatible with: codex-cli 0.139.x
+#
+# LOADING NOTE:
+# As of codex-cli 0.139.0, the global user config is loaded from:
+#   ~/.codex/config.toml
+# Project-local .codex/config.toml loading is NOT confirmed for this version.
+# To apply these settings, copy the relevant keys to ~/.codex/config.toml.
+# Use -c key=value on the command line for per-session overrides.
+#
+# Confirmed valid keys and values (verified against codex-cli 0.139.0):
+#   -c model="o3"
+#   -c approval_policy="on-request"
+#   -c 'sandbox_permissions=["disk-full-read-access"]'
+#   -c shell_environment_policy.inherit=all
+#
+# Recommended project settings (copy to ~/.codex/config.toml if desired):
+
+# approval_policy: on-request (prompt before each command) or never (fully autonomous)
+# Confirmed valid values from CLI binary: "on-request", "never"
+# Do NOT use "on-failure" -- not confirmed as a valid value in 0.139.0
+approval_policy = "on-request"
+
+# Shell environment: inherit nothing by default in test/CI contexts
+[shell_environment_policy]
+inherit = "none"
+set = { NODE_ENV = "test" }
+
+# Sandbox permissions: allow file reads (confirmed via -c help example)
+# Uncomment to apply:
+# sandbox_permissions = ["disk-full-read-access"]
+
+# Do NOT set:
+#   model -- prefer inheriting the user's selected/default model
+#   project_doc -- AGENTS.md is auto-discovered at the repository root
+#   blanket-auto approval paired with unrestricted sandbox mode -- blocked by CLI

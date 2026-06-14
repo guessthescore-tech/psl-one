@@ -35,12 +35,22 @@ psl-one/
     adr/
     project/
     platform/             # Legacy Sprint 1/2 platform docs
+    history/              # Historical handover records
   .github/
     workflows/            # CI/CD (stale — needs Sprint 3 update)
+  .codex/                 # Codex CLI adapter
+    config.toml           # Runtime config (model, approval policy)
+    agents/               # Agent role TOML definitions
+    review-agents/        # Inline review prompts
+  .agents/skills/         # Shared agent skill definitions
+  .claude/                # Claude Code adapter
+  scripts/                # Tooling scripts (validate-codex-project.mjs)
   docker-compose.yml      # Local infrastructure
   turbo.json              # Turbo build pipeline
   pnpm-workspace.yaml     # pnpm workspace config
   package.json            # Root package.json
+  AGENTS.md               # Codex adapter instructions
+  CLAUDE.md               # Claude Code adapter instructions
   README.md               # Getting started
 ```
 
@@ -163,3 +173,31 @@ All documentation lives in `docs/`. When adding a new feature:
 | `docker-compose.yml` | Local infrastructure (DB, Kafka, Redis, Mailpit) |
 | `turbo.json` | Turbo task pipeline |
 | `pnpm-workspace.yaml` | Workspace package paths |
+| `AGENTS.md` | Codex adapter instructions |
+| `CLAUDE.md` | Claude Code adapter instructions |
+| `.codex/config.toml` | Codex runtime configuration |
+| `.codex/agents/` | Codex agent role definitions |
+| `.agents/skills/` | Shared agent skill definitions |
+| `scripts/validate-codex-project.mjs` | Codex project configuration validator |
+
+---
+
+## AI Agent Tooling
+
+This repository has a full Codex CLI adapter alongside the existing Claude Code adapter.
+
+```bash
+# Validate Codex project configuration
+pnpm codex:validate
+
+# Run an interactive Codex session with project context
+codex
+
+# Run a named review agent
+codex exec --agent .codex/agents/independent-code-reviewer.toml "Review AuthModule"
+
+# Quick security review pass
+codex review --prompt .codex/review-agents/security-review.md
+```
+
+See [AI Agent Workflow](AI-AGENT-WORKFLOW.md) for the full guide.

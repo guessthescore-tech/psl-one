@@ -18,7 +18,7 @@ These are encoded in `CLAUDE.md` and apply to all contributions:
 - **Never bypass RBAC** — all admin routes require `JwtAuthGuard + RolesGuard + @Roles('PSL_ADMIN')`
 - **Never bypass audit logs** — every admin mutation writes `AdminAuditLog`
 - **Never store business logic in frontend** — API is authoritative
-- **Always publish Kafka events** — currently direct calls, Kafka will be wired in Sprint 3
+- **Always consider eventing** — no event-bus technology is selected by default; transactional outbox, SQS, SNS, EventBridge, and Kafka must be evaluated against demonstrated needs (see ADR-027)
 - **Always write tests** — new service methods need tests
 - **Always use domain boundaries** — no cross-module table access
 - **Always create ADRs for architecture decisions** — see `docs/adr/`
@@ -41,10 +41,14 @@ These are encoded in `CLAUDE.md` and apply to all contributions:
 Before marking a story complete:
 
 - [ ] New service methods have tests
-- [ ] `pnpm --filter @psl-one/api test` passes
+- [ ] `pnpm --filter @psl-one/api db:seed` passes — first run
+- [ ] `pnpm --filter @psl-one/api db:seed` passes — second run (confirms idempotency)
+- [ ] `pnpm --filter @psl-one/api prisma validate` passes
 - [ ] `pnpm --filter @psl-one/api typecheck` passes
-- [ ] `pnpm --filter @psl-one/web typecheck` passes
+- [ ] `pnpm --filter @psl-one/api test` passes
 - [ ] `pnpm --filter @psl-one/api build` passes
+- [ ] `pnpm --filter @psl-one/web typecheck` passes
+- [ ] `pnpm --filter @psl-one/web test` passes
 - [ ] `pnpm --filter @psl-one/web build` passes
 - [ ] Admin mutations write `AdminAuditLog`
 - [ ] All admin routes have RBAC guards
@@ -79,6 +83,26 @@ No tickets, no task IDs, no co-author prefixes needed.
 
 ---
 
+## AI Agent Tooling
+
+This repository supports Claude Code and Codex CLI as coding agent adapters.
+
+Both adapters share the same non-negotiable rules and safety constraints.
+
+| Adapter | Instructions file | Config |
+|---------|-----------------|--------|
+| Claude Code | `CLAUDE.md` | `.claude/` |
+| Codex | `AGENTS.md` | `.codex/` |
+
+Validate the Codex configuration:
+```bash
+pnpm codex:validate
+```
+
+See [AI Agent Workflow](docs/engineering/AI-AGENT-WORKFLOW.md) for the full guide.
+
+---
+
 ## Getting Help
 
 - Architecture: see `docs/architecture/`
@@ -87,3 +111,4 @@ No tickets, no task IDs, no co-author prefixes needed.
 - Reference: see `docs/reference/`
 - Engineering guides: see `docs/engineering/`
 - Story index: see `docs/project/STORY-INDEX.md`
+- AI agent workflow: see `docs/engineering/AI-AGENT-WORKFLOW.md`
