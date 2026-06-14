@@ -73,6 +73,7 @@ model User {
   incomingChallenges     ChallengeListing[]            @relation("FanIncomingChallenges")
   challengeScores        ChallengeScore[]              @relation("FanChallengeScore")
   socialPredictionLedger SocialPredictionPointsEntry[] @relation("SocialPredictionLedger")
+  betaCohortMemberships  BetaCohortMember[]
 
   @@map("users")
 }
@@ -325,6 +326,8 @@ model Season {
   challengeListings              ChallengeListing[]
   leagueStandings                LeagueStanding[]
   teamFormRecords                TeamFormRecord[]
+  betaCohorts                    BetaCohort[]
+  activationApprovals            SeasonActivationApproval[]
 
   @@map("seasons")
 }
@@ -3446,4 +3449,111 @@ model CampaignTriggerEvent {
   @@index([campaignId, triggerType])
   @@index([fixtureId, triggerType])
   @@map("campaign_trigger_events")
+}
+
+// ── Beta Launch Readiness ──────────────────────────────────────────────────────
+
+enum BetaCohortStatus {
+  DRAFT
+  INVITE_ONLY
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+
+  @@map("BetaCohortStatus")
+}
+
+enum BetaCohortMemberStatus {
+  INVITED
+  ACTIVE
+  PAUSED
+  REMOVED
+  COMPLETED
+
+  @@map("BetaCohortMemberStatus")
+}
+
+enum BetaLaunchApprovalStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+  EXPIRED
+  INVALIDATED
+  ACTIVATED
+  CANCELLED
+
+  @@map("BetaLaunchApprovalStatus")
+}
+
+model BetaCohort {
+  id              String            @id @default(uuid())
+  name            String
+  slug            String            @unique
+  seasonId        String            @map("season_id")
+  status          BetaCohortStatus  @default(DRAFT)
+  startsAt        DateTime?         @map("starts_at")
+  endsAt          DateTime?         @map("ends_at")
+  maxUsers        Int?              @map("max_users")
+  notes           String?
+  createdByUserId String?           @map("created_by_user_id")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  season    Season              @relation(fields: [seasonId], references: [id])
+  members   BetaCohortMember[]
+
+  @@index([seasonId])
+  @@index([status])
+  @@map("beta_cohorts")
+}
+
+model BetaCohortMember {
+  id          String                 @id @default(uuid())
+  cohortId    String                 @map("cohort_id")
+  userId      String                 @map("user_id")
+  status      BetaCohortMemberStatus @default(INVITED)
+  invitedAt   DateTime               @default(now()) @map("invited_at")
+  joinedAt    DateTime?              @map("joined_at")
+  removedAt   DateTime?              @map("removed_at")
+  metadataJson Json?                 @map("metadata_json")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  updatedAt   DateTime               @updatedAt @map("updated_at")
+
+  cohort BetaCohort @relation(fields: [cohortId], references: [id])
+  user   User       @relation(fields: [userId], references: [id])
+
+  @@unique([cohortId, userId])
+  @@index([userId])
+  @@map("beta_cohort_members")
+}
+
+model SeasonActivationApproval {
+  id                       String                   @id @default(uuid())
+  seasonId                 String                   @map("season_id")
+  readinessSnapshotJson    Json                     @map("readiness_snapshot_json")
+  readinessFingerprint     String                   @map("readiness_fingerprint")
+  blockerCount             Int                      @map("blocker_count")
+  warningCount             Int                      @map("warning_count")
+  approvedByUserId         String?                  @map("approved_by_user_id")
+  approvedAt               DateTime?                @map("approved_at")
+  approvalStatus           BetaLaunchApprovalStatus @default(DRAFT)
+  notes                    String?
+  rollbackVerified         Boolean                  @default(false) @map("rollback_verified")
+  betaCohortVerified       Boolean                  @default(false) @map("beta_cohort_verified")
+  frontendVerified         Boolean                  @default(false) @map("frontend_verified")
+  dataVerified             Boolean                  @default(false) @map("data_verified")
+  securityVerified         Boolean                  @default(false) @map("security_verified")
+  operationsVerified       Boolean                  @default(false) @map("operations_verified")
+  expiresAt                DateTime?                @map("expires_at")
+  invalidatedAt            DateTime?                @map("invalidated_at")
+  invalidationReason       String?                  @map("invalidation_reason")
+  activationPerformedAt    DateTime?                @map("activation_performed_at")
+  createdAt                DateTime                 @default(now()) @map("created_at")
+
+  season Season @relation(fields: [seasonId], references: [id])
+
+  @@index([seasonId, approvalStatus])
+  @@index([createdAt(sort: Desc)])
+  @@map("season_activation_approvals")
 }

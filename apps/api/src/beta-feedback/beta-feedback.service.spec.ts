@@ -41,7 +41,7 @@ describe('BetaFeedbackService', () => {
 
     it('completedStories matches story count', () => {
       const result = service.getOverview();
-      expect(result.completedStories).toBe(13);
+      expect(result.completedStories).toBe(14);
     });
   });
 
@@ -184,7 +184,7 @@ describe('BetaFeedbackService', () => {
 
     it('currentVersion includes STORY-38', () => {
       const result = service.getReleaseNotes();
-      expect(result.currentVersion).toContain('STORY-38');
+      expect(result.currentVersion).toContain('STORY-39');
     });
 
     it('STORY-37 safety boundaries include wallet sandbox and fan value disclaimers', () => {

@@ -107,6 +107,11 @@ async function main() {
   // Clear season switch audit data
   await prisma.seasonSwitchAudit.deleteMany();
 
+  // Clear STORY-39 beta launch data (before seasons and users)
+  await prisma.seasonActivationApproval.deleteMany();
+  await prisma.betaCohortMember.deleteMany();
+  await prisma.betaCohort.deleteMany();
+
   // Clear prediction calibration config (depends on season)
   await prisma.predictionRulesConfig.deleteMany();
 

@@ -323,3 +323,55 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - Real provider calls: none
 - Auth bypass: not possible
 - Test regression: gate is 1528 tests
+
+## STORY-39 — PSL Season Activation, Frontend Showcase & Beta Launch Readiness
+
+**Story:** Beta launch readiness — 13-check gate, cohort management, dry-run analysis, approval records (APPROVED not ACTIVATED).
+
+### What changed
+
+- `BetaLaunchModule` with 27 routes, 32 new API tests, `ACTIVATION_DISABLED_NOTICE` constant
+- `BetaCohort`, `BetaCohortMember`, `SeasonActivationApproval` — 3 new models, migration 20260614000001
+- 24-item smoke test registry — programmatically confirmed: `activationRouteAbsent: true`, `allNonDestructive: true`
+- 8 new `AdminOperations` module readiness entries covering all beta dimensions
+- 17 admin beta-launch pages + 1 fan `/beta` landing page
+- `completedStories`: 14, `apiTestCount`: 1560, `webPageCount`: 336
+- 5 new platform docs: runbook, rollback runbook, hypercare plan, frontend walkthrough, smoke test plan
+
+### GO / NO-GO update
+
+**GO ✅ additions:**
+- 13-check readiness gate delegates to existing `SeasonSwitchingService` — no duplication
+- Approval: status `APPROVED`, `activationPerformedAt` is null, season NOT activated
+- Dry-run: `dryRunOnly: true`, `activationWillNotBePerformed: true` always present
+- Rollback dry-run: `rollbackWillNotBePerformed: true`, `worldCupHistoryPreserved: true` always present
+- Smoke tests: `activationRouteAbsent: true` confirmed programmatically
+
+**NO-GO 🚫 unchanged:**
+- Season activation: NOT performed in STORY-39; endpoint does not exist
+- Financial mechanics: still fully excluded
+- Real provider calls: none
+- Auth bypass: not possible
+- Test regression: gate is 1560 tests (32 new, 0 regressions)
+
+### Final beta readiness assessment
+
+| Dimension | Status |
+|-----------|--------|
+| Football data | READY (16 clubs, 96 players, provisional fixtures) |
+| Fantasy | READY (rules configurable, calibration module built) |
+| Guess the Score | READY (lock/settle/void lifecycle, prediction rules) |
+| Social prediction gaming | READY (FIFO matching, direct challenges, atomic acceptance) |
+| Match Centre | READY (standings, form, player ratings, sandbox ingestion) |
+| Leaderboards | READY (season-scoped, WC and PSL isolated) |
+| Fan Value | READY (non-financial, ledger, achievements) |
+| Media | READY (rights gate, engagement deduplication) |
+| Campaigns | READY (full lifecycle, trigger engine) |
+| Wallet | SANDBOX_ONLY (SiliconEnterpriseSandboxWalletAdapter) |
+| Notifications | READY (in-app only; email/SMS Sprint 3) |
+| Activity Feed | READY |
+| Rewards | READY |
+| Admin operations | READY (AdminOperationsModule, 29 module readiness entries) |
+| Beta cohort | READY (BetaCohort lifecycle, member management) |
+| Beta readiness gate | READY (13-check, approval, dry-run, rollback dry-run) |
+| Season activation | PENDING (approval record created; activation not performed) |

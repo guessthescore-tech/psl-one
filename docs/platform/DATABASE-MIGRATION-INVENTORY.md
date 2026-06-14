@@ -634,3 +634,18 @@ Indexes: `(season_id)`, `(status)`, `(season_id, status)`, `(created_at DESC)`
 - `campaignTriggerEvent.deleteMany()` added to cleanup sequence
 
 **Migration integrity:** Full `migrate deploy` from empty DB verified across all 37 migrations (psl_migration_proof DB).
+
+| `20260614000001_beta_launch_readiness` | Adds `BetaCohortStatus` enum (DRAFT/INVITE_ONLY/ACTIVE/PAUSED/COMPLETED/CANCELLED), `BetaCohortMemberStatus` enum (INVITED/ACTIVE/PAUSED/REMOVED/COMPLETED), `BetaLaunchApprovalStatus` enum (DRAFT/APPROVED/REJECTED/EXPIRED/INVALIDATED/ACTIVATED/CANCELLED); `beta_cohorts` table with FK to seasons + UNIQUE slug; `beta_cohort_members` table with FK to beta_cohorts + users + UNIQUE(cohort_id, user_id); `season_activation_approvals` table with FK to seasons + all 6 verification flags + approval metadata. No destructive SQL. | `beta_cohorts`, `beta_cohort_members`, `season_activation_approvals` |
+
+**STORY-39 Schema additions (schema.prisma):**
+- `enum BetaCohortStatus` — `DRAFT`, `INVITE_ONLY`, `ACTIVE`, `PAUSED`, `COMPLETED`, `CANCELLED`
+- `enum BetaCohortMemberStatus` — `INVITED`, `ACTIVE`, `PAUSED`, `REMOVED`, `COMPLETED`
+- `enum BetaLaunchApprovalStatus` — `DRAFT`, `APPROVED`, `REJECTED`, `EXPIRED`, `INVALIDATED`, `ACTIVATED`, `CANCELLED`
+- `model BetaCohort` — slug UNIQUE; seasonId FK; maxUsers; lifecycle status; relations to Season and BetaCohortMember[]
+- `model BetaCohortMember` — unique(cohortId, userId); removedAt retained (soft delete pattern); metadataJson
+- `model SeasonActivationApproval` — 6 boolean verification flags; `approvalStatus` (APPROVED not ACTIVATED in STORY-39); `activationPerformedAt` is null; `readinessFingerprint`; `expiresAt`; FK to Season
+
+**New seed cleanup (STORY-39):**
+- `seasonActivationApproval.deleteMany()`, `betaCohortMember.deleteMany()`, `betaCohortMember.deleteMany()`, `betaCohort.deleteMany()` added before season cleanup in `seed.ts`
+
+**Migration total: 38 migrations. Database schema up to date.**

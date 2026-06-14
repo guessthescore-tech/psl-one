@@ -1488,3 +1488,31 @@ prisma/migrations/
 - **Deterministic idempotency**: `direct-accept:${listingId}:${fanUserId}` — retries find existing match and return early
 - **Campaign trigger isolation**: failures in `_upsertTrigger` are caught and logged, never propagated to match ingestion
 - **`Prisma.DbNull` for nullable JSON**: `metadataJson: (metadata ?? Prisma.DbNull) as Prisma.InputJsonValue` — required with `exactOptionalPropertyTypes: true`
+
+## STORY-39 — PSL Season Activation, Frontend Showcase & Beta Launch Readiness
+
+**Key files:**
+
+### Migration
+- `apps/api/prisma/migrations/20260614000001_beta_launch_readiness/migration.sql` — 3 enums (`BetaCohortStatus`, `BetaCohortMemberStatus`, `BetaLaunchApprovalStatus`), 3 tables (`beta_cohorts`, `beta_cohort_members`, `season_activation_approvals`); no destructive SQL
+
+### BetaLaunchModule
+- `apps/api/src/beta-launch/beta-launch.service.ts` — delegates 13-check gate to `SeasonSwitchingService.getSeasonSwitchReadiness()` (no duplication); `executeDryRun()` always returns `dryRunOnly:true`; `createApproval()` sets `approvalStatus: 'APPROVED'` never `ACTIVATED`; `ACTIVATION_DISABLED_NOTICE` constant in all dry-run responses
+- `apps/api/src/beta-launch/beta-launch-smoke-test.service.ts` — 24-item registry; `activationRouteAbsent` and `allNonDestructive` verified programmatically; `SmokeTestSummary` named interface (required for `exactOptionalPropertyTypes`)
+- `apps/api/src/beta-launch/beta-launch.controller.ts` — static routes (`overview`, `seasons`, `cohorts`, `smoke-tests`) declared BEFORE dynamic `:seasonId` routes to prevent NestJS routing conflicts
+- `apps/api/src/beta-launch/beta-launch.module.ts` — imports `SeasonSwitchingModule` (reuses existing 13-check engine)
+
+### AdminOperations integration
+- `apps/api/src/admin-operations/admin-operations.service.ts` — 8 new module readiness entries: `PSL_BETA_LAUNCH_READINESS`, `FRONTEND_BETA_READINESS`, `DATA_BETA_READINESS`, `SECURITY_BETA_READINESS`, `OPERATIONS_BETA_READINESS`, `BETA_COHORT_READINESS`, `ROLLBACK_READINESS`, `ACTIVATION_APPROVAL`
+
+### Web client & pages
+- `apps/web/src/lib/beta-launch-client.ts` — 22 typed client functions using `NEXT_PUBLIC_API_BASE_URL`
+- `apps/web/src/app/admin/beta-launch/` — 17 admin pages (index, `[seasonId]/*` × 14, `smoke-tests`)
+- `apps/web/src/app/beta/page.tsx` — fan beta landing page with safety notices
+
+### Key design decisions
+- **No duplication of readiness checks**: `getReadiness()` calls `SeasonSwitchingService.getSeasonSwitchReadiness()` and normalises; does not reimplement 13 checks
+- **`APPROVED` not `ACTIVATED`**: `createApproval()` always sets `approvalStatus: 'APPROVED'`; `activationPerformedAt` is never set in STORY-39
+- **Spread pattern for optional Prisma `where`**: `...(seasonId ? { where: { seasonId } } : {})` — required with `exactOptionalPropertyTypes: true`
+- **`SmokeTestSummary` named interface**: `ReturnType<typeof this.getSummary>` causes TS2683 — extracted to named interface
+- **Static routes before dynamic**: NestJS routing requires `overview`, `seasons`, `cohorts`, `smoke-tests` declared before `/:seasonId`

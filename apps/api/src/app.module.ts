@@ -39,6 +39,7 @@ import { WalletIntegrationModule } from './wallet-integration/wallet-integration
 import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics.module';
 import { SocialPredictionModule } from './social-prediction/social-prediction.module';
 import { MatchCentreModule } from './match-centre/match-centre.module';
+import { BetaLaunchModule } from './beta-launch/beta-launch.module';
 
 @Module({
   imports: [
@@ -79,6 +80,7 @@ import { MatchCentreModule } from './match-centre/match-centre.module';
     CampaignAnalyticsModule,
     SocialPredictionModule,
     MatchCentreModule,
+    BetaLaunchModule,
     HealthModule,
   ],
   controllers: [VersionController],

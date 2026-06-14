@@ -394,3 +394,43 @@ All commercial modules are **production-disabled by default**. The `IntegrationP
 - `/admin/live-match/[fixtureId]/prediction-impact` — settlement status + timeline
 
 **Safety:** All gameplay remains points-only. No financial mechanics, no live provider calls, no external API calls. `POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE` status: `INTERNAL_REVIEW_REQUIRED`.
+
+## STORY-39 — PSL Season Activation, Frontend Showcase & Beta Launch Readiness (Sprint 2)
+
+**Status:** MVP Accepted  
+**Tests:** 1560 API unit tests (54 files)  
+**Pages:** 336 web pages total (+ 17 admin beta-launch + 1 fan /beta)
+
+### What was built
+
+**BetaLaunchModule:**
+- `BetaLaunchService` — delegates 13-check gate to existing `SeasonSwitchingService` (no duplication); activation dry-run (`dryRunOnly:true`); rollback dry-run (`rollbackWillNotBePerformed:true`); `createApproval()` → status `APPROVED` never `ACTIVATED`; `ACTIVATION_DISABLED_NOTICE` constant present in all dry-run responses
+- `BetaLaunchSmokeTestService` — 24-item registry; programmatic confirmation that `activationRouteAbsent: true` and `allNonDestructive: true`
+- `BetaLaunchController` — 27 routes; static routes before dynamic `:seasonId` routes (NestJS routing requirement)
+- 3 new DTOs: `CreateCohortDto`, `AddCohortMemberDto`, `CreateApprovalDto`
+- 3 new schema models: `BetaCohort`, `BetaCohortMember`, `SeasonActivationApproval`
+- Migration `20260614000001_beta_launch_readiness` — 3 enums, 3 tables, no destructive SQL
+
+**AdminOperations integration:**
+- 8 new module readiness entries covering all beta-launch dimensions: `PSL_BETA_LAUNCH_READINESS`, `FRONTEND_BETA_READINESS`, `DATA_BETA_READINESS`, `SECURITY_BETA_READINESS`, `OPERATIONS_BETA_READINESS`, `BETA_COHORT_READINESS`, `ROLLBACK_READINESS`, `ACTIVATION_APPROVAL`
+
+**BetaFeedback updates:**
+- `completedStories`: 13 → 14
+- `apiTestCount`: 1528 → 1560
+- `webPageCount`: 319 → 336
+- `currentVersion`: `Sprint 2 — STORY-38` → `Sprint 2 — STORY-39`
+- STORY-39 release note added
+
+**Web client & pages:**
+- `apps/web/src/lib/beta-launch-client.ts` — 22 typed client functions
+- 17 admin pages: `/admin/beta-launch` hub + 14 `[seasonId]/*` sub-pages + `smoke-tests`
+- 1 fan page: `/beta` — cohort invite landing with points-only safety notices
+
+**Documentation:**
+- `PSL-BETA-LAUNCH-RUNBOOK.md` — 7-phase pre-launch checklist
+- `PSL-BETA-ROLLBACK-RUNBOOK.md` — rollback scope, World Cup preservation guarantees
+- `PSL-BETA-HYPERCARE-PLAN.md` — 14-day hypercare monitoring plan
+- `PSL-BETA-FRONTEND-WALKTHROUGH.md` — 19-domain sign-off matrix
+- `PSL-BETA-SMOKE-TEST-PLAN.md` — 24-item registry with safety confirmation table
+
+**Safety:** PSL season activation has NOT been performed. `SeasonActivationApproval.approvalStatus` is `APPROVED`. `activationPerformedAt` is null. World Cup history untouched. No real-money mechanics. No external provider calls.

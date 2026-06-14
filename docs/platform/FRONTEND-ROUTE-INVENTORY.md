@@ -616,3 +616,31 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/live-match/[fixtureId]/player-stats` | Player Stats | PSL_ADMIN | `football-client`, `admin-football-client` | Per-player stat upsert form + table |
 | `/admin/live-match/[fixtureId]/fantasy-impact` | Fantasy Impact | PSL_ADMIN | `football-client` | Estimated fantasy points (provisional) |
 | `/admin/live-match/[fixtureId]/prediction-impact` | Prediction Impact | PSL_ADMIN | `football-client` | Live state, settlement status, timeline |
+
+## Beta Launch Admin Pages (STORY-39) — 17 pages
+
+| Route | Page | Auth | Client | Notes |
+|-------|------|------|--------|-------|
+| `/admin/beta-launch` | Beta Launch Hub | PSL_ADMIN | `beta-launch-client` | Overview, season list, quick links |
+| `/admin/beta-launch/[seasonId]` | Season Detail | PSL_ADMIN | `beta-launch-client` | 13-check summary, all sub-page links |
+| `/admin/beta-launch/[seasonId]/readiness` | 13-Check Gate | PSL_ADMIN | `beta-launch-client` | All checks with status chips and admin routes |
+| `/admin/beta-launch/[seasonId]/blockers` | Blockers | PSL_ADMIN | `beta-launch-client` | Blocker-only view |
+| `/admin/beta-launch/[seasonId]/warnings` | Warnings | PSL_ADMIN | `beta-launch-client` | Warning-only view |
+| `/admin/beta-launch/[seasonId]/frontend` | Frontend Readiness | PSL_ADMIN | `beta-launch-client` | Domain coverage by area |
+| `/admin/beta-launch/[seasonId]/data` | Data Readiness | PSL_ADMIN | `beta-launch-client` | Seeded clubs/players/fixtures/prices |
+| `/admin/beta-launch/[seasonId]/security` | Security & RBAC | PSL_ADMIN | `beta-launch-client` | JWT and RBAC check list |
+| `/admin/beta-launch/[seasonId]/operations` | Operations | PSL_ADMIN | `beta-launch-client` | Infrastructure readiness areas |
+| `/admin/beta-launch/[seasonId]/cohort` | Beta Cohort | PSL_ADMIN | `beta-launch-client` | Create/start cohorts; member management |
+| `/admin/beta-launch/[seasonId]/activation-preview` | Activation Preview | PSL_ADMIN | `beta-launch-client` | Read-only impact preview |
+| `/admin/beta-launch/[seasonId]/dry-run` | Dry Run | PSL_ADMIN | `beta-launch-client` | Run activation analysis; confirms dryRunOnly:true |
+| `/admin/beta-launch/[seasonId]/rollback-dry-run` | Rollback Dry Run | PSL_ADMIN | `beta-launch-client` | Rollback analysis; worldCupHistoryPreserved:true |
+| `/admin/beta-launch/[seasonId]/approval` | Approval | PSL_ADMIN | `beta-launch-client` | Create APPROVED record; reject; never ACTIVATED |
+| `/admin/beta-launch/[seasonId]/walkthrough` | Frontend Walkthrough | PSL_ADMIN | `beta-launch-client` | 19-domain step-by-step walkthrough |
+| `/admin/beta-launch/[seasonId]/runbook` | Launch Runbook | PSL_ADMIN | `beta-launch-client` | Phased runbook with safety notes |
+| `/admin/beta-launch/smoke-tests` | Smoke Tests | PSL_ADMIN | `beta-launch-client` | 24-item registry; run audit; confirm no activation routes |
+
+## Fan Beta Pages (STORY-39) — 1 page
+
+| Route | Page | Auth | Client | Notes |
+|-------|------|------|--------|-------|
+| `/beta` | Beta Landing | PUBLIC | — | Cohort invite landing; points-only safety notice; links to all domains |

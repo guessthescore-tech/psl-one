@@ -56,9 +56,9 @@ export class BetaFeedbackService {
       uxChecklistWarnings: checklist.filter((c) => c.status === 'WARN').length,
       uxChecklistFails: checklist.filter((c) => c.status === 'FAIL').length,
       releaseReadiness: 'WORLD_CUP_BETA_READY_PSL_PENDING',
-      completedStories: 13,
-      apiTestCount: 1528,
-      webPageCount: 319,
+      completedStories: 14,
+      apiTestCount: 1560,
+      webPageCount: 336,
       recommendedNextActions: [
         'Import official PSL 2026/27 squad data via /admin/squad-import',
         'Import official PSL 2026/27 fixture schedule via /admin/fixtures/imports',
@@ -105,7 +105,7 @@ export class BetaFeedbackService {
 
   getReleaseNotes(): { notes: ReleaseNote[]; currentVersion: string; note: string } {
     return {
-      currentVersion: 'Sprint 2 — STORY-38',
+      currentVersion: 'Sprint 2 — STORY-39',
       notes: this.getReleaseNotesList(),
       note: 'Release notes cover Sprint 2 stories. Sprint 1 foundation committed in feat: complete sprint 1 fan platform foundation.',
     };
@@ -623,6 +623,34 @@ export class BetaFeedbackService {
           'Sandbox ingestion only in STORY-38. No production ingestion. No copyrighted player images.',
           'Fantasy and Guess the Score remain points-only. No paid entry.',
           'No real-money wallet, payments, checkout, orders, or production rewards redemption.',
+        ],
+      },
+      {
+        story: 'STORY-39',
+        commit: 'pending',
+        title: 'PSL Season Activation, Frontend Showcase & Beta Launch Readiness',
+        summary: 'BetaLaunchModule: 13-check readiness gate reusing SeasonSwitchingService, BetaCohort lifecycle, SeasonActivationApproval (APPROVED only — not ACTIVATED), 24-item smoke test registry, activation dry-run and rollback dry-run (both read-only). 3 new enums, 3 new tables, migration 20260614000001. 32 new API tests, 17 admin web pages, 1 fan beta landing page, 5 new platform docs.',
+        keyDeliverables: [
+          'BetaLaunchService: getReadiness() delegates to SeasonSwitchingService 13-check engine — no duplication',
+          'executeDryRun(): read-only activation impact analysis; dryRunOnly:true always present',
+          'executeRollbackDryRun(): read-only rollback analysis; rollbackWillNotBePerformed:true always present',
+          'createApproval(): requires 0 blockers + 6 checklist flags; status APPROVED not ACTIVATED; never sets activationPerformedAt',
+          'BetaCohort: DRAFT→INVITE_ONLY→ACTIVE→PAUSED→COMPLETED lifecycle; cohort start does NOT activate season',
+          'BetaLaunchSmokeTestService: 24-item registry; no activation route; all destructive:false',
+          '8 new AdminOperations module readiness entries (PSL_BETA_LAUNCH_READINESS through ACTIVATION_APPROVAL)',
+          'ACTIVATION_DISABLED_NOTICE constant present in all dry-run responses',
+          '17 admin beta-launch pages + 1 fan /beta page',
+          '5 platform docs: PSL-BETA-LAUNCH-RUNBOOK, PSL-BETA-ROLLBACK-RUNBOOK, PSL-BETA-HYPERCARE-PLAN, PSL-BETA-FRONTEND-WALKTHROUGH, PSL-BETA-SMOKE-TEST-PLAN',
+        ],
+        safetyBoundaries: [
+          'PSL season activation has NOT been performed. This service provides readiness, approval, and dry-run controls only.',
+          'SeasonActivationApproval.approvalStatus is APPROVED — never ACTIVATED in this story.',
+          'activationPerformedAt is never set in STORY-39.',
+          'All dry-run responses carry dryRunOnly:true and activationWillNotBePerformed:true (or rollbackWillNotBePerformed:true).',
+          'No real-money mechanics, no external provider calls, no production wallet, no live data ingestion.',
+          'World Cup history remains intact. World Cup season isActive:true is untouched.',
+          'BetaCohort start does not affect Season.isActive or Season.status.',
+          'No activation route exists in BetaLaunchController.',
         ],
       },
       {

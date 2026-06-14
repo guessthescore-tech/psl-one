@@ -216,3 +216,27 @@
 - Live provider wiring (Opta/Stats Perform/Sportradar) — `PROVIDER_REQUIRED`
 - Real-time event push (WebSocket/SSE) — polling is current mechanism
 - Player of the match voting UI — trigger exists, no UI yet
+
+## STORY-39 — Beta Launch Control Capabilities
+
+| Capability | Page | Status |
+|-----------|------|--------|
+| Beta launch hub | `/admin/beta-launch` | BETA_READY |
+| Season detail + sub-page links | `/admin/beta-launch/[seasonId]` | BETA_READY |
+| 13-check readiness gate | `/admin/beta-launch/[seasonId]/readiness` | BETA_READY |
+| Blockers view | `/admin/beta-launch/[seasonId]/blockers` | BETA_READY |
+| Warnings view | `/admin/beta-launch/[seasonId]/warnings` | BETA_READY |
+| Frontend readiness | `/admin/beta-launch/[seasonId]/frontend` | BETA_READY |
+| Data readiness | `/admin/beta-launch/[seasonId]/data` | BETA_READY |
+| Security & RBAC | `/admin/beta-launch/[seasonId]/security` | BETA_READY |
+| Operations & infra | `/admin/beta-launch/[seasonId]/operations` | BETA_READY |
+| Beta cohort management | `/admin/beta-launch/[seasonId]/cohort` | BETA_READY |
+| Activation preview (read-only) | `/admin/beta-launch/[seasonId]/activation-preview` | BETA_READY |
+| Dry run (dryRunOnly:true) | `/admin/beta-launch/[seasonId]/dry-run` | BETA_READY |
+| Rollback dry run | `/admin/beta-launch/[seasonId]/rollback-dry-run` | BETA_READY |
+| Approval record (APPROVED not ACTIVATED) | `/admin/beta-launch/[seasonId]/approval` | BETA_READY |
+| Frontend walkthrough | `/admin/beta-launch/[seasonId]/walkthrough` | BETA_READY |
+| Launch runbook | `/admin/beta-launch/[seasonId]/runbook` | BETA_READY |
+| Smoke test registry | `/admin/beta-launch/smoke-tests` | BETA_READY |
+
+**Gap:** Actual season activation endpoint is NOT implemented in STORY-39. Activation requires a separate controlled operation in a future deployment window.

@@ -962,3 +962,37 @@ All routes verified from source files in `apps/api/src/`.
 | POST | `/football/admin/fixtures/:id/reopen` | PSL_ADMIN | Reopen finished fixture for correction |
 | POST | `/football/admin/fixtures/:id/recalculate-state` | PSL_ADMIN | Recompute score from events |
 | POST | `/football/admin/fixtures/:id/sync-provider` | PSL_ADMIN | Request sync from configured provider (sandbox: returns synced:false) |
+
+## /admin/beta-launch — Beta Launch Control (STORY-39)
+
+**Purpose:** 13-check season readiness gate, dry-run analysis, cohort management, activation approval (APPROVED status only — season NOT activated in STORY-39).
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/admin/beta-launch/overview` | PSL_ADMIN | Platform beta overview with check count and smoke test summary. |
+| GET | `/admin/beta-launch/seasons` | PSL_ADMIN | All seasons with beta-launch readiness context. |
+| GET | `/admin/beta-launch/cohorts` | PSL_ADMIN | List all beta cohorts (optional `?seasonId=` filter). |
+| POST | `/admin/beta-launch/cohorts` | PSL_ADMIN | Create a new beta cohort (DRAFT status). |
+| POST | `/admin/beta-launch/cohorts/:cohortId/members` | PSL_ADMIN | Add a user to a cohort. |
+| DELETE | `/admin/beta-launch/cohorts/:cohortId/members/:userId` | PSL_ADMIN | Remove a member (retained as REMOVED in history). |
+| POST | `/admin/beta-launch/cohorts/:cohortId/start` | PSL_ADMIN | Transition cohort DRAFT→ACTIVE. Does NOT activate season. |
+| POST | `/admin/beta-launch/cohorts/:cohortId/pause` | PSL_ADMIN | Pause an active cohort. |
+| POST | `/admin/beta-launch/cohorts/:cohortId/complete` | PSL_ADMIN | Mark cohort as completed. |
+| GET | `/admin/beta-launch/smoke-tests` | PSL_ADMIN | 24-item smoke test registry (all non-destructive, no activation routes). |
+| POST | `/admin/beta-launch/smoke-tests/run` | PSL_ADMIN | Log audit event for smoke test run; return registry summary. |
+| GET | `/admin/beta-launch/:seasonId/readiness` | PSL_ADMIN | All 13 readiness checks via SeasonSwitchingService. |
+| GET | `/admin/beta-launch/:seasonId/blockers` | PSL_ADMIN | Readiness blockers only (FAIL checks). |
+| GET | `/admin/beta-launch/:seasonId/warnings` | PSL_ADMIN | Readiness warnings only (WARN checks). |
+| GET | `/admin/beta-launch/:seasonId/frontend-readiness` | PSL_ADMIN | Frontend domain coverage per area. |
+| GET | `/admin/beta-launch/:seasonId/data-readiness` | PSL_ADMIN | Data seeding status (clubs, players, fixtures, prices). |
+| GET | `/admin/beta-launch/:seasonId/security-readiness` | PSL_ADMIN | RBAC and JWT security checks. |
+| GET | `/admin/beta-launch/:seasonId/operations-readiness` | PSL_ADMIN | Infrastructure and operations status. |
+| GET | `/admin/beta-launch/:seasonId/beta-cohort-readiness` | PSL_ADMIN | Active cohort count and member summary. |
+| GET | `/admin/beta-launch/:seasonId/activation-preview` | PSL_ADMIN | Read-only activation impact preview (NOT activation). |
+| POST | `/admin/beta-launch/:seasonId/dry-run` | PSL_ADMIN | Activation dry-run (dryRunOnly:true; activationWillNotBePerformed:true). |
+| POST | `/admin/beta-launch/:seasonId/rollback-dry-run` | PSL_ADMIN | Rollback dry-run (rollbackWillNotBePerformed:true; worldCupHistoryPreserved:true). |
+| POST | `/admin/beta-launch/:seasonId/approve` | PSL_ADMIN | Create approval record (status APPROVED — NOT ACTIVATED). Requires 0 blockers + 6 flags. |
+| POST | `/admin/beta-launch/:seasonId/reject` | PSL_ADMIN | Reject/invalidate an existing approval. |
+| GET | `/admin/beta-launch/:seasonId/approval` | PSL_ADMIN | Get current approval record for season. |
+| GET | `/admin/beta-launch/:seasonId/runbook` | PSL_ADMIN | Structured launch runbook (phases, steps, safety notes). |
+| GET | `/admin/beta-launch/:seasonId/walkthrough` | PSL_ADMIN | 19-domain frontend walkthrough steps. |
