@@ -1,3 +1,7 @@
+> **Documentation status:** Historical implementation record.
+> This file is retained for traceability and is not the current source of architectural guidance.
+> Current documentation starts at [Documentation Home](../../README.md).
+
 # STORY-38 Handover — PSL Live Match Intelligence & Social Prediction Gaming
 
 **Created:** 2026-06-14  

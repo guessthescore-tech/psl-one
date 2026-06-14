@@ -47,6 +47,8 @@ logs/
 
 # Local settings
 .claude/settings.local.json
+# Claude Code session memory — local only, contains absolute paths and session context
+.claude/projects/
 
 # Turbo cache
 .turbo/

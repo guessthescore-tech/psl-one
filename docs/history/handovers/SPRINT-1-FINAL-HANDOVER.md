@@ -1,3 +1,7 @@
+> **Documentation status:** Historical implementation record.
+> This file is retained for traceability and is not the current source of architectural guidance.
+> Current documentation starts at [Documentation Home](../../README.md).
+
 # PSL One — Sprint 1 Final Handover
 
 **Date:** 2026-06-11  
