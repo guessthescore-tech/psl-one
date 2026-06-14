@@ -1,4 +1,4 @@
-import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory, SeasonTeamStatus, SeasonTeamSource, ClubProfileStatus, ShopProductCategory, ShopProductAvailability, ShopProductStatus, ClubContentType, ClubContentStatus } from '@prisma/client';
+import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory, SeasonTeamStatus, SeasonTeamSource, ClubProfileStatus, ShopProductCategory, ShopProductAvailability, ShopProductStatus, ClubContentType, ClubContentStatus, PredictionMarketType, DataSourceType, DataStatus, FreshnessStatus, ComplianceReviewStatus, UserRole } from '@prisma/client';
 import { VENUES } from './seed-data/world-cup-2026/venues';
 import { TEAMS, TBD_TEAM } from './seed-data/world-cup-2026/teams';
 import { GROUPS } from './seed-data/world-cup-2026/groups';
@@ -67,6 +67,16 @@ async function main() {
   await prisma.peerChallenge.deleteMany();
   await prisma.scorePrediction.deleteMany();
 
+  // Clear STORY-38 social prediction data (in FK dependency order, before gameweeks/fixtures)
+  await prisma.socialPredictionPointsEntry.deleteMany();
+  await prisma.challengeScore.deleteMany();
+  await prisma.challengeMatch.deleteMany();
+  await prisma.challengeListing.deleteMany();
+  await prisma.gameweekPointsAllocation.deleteMany();
+  await prisma.fixturePredictionMarket.deleteMany();
+  await prisma.predictionMarketConfig.deleteMany();
+  await prisma.complianceDomainConfig.deleteMany();
+
   // Clear STORY-37 data (media, campaigns, rewards, wallet) — must come before sponsors/teams
   await prisma.campaignAnalyticsSnapshot.deleteMany();
   await prisma.fanCampaignActionCompletion.deleteMany();
@@ -79,6 +89,7 @@ async function main() {
   await prisma.walletTransaction.deleteMany();
   await prisma.walletLink.deleteMany();
   await prisma.walletProviderDetail.deleteMany();
+  await prisma.campaignTriggerEvent.deleteMany();
   await prisma.sponsorCampaign.deleteMany();
   await prisma.sponsor.deleteMany();
 
@@ -109,6 +120,10 @@ async function main() {
   await prisma.fantasyPlayerMatchStat.deleteMany();
   await prisma.fixtureLineup.deleteMany();
   await prisma.matchEvent.deleteMany();
+  await prisma.playerRating.deleteMany();
+  await prisma.dataIngestionLog.deleteMany();
+  await prisma.leagueStanding.deleteMany();
+  await prisma.teamFormRecord.deleteMany();
   await prisma.groupStanding.deleteMany();
   await prisma.fixture.deleteMany();
   await prisma.player.deleteMany();
@@ -1009,6 +1024,121 @@ async function main() {
     update: {},
   });
   console.log(`  ✓ Fan Value reward definition seeded (50 pts, non-financial, no cash value)`);
+
+  // ── STORY-38: Seed system user (for market config authorship) ────────────
+  const seedAdminUser = await prisma.user.upsert({
+    where: { email: 'seed-admin@psl-one.internal' },
+    update: {},
+    create: {
+      email: 'seed-admin@psl-one.internal',
+      passwordHash: '$SEED_NOT_A_REAL_PASSWORD',
+      role: UserRole.PSL_ADMIN,
+      dateOfBirth: new Date('1990-01-01'),
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log(`  ✓ Seed admin user upserted (seed-admin@psl-one.internal)`);
+
+  // ── STORY-38: Compliance domain config ───────────────────────────────────
+  await prisma.complianceDomainConfig.upsert({
+    where: { domainKey: 'POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE' },
+    create: {
+      domainKey: 'POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE',
+      displayName: 'Points-Based Social Prediction Compliance',
+      status: ComplianceReviewStatus.INTERNAL_REVIEW_REQUIRED,
+      statusNotes: 'PSL One social prediction challenges use system-issued gameplay points only. Gameplay points cannot be purchased, transferred, withdrawn or exchanged for money. Challenge results affect platform scoring and leaderboard positions only.',
+    },
+    update: {},
+  });
+  console.log(`  ✓ Compliance domain config seeded (POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE)`);
+
+  // ── STORY-38: Market configs for PSL season ───────────────────────────────
+  const marketConfigDefs: Array<{ marketType: PredictionMarketType; label: string; baseOpportunity: number; allowedMultipliers: number[] }> = [
+    { marketType: PredictionMarketType.MATCH_RESULT, label: 'Match Result (1X2)', baseOpportunity: 100, allowedMultipliers: [1.0, 1.5, 2.0] },
+    { marketType: PredictionMarketType.BOTH_TEAMS_TO_SCORE, label: 'Both Teams to Score', baseOpportunity: 80, allowedMultipliers: [1.0, 1.5] },
+    { marketType: PredictionMarketType.HALF_TIME_RESULT, label: 'Half-Time Result', baseOpportunity: 60, allowedMultipliers: [1.0, 1.5, 2.0] },
+  ];
+  for (const mc of marketConfigDefs) {
+    const existing = await prisma.predictionMarketConfig.findFirst({
+      where: { seasonId: pslSeason.id, marketType: mc.marketType },
+    });
+    if (!existing) {
+      await prisma.predictionMarketConfig.create({
+        data: {
+          seasonId: pslSeason.id,
+          marketType: mc.marketType,
+          label: mc.label,
+          baseOpportunity: mc.baseOpportunity,
+          allowedMultipliersJson: mc.allowedMultipliers,
+          minCommitmentPct: 10,
+          maxCommitmentPct: 100,
+          pointsReturnRate: 1.0,
+          isEnabled: true,
+          createdByUserId: seedAdminUser.id,
+        },
+      });
+    }
+  }
+  console.log(`  ✓ Social prediction market configs seeded (${marketConfigDefs.length} configs for PSL season)`);
+
+  // ── STORY-38: Zeroed league standings for PSL clubs ───────────────────────
+  let standingCount38 = 0;
+  for (let i = 0; i < PSL_CLUBS.length; i++) {
+    const club = PSL_CLUBS[i]!;
+    const teamId = pslTeamMap.get(club.externalId);
+    if (!teamId) continue;
+    const existing = await prisma.leagueStanding.findUnique({
+      where: { seasonId_clubId: { seasonId: pslSeason.id, clubId: teamId } },
+    });
+    if (!existing) {
+      await prisma.leagueStanding.create({
+        data: {
+          seasonId: pslSeason.id,
+          clubId: teamId,
+          position: i + 1,
+          played: 0,
+          won: 0,
+          drawn: 0,
+          lost: 0,
+          goalsFor: 0,
+          goalsAgainst: 0,
+          goalDifference: 0,
+          points: 0,
+          sourceType: DataSourceType.SEEDED,
+          dataStatus: DataStatus.PROVISIONAL,
+          freshnessStatus: FreshnessStatus.MANUAL,
+          lastUpdatedAt: new Date(),
+        },
+      });
+      standingCount38++;
+    }
+  }
+  console.log(`  ✓ League standings seeded (${standingCount38} PSL clubs, zeroed, PROVISIONAL)`);
+
+  // ── STORY-38: Published trigger-ready campaign for demo/testing ──────────
+  // This campaign is PUBLISHED and within its time window so CampaignTriggerService will
+  // fire events for it when match events are ingested via the sandbox.
+  const publishedCampaign = await prisma.sponsorCampaign.upsert({
+    where: { slug: 'match-day-trigger-demo' },
+    create: {
+      title: 'Match Day Engagement Demo',
+      slug: 'match-day-trigger-demo',
+      description: 'PUBLISHED campaign for testing campaign triggers. Points-based only. No real rewards.',
+      sponsorId: demoSponsor.id,
+      campaignType: 'OTHER',
+      status: 'PUBLISHED',
+      startsAt: new Date('2026-01-01T00:00:00Z'),
+      endsAt: new Date('2027-12-31T23:59:59Z'),
+      audienceScope: 'GLOBAL',
+      requiresWalletLinked: false,
+      requiresAgeConfirmation: false,
+    },
+    update: {},
+  });
+  console.log(`  ✓ Published trigger-ready campaign seeded (match-day-trigger-demo, no real rewards)`);
+
+  void publishedCampaign;
 
   console.log('');
   console.log('Seed complete.');

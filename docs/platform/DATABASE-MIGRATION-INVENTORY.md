@@ -570,3 +570,67 @@ Indexes: `(season_id)`, `(status)`, `(season_id, status)`, `(created_at DESC)`
 - `fan_campaign_rewards.idempotency_key` — global idempotency across all rewards
 
 **Purpose:** Foundation for media asset management (rights-aware), sponsor profile management, campaign lifecycle with action completion and reward issuance, wallet sandbox integration (no real funds held), and campaign analytics. All wallet operations are sandbox-only; no production financial transactions.
+
+---
+
+### `20260613000001_social_prediction_match_centre`
+
+**Story:** STORY-38  
+**Applied:** Via `prisma db push` (schema sync); migration file is the canonical record for production deploy via `prisma migrate deploy`.
+
+**New enums (11):**
+- `PredictionMarketType`: MATCH_RESULT, BOTH_TEAMS_TO_SCORE, FIRST_GOALSCORER, TOTAL_GOALS_OVER_UNDER, HALF_TIME_RESULT, CORRECT_SCORE, ANYTIME_GOALSCORER, PLAYER_TO_BE_BOOKED
+- `PredictionMarketStatus`: DRAFT, OPEN, LOCKED, SETTLED, VOID
+- `ChallengeListingStatus`: OPEN, PARTIALLY_MATCHED, FULLY_MATCHED, WITHDRAWN, EXPIRED, CANCELLED
+- `ChallengeListingVisibility`: PUBLIC, FRIENDS_ONLY, LEAGUE_ONLY, PRIVATE
+- `ChallengeMatchStatus`: PENDING_SETTLEMENT, SETTLED, VOID, CORRECTED
+- `ChallengeScoringStatus`: AWAITING_LOCK, LOCKED, PENDING_SETTLEMENT, SETTLED, VOID, CORRECTED
+- `SocialPredictionEntryType`: OPPORTUNITY_ALLOCATED, COMMITMENT_RECORDED, POINTS_AWARDED, POINTS_FORGONE, VOID_RESTORED, CORRECTION, ADMIN_ADJUSTMENT
+- `DataSourceType`: MANUAL, SEEDED, SANDBOX_PROVIDER, OFFICIAL_PROVIDER
+- `DataStatus`: PROVISIONAL, LIVE, VERIFIED, FINAL, CORRECTED
+- `FreshnessStatus`: FRESH, DELAYED, STALE, OFFLINE, MANUAL
+- `ComplianceReviewStatus`: INTERNAL_REVIEW_REQUIRED, LEGAL_REVIEW_REQUIRED, APPROVED, CONDITIONALLY_APPROVED, REJECTED
+
+**New tables (12):**
+- `prediction_market_configs` — season-scoped market type definitions (MATCH_RESULT etc.); allowedMultipliersJson; unique(season_id, market_type)
+- `fixture_prediction_markets` — per-fixture market instances; lifecycle DRAFT→OPEN→LOCKED→SETTLED/VOID; unique(fixture_id, market_type)
+- `gameweek_points_allocations` — fan gameweek allocation with concurrent challenge caps; unique(fan_user_id, gameweek_id)
+- `challenge_listings` — fan prediction commitments; FIFO auto-match on creation; idempotency_key unique; indexes on (fan_user_id, status) and (fixture_market_id, status, visibility)
+- `challenge_matches` — matches between two listings (auto-match: different listings; direct accept: supportingListingId = opposingListingId for MVP); idempotency_key unique
+- `challenge_scores` — aggregate score per listing; one-to-one with challenge_listings
+- `social_prediction_points_entries` — immutable append-only ledger; idempotency_key unique; indexed on fan_user_id, gameweek_id, season_id; NOT Fan Value
+- `league_standings` — season-scoped club standings with DataSourceType/DataStatus/FreshnessStatus provenance; unique(season_id, club_id)
+- `team_form_records` — team form string + JSON recent fixtures; unique(club_id, season_id)
+- `player_ratings` — per-fixture performance rating 0–10 with version tracking; unique(player_id, fixture_id)
+- `data_ingestion_logs` — immutable audit of every ingest operation; indexed on (entity_type, entity_id), source_type, ingested_at
+- `compliance_domain_configs` — domain-level compliance review status; unique(domain_key)
+
+**Key constraints:**
+- `challenge_listings.idempotency_key` — global deduplication
+- `challenge_matches.idempotency_key` — global deduplication
+- `social_prediction_points_entries.idempotency_key` — append-only ledger deduplication
+- `prediction_market_configs.@@unique([season_id, market_type])` — one config per market type per season
+- `fixture_prediction_markets.@@unique([fixture_id, market_type])` — one market per type per fixture
+- `player_ratings.@@unique([player_id, fixture_id])` — one rating per player per fixture
+
+**Safety:** No financial fields, no cash balances, no transfer amounts, no monetary values. `social_prediction_points_entries` is independent of `fan_value_ledger`. No PSL season activation. No World Cup data changes.
+
+## STORY-38 Migrations
+
+| Migration | File | Tables / Columns Added |
+|-----------|------|------------------------|
+| `20260609063038_drop_old_notification_prefs` | Compatibility migration — drops the profile-scoped `notification_preferences` table created by `add_fan_profile` so the user-scoped version in `20260611000002` can be created cleanly on fresh replay. `DROP TABLE IF EXISTS "notification_preferences" CASCADE` | — |
+| `20260613000002_direct_challenges_campaign_triggers` | Adds `ChallengeMode` enum, `InvitationStatus` enum, `CampaignTriggerType` enum; `challenge_mode`, `challenged_user_id`, `invitation_status` columns to `challenge_listings`; new `campaign_trigger_events` table with `idempotency_key` unique index | `challenge_listings`, `campaign_trigger_events` |
+
+**STORY-38 Schema additions (schema.prisma):**
+- `enum ChallengeMode` — `PUBLIC_MARKETPLACE`, `DIRECT_USER`, `FRIEND`, `PRIVATE_LEAGUE`
+- `enum InvitationStatus` — `PENDING`, `ACCEPTED`, `DECLINED`, `WITHDRAWN`, `EXPIRED`
+- `enum CampaignTriggerType` — 9 types: `LINEUP_CONFIRMED`, `MATCH_STARTED`, `GOAL_SCORED`, `HALF_TIME`, `FULL_TIME`, `PLAYER_OF_MATCH_VOTE_OPEN`, `CLEAN_SHEET_COMPLETED`, `FANTASY_MILESTONE`, `PREDICTION_RESULT_AVAILABLE`
+- `model CampaignTriggerEvent` — links `SponsorCampaign` + `Fixture`; idempotency unique; metadata JSON
+
+**New seed data (STORY-38):**
+- Published trigger-ready campaign: `match-day-trigger-demo` (status `PUBLISHED`, 2026–2027 window)
+- Demo pending direct challenge (self-challenge, 100 pts)
+- `campaignTriggerEvent.deleteMany()` added to cleanup sequence
+
+**Migration integrity:** Full `migrate deploy` from empty DB verified across all 37 migrations (psl_migration_proof DB).

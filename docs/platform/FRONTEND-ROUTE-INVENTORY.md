@@ -537,3 +537,82 @@ All pages verified from `apps/web/src/app/` directory scan.
 | `/admin/wallet/providers` | Wallet Providers | PSL_ADMIN | `admin-wallet-client` | List providers; activate/deactivate toggle |
 | `/admin/wallet/links` | Fan Wallet Links | PSL_ADMIN | `admin-wallet-client` | Fan link status table; audit trail note |
 | `/admin/wallet/transactions` | Wallet Transactions | PSL_ADMIN | `admin-wallet-client` | Sandbox transaction log; PRODUCTION_DISABLED notice |
+
+### Fan Pages — Social Prediction Challenge Marketplace (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/social-predictions/allocation` | My Points Allocation | Fan | `social-prediction-client` | Shows gameweek allocation, used/remaining; safety copy required |
+| `/social-predictions/marketplace/[fixtureId]` | Fixture Marketplace | Fan | `social-prediction-client` | Lists open markets for fixture; entry point for creating listings |
+| `/social-predictions/create/[marketId]` | Create Challenge | Fan | `social-prediction-client` | Create listing form: selection, commitment %, multiplier; server-calculates award |
+| `/social-predictions/my-listings` | My Listings | Fan | `social-prediction-client` | Fan's active and historical listings; withdraw action |
+| `/social-predictions/[listingId]` | Listing Detail | Fan | `social-prediction-client` | Listing detail with match history, ledger; accept action |
+| `/social-predictions/leaderboard` | Prediction Leaderboard | Fan | `social-prediction-client` | Season/gameweek leaderboard; points-only disclaimer |
+
+### Fan Pages — Match Centre (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/match-centre/standings/[seasonId]` | League Standings | Fan | `match-centre-client` | Season standings table with provenance and freshness status |
+
+### Admin Pages — Social Prediction Admin (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/admin/social-predictions/markets` | Market Configs | PSL_ADMIN | `admin-social-prediction-client` | List season market configs; enable/disable toggle |
+| `/admin/social-predictions/markets/new` | New Market Config | PSL_ADMIN | `admin-social-prediction-client` | Create market config form (type, baseOpportunity, multipliers, return rate) |
+| `/admin/social-predictions/markets/[id]` | Fixture Markets | PSL_ADMIN | `admin-social-prediction-client` | Generate, open, lock, settle, void markets per fixture |
+| `/admin/social-predictions/listings` | All Listings | PSL_ADMIN | `admin-social-prediction-client` | Filterable listing table; void individual match action |
+| `/admin/social-predictions/settlements` | Market Settlements | PSL_ADMIN | `admin-social-prediction-client` | Settle/void LOCKED markets; outcome entry |
+| `/admin/social-predictions/allocations` | Points Allocations | PSL_ADMIN | `admin-social-prediction-client` | Grant gameweek allocations; adjust individual fan |
+| `/admin/social-predictions/compliance` | Compliance Status | PSL_ADMIN | `admin-social-prediction-client` | INTERNAL_REVIEW_REQUIRED dashboard; classification notes |
+
+### Admin Pages — Match Centre Admin (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/admin/match-centre/standings` | Standings Admin | PSL_ADMIN | `admin-match-centre-client` | Batch upsert standings (JSON); provenance shown |
+| `/admin/match-centre/ingestion` | Ingestion Log | PSL_ADMIN | `admin-match-centre-client` | Audit log of all ingest operations; capability status panel |
+| `/admin/match-centre/ratings` | Player Ratings | PSL_ADMIN | `admin-match-centre-client` | Upsert player rating form; version tracking |
+| `/admin/match-centre/fixtures/[fixtureId]/ingest` | Fixture Data Ingest | PSL_ADMIN | `admin-match-centre-client` | JSON ingestion form (LINEUP/MATCH_EVENT/PLAYER_RATING/STANDING); sandbox only |
+
+### Fan Pages — Live Match Centre (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/matches` | All Matches | Fan | `football-client` | Fixture list with status badges and links |
+| `/matches/live` | Live Now | Fan | `football-client` | Auto-polls every 20s for live fixtures |
+| `/matches/[fixtureId]` | Match Overview | Fan | `football-client` | Score, status, tab navigation to sub-pages |
+| `/matches/[fixtureId]/lineups` | Lineups | Fan | `match-centre-client` | Starters and subs per team |
+| `/matches/[fixtureId]/timeline` | Timeline | Fan | `football-client` | Chronological event list |
+| `/matches/[fixtureId]/stats` | Stats | Fan | `football-client` | Player match stats |
+| `/matches/[fixtureId]/players` | Player Ratings | Fan | `match-centre-client` | Ratings 0–10 per player |
+| `/matches/[fixtureId]/fantasy` | Fantasy Preview | Fan | `football-client` | Estimated points per player (provisional) |
+| `/matches/[fixtureId]/predictions` | Predictions | Fan | `football-client` | Live state, lock status, link to marketplace |
+| `/matches/[fixtureId]/social` | Social | Fan | `social-prediction-client` | Active marketplace and direct challenges for this fixture |
+
+### Fan Pages — Direct Challenges (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/social-challenges` | Challenges Hub | Fan | `social-prediction-client` | Overview: incoming/outgoing/new links |
+| `/social-challenges/incoming` | Incoming Challenges | Fan | `social-prediction-client` | Accept or decline pending direct challenges |
+| `/social-challenges/outgoing` | Outgoing Challenges | Fan | `social-prediction-client` | View status; withdraw or get share link |
+| `/social-challenges/new` | Send Challenge | Fan | `social-prediction-client` | Create a direct challenge to a specific user |
+| `/social-challenges/[challengeId]` | Challenge Detail | Fan | `social-prediction-client` | View single challenge lifecycle |
+
+### Admin Pages — Live Match Operations (STORY-38)
+
+| Route | Title | Auth | Client | Notes |
+|-------|-------|------|--------|-------|
+| `/admin/live-match` | Live Match Index | PSL_ADMIN | `football-client` | All live/scheduled fixtures; filter by LIVE/ALL |
+| `/admin/live-match/provider-readiness` | Provider Readiness | PSL_ADMIN | `admin-match-centre-client` | Capability map; stub mode warning |
+| `/admin/live-match/ingestion-batches` | Ingestion Batches | PSL_ADMIN | `admin-match-centre-client` | Audit log + sandbox ingest form |
+| `/admin/live-match/[fixtureId]` | Fixture Overview | PSL_ADMIN | `football-client`, `admin-football-client` | Score, status, lifecycle actions (kick off / half time / full time / reopen) |
+| `/admin/live-match/[fixtureId]/readiness` | Readiness | PSL_ADMIN | `football-client`, `admin-match-centre-client` | Player availability + provider capability |
+| `/admin/live-match/[fixtureId]/lineups` | Lineups | PSL_ADMIN | `football-client`, `admin-football-client` | View/submit lineups; fire lineup-confirmed event |
+| `/admin/live-match/[fixtureId]/events` | Events | PSL_ADMIN | `football-client`, `admin-football-client` | Add/delete match events; score update toggle |
+| `/admin/live-match/[fixtureId]/team-stats` | Team Stats | PSL_ADMIN | `football-client` | Aggregated team-level stats from player data |
+| `/admin/live-match/[fixtureId]/player-stats` | Player Stats | PSL_ADMIN | `football-client`, `admin-football-client` | Per-player stat upsert form + table |
+| `/admin/live-match/[fixtureId]/fantasy-impact` | Fantasy Impact | PSL_ADMIN | `football-client` | Estimated fantasy points (provisional) |
+| `/admin/live-match/[fixtureId]/prediction-impact` | Prediction Impact | PSL_ADMIN | `football-client` | Live state, settlement status, timeline |

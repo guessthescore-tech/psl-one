@@ -41,7 +41,7 @@ describe('BetaFeedbackService', () => {
 
     it('completedStories matches story count', () => {
       const result = service.getOverview();
-      expect(result.completedStories).toBe(12);
+      expect(result.completedStories).toBe(13);
     });
   });
 
@@ -182,9 +182,9 @@ describe('BetaFeedbackService', () => {
       expect(story29!.safetyBoundaries.some((s) => s.toLowerCase().includes('points-only'))).toBe(true);
     });
 
-    it('currentVersion includes STORY-37', () => {
+    it('currentVersion includes STORY-38', () => {
       const result = service.getReleaseNotes();
-      expect(result.currentVersion).toContain('STORY-37');
+      expect(result.currentVersion).toContain('STORY-38');
     });
 
     it('STORY-37 safety boundaries include wallet sandbox and fan value disclaimers', () => {

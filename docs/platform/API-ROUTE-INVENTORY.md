@@ -868,3 +868,97 @@ All routes verified from source files in `apps/api/src/`.
 | GET | `/admin/wallet/links` | PSL_ADMIN | List all fan wallet links. |
 | GET | `/admin/wallet/transactions` | PSL_ADMIN | List all wallet transactions. |
 | POST | `/admin/wallet/webhooks/:providerSlug/sandbox` | PSL_ADMIN | Process sandbox webhook (verifies SANDBOX status; writes WEBHOOK_EVENT + AdminAuditLog). |
+
+## /social-predictions — Social Prediction Challenge Marketplace (STORY-38)
+
+**Purpose:** Points-based social prediction gaming. System-issued gameplay points only. No real money, no wallet funding, no gambling mechanics. Compliance: INTERNAL_REVIEW_REQUIRED.
+
+**Safety copy required on all public pages:** "PSL One social prediction challenges use system-issued gameplay points only. Gameplay points cannot be purchased, transferred, withdrawn or exchanged for money. Challenge results affect platform scoring and leaderboard positions only."
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/social-predictions/allocation?gameweekId=` | Fan | Get my points allocation for a gameweek. |
+| GET | `/social-predictions/marketplace/:fixtureId` | Fan | Get open markets for a fixture. |
+| GET | `/social-predictions/markets/:marketId` | Fan | Get market detail with safety note. |
+| GET | `/social-predictions/markets/:marketId/listings` | Fan | Get open PUBLIC listings (excludes own listings). |
+| POST | `/social-predictions/listings` | Fan | Create challenge listing. Validates market OPEN, allocation, commitment %, multiplier. Triggers auto-match engine. |
+| GET | `/social-predictions/listings` | Fan | Get my listings with match counts and score. |
+| GET | `/social-predictions/listings/:id` | Fan | Get listing detail with ledger entries (own only — ForbiddenException if not owner). |
+| DELETE | `/social-predictions/listings/:id` | Fan | Withdraw OPEN listing (unmatched portion only). |
+| POST | `/social-predictions/listings/:id/accept` | Fan | Accept a listing (direct marketplace acceptance). Self-match rejected. Idempotent. |
+| GET | `/social-predictions/leaderboard?seasonId=` | Fan | Social prediction leaderboard (POINTS_AWARDED entries only). |
+| GET | `/social-predictions/ledger?seasonId=` | Fan | My full points ledger history. |
+
+## /admin/social-predictions — Social Prediction Admin (STORY-38)
+
+**Purpose:** Market configuration, fixture market lifecycle, fan allocation management, compliance dashboard.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/admin/social-predictions/market-configs` | PSL_ADMIN | Create market config for season. Unique per season+marketType. |
+| GET | `/admin/social-predictions/market-configs?seasonId=` | PSL_ADMIN | List market configs for season. |
+| PATCH | `/admin/social-predictions/market-configs/:id/toggle` | PSL_ADMIN | Enable/disable market config. |
+| POST | `/admin/social-predictions/fixtures/:fixtureId/markets` | PSL_ADMIN | Generate fixture markets from enabled configs. |
+| GET | `/admin/social-predictions/fixtures/:fixtureId/markets` | PSL_ADMIN | List markets for a fixture. |
+| PATCH | `/admin/social-predictions/markets/:id/open` | PSL_ADMIN | Open market (DRAFT → OPEN). |
+| PATCH | `/admin/social-predictions/markets/:id/lock` | PSL_ADMIN | Lock market at kickoff (OPEN → LOCKED). |
+| PATCH | `/admin/social-predictions/markets/:id/settle` | PSL_ADMIN | Settle market (LOCKED → SETTLED). Processes all PENDING_SETTLEMENT matches. Writes POINTS_AWARDED/FORGONE. |
+| PATCH | `/admin/social-predictions/markets/:id/void` | PSL_ADMIN | Void market (any non-SETTLED → VOID). Writes VOID_RESTORED for all matches. |
+| POST | `/admin/social-predictions/allocations/grant` | PSL_ADMIN | Grant gameweek allocation to all active fans. |
+| PATCH | `/admin/social-predictions/allocations/:fanUserId/:gameweekId` | PSL_ADMIN | Adjust individual fan allocation (logged with adjustedByUserId). |
+| GET | `/admin/social-predictions/listings` | PSL_ADMIN | List all listings (filterable: fixtureMarketId, status, fanUserId). |
+| GET | `/admin/social-predictions/listings/:id` | PSL_ADMIN | Listing detail with matches and ledger. |
+| PATCH | `/admin/social-predictions/matches/:id/void` | PSL_ADMIN | Void individual challenge match. Writes VOID_RESTORED for both parties. |
+| GET | `/admin/social-predictions/compliance` | PSL_ADMIN | Compliance status for POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE domain. |
+
+## /match-centre — Live Match Intelligence (STORY-38)
+
+**Purpose:** Provider-neutral match data: standings, team form, lineups, events, player ratings, player profiles. Official provider integration is INTEGRATION_READY — no live feeds wired in beta.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/match-centre/fixture/:fixtureId` | Fan | Full match centre: events, lineups, stats, ratings, dataProvenance. |
+| GET | `/match-centre/fixture/:fixtureId/line-ups` | Fan | Fixture lineups grouped by team. |
+| GET | `/match-centre/fixture/:fixtureId/stats` | Fan | Player match stats for fixture. |
+| GET | `/match-centre/fixture/:fixtureId/player-ratings` | Fan | Player ratings (0–10 scale) with provenance. |
+| GET | `/match-centre/standings/:seasonId` | Fan | Season standings table with provenance. |
+| GET | `/match-centre/team-form/:clubId?seasonId=` | Fan | Team form record (WWDLW string + fixtures). |
+| GET | `/match-centre/player/:playerId?seasonId=` | Fan | Player profile with season aggregate stats and recent ratings. |
+
+## /admin/match-centre — Match Centre Admin (STORY-38)
+
+**Purpose:** Admin ingestion, manual entry, and provenance audit for match data.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| PUT | `/admin/match-centre/standings` | PSL_ADMIN | Batch upsert season standings. |
+| PATCH | `/admin/match-centre/standings/:seasonId/:clubId` | PSL_ADMIN | Single standing upsert. |
+| PUT | `/admin/match-centre/team-form/:clubId` | PSL_ADMIN | Upsert team form record. |
+| POST | `/admin/match-centre/player-ratings` | PSL_ADMIN | Upsert player rating (versioned — ratingVersion increments). |
+| POST | `/admin/match-centre/ingest` | PSL_ADMIN | Sandbox data ingestion (LINEUP/MATCH_EVENT/PLAYER_RATING/STANDING). Writes DataIngestionLog. No outbound provider calls. |
+| GET | `/admin/match-centre/ingestion-log` | PSL_ADMIN | Ingestion audit log (filterable by entityType, entityId, sourceType). |
+| GET | `/admin/match-centre/provenance/:entityType/:entityId` | PSL_ADMIN | Data provenance for a specific entity. |
+| GET | `/admin/match-centre/capability-status` | PSL_ADMIN | Provider capability overview (ENABLED/DISABLED/PROVIDER_REQUIRED). |
+
+## /social-prediction — Direct Challenges (STORY-38 additions)
+
+**Purpose:** Direct fan-to-fan challenge lifecycle: create, accept, decline, withdraw, share-link.
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| GET | `/social-prediction/challenges/incoming` | FAN | Incoming direct challenges addressed to the current fan |
+| GET | `/social-prediction/challenges/outgoing` | FAN | Outgoing direct challenges the fan created |
+| POST | `/social-prediction/listings/:id/challenge` | FAN | Send a direct challenge to a specific user (`challengedUserId` in body) |
+| POST | `/social-prediction/listings/:id/challenge/accept` | FAN | Accept a pending direct challenge (atomic; conditional `updateMany` guard) |
+| POST | `/social-prediction/listings/:id/challenge/decline` | FAN | Decline — immutable history, no re-publish |
+| POST | `/social-prediction/listings/:id/challenge/withdraw` | FAN | Withdraw — immutable history, no re-publish |
+| GET | `/social-prediction/listings/:id/share-link` | FAN | Generate a share link for a challenge listing |
+
+## /football — Fixture Lifecycle Admin (STORY-38 additions)
+
+| Method | Route | Auth | Description |
+|--------|-------|------|-------------|
+| POST | `/football/admin/fixtures/:id/finalise` | PSL_ADMIN | Finalise fixture (FINISHED status, sets finishedAt) |
+| POST | `/football/admin/fixtures/:id/reopen` | PSL_ADMIN | Reopen finished fixture for correction |
+| POST | `/football/admin/fixtures/:id/recalculate-state` | PSL_ADMIN | Recompute score from events |
+| POST | `/football/admin/fixtures/:id/sync-provider` | PSL_ADMIN | Request sync from configured provider (sandbox: returns synced:false) |

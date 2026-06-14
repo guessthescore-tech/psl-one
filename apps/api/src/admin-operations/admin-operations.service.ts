@@ -639,6 +639,45 @@ export class AdminOperationsService {
         warnings: ['Analytics derived from stored records only. No external analytics platform wired.'],
         recommendedAction: 'View campaign analytics at /admin/campaigns/:id/analytics. Recalculate daily snapshots. Wire Amplitude/DataDog Sprint 3+.',
       },
+      {
+        moduleKey: 'SOCIAL_PREDICTION_MATCHING',
+        displayName: 'Social Prediction Challenge Marketplace',
+        status: 'BUILT_NOW',
+        isCommercial: false, isPointsOnly: true, isProductionEnabled: true, isFoundational: false,
+        blockers: [],
+        warnings: [
+          'System-issued gameplay points only — no monetary value, no real wagers, no betting mechanics.',
+          'Compliance domain POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE requires INTERNAL_REVIEW_REQUIRED sign-off.',
+          'FIFO matching engine is deterministic and idempotent.',
+        ],
+        recommendedAction: 'Create market configs at /admin/social-predictions/markets. Grant allocations before gameweek open. Settle or void markets post-match at /admin/social-predictions/settlements.',
+      },
+      {
+        moduleKey: 'LIVE_MATCH_INTELLIGENCE',
+        displayName: 'Live Match Intelligence & Rich Football Data',
+        status: 'FOUNDATION_READY',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: true,
+        blockers: [],
+        warnings: [
+          'Manual / sandbox ingestion only in STORY-38. Official provider integration is INTEGRATION_READY.',
+          'Data provenance tracked via DataIngestionLog for every entity.',
+          'Do NOT call Opta, Stats Perform, Sportradar, or any external provider from this interface.',
+        ],
+        recommendedAction: 'Ingest sandbox data at /admin/match-centre/fixtures/:fixtureId/ingest. View ingestion log at /admin/match-centre/ingestion. Official provider swap: wire new adapter only — do NOT change fan routes or domain models.',
+      },
+      {
+        moduleKey: 'OFFICIAL_MATCH_DATA_PROVIDER',
+        displayName: 'Official Match Data Provider Feed',
+        status: 'PROVIDER_REQUIRED',
+        isCommercial: false, isPointsOnly: false, isProductionEnabled: false, isFoundational: false,
+        blockers: ['No live data provider contract signed', 'Provider adapter not wired to ingestion pipeline'],
+        warnings: [
+          'Provider-neutral MatchCentreService is INTEGRATION_READY.',
+          'Provider swap strategy: (1) create new DataSourceType adapter, (2) wire to adminIngestSandboxData, (3) do NOT change fan route contracts.',
+          'Fan routes /match-centre/* and all domain models remain unchanged on provider swap.',
+        ],
+        recommendedAction: 'Opta / Stats Perform / Sportradar / API-Football contract Sprint 3+. View capability status at GET /admin/match-centre/capability-status.',
+      },
     ];
 
     return { seasonId, seasonName: season.name, modules };
@@ -705,6 +744,18 @@ export class AdminOperationsService {
       { route: '/admin/operations/integrations/live-data', method: 'GET', domain: 'adminOperations', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
       { route: '/admin/operations/integrations/sponsor-activation', method: 'GET', domain: 'adminOperations', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
       { route: '/admin/operations/integrations/rewards-redemption', method: 'GET', domain: 'adminOperations', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
+
+      // Social Prediction (STORY-38)
+      { route: '/admin/social-predictions/market-configs', method: 'GET', domain: 'socialPrediction', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: ['Requires ?seasonId=:id'] },
+      { route: '/admin/social-predictions/listings', method: 'GET', domain: 'socialPrediction', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
+      { route: '/admin/social-predictions/compliance', method: 'GET', domain: 'socialPrediction', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
+      { route: '/social-predictions/leaderboard', method: 'GET', domain: 'socialPrediction', requiresRole: 'JWT', expectedStatus: 200, notes: ['Requires ?seasonId=:id'] },
+      { route: '/social-predictions/listings', method: 'GET', domain: 'socialPrediction', requiresRole: 'JWT', expectedStatus: 200, notes: [] },
+
+      // Match Centre (STORY-38)
+      { route: '/admin/match-centre/capability-status', method: 'GET', domain: 'matchCentre', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
+      { route: '/admin/match-centre/ingestion-log', method: 'GET', domain: 'matchCentre', requiresRole: 'PSL_ADMIN', expectedStatus: 200, notes: [] },
+      { route: '/match-centre/standings/:seasonId', method: 'GET', domain: 'matchCentre', requiresRole: 'JWT', expectedStatus: 200, notes: [] },
     ];
   }
 

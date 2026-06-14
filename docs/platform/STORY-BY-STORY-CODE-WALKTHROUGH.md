@@ -1376,3 +1376,115 @@ prisma/migrations/
 - `PRODUCTION_DISABLED` / `RIGHTS_REQUIRED` / `SANDBOX_READY` statuses returned in AdminOperations capability map
 
 **Test gate:** 1452 API tests passing (49 spec files). Both typechecks clean. API build clean. Web build clean (275 pages). Seed clean.
+
+---
+
+## STORY-38: Live Match Intelligence, Rich Football Data & Points-Based Social Prediction Gaming
+
+**Migration:** `20260613000001_social_prediction_match_centre`  
+**Modules:** `SocialPredictionModule`, `MatchCentreModule`  
+**New enums:** 11  
+**New tables:** 12  
+**New API routes:** 25 fan + admin (Social Prediction: 11 fan + 15 admin; Match Centre: 7 fan + 8 admin)  
+**New web pages:** 7 fan + 11 admin (18 new, total: 299)  
+**API tests:** 1500 passing (51 spec files)
+
+### Social Prediction Bounded Context
+
+**Product classification:** Points-based social gaming — NOT betting. System-issued gameplay points only.
+
+**Key files:**
+- `apps/api/src/social-prediction/social-prediction.service.ts` — 1100+ lines; allocation, market config, FIFO matching engine, settlement, void, leaderboard, ledger
+- `apps/api/src/social-prediction/social-prediction.controller.ts` — fan + admin controllers; RBAC via `@UseGuards(JwtAuthGuard, RolesGuard)` on admin
+- `apps/api/src/social-prediction/social-prediction.module.ts` — imports PrismaModule, AuthModule, NotificationsModule, ActivityFeedModule
+
+**Matching engine:**
+- `_matchListing()` — FIFO (ORDER BY createdAt ASC); self-match excluded (`fanUserId: { not: ... }`); per-match `$transaction`; uses `{ decrement: toMatch }` for atomic `availablePoints` update across multiple matches
+- Partial matching: `toMatch = Math.min(remaining, compatible.availablePoints)` — one new listing can match multiple existing listings
+- Direct accept (`fanAcceptListing`): fan explicitly accepts a specific listing; the accepter's identity is tracked via `COMMITMENT_RECORDED` ledger entry (role: OPPOSER) since `opposingListingId = supportingListingId` in MVP
+
+**Settlement correctness:**
+- `_settleMarketMatches()` detects `supportingListingId === opposingListingId` (direct accept case) and resolves actual accepter from `COMMITMENT_RECORDED` ledger entry before writing POINTS_AWARDED/POINTS_FORGONE
+- `_voidMarketMatches()` same pattern: resolves accepter from ledger for VOID_RESTORED entries
+- `skipDuplicates: true` on all `createMany` — idempotent by construction
+
+**Points boundary (enforced in code):**
+- Points are system-issued via `adminGrantAllocation`; fans cannot purchase or transfer points
+- No `wallet.fundingSource` used; `FanValueLedger` is completely separate
+- `fanAcceptListing` validates `remainingAllocation >= pointsToAccept` before matching
+- Settlement: winner receives `POINTS_AWARDED`; loser records `POINTS_FORGONE` (not a debit from winner)
+
+**Compliance:** `ComplianceDomainConfig.domainKey = 'POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE'` status `INTERNAL_REVIEW_REQUIRED`. Safety copy returned on every fan API response.
+
+### Match Centre Bounded Context
+
+**Product classification:** Provider-neutral football data layer. No live provider wired; manual/sandbox ingestion only.
+
+**Key files:**
+- `apps/api/src/match-centre/match-centre.service.ts` — standings, team form, lineups, events, player ratings, ingestion, provenance
+- `apps/api/src/match-centre/match-centre.controller.ts` — fan (JWT) + admin (JWT + ADMIN role)
+- `apps/api/src/match-centre/match-centre.module.ts` — imports PrismaModule, AuthModule
+
+**Provider-neutral contract:**
+- All entities carry `sourceType` (DataSourceType), `dataStatus` (DataStatus), `freshnessStatus` (FreshnessStatus)
+- `dataProvenance` object returned on every fan endpoint response; stable shape regardless of provider
+- `DataIngestionLog` writes on every ingest — immutable audit record
+- `adminGetCapabilityStatus()` returns `officialProviderFeed: 'PROVIDER_REQUIRED'`; wiring strategy documented
+
+**Player ratings:** Scale 0–10; `ratingVersion` increments on each update; `ratingSource = 'MANUAL'` or `'SANDBOX_PROVIDER'`; no Sofascore dependency
+
+**Ingestion:** Sandbox only (`sourceType: SANDBOX_PROVIDER`); supports LINEUP, MATCH_EVENT, PLAYER_RATING, STANDING; logs `rawPayloadHash` for audit; no outbound provider calls
+
+### Safety Boundaries
+
+- Social prediction points cannot be purchased, transferred, withdrawn, or exchanged for money
+- `social_prediction_points_entries` is NOT `fan_value_ledger` — separate tables, separate semantics
+- No outbound calls to Opta, Stats Perform, Sportradar, API-Football, FIFA, or PSL
+- No copyrighted player images
+- `seed-admin@psl-one.internal` uses `$SEED_NOT_A_REAL_PASSWORD` (not a valid bcrypt hash — cannot authenticate); used only as FK for seeded market configs
+- World Cup 2026 season remains primary active season; PSL season remains `UPCOMING/isActive: false`
+- Compliance status: `INTERNAL_REVIEW_REQUIRED` — legal review required before public launch
+
+### Known Limitations (Sprint 3+)
+
+- Official provider live feed: adapter interface ready, no contract signed
+- Direct friend challenges (FRIENDS_ONLY/LEAGUE_ONLY visibility): schema supports it; marketplace listing is MVP only
+- Real-time push (WebSocket/SSE): not implemented
+- xG/xA player stats: nullable fields exist; not seeded
+
+**Test gate:** 1500 API tests passing (51 spec files). Both typechecks clean. API build clean. Web build clean (299 pages). Seed clean. Two service bugs fixed: (1) stale `availablePoints` in multi-match FIFO loop; (2) direct-accept settlement resolved accepter from ledger.
+
+---
+
+## STORY-38 — Live Match Intelligence & Social Prediction Gaming
+
+**Key files:**
+
+### Migration integrity
+- `apps/api/prisma/migrations/20260609063038_drop_old_notification_prefs/migration.sql` — compatibility migration; `DROP TABLE IF EXISTS "notification_preferences" CASCADE`; ensures clean replay from empty DB
+- `apps/api/prisma/migrations/20260613000002_direct_challenges_campaign_triggers/migration.sql` — adds `ChallengeMode`, `InvitationStatus`, `CampaignTriggerType` enums; `challenge_mode/challenged_user_id/invitation_status` to `challenge_listings`; `campaign_trigger_events` table
+
+### Campaign Trigger Engine
+- `apps/api/src/campaigns/campaign-trigger.service.ts` — 9 trigger methods; queries `PUBLISHED` campaigns within time window; `upsert` with `update: {}` for idempotency; failure isolated in `_upsertTrigger`
+- `apps/api/src/campaigns/campaign-trigger.service.spec.ts` — tests: published/draft/expired campaigns, failure isolation, idempotency
+- `apps/api/src/match-centre/match-centre.service.ts` — `adminIngestSandboxData` fires triggers on LINEUP/MATCH_EVENT; fire-and-forget
+
+### Direct Challenges
+- `apps/api/src/social-prediction/social-prediction.service.ts` — `fanAcceptDirectChallenge`: fully atomic `$transaction`; deterministic idempotency key; conditional `updateMany` on both listing and allocation; `fanDeclineDirectChallenge`/`fanWithdrawDirectChallenge`: immutable history only
+- `apps/api/src/social-prediction/dto/create-direct-challenge.dto.ts` — `challengedUserId` DTO
+- `apps/api/src/social-prediction/social-prediction.controller.ts` — 6 new challenge routes
+- `apps/web/src/lib/social-prediction-client.ts` — 7 new client functions
+- `apps/api/src/social-prediction/direct-challenge-concurrency.integration.spec.ts` — real DB concurrency test
+
+### Fan Match Centre Pages
+- `apps/web/src/app/matches/` — 10 pages covering list, live, overview, lineups, timeline, stats, players, fantasy, predictions, social
+
+### Admin Live-Match Pages
+- `apps/web/src/app/admin/live-match/` — 11 pages: index, provider-readiness, ingestion-batches, [fixtureId]/*, each sub-page for readiness, lineups, events, team-stats, player-stats, fantasy-impact, prediction-impact
+
+### Key design decisions
+- **Immutable history**: decline/withdraw NEVER re-publish to marketplace — `invitationStatus` is the only field changed
+- **Atomic acceptance**: everything in one `$transaction` — if any step fails, listing capacity is not decremented
+- **Deterministic idempotency**: `direct-accept:${listingId}:${fanUserId}` — retries find existing match and return early
+- **Campaign trigger isolation**: failures in `_upsertTrigger` are caught and logged, never propagated to match ingestion
+- **`Prisma.DbNull` for nullable JSON**: `metadataJson: (metadata ?? Prisma.DbNull) as Prisma.InputJsonValue` — required with `exactOptionalPropertyTypes: true`

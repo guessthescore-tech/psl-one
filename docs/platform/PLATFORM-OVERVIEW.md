@@ -338,3 +338,59 @@ All commercial modules are **production-disabled by default**. The `IntegrationP
 **Gameplay Economy:** Fantasy and Guess the Score are POINTS-ONLY — no paid entry, no real-money mechanics.
 
 **Commercial Economy:** Disabled for Sprint 2 beta. All commercial capabilities require provider contracts and/or compliance approval before production activation.
+
+---
+
+## STORY-38 — Live Match Intelligence & Social Prediction Gaming (Sprint 2)
+
+**Status:** MVP Accepted  
+**Tests:** 1528 API unit tests (53 files); 1 PostgreSQL concurrency integration test  
+**Pages:** 319 web pages total
+
+### What was built
+
+**Migration integrity:**
+- New compatibility migration `20260609063038_drop_old_notification_prefs` ensures clean `migrate deploy` from empty DB
+- Full 37-migration replay verified on `psl_migration_proof` database
+
+**Direct Fan-to-Fan Challenges:**
+- `ChallengeMode` enum: `PUBLIC_MARKETPLACE`, `DIRECT_USER`, `FRIEND`, `PRIVATE_LEAGUE`
+- `InvitationStatus` enum: `PENDING`, `ACCEPTED`, `DECLINED`, `WITHDRAWN`, `EXPIRED`
+- Fully atomic acceptance in a single `$transaction`: conditional `updateMany` on listing + allocation → both must satisfy their WHERE clauses or the whole transaction rolls back
+- Deterministic idempotency key: `direct-accept:${listingId}:${fanUserId}` — retry-safe
+- Immutable history: decline/withdraw sets `invitationStatus` only; never re-publishes to marketplace
+- 6 new fan API routes + 7 new web client functions + 5 social-challenges pages
+
+**Campaign Trigger Engine:**
+- `CampaignTriggerType` enum with 9 types
+- `CampaignTriggerEvent` model with idempotency unique index
+- `CampaignTriggerService` — fire-and-forget, failure-isolated, time-window-enforced
+- Integrated into `MatchCentreService.adminIngestSandboxData` for match lifecycle events
+- Published demo campaign `match-day-trigger-demo` seeded for local testing
+
+**Rich Match Centre Fan Experience (10 pages):**
+- `/matches` — fixture list
+- `/matches/live` — auto-poll live feed
+- `/matches/[fixtureId]` — overview with tab navigation
+- `/matches/[fixtureId]/lineups` — team lineups
+- `/matches/[fixtureId]/timeline` — event timeline
+- `/matches/[fixtureId]/stats` — player match stats
+- `/matches/[fixtureId]/players` — player ratings
+- `/matches/[fixtureId]/fantasy` — estimated fantasy points (provisional)
+- `/matches/[fixtureId]/predictions` — lock state, live score, marketplace link
+- `/matches/[fixtureId]/social` — marketplace + direct challenges for fixture
+
+**Live Match Admin Operations (11 pages):**
+- `/admin/live-match` — index with LIVE/ALL filter
+- `/admin/live-match/provider-readiness` — capability status
+- `/admin/live-match/ingestion-batches` — audit log + sandbox ingest
+- `/admin/live-match/[fixtureId]` — overview with lifecycle actions
+- `/admin/live-match/[fixtureId]/readiness` — player availability + capability
+- `/admin/live-match/[fixtureId]/lineups` — lineup view + confirm button
+- `/admin/live-match/[fixtureId]/events` — event add/delete form
+- `/admin/live-match/[fixtureId]/team-stats` — aggregated team stats
+- `/admin/live-match/[fixtureId]/player-stats` — per-player stat upsert
+- `/admin/live-match/[fixtureId]/fantasy-impact` — estimated impact with high-scorer summary
+- `/admin/live-match/[fixtureId]/prediction-impact` — settlement status + timeline
+
+**Safety:** All gameplay remains points-only. No financial mechanics, no live provider calls, no external API calls. `POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE` status: `INTERNAL_REVIEW_REQUIRED`.

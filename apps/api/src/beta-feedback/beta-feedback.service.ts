@@ -56,9 +56,9 @@ export class BetaFeedbackService {
       uxChecklistWarnings: checklist.filter((c) => c.status === 'WARN').length,
       uxChecklistFails: checklist.filter((c) => c.status === 'FAIL').length,
       releaseReadiness: 'WORLD_CUP_BETA_READY_PSL_PENDING',
-      completedStories: 12,
-      apiTestCount: 1452,
-      webPageCount: 275,
+      completedStories: 13,
+      apiTestCount: 1528,
+      webPageCount: 319,
       recommendedNextActions: [
         'Import official PSL 2026/27 squad data via /admin/squad-import',
         'Import official PSL 2026/27 fixture schedule via /admin/fixtures/imports',
@@ -105,7 +105,7 @@ export class BetaFeedbackService {
 
   getReleaseNotes(): { notes: ReleaseNote[]; currentVersion: string; note: string } {
     return {
-      currentVersion: 'Sprint 2 — STORY-37',
+      currentVersion: 'Sprint 2 — STORY-38',
       notes: this.getReleaseNotesList(),
       note: 'Release notes cover Sprint 2 stories. Sprint 1 foundation committed in feat: complete sprint 1 fan platform foundation.',
     };
@@ -593,6 +593,36 @@ export class BetaFeedbackService {
           'Squad import is manual/admin-triggered only — no external PSL data provider calls.',
           'Activation dry-run is strictly read-only — no state mutations.',
           'No paid entry, no real-money mechanics, no live provider ingestion.',
+        ],
+      },
+      {
+        story: 'STORY-38',
+        commit: 'pending',
+        title: 'PSL Live Match Intelligence, Rich Football Data & Points-Based Social Prediction Gaming',
+        summary: 'Two new bounded contexts: SocialPredictionModule (points-based challenge marketplace — FIFO matching, immutable ledger, compliance readiness) and MatchCentreModule (rich football data — standings, form, player ratings, sandbox ingestion, provider-neutral data provenance). 11 new enums, 13 new tables, migration 20260613000001. 1528 API tests passing.',
+        keyDeliverables: [
+          'SocialPredictionModule: 14 fan routes + 13 admin routes; FIFO deterministic matching; idempotency keys on all mutations',
+          'GameweekPointsAllocation: admin grants system-issued points per gameweek; no real money',
+          'ChallengeListing/ChallengeMatch: fan-vs-fan points marketplace; self-match prevention; volume cap enforcement',
+          'SocialPredictionPointsEntry: immutable ledger (POINTS_COMMITTED/AWARDED/FORGONE/VOID_RESTORED); corrections via new entries only',
+          'ComplianceDomainConfig: POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE = INTERNAL_REVIEW_REQUIRED',
+          'MatchCentreModule: 7 fan routes + 8 admin routes; provider-neutral DataSourceType contract',
+          'LeagueStanding: season-scoped standings with provenance; MANUAL/SEEDED/SANDBOX_PROVIDER/OFFICIAL_PROVIDER',
+          'TeamFormRecord: form string + recentFixtures JSON; provenance tracked',
+          'PlayerRating: performance rating 0–10; version tracking; official provider swap strategy documented',
+          'DataIngestionLog: immutable audit of every ingest operation with sourceType + dataStatus',
+          '4 admin match-centre pages + 5 fan social prediction pages + 7 admin social prediction pages',
+          '2 new module readiness entries in AdminOperationsService (SOCIAL_PREDICTION_MATCHING, LIVE_MATCH_INTELLIGENCE)',
+        ],
+        safetyBoundaries: [
+          'PSL One social prediction challenges use system-issued gameplay points only. Gameplay points cannot be purchased, transferred, withdrawn or exchanged for money.',
+          'Challenge results affect platform scoring and leaderboard positions only. No betting, wagers, odds, stakes, or payouts.',
+          'Fan Value is a separate non-financial loyalty score and is not used to fund prediction challenges.',
+          'FIFO matching engine is fully deterministic and idempotent — no random number generation, no hidden weighting.',
+          'Official match data provider integration is INTEGRATION_READY but NOT wired. Do NOT call Opta, Stats Perform, Sportradar, or any external provider.',
+          'Sandbox ingestion only in STORY-38. No production ingestion. No copyrighted player images.',
+          'Fantasy and Guess the Score remain points-only. No paid entry.',
+          'No real-money wallet, payments, checkout, orders, or production rewards redemption.',
         ],
       },
       {

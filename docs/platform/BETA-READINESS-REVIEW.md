@@ -295,3 +295,31 @@ Validate all platform mechanics with real fans during the FIFA World Cup 2026, b
 - Auth bypass (PSL_ADMIN routes accessible without PSL_ADMIN role)
 - Password hash exposure in any API response
 - Financial mechanics introduced (betting, odds, stakes, fiat, crypto)
+
+---
+
+## STORY-38 Update
+
+**New test gate:** 1528 API tests passing (53 spec files). Both typechecks clean. 319 web pages.
+
+### New capabilities
+
+- Direct fan-to-fan challenges with atomic acceptance and immutable history
+- Campaign trigger engine (9 event types, idempotent, failure-isolated)
+- 10 fan match centre pages (live scores, lineups, stats, fantasy preview, predictions, social)
+- 11 admin live-match operations pages (lifecycle actions, events, stats, impact views)
+- PostgreSQL concurrency integration test (`direct-challenge-concurrency.integration.spec.ts`)
+
+### GO / NO-GO update
+
+**GO ✅ additions:**
+- Direct challenge acceptance: atomic `$transaction`, no double-spend
+- Decline/withdraw: immutable history — `invitationStatus` only, never re-publishes
+- Campaign triggers: failure-isolated, time-window-enforced
+- Admin live-match pages: kick off / half time / full time / reopen actions all wired
+
+**NO-GO 🚫 unchanged:**
+- Financial mechanics: still fully excluded
+- Real provider calls: none
+- Auth bypass: not possible
+- Test regression: gate is 1528 tests

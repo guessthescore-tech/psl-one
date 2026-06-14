@@ -190,3 +190,29 @@
 ---
 
 *This document is generated and maintained by STORY-32. The live view is available at `/admin/operations/capability-review`.*
+
+---
+
+## STORY-38 Update
+
+**New admin capabilities added:**
+
+| Capability | Page | Status |
+|-----------|------|--------|
+| Live match operations hub | `/admin/live-match` | BETA_READY |
+| Match lifecycle actions (kick off, half time, full time, reopen) | `/admin/live-match/[fixtureId]` | BETA_READY |
+| Player availability + provider capability readiness | `/admin/live-match/[fixtureId]/readiness` | BETA_READY |
+| Lineup view + confirm | `/admin/live-match/[fixtureId]/lineups` | BETA_READY |
+| Match event add/delete | `/admin/live-match/[fixtureId]/events` | BETA_READY |
+| Team-level aggregated stats view | `/admin/live-match/[fixtureId]/team-stats` | BETA_READY |
+| Per-player stat upsert | `/admin/live-match/[fixtureId]/player-stats` | BETA_READY |
+| Live fantasy impact (provisional) | `/admin/live-match/[fixtureId]/fantasy-impact` | BETA_READY |
+| Prediction settlement status | `/admin/live-match/[fixtureId]/prediction-impact` | BETA_READY |
+| Provider readiness dashboard | `/admin/live-match/provider-readiness` | STUB_MODE |
+| Ingestion batch log + sandbox ingest | `/admin/live-match/ingestion-batches` | BETA_READY |
+| Campaign trigger engine | `CampaignTriggerService` | BETA_READY |
+
+**Remaining gaps (Sprint 3+):**
+- Live provider wiring (Opta/Stats Perform/Sportradar) — `PROVIDER_REQUIRED`
+- Real-time event push (WebSocket/SSE) — polling is current mechanism
+- Player of the match voting UI — trigger exists, no UI yet

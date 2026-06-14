@@ -37,6 +37,8 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { CampaignRewardsModule } from './campaign-rewards/campaign-rewards.module';
 import { WalletIntegrationModule } from './wallet-integration/wallet-integration.module';
 import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics.module';
+import { SocialPredictionModule } from './social-prediction/social-prediction.module';
+import { MatchCentreModule } from './match-centre/match-centre.module';
 
 @Module({
   imports: [
@@ -75,6 +77,8 @@ import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics
     CampaignRewardsModule,
     WalletIntegrationModule,
     CampaignAnalyticsModule,
+    SocialPredictionModule,
+    MatchCentreModule,
     HealthModule,
   ],
   controllers: [VersionController],
