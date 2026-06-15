@@ -5,7 +5,7 @@ function getToken(): string | null {
 
 async function apiRequest<T>(path: string, options?: RequestInit): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}${path}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000'}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

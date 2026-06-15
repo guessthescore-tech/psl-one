@@ -1,0 +1,40 @@
+# Copy to terraform.tfvars only for an authorised Terraform plan review.
+# Do not commit terraform.tfvars.
+
+aws_region  = "af-south-1"
+environment = "staging"
+project     = "psl-one"
+
+github_owner = "REPLACE_WITH_GITHUB_OWNER"
+github_repo  = "REPLACE_WITH_REPOSITORY_NAME"
+github_environment = "staging"
+create_github_oidc_provider       = false
+existing_github_oidc_provider_arn = "REPLACE_WITH_APPROVED_EXISTING_GITHUB_OIDC_PROVIDER_ARN"
+
+nat_gateway_count = 1
+api_hostnames = ["api.staging.pslone.co.za"]
+web_hostnames = ["staging.pslone.co.za"]
+
+git_sha         = "REPLACE_WITH_FULL_GIT_SHA"
+build_timestamp = "REPLACE_WITH_UTC_BUILD_TIMESTAMP"
+
+api_image_uri       = "REPLACE_WITH_ECR_API_IMAGE_URI_WITH_FULL_SHA_TAG"
+web_image_uri       = "REPLACE_WITH_ECR_WEB_IMAGE_URI_WITH_FULL_SHA_TAG"
+migration_image_uri = "REPLACE_WITH_ECR_API_MIGRATOR_IMAGE_URI_WITH_FULL_SHA_TAG"
+
+api_runtime_secret_name = "psl-one/staging/api/runtime"
+
+# RDS creation remains blocked until Terraform-plan review, AWS account
+# confirmation and cost approval.
+create_rds                  = false
+rds_engine_version          = "16"
+rds_instance_class          = "db.t4g.micro"
+rds_allocated_storage       = 20
+rds_max_allocated_storage   = 100
+rds_backup_retention_period = 7
+rds_multi_az                = false
+
+# Optional after initial ALB-based staging.
+enable_cloudfront          = false
+cloudfront_aliases         = []
+cloudfront_certificate_arn = null

@@ -1,69 +1,277 @@
-name: Deploy
+name: Manual Staging Deployment
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        type: choice
-        options: [dev, staging, prod]
+      image_tag:
+        description: 'Immutable image tag to deploy; defaults to this workflow commit SHA'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
 
 env:
-  AWS_REGION: af-south-1
+  AWS_REGION: ${{ vars.STAGING_AWS_REGION || 'af-south-1' }}
+  IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
+  STAGING_API_PUBLIC_BASE_URL: ${{ vars.STAGING_API_PUBLIC_BASE_URL }}
+  API_REPOSITORY: ${{ vars.STAGING_ECR_API_REPOSITORY }}
+  API_MIGRATOR_REPOSITORY: ${{ vars.STAGING_ECR_API_MIGRATOR_REPOSITORY }}
+  WEB_REPOSITORY: ${{ vars.STAGING_ECR_WEB_REPOSITORY }}
+  ECS_CLUSTER: ${{ vars.STAGING_ECS_CLUSTER }}
+  API_SERVICE: ${{ vars.STAGING_API_SERVICE }}
+  WEB_SERVICE: ${{ vars.STAGING_WEB_SERVICE }}
+  API_TASK_FAMILY: ${{ vars.STAGING_API_TASK_FAMILY }}
+  WEB_TASK_FAMILY: ${{ vars.STAGING_WEB_TASK_FAMILY }}
+  MIGRATION_TASK_FAMILY: ${{ vars.STAGING_MIGRATION_TASK_FAMILY }}
+  PRIVATE_SUBNET_IDS: ${{ vars.STAGING_PRIVATE_SUBNET_IDS }}
+  MIGRATION_SECURITY_GROUP_ID: ${{ vars.STAGING_MIGRATION_SECURITY_GROUP_ID }}
+  API_READINESS_URL: ${{ vars.STAGING_API_READINESS_URL }}
+  WEB_HEALTH_URL: ${{ vars.STAGING_WEB_HEALTH_URL }}
 
 jobs:
-  deploy:
+  deploy-staging:
+    name: Build, push and deploy staging
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
-    timeout-minutes: 45
+    environment: staging
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Configure AWS credentials
+      - name: Validate immutable deployment SHA
+        run: |
+          set -euo pipefail
+          if [[ ! "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "IMAGE_TAG must be a full 40-character lowercase Git SHA."
+            exit 1
+          fi
+          git fetch origin main
+          git merge-base --is-ancestor "$IMAGE_TAG" origin/main
+          git checkout --detach "$IMAGE_TAG"
+          if [ -z "$STAGING_API_PUBLIC_BASE_URL" ]; then
+            echo "STAGING_API_PUBLIC_BASE_URL is required for the web Docker build."
+            exit 1
+          fi
+          if [ -z "$API_READINESS_URL" ]; then
+            echo "STAGING_API_READINESS_URL is required for API readiness gating."
+            exit 1
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS credentials through OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          role-to-assume: ${{ vars.STAGING_AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push service images
+      - name: Build and push immutable images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG=${{ github.sha }}
+          set -euo pipefail
+          API_IMAGE="$ECR_REGISTRY/$API_REPOSITORY:$IMAGE_TAG"
+          MIGRATION_IMAGE="$ECR_REGISTRY/$API_MIGRATOR_REPOSITORY:$IMAGE_TAG"
+          WEB_IMAGE="$ECR_REGISTRY/$WEB_REPOSITORY:$IMAGE_TAG"
 
-          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
-            docker build \
-              -f services/$service/Dockerfile \
-              -t $ECR_REGISTRY/psl-$service:$IMAGE_TAG \
-              -t $ECR_REGISTRY/psl-$service:latest \
-              .
-            docker push $ECR_REGISTRY/psl-$service:$IMAGE_TAG
-            docker push $ECR_REGISTRY/psl-$service:latest
-          done
+          docker build \
+            --file apps/api/Dockerfile \
+            --target runner \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --tag "$API_IMAGE" \
+            .
+          docker push "$API_IMAGE"
 
-      - name: Deploy to ECS
+          docker build \
+            --file apps/api/Dockerfile \
+            --target migrator \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --tag "$MIGRATION_IMAGE" \
+            .
+          docker push "$MIGRATION_IMAGE"
+
+          docker build \
+            --file apps/web/Dockerfile \
+            --target runner \
+            --build-arg NEXT_PUBLIC_API_BASE_URL="$STAGING_API_PUBLIC_BASE_URL" \
+            --build-arg NEXT_PUBLIC_ENVIRONMENT_LABEL=staging \
+            --build-arg NEXT_PUBLIC_GIT_SHA="$IMAGE_TAG" \
+            --build-arg NEXT_PUBLIC_BUILD_TIMESTAMP="$GITHUB_RUN_ID" \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --tag "$WEB_IMAGE" \
+            .
+
+          WEB_CONTAINER="$(docker create "$WEB_IMAGE")"
+          mkdir -p /tmp/psl-one-web-bundle
+          docker cp "$WEB_CONTAINER:/app/apps/web/.next" /tmp/psl-one-web-bundle/.next
+          docker rm "$WEB_CONTAINER"
+          if grep -R "http://localhost:4000" /tmp/psl-one-web-bundle/.next >/dev/null; then
+            echo "Web image contains localhost API fallback in the built bundle."
+            exit 1
+          fi
+          docker push "$WEB_IMAGE"
+
+          {
+            echo "API_IMAGE=$API_IMAGE"
+            echo "MIGRATION_IMAGE=$MIGRATION_IMAGE"
+            echo "WEB_IMAGE=$WEB_IMAGE"
+          } >> "$GITHUB_ENV"
+
+      - name: Record image digests
         run: |
-          ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}
-          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
-            aws ecs update-service \
-              --cluster psl-$ENVIRONMENT \
-              --service psl-$service \
-              --force-new-deployment \
-              --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200"
-          done
+          set -euo pipefail
+          API_DIGEST="$(aws ecr describe-images --repository-name "$API_REPOSITORY" --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          MIGRATION_DIGEST="$(aws ecr describe-images --repository-name "$API_MIGRATOR_REPOSITORY" --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          WEB_DIGEST="$(aws ecr describe-images --repository-name "$WEB_REPOSITORY" --image-ids imageTag="$IMAGE_TAG" --query 'imageDetails[0].imageDigest' --output text)"
+          DEPLOYED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-      - name: Wait for services stable
+          jq -n \
+            --arg story "S3-INFRA-01" \
+            --arg environment "staging" \
+            --arg deployedAt "$DEPLOYED_AT" \
+            --arg deployedBy "$GITHUB_ACTOR" \
+            --arg gitSha "$IMAGE_TAG" \
+            --arg imageTag "$IMAGE_TAG" \
+            --arg apiUri "$API_IMAGE" \
+            --arg apiDigest "$API_DIGEST" \
+            --arg migrationUri "$MIGRATION_IMAGE" \
+            --arg migrationDigest "$MIGRATION_DIGEST" \
+            --arg webUri "$WEB_IMAGE" \
+            --arg webDigest "$WEB_DIGEST" \
+            '{
+              story: $story,
+              environment: $environment,
+              deployedAt: $deployedAt,
+              deployedBy: $deployedBy,
+              gitSha: $gitSha,
+              imageTag: $imageTag,
+              images: {
+                api:       { uri: $apiUri,       digest: $apiDigest },
+                migration: { uri: $migrationUri, digest: $migrationDigest },
+                web:       { uri: $webUri,       digest: $webDigest }
+              },
+              taskDefinitions: {},
+              migrationCount: null,
+              smokeTests: { status: "NOT_RUN" }
+            }' > release-manifest.json
+
+      - name: Register migration task revision
         run: |
-          ENVIRONMENT=${{ github.event.inputs.environment || 'dev' }}
-          for service in identity fan football fantasy loyalty wallet content notifications admin gateway; do
-            aws ecs wait services-stable \
-              --cluster psl-$ENVIRONMENT \
-              --services psl-$service
-          done
+          set -euo pipefail
+          aws ecs describe-task-definition --task-definition "$MIGRATION_TASK_FAMILY" --query taskDefinition > migration-task.json
+          jq --arg image "$MIGRATION_IMAGE" '
+            {
+              family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions,
+              volumes, placementConstraints, requiresCompatibilities, cpu, memory,
+              tags, pidMode, ipcMode, proxyConfiguration, inferenceAccelerators,
+              ephemeralStorage, runtimePlatform
+            }
+            | with_entries(select(.value != null))
+            | .containerDefinitions[0].image = $image
+          ' migration-task.json > migration-task-next.json
+          MIGRATION_TASK_ARN="$(aws ecs register-task-definition --cli-input-json file://migration-task-next.json --query 'taskDefinition.taskDefinitionArn' --output text)"
+          MIGRATION_TASK_REVISION="${MIGRATION_TASK_ARN##*:}"
+          echo "MIGRATION_TASK_ARN=$MIGRATION_TASK_ARN" >> "$GITHUB_ENV"
+          echo "MIGRATION_TASK_REVISION=$MIGRATION_TASK_REVISION" >> "$GITHUB_ENV"
+          jq --arg arn "$MIGRATION_TASK_ARN" --argjson revision "$MIGRATION_TASK_REVISION" '.taskDefinitions.migration = { arn: $arn, revision: $revision }' release-manifest.json > release-manifest.tmp
+          mv release-manifest.tmp release-manifest.json
+
+      - name: Run migration task
+        run: |
+          set -euo pipefail
+          TASK_ARN="$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --launch-type FARGATE \
+            --task-definition "$MIGRATION_TASK_ARN" \
+            --network-configuration "awsvpcConfiguration={subnets=[$PRIVATE_SUBNET_IDS],securityGroups=[$MIGRATION_SECURITY_GROUP_ID],assignPublicIp=DISABLED}" \
+            --query 'tasks[0].taskArn' \
+            --output text)"
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+          EXIT_CODE="$(aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN" --query 'tasks[0].containers[0].exitCode' --output text)"
+          if [ "$EXIT_CODE" != "0" ]; then
+            aws ecs describe-tasks --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+            exit 1
+          fi
+          MIGRATION_COUNT="$(find apps/api/prisma/migrations -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+          jq --argjson count "$MIGRATION_COUNT" '.migrationCount = $count' release-manifest.json > release-manifest.tmp
+          mv release-manifest.tmp release-manifest.json
+
+      - name: Register API task revision
+        run: |
+          set -euo pipefail
+          aws ecs describe-task-definition --task-definition "$API_TASK_FAMILY" --query taskDefinition > api-task.json
+          jq --arg image "$API_IMAGE" '
+            {
+              family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions,
+              volumes, placementConstraints, requiresCompatibilities, cpu, memory,
+              tags, pidMode, ipcMode, proxyConfiguration, inferenceAccelerators,
+              ephemeralStorage, runtimePlatform
+            }
+            | with_entries(select(.value != null))
+            | .containerDefinitions[0].image = $image
+          ' api-task.json > api-task-next.json
+          API_TASK_ARN="$(aws ecs register-task-definition --cli-input-json file://api-task-next.json --query 'taskDefinition.taskDefinitionArn' --output text)"
+          API_TASK_REVISION="${API_TASK_ARN##*:}"
+          echo "API_TASK_ARN=$API_TASK_ARN" >> "$GITHUB_ENV"
+          echo "API_TASK_REVISION=$API_TASK_REVISION" >> "$GITHUB_ENV"
+          jq --arg arn "$API_TASK_ARN" --argjson revision "$API_TASK_REVISION" '.taskDefinitions.api = { arn: $arn, revision: $revision }' release-manifest.json > release-manifest.tmp
+          mv release-manifest.tmp release-manifest.json
+
+      - name: Roll API service
+        run: |
+          set -euo pipefail
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$API_SERVICE" --task-definition "$API_TASK_ARN"
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$API_SERVICE"
+          curl -fsS "$API_READINESS_URL"
+
+      - name: Register web task revision
+        run: |
+          set -euo pipefail
+          aws ecs describe-task-definition --task-definition "$WEB_TASK_FAMILY" --query taskDefinition > web-task.json
+          jq --arg image "$WEB_IMAGE" '
+            {
+              family, taskRoleArn, executionRoleArn, networkMode, containerDefinitions,
+              volumes, placementConstraints, requiresCompatibilities, cpu, memory,
+              tags, pidMode, ipcMode, proxyConfiguration, inferenceAccelerators,
+              ephemeralStorage, runtimePlatform
+            }
+            | with_entries(select(.value != null))
+            | .containerDefinitions[0].image = $image
+          ' web-task.json > web-task-next.json
+          WEB_TASK_ARN="$(aws ecs register-task-definition --cli-input-json file://web-task-next.json --query 'taskDefinition.taskDefinitionArn' --output text)"
+          WEB_TASK_REVISION="${WEB_TASK_ARN##*:}"
+          echo "WEB_TASK_ARN=$WEB_TASK_ARN" >> "$GITHUB_ENV"
+          echo "WEB_TASK_REVISION=$WEB_TASK_REVISION" >> "$GITHUB_ENV"
+          jq --arg arn "$WEB_TASK_ARN" --argjson revision "$WEB_TASK_REVISION" '.taskDefinitions.web = { arn: $arn, revision: $revision }' release-manifest.json > release-manifest.tmp
+          mv release-manifest.tmp release-manifest.json
+
+      - name: Roll web service
+        run: |
+          set -euo pipefail
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$WEB_SERVICE" --task-definition "$WEB_TASK_ARN"
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$WEB_SERVICE"
+          curl -fsS "$WEB_HEALTH_URL"
+
+      - name: Run staging smoke tests
+        env:
+          STAGING_API_BASE_URL: ${{ vars.STAGING_API_BASE_URL }}
+          STAGING_WEB_BASE_URL: ${{ vars.STAGING_WEB_BASE_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/smoke/staging-smoke.mjs
+          jq '.smokeTests.status = "PASS"' release-manifest.json > release-manifest.tmp
+          mv release-manifest.tmp release-manifest.json
+
+      - name: Upload release manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: s3-infra-01-staging-release-manifest
+          path: release-manifest.json

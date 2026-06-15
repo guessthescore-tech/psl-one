@@ -27,6 +27,6 @@
     "typescript": "*",
     "vitest": "*",
     "rimraf": "*",
-    "@nestjs/common": "*"
+    "@nestjs/common": "^11.1.16"
   }
 }

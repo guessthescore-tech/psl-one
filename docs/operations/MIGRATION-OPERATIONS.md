@@ -72,6 +72,16 @@ npx prisma migrate deploy
 
 Run as a pre-startup task — NOT during app initialization. Never use `prisma db push` in production.
 
+### S3-INFRA-01 Staging (AUTHORED — NOT DEPLOYED)
+
+S3-INFRA-01 defines a one-off ECS task that runs:
+
+```bash
+node_modules/.bin/prisma migrate deploy --schema apps/api/prisma/schema.prisma
+```
+
+This task runs before API service rollout. It does not seed, reset, push schema, call providers, or activate a season.
+
 ---
 
 ## Migration History

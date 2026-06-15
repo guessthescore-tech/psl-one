@@ -1,0 +1,13 @@
+# Copy to backend.tf only after the staging state bucket and lock table
+# have been approved and created through the authorised process.
+# Do not commit backend.tf with real bucket/account values.
+
+terraform {
+  backend "s3" {
+    bucket         = "REPLACE_WITH_APPROVED_STAGING_STATE_BUCKET"
+    key            = "s3-infra-01/staging/terraform.tfstate"
+    region         = "af-south-1"
+    dynamodb_table = "REPLACE_WITH_APPROVED_STAGING_LOCK_TABLE"
+    encrypt        = true
+  }
+}

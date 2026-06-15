@@ -79,21 +79,21 @@
 | Stream | Classification | Description |
 |--------|---------------|-------------|
 | Cloud account and VPC | PLANNED | AWS af-south-1, networking, security groups |
-| Container deployment | PLANNED | ECS Fargate for NestJS API |
-| Managed PostgreSQL | PLANNED | RDS PostgreSQL 16, Multi-AZ |
-| CDN | PLANNED | CloudFront for Next.js static assets |
+| Container deployment | IMPLEMENTATION_AUTHORED | ECS Fargate for `apps/api` and `apps/web`; not deployed |
+| Managed PostgreSQL | IMPLEMENTATION_AUTHORED | RDS PostgreSQL module authored; creation approval required |
+| CDN | PLANNED_AFTER_INITIAL_STAGING | CloudFront optional after ALB-based staging |
 | DNS and TLS | PLANNED | Route 53, ACM certificates |
-| Secrets management | PLANNED | AWS Secrets Manager (JWT, DB creds) |
-| CI/CD hardening | PLANNED | GitHub Actions → ECR → ECS deploy pipeline for apps/api and apps/web |
-| Central logging | PLANNED | CloudWatch Logs or equivalent |
-| Metrics and alerting | PLANNED | CloudWatch Metrics, PagerDuty or similar |
+| Secrets management | IMPLEMENTATION_AUTHORED | Secrets Manager references only; no secret values committed |
+| CI/CD hardening | IMPLEMENTATION_AUTHORED | GitHub Actions → ECR → ECS deploy pipeline authored; no deploy run |
+| Central logging | IMPLEMENTATION_AUTHORED | CloudWatch log groups authored in Terraform |
+| Metrics and alerting | PLANNED | CloudWatch log groups authored in Terraform; ECS/ALB/RDS alarms not yet authored — planned for a later infrastructure increment |
 | Distributed tracing | DECISION_REQUIRED | AWS X-Ray or equivalent |
 | Production auth hardening | PLANNED | httpOnly cookies, session rotation, rate limiting |
 | WAF and rate limiting | PLANNED | AWS WAF, API Gateway throttling |
 | Database backups | PLANNED | RDS automated backups, point-in-time recovery |
 | Restore testing | PLANNED | Monthly restore drill |
-| Health checks | PLANNED | ALB health checks, ECS service checks |
-| Deployment rollback | PLANNED | ECS blue/green or canary |
+| Health checks | IMPLEMENTATION_AUTHORED | API/web health endpoints and ALB/ECS health checks authored |
+| Deployment rollback | IMPLEMENTATION_AUTHORED | ECS rolling deployment circuit breaker; blue/green deferred |
 
 ---
 

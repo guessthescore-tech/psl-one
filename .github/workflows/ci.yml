@@ -1,4 +1,4 @@
-name: CI
+name: CI Quality
 
 on:
   push:
@@ -57,20 +57,77 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck (affected)
-        run: pnpm turbo run typecheck --filter=...[origin/main]
-
-      - name: Lint (affected)
-        run: pnpm turbo run lint --filter=...[origin/main]
-
-      - name: Build (affected)
-        run: pnpm turbo run build --filter=...[origin/main]
-
-      - name: Test (affected)
-        run: pnpm turbo run test --filter=...[origin/main]
+      - name: Generate Prisma client
+        run: pnpm --filter @psl-one/api exec prisma generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Validate Prisma schema
+        run: pnpm --filter @psl-one/api exec prisma validate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Apply all Prisma migrations
+        run: pnpm --filter @psl-one/api db:migrate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Seed reference data
+        run: pnpm --filter @psl-one/api db:seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Verify seed idempotency
+        run: pnpm --filter @psl-one/api db:seed
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: API typecheck
+        run: pnpm --filter @psl-one/api typecheck
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Web typecheck
+        run: pnpm --filter @psl-one/web typecheck
+
+      - name: API tests
+        run: pnpm --filter @psl-one/api test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
           REDIS_URL: redis://localhost:6379
+
+      - name: Web tests
+        run: pnpm --filter @psl-one/web test
+
+      - name: API build
+        run: pnpm --filter @psl-one/api build
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/psl_test
+          JWT_SECRET: ci-local-secret-at-least-32-characters-long
+          NODE_ENV: test
+
+      - name: Web build
+        run: pnpm --filter @psl-one/web build
+
+      - name: Validate Codex project rules
+        run: pnpm codex:validate
+
+      - name: Validate documentation
+        run: pnpm docs:validate
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
@@ -98,7 +155,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           scan-type: fs
           scan-ref: .

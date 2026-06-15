@@ -1,0 +1,100 @@
+name: psl-one-staging-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-psl_identity_dev}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - psl_one_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: migrator
+      args:
+        PNPM_VERSION: 9.0.0
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/psl_identity_dev}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.compose before running migrations}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001}
+      ENVIRONMENT_LABEL: local-compose
+      GIT_SHA: ${GIT_SHA:-local}
+      BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-local}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runner
+      args:
+        PNPM_VERSION: 9.0.0
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/psl_identity_dev}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env.compose before starting the API}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3001}
+      ENVIRONMENT_LABEL: local-compose
+      GIT_SHA: ${GIT_SHA:-local}
+      BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-local}
+    ports:
+      - '${API_PORT:-4000}:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:4000/health/ready']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        PNPM_VERSION: 9.0.0
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+        NEXT_PUBLIC_ENVIRONMENT_LABEL: local-compose
+        NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-local}
+        NEXT_PUBLIC_BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-local}
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000}
+      NEXT_PUBLIC_ENVIRONMENT_LABEL: local-compose
+      NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-local}
+      NEXT_PUBLIC_BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-local}
+    ports:
+      - '${WEB_PORT:-3001}:3001'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3001/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  psl_one_postgres_data:

@@ -1,8 +1,12 @@
 version: '3.9'
 
-# Local development stack
+# Legacy local development stack
 # Run: docker-compose up -d
 # This starts all infrastructure dependencies — services run with `pnpm dev`
+#
+# S3-INFRA-01 introduced compose.yaml as the authoritative local
+# production-equivalent container stack for API, web, migration job and
+# PostgreSQL. Keep this file for developer-only Redis/Kafka/Mailpit scaffolding.
 
 services:
   postgres:

@@ -43,7 +43,8 @@
 
 | Method | Route | Auth | Class | Description |
 |--------|-------|------|-------|-------------|
-| GET | `/health` | PUBLIC | READ | API health check |
+| GET | `/health` | PUBLIC | READ | API liveness check |
+| GET | `/health/ready` | PUBLIC | READ | API readiness check; verifies database and required configuration |
 | GET | `/version` | PUBLIC | READ | API version |
 
 ---

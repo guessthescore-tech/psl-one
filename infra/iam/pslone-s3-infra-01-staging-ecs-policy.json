@@ -1,0 +1,262 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowStagingEcrRepositoryCreationWithTags",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:CreateRepository",
+        "ecr:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Environment": "staging",
+          "aws:RequestTag/Project": "psl-one"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": ["Environment", "Project", "ManagedBy", "Story", "State", "Name"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowScopedStagingEcrRepositoryUse",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:PutImageScanningConfiguration",
+        "ecr:PutImageTagMutability",
+        "ecr:PutLifecyclePolicy",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": "arn:aws:ecr:*:*:repository/psl-one-staging-*"
+    },
+    {
+      "Sid": "AllowEcrAuthorizationTokenAwsRequiresWildcardResource",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowApprovedStagingEcsFargateCreateWithTags",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:CreateCluster",
+        "ecs:CreateService",
+        "ecs:RegisterTaskDefinition",
+        "ecs:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Environment": "staging",
+          "aws:RequestTag/Project": "psl-one"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": ["Environment", "Project", "ManagedBy", "Story", "State", "Name"]
+        }
+      }
+    },
+    {
+      "Sid": "AllowScopedStagingEcsFargateOperations",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:DeleteService",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:DescribeClusters",
+        "ecs:DescribeServices",
+        "ecs:DescribeTaskDefinition",
+        "ecs:DescribeTasks",
+        "ecs:ListTasks",
+        "ecs:RunTask",
+        "ecs:UpdateService"
+      ],
+      "Resource": [
+        "arn:aws:ecs:*:*:cluster/psl-one-staging",
+        "arn:aws:ecs:*:*:service/psl-one-staging/psl-one-staging-*",
+        "arn:aws:ecs:*:*:task-definition/psl-one-staging-*:*",
+        "arn:aws:ecs:*:*:task/psl-one-staging/*"
+      ]
+    },
+    {
+      "Sid": "AllowStagingVpcAndAlbDescribeReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "elasticloadbalancing:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowStagingVpcAndAlbCreateWithTags",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:CreateInternetGateway",
+        "ec2:CreateNatGateway",
+        "ec2:CreateRoute",
+        "ec2:CreateRouteTable",
+        "ec2:CreateSecurityGroup",
+        "ec2:CreateSubnet",
+        "ec2:CreateTags",
+        "ec2:CreateVpc",
+        "ec2:AllocateAddress",
+        "elasticloadbalancing:AddTags",
+        "elasticloadbalancing:CreateListener",
+        "elasticloadbalancing:CreateLoadBalancer",
+        "elasticloadbalancing:CreateRule",
+        "elasticloadbalancing:CreateTargetGroup",
+        "elasticloadbalancing:ModifyTargetGroupAttributes"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Environment": "staging",
+          "aws:RequestTag/Project": "psl-one"
+        }
+      }
+    },
+    {
+      "Sid": "AllowStagingRdsDescribeReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "rds:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowStagingRdsCreateWithTags",
+      "Effect": "Allow",
+      "Action": [
+        "rds:AddTagsToResource",
+        "rds:CreateDBInstance",
+        "rds:CreateDBSubnetGroup",
+        "rds:ModifyDBInstance"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/Environment": "staging",
+          "aws:RequestTag/Project": "psl-one"
+        },
+        "StringLikeIfExists": {
+          "rds:DatabaseClass": "db.t*.micro"
+        }
+      }
+    },
+    {
+      "Sid": "AllowStagingSecretsReferences",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:DescribeSecret",
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:*:*:secret:psl-one/staging/*"
+    },
+    {
+      "Sid": "AllowListSecretsForTerraformDataLookup",
+      "Effect": "Allow",
+      "Action": "secretsmanager:ListSecrets",
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowScopedStagingCloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutRetentionPolicy",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:*:*:log-group:/ecs/psl-one-staging/*",
+        "arn:aws:logs:*:*:log-group:/ecs/psl-one-staging/*:log-stream:*"
+      ]
+    },
+    {
+      "Sid": "AllowCloudWatchDescribeAndStagingAlarms",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:PutMetricAlarm",
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AllowScopedIamForStagingRolesOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:CreateOpenIDConnectProvider",
+        "iam:CreatePolicy",
+        "iam:CreateRole",
+        "iam:GetOpenIDConnectProvider",
+        "iam:GetPolicy",
+        "iam:GetRole",
+        "iam:PutRolePolicy",
+        "iam:TagRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/psl-one-staging-*",
+        "arn:aws:iam::*:policy/psl-one-staging-*",
+        "arn:aws:iam::*:oidc-provider/token.actions.githubusercontent.com"
+      ]
+    },
+    {
+      "Sid": "AllowPassOnlyApprovedStagingEcsRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::*:role/psl-one-staging-*",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "DenyProductionResourceMutation",
+      "Effect": "Deny",
+      "Action": [
+        "ecs:*",
+        "ecr:*",
+        "rds:*",
+        "elasticloadbalancing:*",
+        "secretsmanager:*",
+        "iam:*"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/Environment": "production"
+        }
+      }
+    },
+    {
+      "Sid": "DenyAdministratorAndPowerUserAttachment",
+      "Effect": "Deny",
+      "Action": [
+        "iam:AttachRolePolicy",
+        "iam:AttachUserPolicy",
+        "iam:AttachGroupPolicy"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ArnLike": {
+          "iam:PolicyARN": [
+            "arn:aws:iam::aws:policy/AdministratorAccess",
+            "arn:aws:iam::aws:policy/PowerUserAccess"
+          ]
+        }
+      }
+    }
+  ]
+}

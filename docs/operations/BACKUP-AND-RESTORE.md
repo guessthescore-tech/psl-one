@@ -25,6 +25,8 @@ No production backup strategy. Local PostgreSQL in Docker is ephemeral.
 | Multi-AZ | Enabled (failover) |
 | Backup type | Automated snapshot |
 
+S3-INFRA-01 authors an RDS PostgreSQL module with configurable backup retention and encrypted storage. RDS creation is disabled by default and remains approval-gated.
+
 ### Manual Snapshots
 
 Before any high-risk operation (migration, season switch, major release):

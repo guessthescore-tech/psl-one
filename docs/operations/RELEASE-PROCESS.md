@@ -47,6 +47,21 @@ Sprint 3 will introduce:
 4. **Staging deployment** — automatic on merge to `main`
 5. **Production deployment** — manual trigger after staging validation
 
+## S3-INFRA-01 Staging Deployment Authoring
+
+S3-INFRA-01 authors but does not execute the staging deployment process:
+
+1. Pull requests run quality checks and container build/scan without AWS credentials.
+2. Manual staging deployment uses GitHub OIDC, never long-lived access keys.
+3. Images are tagged with the full Git SHA; `latest` is not used for deployment.
+4. Image digests are recorded in a release manifest.
+5. `prisma migrate deploy` runs as a one-off ECS task before service rollout.
+6. API rolls out before web.
+7. ECS deployment circuit breaker performs automatic rollback on failed service deployment.
+8. Smoke tests run after service stability.
+
+Execution remains blocked until AWS account, region, IAM, secrets, Terraform plan and cost review are approved.
+
 ---
 
 ## Version Tracking

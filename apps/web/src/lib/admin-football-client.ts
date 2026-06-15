@@ -1,6 +1,6 @@
 import type { FixtureStatus, MatchEvent, MatchEventType, PlayerMatchStat } from './football-client';
 
-const API = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
+const API = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;

@@ -1,4 +1,4 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
 function token() {
   return typeof window !== 'undefined' ? localStorage.getItem('psl_access_token') : null;

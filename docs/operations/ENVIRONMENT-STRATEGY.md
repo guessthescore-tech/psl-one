@@ -14,7 +14,7 @@ As of STORY-39, only one environment exists: **local development**. No staging, 
 | Environment | Status | Location |
 |------------|--------|---------|
 | Local development | ACTIVE | Developer machine |
-| Staging | PLANNED | AWS af-south-1 (Sprint 3) |
+| Staging | IMPLEMENTATION_AUTHORED / NOT_DEPLOYED | AWS region configurable; `af-south-1` proposed default |
 | Production | PLANNED | AWS af-south-1 (Sprint 3) |
 
 ---
@@ -40,12 +40,20 @@ apps/web/.env.local    (not committed — copy from .env.local.example)
 
 ## Planned Environment Strategy
 
-### Staging (PLANNED)
+### Staging (IMPLEMENTATION_AUTHORED — NOT DEPLOYED)
 
 - Mirrors production infrastructure at reduced scale
 - Used for integration testing before production deployment
 - Separate database — not shared with production
-- `NEXT_PUBLIC_API_BASE_URL=https://api.staging.pslone.co.za`
+- `NEXT_PUBLIC_API_BASE_URL=https://api.staging.pslone.co.za` supplied as a web Docker build argument before `next build`
+- ECS Fargate for `apps/api` and `apps/web`
+- Private RDS PostgreSQL through Secrets Manager
+- ALB-based initial staging entry point
+- Public ALB hostnames are configurable; proposed defaults are `api.staging.pslone.co.za` and `staging.pslone.co.za`
+- Private app subnet egress uses configurable NAT gateway count, defaulting to 1 for cost-conscious staging
+- GitHub OIDC trust is restricted to the `staging` GitHub Environment
+- CloudFront optional after initial staging
+- Requires AWS identity, region, cost and Terraform-plan review before resource creation
 
 ### Production (PLANNED)
 
@@ -79,7 +87,7 @@ apps/web/.env.local    (not committed — copy from .env.local.example)
 
 | Variable | Description | Example |
 |---------|-------------|---------|
-| `NEXT_PUBLIC_API_BASE_URL` | API base URL | `http://localhost:4000` |
+| `NEXT_PUBLIC_API_BASE_URL` | Public API base URL; build-time for Next.js public browser config | `http://localhost:4000` |
 
 ---
 

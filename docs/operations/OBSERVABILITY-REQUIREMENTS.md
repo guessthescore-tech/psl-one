@@ -72,20 +72,21 @@ No production observability. Local development uses console logs only.
 
 ---
 
-## Health Check Endpoint
+## Health Check Endpoints
 
-`GET /health` should return:
+`GET /health` is process liveness and should return:
 
 ```json
 {
   "status": "ok",
-  "database": "connected",
-  "timestamp": "2026-06-14T10:00:00Z",
-  "version": "STORY-39"
+  "service": "api",
+  "timestamp": "2026-06-15T10:00:00Z"
 }
 ```
 
-ALB health check polls this endpoint every 30 seconds.
+`GET /health/ready` is readiness and verifies database connectivity plus required configuration without exposing secret values.
+
+ALB health checks for the API target group use `/health/ready`. Liveness remains available for process-level checks and local diagnostics.
 
 ---
 

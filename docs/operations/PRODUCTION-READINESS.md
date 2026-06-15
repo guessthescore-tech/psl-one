@@ -33,6 +33,8 @@ PSL One is **not production-ready**. It is in beta-development state. No product
 | ALB health checks | PLANNED |
 | ECS blue/green deployment | PLANNED |
 
+S3-INFRA-01 authored staging ECS Fargate, ECR, ALB, RDS, Secrets Manager, CloudWatch and GitHub OIDC configuration. It remains `NOT_DEPLOYED`; production infrastructure remains `PLANNED`.
+
 ### Security (Sprint 3)
 
 | Item | Status |
@@ -55,6 +57,8 @@ PSL One is **not production-ready**. It is in beta-development state. No product
 | Docker images for API and Web | PLANNED |
 | Pre-startup migration job | PLANNED |
 | Deployment rollback procedure | PLANNED |
+
+S3-INFRA-01 authored these for staging only. Production workflows are intentionally not created.
 
 ### Provider Integrations
 

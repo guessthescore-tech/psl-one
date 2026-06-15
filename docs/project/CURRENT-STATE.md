@@ -3,7 +3,7 @@
 **Purpose:** Verified point-in-time platform state  
 **Audience:** Product owners, programme managers, architects, QA leads  
 **Status:** Current  
-**Last verified:** 2026-06-14 (S3-INFRA-00 implemented, awaiting acceptance)  
+**Last verified:** 2026-06-15 (S3-INFRA-01 implementation authored, not deployed)
 **Source of truth:** git log, test output, prisma migrate status  
 
 ---
@@ -42,9 +42,9 @@ Full recent history (newest first):
 
 | Metric | Count | Source |
 |--------|-------|--------|
-| API unit test files | 61 | `find apps/api/src -name "*.spec.ts" \| wc -l` (after S3-INFRA-00) |
-| API tests passing | 1,645 | `pnpm --filter @psl-one/api test` (verified S3-INFRA-00 gate run 2026-06-14) |
-| Web spec files | 3 | `find apps/web/src -name "*.spec.ts" \| wc -l` |
+| API unit test files | 63 | `find apps/api/src -name "*.spec.ts" \| wc -l` (after S3-INFRA-01 remediation) |
+| API tests passing | 1,652 | `pnpm --filter @psl-one/api test` (verified S3-INFRA-01 gate run 2026-06-15) |
+| Web spec files | 4 | `find apps/web/src -name "*.spec.ts" \| wc -l` |
 | Web pages (`page.tsx`) | 337 | `find apps/web/src/app -name "page.tsx" \| wc -l` |
 | Prisma migrations | 39 | `find apps/api/prisma/migrations -maxdepth 1 -type d \| wc -l` minus root |
 | NestJS modules | 25+ | `find apps/api/src -name "*.module.ts" \| wc -l` |
@@ -129,6 +129,8 @@ Full recent history (newest first):
 | No database backup strategy | HIGH | Sprint 3 |
 | Deploy workflow targets old microservices (services/) not apps/api | MEDIUM | Sprint 3 CI/CD |
 | No structured logging in API | MEDIUM | Sprint 3 observability |
+| S3-INFRA-01 Terraform not planned/applied | HIGH | Approval required before AWS deployment |
+| Sprint 0 IAM deny guardrail conflicts with ECS Fargate | HIGH | ADR-028 / IAM review |
 
 ---
 
@@ -158,4 +160,19 @@ All 13 season-switching readiness checks must pass before activation:
 |-------|-------|--------|
 | S3-INFRA-00 | Security & Performance Hardening Gate | IMPLEMENTED — awaiting acceptance |
 | STORY-40 | Official PSL Data Finalisation | RESERVED — do not implement |
-| S3-INFRA-01 | Containerisation & Staging Deployment (ECS, CloudFront, CI/CD) | PLANNED |
+| S3-INFRA-01 | Containerisation & Staging Deployment (ECS, CloudFront, CI/CD) | IMPLEMENTATION_AUTHORED — NOT_DEPLOYED |
+
+## S3-INFRA-01 Infrastructure State
+
+| Component | State | Notes |
+|-----------|-------|-------|
+| ADR-028 | ACCEPTED | ECS Fargate runtime and immutable image strategy for staging |
+| API Dockerfile | IMPLEMENTED / NOT_RUN | Docker build not run in the current remediation pass; no ECR push |
+| Web Dockerfile | IMPLEMENTED / NOT_RUN | Docker build not run in the current remediation pass; no ECR push |
+| Compose staging-like local stack | IMPLEMENTED | Not started until configuration review |
+| Terraform modules | IMPLEMENTED / STATIC_REVIEW_ONLY | Authoring only; no plan/apply |
+| Staging Terraform environment | IMPLEMENTED | Requires variables, AWS identity, region and cost review before plan |
+| GitHub OIDC workflows | IMPLEMENTED | Require approved AWS role before use |
+| RDS PostgreSQL module | IMPLEMENTED | Creation blocked pending Terraform-plan review and cost approval |
+| CloudFront module | PLANNED_AFTER_INITIAL_STAGING | Optional, not a blocker for ALB-based staging |
+| IAM policy amendment | APPROVAL_REQUIRED | Existing Sprint 0 `DenyECSFargate` conflict documented |

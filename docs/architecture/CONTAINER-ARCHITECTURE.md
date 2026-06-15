@@ -2,8 +2,8 @@
 
 **Purpose:** Local and planned production container configuration  
 **Audience:** Engineers, DevOps  
-**Status:** Current as of STORY-39  
-**Last verified:** 2026-06-14  
+**Status:** Current as of S3-INFRA-01 authoring
+**Last verified:** 2026-06-15
 
 ---
 
@@ -64,42 +64,53 @@ Neither `.env` file is committed. `.env.example` files document required variabl
 
 ---
 
-## Production Architecture (PLANNED — Sprint 3)
+## Staging Container Architecture (AUTHORED — NOT DEPLOYED)
 
-No production infrastructure exists yet. Planned:
+No AWS infrastructure has been created by S3-INFRA-01. The authored staging target is:
 
 | Component | AWS Service | Notes |
 |-----------|-------------|-------|
-| API container | ECS Fargate | NestJS image built from `apps/api/Dockerfile` (to be created) |
-| Web container | ECS Fargate or Lambda@Edge | Next.js image or static export |
-| Database | RDS PostgreSQL 16 Multi-AZ | Managed, automated backups |
-| Load balancer | ALB | HTTPS termination, health checks |
-| CDN | CloudFront | Static assets, Next.js origin |
-| DNS | Route 53 | pslone.co.za domain |
-| TLS | ACM | Certificate for CloudFront and ALB |
-| Secrets | AWS Secrets Manager | JWT_SECRET, DATABASE_URL |
-| Logging | CloudWatch Logs | Structured JSON logs from NestJS |
-| Metrics | CloudWatch Metrics | Custom app metrics |
-| Region | af-south-1 (Cape Town) | Low latency for South African fans |
+| API container | ECS Fargate | NestJS image built from `apps/api/Dockerfile` |
+| Web container | ECS Fargate | Next.js standalone image built from `apps/web/Dockerfile` |
+| Database | RDS PostgreSQL 16 | Private, encrypted, not publicly accessible; creation approval required |
+| Load balancer | ALB | Initial staging entry point and health checks |
+| Private egress | NAT gateway | `nat_gateway_count = 1` by default; configurable for higher availability or later VPC endpoint design |
+| CDN | CloudFront | Optional; `PLANNED_AFTER_INITIAL_STAGING` |
+| DNS | Route 53 or external DNS | Not changed by S3-INFRA-01 |
+| TLS | ACM | Certificate ARN supplied later; not provisioned by this story |
+| Secrets | AWS Secrets Manager | Secret references only; no values committed |
+| Logging | CloudWatch Logs | Log groups authored in Terraform |
+| Metrics | CloudWatch Metrics | Log groups authored in Terraform; CloudWatch alarms not yet authored (planned Sprint 3) |
+| Region | Configurable | `af-south-1` is the documented proposed/default, not confirmed |
 
 ---
 
 ## CI/CD (Planned)
 
-Current CI: `.github/workflows/deploy.yml` — references old microservices directory (`services/`), stale. Needs Sprint 3 update.
+Current S3-INFRA-01 CI/CD authoring:
 
-Planned pipeline:
+Pipeline:
 
 ```
-Push to main
-  → GitHub Actions build & test
+Pull request
+  → GitHub Actions quality gate
+  → Docker image build and scan
+  → No AWS credentials, no push
+
+Manual staging deployment
+  → GitHub Actions OIDC role assumption
   → Build Docker image for apps/api
   → Build Docker image for apps/web
-  → Push to ECR
-  → ECS service update (blue/green or rolling)
-  → Health check confirmation
-  → Notify
+  → Push immutable Git SHA tags to ECR
+  → Record image digests in release manifest
+  → Run one-off migration task
+  → Roll API with ECS circuit breaker
+  → Check API readiness at /health/ready
+  → Roll web with ECS circuit breaker
+  → Run smoke tests
 ```
+
+The web image receives `NEXT_PUBLIC_API_BASE_URL` as a Docker build argument before `next build`; runtime environment variables cannot repair a missing Next.js public build-time value. The manual staging workflow verifies that a staging web bundle does not contain the local `http://localhost:4000` fallback.
 
 ---
 
@@ -114,9 +125,9 @@ For production deployments:
 
 ---
 
-## Redis (PLANNED)
+## Redis (DEFERRED)
 
-Redis is running locally via Docker Compose but not yet used by the application. Planned uses:
+Redis is running in the legacy local `docker-compose.yml` but is not required by the authored staging stack. Distributed rate limiting must be revisited before scaling authentication traffic horizontally.
 
 - Session cache (httpOnly cookie + Redis session store)
 - Rate limiting counters
@@ -124,6 +135,6 @@ Redis is running locally via Docker Compose but not yet used by the application.
 
 ---
 
-## Kafka (DECISION_REQUIRED)
+## Kafka (DEFERRED)
 
-Kafka broker and kafka-ui are in docker-compose.yml but no producers or consumers are implemented in the application. Requires load justification before wiring. See [Event and Side Effects](EVENT-AND-SIDE-EFFECTS.md).
+Kafka broker and kafka-ui are in the legacy local `docker-compose.yml` but no producers or consumers are wired into the active app. ADR-027 defers Kafka/MSK until measured triggers are met.

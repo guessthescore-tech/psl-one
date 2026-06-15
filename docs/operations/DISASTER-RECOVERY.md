@@ -28,6 +28,8 @@
 
 **Expected recovery time:** < 5 minutes (auto-recovery)
 
+S3-INFRA-01 staging authoring enables ECS deployment circuit breaker rollback for API and web services. This has not been deployed or tested against AWS.
+
 ---
 
 ### Scenario 2: Database Failure (Primary)
