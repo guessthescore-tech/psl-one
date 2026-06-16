@@ -5,10 +5,12 @@ aws_region  = "af-south-1"
 environment = "beta"
 project     = "psl-one"
 
-# GUARDRAIL: t2.micro is Sprint 0 DenyNonFreeTierEC2-compatible.
-# Amend PSLOneSprint0DenyGuardrails to allow t3.micro before changing this value.
-# t2.micro: 1 vCPU, 1 GiB RAM — burstable, beta-only, not guaranteed free-tier.
-instance_type    = "t2.micro"
+# t2.micro is NOT offered in af-south-1 (Africa Cape Town) — t3.micro is required.
+# GUARDRAIL BLOCKER: PSLOneSprint0DenyGuardrails (DenyNonFreeTierEC2) is effectively
+# attached to psl-one-admin via PSLOneSprint0Infra group. Blocks ec2:RunInstances for
+# t3.micro until amended. Do not apply until S3-INFRA-02E-IAM is approved.
+# t3.micro: 2 vCPU, 1 GiB RAM — burstable credit instance, beta-only, charges apply.
+instance_type    = "t3.micro"
 root_volume_size = 20
 
 # Mode A (restricted internal testing — default):

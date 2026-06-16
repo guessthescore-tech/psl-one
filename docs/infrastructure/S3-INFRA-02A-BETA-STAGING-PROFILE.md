@@ -22,7 +22,7 @@ The primary constraint driving this profile is cost: the ECS Fargate staging env
 Internet
     │
     ▼
-EC2 t2.micro (Amazon Linux 2023)
+EC2 t3.micro (Amazon Linux 2023)
 ├── Security Group: port 80 (HTTP), port 443 (HTTPS). No port 22, 3001, 4000, 5432.
 │
 ├── Docker Compose (compose.beta.yaml)
@@ -94,7 +94,7 @@ Operator access: AWS SSM Session Manager only. Port 22 is not open.
 
 | Guardrail | Conflict | Resolution |
 |---|---|---|
-| `DenyNonFreeTierEC2` (t2.micro only) | t3.micro blocked | Default `instance_type = "t2.micro"`. Amend guardrail to allow t3.micro if needed. |
+| `DenyNonFreeTierEC2` (t2.micro only) | **EFFECTIVELY ATTACHED** to `psl-one-admin` via `PSLOneSprint0Infra` group. Blocks `ec2:RunInstances` for any type except t2.micro. **Apply is blocked** until guardrail amended (S3-INFRA-02E-IAM). | t2.micro not offered in af-south-1; t3.micro required; guardrail amendment required. |
 | `DenyRoute53` | Cannot create DNS records | Use external DNS (Cloudflare or registrar). Not needed for Mode A. |
 | `DenyIAMEscalation` | Blocks user/group/policy creation | IAM role creation is permitted. EC2 role + instance profile created by Terraform. ✓ |
 | `DenyRDSNonFreeTier` | No conflict | Postgres runs in Docker; no RDS resource created. ✓ |
@@ -111,7 +111,7 @@ Charges depend on Free Plan eligibility, remaining credits, plan expiry and actu
 
 | Resource | Estimated cost | Notes |
 |---|---|---|
-| EC2 t2.micro | Metered; credit-funded while credits last | Not guaranteed free — verify in Billing console |
+| EC2 t3.micro | Metered; credit-funded while credits last | Not guaranteed free — verify in Billing console. t2.micro not offered in af-south-1. |
 | EBS 20 GB gp3 | Metered; continues while instance is stopped | ~$0.08/GB-month in af-south-1; charges apply even when stopped |
 | Public IPv4 address | ~$0.005/hr (~$3.60/month) when instance running | Applies since Feb 2024; not free-tier exempt |
 | SSM Parameter Store | $0 | Standard params, ~12 parameters |
@@ -134,7 +134,7 @@ Full analysis: `docs/infrastructure/BETA-STAGING-COST-CONTROLS.md`
 |---|---|---|
 | Cost | ~$83–147/month | ~$0/month |
 | HA | Multi-AZ capable | Single instance |
-| Scaling | ECS service auto-scaling | Manual (t2.micro only) |
+| Scaling | ECS service auto-scaling | Manual (t3.micro only) |
 | Persistence | Aurora RDS | PostgreSQL in Docker volume |
 | Secrets | AWS Secrets Manager | SSM Parameter Store |
 | Access | ALB public endpoint | Caddy on EC2 |
@@ -169,7 +169,7 @@ Before running `terraform apply` for the first time:
 - [ ] GitHub secret `BETA_API_BASE_URL` set (for web image build-arg)
 - [ ] GitHub secret `BETA_EC2_IP` set (for smoke test)
 - [ ] GitHub secret `DOCKER_BUILD_CLOUD_ENDPOINT` set (for Docker Build Cloud)
-- [ ] Instance type confirmed as `t2.micro` (guardrail-safe)
+- [ ] Instance type confirmed as `t3.micro` (t2.micro not offered in af-south-1)
 - [ ] `backend.tf` configured or local state accepted for initial apply
 
 ---

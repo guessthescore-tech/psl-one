@@ -168,12 +168,15 @@ resource "aws_iam_instance_profile" "beta" {
 }
 
 # ── EC2 instance ──────────────────────────────────────────────────────────────
-# GUARDRAIL: Sprint 0 DenyNonFreeTierEC2 permits only t2.micro.
-#   t3.micro requires guardrail amendment before apply.
+# INSTANCE TYPE: t3.micro is required — t2.micro is NOT offered in af-south-1.
+#   GUARDRAIL BLOCKER: PSLOneSprint0DenyGuardrails is effectively attached to psl-one-admin
+#   through PSLOneSprint0Infra IAM group. DenyNonFreeTierEC2 denies ec2:RunInstances for
+#   any type except t2.micro. Apply is blocked until guardrail is amended (S3-INFRA-02E-IAM).
 #
-# INSTANCE NOTES (t2.micro):
-#   - 1 vCPU, 1 GiB RAM — tight for three Docker services.
-#   - CPU credits accumulate at 6/hour when idle; burst depletes them rapidly.
+# INSTANCE NOTES (t3.micro):
+#   - 2 vCPU, 1 GiB RAM — tight for three Docker services.
+#   - Burstable CPU-credit instance: credits accumulate below baseline, consumed when bursting.
+#   - T3 defaults to unlimited credit mode; sustained burst above baseline may incur charges.
 #   - Consider adding swap (1–2 GiB) in bootstrap to reduce OOM risk.
 #   - Beta-only capacity; not suitable for production load.
 #   - Free Plan eligibility is not guaranteed. Credits may be consumed.

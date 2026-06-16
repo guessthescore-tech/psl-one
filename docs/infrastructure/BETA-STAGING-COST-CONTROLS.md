@@ -18,7 +18,7 @@ No service is guaranteed free.
 
 | Resource | Cost classification | Estimated charge | Notes |
 |---|---|---|---|
-| EC2 t2.micro | Metered; credit-funded while credits last | Standard EC2 rate after credits | Verify current pricing in Billing console |
+| EC2 t3.micro | Metered; credit-funded while credits last | ~USD 0.0136/hr (af-south-1, live rate 2026-06-16) | t2.micro not offered in af-south-1 |
 | EBS 20 GB gp3 | Metered; continues while instance is stopped | ~$0.08/GB-month in af-south-1 | EBS charges apply even when EC2 is stopped |
 | ECR storage | Metered after any applicable allowance | Accumulates as images are pushed | Review regularly; delete unused images |
 | ECR data transfer | Metered after any applicable allowance | Per-GB charges for pull volume | Low for restricted-CIDR beta review |
@@ -47,7 +47,7 @@ No service is guaranteed free.
 AWS began charging $0.005/hr for all public IPv4 addresses (including ephemeral addresses
 assigned to EC2 instances) from 1 February 2024. This applies even with the Free Plan.
 
-For a t2.micro running 24/7: ~$3.60/month.
+For a t3.micro running 24/7: ~$10.12 EC2 + ~$3.72 IPv4 + ~$2.09 EBS = ~$15.93/month (live rates 2026-06-16).
 Credits will cover this while balance remains.
 
 To minimise: stop the instance between review sessions. Note that stopping the instance
@@ -79,7 +79,7 @@ Sprint 0 deny guardrails (`PSLOneSprint0DenyGuardrails`) currently enforce:
 
 | Guardrail | Effect on Beta Profile |
 |---|---|
-| `DenyNonFreeTierEC2` — allows only `t2.micro` | Beta uses `t2.micro` default. t3.micro blocked until guardrail amended. |
+| `DenyNonFreeTierEC2` — allows only `t2.micro` | **EFFECTIVELY ATTACHED** to `psl-one-admin` via `PSLOneSprint0Infra` group. t3.micro is blocked. t2.micro is not offered in af-south-1. **Apply blocked** until guardrail amended (S3-INFRA-02E-IAM). |
 | `DenyRDSNonFreeTier` | Postgres runs in Docker; no RDS resource created. No conflict. |
 | `DenyRoute53` | DNS for Mode B managed externally (Cloudflare or registrar). |
 | `DenyIAMEscalation` | Blocks user/group/policy creation. IAM role creation permitted. EC2 role created by Terraform. |
@@ -107,7 +107,7 @@ Stop the instance between review sessions to reduce credit consumption.
 When stopped:
 - EBS volume data (PostgreSQL) is retained
 - Ephemeral public IP is released (update /etc/hosts for Mode A testers)
-- t2.micro CPU credits continue to accumulate slowly
+- t3.micro is stopped; no CPU or network charges
 - EBS and ECR charges continue
 
 Optional nightly stop cron is in `infra/beta/bootstrap-ec2.sh` (commented out).

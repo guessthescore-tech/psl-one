@@ -1,7 +1,7 @@
 # ADR-029: Free-Plan Beta Staging Profile — EC2 + Docker Compose
 
 **Date:** 2026-06-16
-**Status:** Accepted
+**Status:** Accepted — amended 2026-06-16 (see Amendment below)
 **Story:** S3-INFRA-02A
 
 ---
@@ -133,3 +133,30 @@ This profile is for beta testing only and must not:
 - S3-INFRA-01: ECS Fargate Terraform authoring (preserved)
 - S3-INFRA-02: Terraform plan review for ECS staging (on hold pending credits)
 - S3-INFRA-02A: EC2 beta staging implementation (this story)
+- S3-INFRA-02E: t3.micro pre-apply correction (supersedes t2.micro instance type decision)
+
+---
+
+## Amendment — 2026-06-16 (S3-INFRA-02E)
+
+**Finding:** `t2.micro` is not offered in `af-south-1` (Africa Cape Town).
+`aws ec2 describe-instance-type-offerings --region af-south-1` returns zero results
+for t2.micro at both region and availability-zone location types.
+
+**Correction:** Instance type changed from `t2.micro` to `t3.micro`.
+
+**Guardrail status:** `PSLOneSprint0DenyGuardrails` (`DenyNonFreeTierEC2`) is **effectively
+attached to `psl-one-admin`** through the `PSLOneSprint0Infra` IAM group (confirmed 2026-06-16
+via `list-groups-for-user` + `list-attached-group-policies`). The policy denies
+`ec2:RunInstances` on any instance except `t2.micro`. Because `t2.micro` is not offered in
+`af-south-1`, Terraform apply is blocked until the guardrail is amended in a separately
+approved IAM change (S3-INFRA-02E-IAM). The previous claim that the guardrail was unattached
+was incorrect and has been corrected here.
+
+**Price update (live rates, af-south-1, 2026-06-16):**
+- t3.micro: USD 0.0136/hr (2 vCPU, 1 GiB RAM) — replaces the ADR's stated ~$0.0116/hr for t2.micro
+- EBS gp3: USD 0.1047/GB-month (20 GB = ~$2.09/month)
+- Public IPv4 in-use: USD 0.005/hr
+
+**Architecture unchanged.** x86_64 architecture preserved. Dockerfiles, Caddy config, bootstrap
+script, IAM, security group, and all other configuration are unchanged.

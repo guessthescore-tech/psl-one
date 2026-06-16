@@ -9,6 +9,11 @@ Account: `Guess__The_Score` (844513166932)
 
 GENERATE_FRESH_PLAN_IMMEDIATELY_BEFORE_APPLY=true
 
+> **SUPERSEDED (2026-06-16):** This plan assumed `instance_type = "t2.micro"`.
+> `t2.micro` is not offered in `af-south-1`. Active configuration corrected to `t3.micro`
+> as part of S3-INFRA-02E. See `docs/infrastructure/S3-INFRA-02E-T3-MICRO-PREAPPLY-CORRECTION.md`.
+> Historical record below is preserved unchanged.
+
 ---
 
 ## Account Classification

@@ -1,7 +1,7 @@
 # Beta EC2 Deployment Runbook
 
 Environment: `beta`
-Infrastructure: EC2 t2.micro + Docker Compose (`psl-one-beta`) + Caddy
+Infrastructure: EC2 t3.micro + Docker Compose (`psl-one-beta`) + Caddy
 Access: AWS SSM Session Manager only (no SSH)
 Cost note: Cash-spend target R0. AWS credits may be consumed. Not guaranteed zero cost.
 
@@ -27,7 +27,7 @@ cd infra/terraform/environments/beta-ec2
 cp terraform.tfvars.example terraform.tfvars
 # Edit terraform.tfvars:
 #   allowed_beta_cidrs = ["YOUR_REVIEWER_IP/32"]   (Mode A, restricted)
-#   instance_type = "t2.micro"                     (guardrail-safe)
+#   instance_type = "t3.micro"                     (t2.micro not offered in af-south-1)
 #   create_elastic_ip = false
 terraform init
 terraform plan -out=beta-ec2.tfplan

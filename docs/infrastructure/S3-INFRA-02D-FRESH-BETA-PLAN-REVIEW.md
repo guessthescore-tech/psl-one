@@ -362,6 +362,29 @@ terraform -chdir=infra/terraform/environments/beta-ec2 output -json
 
 S3-INFRA-02D is ready for independent review.
 
+---
+
+## ⚠ SUPERSEDED — S3-INFRA-02E Correction Applied 2026-06-16
+
+This plan assumed `instance_type = "t2.micro"`. Subsequent investigation confirmed that
+`t2.micro` is **not offered in `af-south-1`** (Africa Cape Town) — verified via
+`aws ec2 describe-instance-type-offerings --region af-south-1` which returns no results
+for t2.micro at both region and availability-zone location types.
+
+This plan would have failed at apply time with an unsupported instance type error.
+
+The active configuration has been corrected to `t3.micro` in:
+- `infra/terraform/environments/beta-ec2/variables.tf` (default changed)
+- `infra/terraform/environments/beta-ec2/terraform.tfvars.example` (example updated)
+- `infra/terraform/environments/beta-ec2/main.tf` (comment updated)
+
+A fresh t3.micro plan was generated and verified as part of S3-INFRA-02E.
+See `docs/infrastructure/S3-INFRA-02E-T3-MICRO-PREAPPLY-CORRECTION.md` for the
+corrected plan review.
+
+The historical record above is preserved unchanged. `t2.micro` references in this
+document reflect the state at the time of authoring and are superseded.
+
 All plan evidence is inspectable:
 
 ```bash

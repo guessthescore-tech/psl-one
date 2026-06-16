@@ -18,15 +18,23 @@ variable "instance_type" {
   type        = string
   description = <<-EOT
     EC2 instance type.
-    GUARDRAIL: Sprint 0 DenyNonFreeTierEC2 permits only t2.micro.
-    t2.micro: 1 vCPU, 1 GiB RAM, burstable (CPU credits accumulate at idle).
+    t2.micro is NOT offered in af-south-1 (Africa Cape Town). Use t3.micro.
+    t3.micro: 2 vCPU, 1 GiB RAM, better CPU burst baseline than t2.micro.
     Note: 1 GiB is tight for three Docker services. Add swap in bootstrap if OOM is observed.
-    t3.micro: 1 vCPU, 1 GiB, better baseline performance — requires guardrail amendment.
     Do NOT use t4g.* (arm64) unless all images are rebuilt for arm64.
     This environment is beta-only capacity; not suitable for production.
     Free Plan eligibility: depends on account status — not guaranteed. Charges may apply.
+    GUARDRAIL BLOCKER: PSLOneSprint0DenyGuardrails is effectively attached to psl-one-admin
+    through the PSLOneSprint0Infra IAM group. DenyNonFreeTierEC2 denies ec2:RunInstances
+    unless the instance type is t2.micro. Because t2.micro is not offered in af-south-1,
+    Terraform apply is blocked until the guardrail is amended (S3-INFRA-02E-IAM).
   EOT
-  default     = "t2.micro"
+  default     = "t3.micro"
+
+  validation {
+    condition     = contains(["t3.micro"], var.instance_type)
+    error_message = "The beta environment requires t3.micro in af-south-1. t2.micro is not offered in this region."
+  }
 }
 
 variable "ami_id" {
