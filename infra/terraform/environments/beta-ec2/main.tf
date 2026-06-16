@@ -50,7 +50,7 @@ locals {
 
 resource "aws_security_group" "beta_ec2" {
   name        = "${local.name}-ec2"
-  description = "PSL One beta EC2 — HTTP/HTTPS via Caddy only; no SSH; both ports restricted by allowed_beta_cidrs"
+  description = "PSL One beta EC2 - HTTP/HTTPS via Caddy only; no SSH; both ports restricted by allowed_beta_cidrs"
   vpc_id      = data.aws_vpc.default.id
 
   tags = { Name = "${local.name}-ec2" }
