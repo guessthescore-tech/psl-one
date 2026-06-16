@@ -92,6 +92,18 @@ variable "web_domain" {
   default     = "staging.pslone.co.za"
 }
 
+variable "subnet_id" {
+  type        = string
+  description = <<-EOT
+    Explicit subnet ID for the beta EC2 instance.
+    Must belong to the default VPC (vpc-03d01af618a6d8c22) in af-south-1.
+    Preferred: subnet-0972d64b0be296aa3 (af-south-1b).
+    Leave empty to fall back to data.aws_subnets.default_public.ids[0] for exploratory planning only.
+    EXPLICIT_SUBNET_INPUT_REQUIRED_BEFORE_APPLY=true — do not approve apply without this value set.
+  EOT
+  default     = ""
+}
+
 variable "key_pair_name" {
   type        = string
   description = "EC2 key pair name for emergency break-glass console access. Leave empty for SSM-only access (recommended)."

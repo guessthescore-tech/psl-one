@@ -27,5 +27,9 @@ create_elastic_ip = false
 api_domain = "api.staging.pslone.co.za"
 web_domain  = "staging.pslone.co.za"
 
+# Explicit subnet ID — required before apply (prevents nondeterministic ids[0] selection).
+# Preferred: subnet-0972d64b0be296aa3 (af-south-1b). Change requires a fresh plan.
+subnet_id = "subnet-0972d64b0be296aa3"
+
 # Leave empty for SSM Session Manager access only (recommended).
 key_pair_name = ""

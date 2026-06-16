@@ -191,7 +191,7 @@ resource "aws_iam_instance_profile" "beta" {
 resource "aws_instance" "beta" {
   ami                         = local.ami_id
   instance_type               = var.instance_type
-  subnet_id                   = data.aws_subnets.default_public.ids[0]
+  subnet_id                   = var.subnet_id != "" ? var.subnet_id : data.aws_subnets.default_public.ids[0]
   vpc_security_group_ids      = [aws_security_group.beta_ec2.id]
   iam_instance_profile        = aws_iam_instance_profile.beta.name
   associate_public_ip_address = true
