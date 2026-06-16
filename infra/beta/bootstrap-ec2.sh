@@ -52,23 +52,26 @@ if ! swapon --show=NAME --noheadings | grep -qx '/swapfile'; then
 fi
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Swap: $(swapon --show=SIZE --noheadings /swapfile 2>/dev/null || echo already-active)"
 
-# AL2023_DOCKER_BOOTSTRAP=NEEDS_RUNTIME_EVIDENCE
-#
-# Amazon Linux 2023 ships a native 'docker' package (dnf install docker) but
-# its Docker Compose plugin availability in AL2023 repos is unverified at
-# authoring time. The RHEL-compatible repository from download.docker.com
-# is Docker's own recommended path for rpm-based systems and is the approach
-# used here. Runtime verification on an actual AL2023 EC2 instance is required
-# before this bootstrap is considered production-safe.
-#
-# If the RHEL repository causes issues on AL2023, alternative:
-#   dnf install -y docker
-#   mkdir -p /usr/local/lib/docker/cli-plugins
-#   curl -SL https://github.com/docker/compose/releases/download/v2.27.1/docker-compose-linux-x86_64 \
-#     -o /usr/local/lib/docker/cli-plugins/docker-compose
-#   chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
-dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+# AL2023 ships a native 'docker' package. The docker.com RHEL CE repo uses RHEL
+# version numbers (e.g. rhel/9) but AL2023 reports version strings like
+# '2023.12.20260611', which do not match any RHEL repo path — producing a 404.
+# Use the AL2023 native docker package and install the Compose v2 plugin from
+# the docker/compose GitHub release (verified at runtime on 2026-06-17).
+if ! command -v docker &>/dev/null; then
+  dnf install -y docker
+fi
+
+# Docker Compose v2 plugin — AL2023 native repos do not include this package.
+# Installed from docker/compose GitHub releases using curl-minimal (/usr/bin/curl).
+COMPOSE_DIR="/usr/local/lib/docker/cli-plugins"
+COMPOSE_BIN="${COMPOSE_DIR}/docker-compose"
+if [ ! -f "${COMPOSE_BIN}" ]; then
+  COMPOSE_VERSION="v2.29.1"
+  mkdir -p "${COMPOSE_DIR}"
+  curl -fsSL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+    -o "${COMPOSE_BIN}"
+  chmod +x "${COMPOSE_BIN}"
+fi
 
 systemctl enable docker
 systemctl start docker
