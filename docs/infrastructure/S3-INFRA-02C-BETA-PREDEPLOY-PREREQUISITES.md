@@ -37,31 +37,32 @@ Three private repositories created. No images pushed.
 
 ### ECR Workflow Compatibility Findings
 
-**Finding ECR-01 (Medium): Cache tag mutability conflict**
+**Finding ECR-01 (Medium): Cache tag mutability conflict — RESOLVED**
 
-The deploy workflow uses `cache-to: type=registry,ref=<repo>:cache`. With IMMUTABLE tags
-on all three repos, the `cache` tag can be written once but never overwritten. After the
-first successful build, subsequent cache-to pushes will fail.
+Remediation applied in `deploy-beta-ec2.yml`: replaced all three `cache-from: type=registry`
+and `cache-to: type=registry,ref=<repo>:cache` lines with GitHub Actions cache using three
+separate named scopes:
 
-Impact: stale build cache; potential build failure depending on how `docker/build-push-action`
-handles cache-to errors.
+| Build | cache-from | cache-to |
+|---|---|---|
+| API image | `type=gha,scope=beta-api` | `type=gha,mode=max,scope=beta-api` |
+| Migrator image | `type=gha,scope=beta-api-migrator` | `type=gha,mode=max,scope=beta-api-migrator` |
+| Web image | `type=gha,scope=beta-web` | `type=gha,mode=max,scope=beta-web` |
 
-Remediation options (owner decision required before first image build):
-1. Create three separate mutable cache repos (`psl-one-beta-api-cache`, etc.) and update
-   the workflow cache refs.
-2. Change `cache-from`/`cache-to` to `type=gha` (GitHub Actions cache) in the workflow.
-3. Remove cache-from/cache-to lines from the workflow entirely for beta.
+Each build has a unique scope — no shared default GHA cache bucket that would mix layer hits
+across different images. GitHub Actions cache is free, mutable, and requires no separate
+repository. ECR release repositories remain IMMUTABLE.
+`RELEASE_REPOSITORIES_REMAIN_IMMUTABLE=true`
 
-**Finding ECR-02 (High): Docker Build Cloud endpoint not provisioned**
+**Finding ECR-02 (High): Docker Build Cloud endpoint not provisioned — RESOLVED**
 
-The deploy workflow uses `driver: cloud` with `endpoint: ${{ secrets.DOCKER_BUILD_CLOUD_ENDPOINT }}`.
-Docker Build Cloud is an external paid service. Without the `DOCKER_BUILD_CLOUD_ENDPOINT` secret set,
-the `docker/setup-buildx-action@v3` step will fail.
-
-Remediation options (owner decision required before first image build):
-1. Subscribe to Docker Build Cloud and set `DOCKER_BUILD_CLOUD_ENDPOINT` secret.
-2. Change the workflow buildx setup to use `driver: docker-container` (standard, no external
-   subscription required).
+Remediation applied in `deploy-beta-ec2.yml`: removed `driver: cloud` and
+`endpoint: ${{ secrets.DOCKER_BUILD_CLOUD_ENDPOINT }}` from the buildx setup step.
+GitHub-hosted Buildx (`docker/setup-buildx-action@v3` with no driver override) is now
+the default. No paid Docker plan is required. No seven-day trial is assumed.
+`DOCKER_BUILD_CLOUD_ENDPOINT` is no longer a required or optional secret in the workflow.
+All three images build with explicit `platforms: linux/amd64`.
+Image build status: NOT_RUN. Deployment status: NOT_DEPLOYED.
 
 ---
 
@@ -198,23 +199,30 @@ the owner to complete these steps via the GitHub web console or GitHub API.
 
 1. Navigate to: https://github.com/guessthescore-tech/psl-one/settings/environments
 2. Create environment named: `beta`
-3. Add the following **Secrets** (secret names only — values are not in this document):
+3. Add the following **Secret** (the only value that is sensitive):
 
 | Secret name | Value source | Status |
 |---|---|---|
 | AWS_BETA_DEPLOY_ROLE_ARN | arn:aws:iam::844513166932:role/psl-one-beta-github-deploy | READY TO SET |
-| BETA_API_DOMAIN | api.staging.pslone.co.za | READY TO SET |
-| BETA_WEB_DOMAIN | staging.pslone.co.za | READY TO SET |
-| BETA_API_BASE_URL | http://api.staging.pslone.co.za | READY TO SET |
-| BETA_EC2_INSTANCE_ID | From `terraform output instance_id` | DEFERRED — needs Terraform apply |
-| BETA_EC2_IP | From `terraform output public_ip` | DEFERRED — needs Terraform apply |
-| DOCKER_BUILD_CLOUD_ENDPOINT | Docker Build Cloud subscription | DEFERRED — see Finding ECR-02 |
 
-4. Optionally add environment variables (not secrets) for convenience:
+4. Add the following **Variables** (non-sensitive; the workflow reads these as `vars.*`):
 
-| Variable name | Value |
-|---|---|
-| AWS_REGION | af-south-1 |
+| Variable name | Value | Status | How used |
+|---|---|---|---|
+| BETA_API_DOMAIN | api.staging.pslone.co.za | READY TO SET | Readiness check Host header; smoke test URL |
+| BETA_WEB_DOMAIN | staging.pslone.co.za | READY TO SET | Smoke test URL |
+| BETA_API_BASE_URL | http://api.staging.pslone.co.za | READY TO SET | Next.js NEXT_PUBLIC_API_BASE_URL build arg |
+| BETA_WEB_BASE_URL | http://staging.pslone.co.za | READY TO SET | Smoke test base URL |
+| BETA_EC2_INSTANCE_ID | From `terraform output instance_id` | DEFERRED — needs Terraform apply | SSM SendCommand target; release manifest |
+| BETA_EC2_IP | From `terraform output public_ip` | DEFERRED — needs Terraform apply | Readiness check; smoke test |
+
+Notes:
+- `AWS_REGION` is hardcoded in the workflow (`env: AWS_REGION: af-south-1` at line 30). Setting
+  it as a GitHub variable is optional/informational only — the workflow does not read `vars.AWS_REGION`.
+- `DOCKER_BUILD_CLOUD_ENDPOINT` is no longer required or referenced in the workflow (Finding ECR-02 resolved).
+- `BETA_EC2_INSTANCE_ID` and `BETA_EC2_IP` may be configured as secrets if preferred; their
+  classification as vars is acceptable since instance IDs and IPs are not cryptographic material.
+- Do not store AWS access keys, PostgreSQL password, JWT secret, or SSM SecureString values.
 
 5. Consider enabling required reviewers for the `beta` environment as a deployment gate.
 
@@ -282,12 +290,11 @@ SSM parameters, IAM role, OIDC provider) are not compute resources.
 
 ## Blockers Before Image Build / Push
 
-1. ECR cache strategy resolved (Finding ECR-01): create cache repos OR change to type=gha
-2. Docker Build Cloud endpoint configured (Finding ECR-02): subscribe and set secret
-   OR change workflow to standard buildx driver
-3. GitHub `beta` environment created and secrets configured (owner console action)
-4. `DOCKER_BUILD_CLOUD_ENDPOINT` secret set in GitHub `beta` environment
-5. EC2 instance must exist (Terraform apply) before deploy workflow can use SSM SendCommand
+1. ~~ECR cache strategy (Finding ECR-01)~~ — RESOLVED: GHA cache in use; ECR repos remain IMMUTABLE
+2. ~~Docker Build Cloud endpoint (Finding ECR-02)~~ — RESOLVED: standard GitHub-hosted Buildx; no paid dependency
+3. GitHub `beta` environment created with secrets and variables (owner console action — see GitHub Environment Configuration section above)
+4. EC2 instance must exist (Terraform apply complete) before deploy workflow can use SSM SendCommand;
+   `BETA_EC2_INSTANCE_ID` and `BETA_EC2_IP` variables can then be set
 
 ---
 
@@ -295,8 +302,8 @@ SSM parameters, IAM role, OIDC provider) are not compute resources.
 
 All Terraform apply blockers (above) +
 All image build blockers (above) +
-1. `BETA_EC2_INSTANCE_ID` secret set after Terraform apply
-2. `BETA_EC2_IP` secret set after Terraform apply (or discovered via describe-instances)
+1. `BETA_EC2_INSTANCE_ID` variable set after Terraform apply
+2. `BETA_EC2_IP` variable set after Terraform apply (or discovered via describe-instances)
 3. Three image URI SSM parameters created after first ECR push:
    - /psl-one/beta/api-image-uri
    - /psl-one/beta/migration-image-uri
@@ -333,7 +340,7 @@ All image build blockers (above) +
 
 ## Independent Review Readiness
 
-S3-INFRA-02C is ready for independent review.
+S3-INFRA-02C (including workflow remediation) is ready for independent review.
 
 All prerequisites are deterministic and inspectable:
 - `aws ecr describe-repositories --repository-names psl-one-beta-api psl-one-beta-api-migrator psl-one-beta-web --region af-south-1`
@@ -342,5 +349,8 @@ All prerequisites are deterministic and inspectable:
 - `aws iam get-role --role-name psl-one-beta-github-deploy`
 - `aws iam get-role-policy --role-name psl-one-beta-github-deploy --policy-name psl-one-beta-deploy`
 
-The two workflow compatibility findings (ECR-01, ECR-02) are documented and require owner
-decisions before the first image build can succeed. They do not affect pre-deploy prerequisites.
+Workflow changes inspectable via:
+- `git diff 27d4e8c HEAD -- .github/workflows/deploy-beta-ec2.yml`
+
+Both workflow compatibility findings (ECR-01, ECR-02) are RESOLVED — standard GitHub-hosted Buildx
+with scoped GHA cache is in use; no owner decisions required before image build.
