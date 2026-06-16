@@ -109,41 +109,46 @@ DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/$
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Secrets loaded from SSM (passwords not logged)"
 
 # ── Clone or update repository ────────────────────────────────────────────────
-# Public clone — no personal access token. If the repo is private, store a
-# GitHub Deploy Key in SSM (/psl-one/beta/github-deploy-key) and configure
-# GIT_SSH_COMMAND before clone.
+# Set SKIP_GIT_CLONE=true when the repository is private and no deploy key is
+# available in SSM. The caller must pre-populate ${APP_DIR} with the required
+# files (compose.beta.yaml, infra/beta/ecr-login.sh, infra/beta/Caddyfile)
+# before invoking this script with SKIP_GIT_CLONE=true.
 mkdir -p "${APP_DIR}"
 
-REPO_URL="https://github.com/guessthescore-tech/psl-one.git"
-
-if [ -d "${APP_DIR}/.git" ]; then
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Repo already present — fetching updates"
-  cd "${APP_DIR}"
-  git remote set-url origin "${REPO_URL}"
-  git fetch origin --quiet
+if [ "${SKIP_GIT_CLONE:-false}" = "true" ]; then
+  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] SKIP_GIT_CLONE=true — repository files pre-populated externally"
 else
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Cloning repository"
-  git clone "${REPO_URL}" "${APP_DIR}"
-  cd "${APP_DIR}"
-fi
+  REPO_URL="https://github.com/guessthescore-tech/psl-one.git"
 
-# Checkout the exact approved SHA (detached HEAD).
-# If GIT_SHA is "unknown" (no deploy workflow has run yet), fall back to main
-# with a warning. Images will not start until API_IMAGE_URI is set via deploy.
-if [ "${GIT_SHA}" = "unknown" ] || [ -z "${GIT_SHA}" ]; then
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: /psl-one/beta/git-sha not set."
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: Checking out origin/main as initial placeholder."
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: Run the deploy workflow to pin an exact SHA."
-  git checkout --detach origin/main
-else
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Checking out exact SHA: ${GIT_SHA}"
-  git checkout --detach "${GIT_SHA}"
-  ACTUAL_SHA=$(git rev-parse HEAD)
-  if [ "${ACTUAL_SHA}" != "${GIT_SHA}" ]; then
-    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] ERROR: SHA mismatch after checkout. Expected ${GIT_SHA}, got ${ACTUAL_SHA}."
-    exit 1
+  if [ -d "${APP_DIR}/.git" ]; then
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Repo already present — fetching updates"
+    cd "${APP_DIR}"
+    git remote set-url origin "${REPO_URL}"
+    git fetch origin --quiet
+  else
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Cloning repository"
+    GIT_TERMINAL_PROMPT=0 git clone "${REPO_URL}" "${APP_DIR}"
+    cd "${APP_DIR}"
   fi
-  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Repository at exact SHA: ${ACTUAL_SHA}"
+
+  # Checkout the exact approved SHA (detached HEAD).
+  # If GIT_SHA is "unknown" (no deploy workflow has run yet), fall back to main
+  # with a warning. Images will not start until API_IMAGE_URI is set via deploy.
+  if [ "${GIT_SHA}" = "unknown" ] || [ -z "${GIT_SHA}" ]; then
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: /psl-one/beta/git-sha not set."
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: Checking out origin/main as initial placeholder."
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] WARNING: Run the deploy workflow to pin an exact SHA."
+    git checkout --detach origin/main
+  else
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Checking out exact SHA: ${GIT_SHA}"
+    git checkout --detach "${GIT_SHA}"
+    ACTUAL_SHA=$(git rev-parse HEAD)
+    if [ "${ACTUAL_SHA}" != "${GIT_SHA}" ]; then
+      echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] ERROR: SHA mismatch after checkout. Expected ${GIT_SHA}, got ${ACTUAL_SHA}."
+      exit 1
+    fi
+    echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Repository at exact SHA: ${ACTUAL_SHA}"
+  fi
 fi
 
 # ── Write .env.beta ───────────────────────────────────────────────────────────
