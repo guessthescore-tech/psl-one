@@ -1,0 +1,145 @@
+name: psl-one-beta
+
+# PSL One Beta — Docker Compose for EC2 single-instance deployment.
+#
+# Startup order: postgres → migrate (one-off) → api (healthy) → web (healthy) → caddy
+#
+# Mode A (restricted IP testing):
+#   Set API_DOMAIN and WEB_DOMAIN to approved hostnames (default values are fine).
+#   Testers add: <EC2-IP>  api.staging.pslone.co.za  staging.pslone.co.za  to /etc/hosts.
+#   Caddy serves HTTP only. Restrict both port 80 and 443 via allowed_beta_cidrs in Terraform.
+#
+# Mode B (approved public HTTPS):
+#   DNS A records must resolve to EC2 public IP before starting.
+#   Set CADDY_ACME_EMAIL in .env.beta. Caddy provisions TLS automatically.
+#   Rebuild web image with NEXT_PUBLIC_API_BASE_URL=https://{API_DOMAIN}.
+#
+# Seeding: do NOT seed on every restart. Run scripts/beta/bootstrap-data.sh once
+# after first deploy, and manually thereafter. Keep PSL season inactive.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-psl_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-psl_beta}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-psl_admin} -d ${POSTGRES_DB:-psl_beta}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - internal
+
+  migrate:
+    image: ${MIGRATION_IMAGE_URI}
+    restart: "no"
+    command:
+      - node_modules/.bin/prisma
+      - migrate
+      - deploy
+      - --schema
+      - apps/api/prisma/schema.prisma
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: production
+      ENVIRONMENT_LABEL: beta
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  api:
+    image: ${API_IMAGE_URI}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      NODE_ENV: production
+      PORT: "4000"
+      ENVIRONMENT_LABEL: beta
+      GIT_SHA: ${GIT_SHA:-unknown}
+      BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-unknown}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:4000/health/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+  web:
+    image: ${WEB_IMAGE_URI}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      HOSTNAME: "0.0.0.0"
+      NEXT_PUBLIC_ENVIRONMENT_LABEL: beta
+      NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-unknown}
+      NEXT_PUBLIC_BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-unknown}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+  caddy:
+    # caddy:2.9.1-alpine — pinned to a reviewed stable release (2025-01).
+    # Before promoting to production, pin to the full image digest:
+    #   docker manifest inspect caddy:2.9.1-alpine --verbose | grep digest
+    # CADDY_IMAGE_DIGEST=NEEDS_RUNTIME_VERIFICATION
+    image: caddy:2.9.1-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/beta/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.staging.pslone.co.za}
+      WEB_DOMAIN: ${WEB_DOMAIN:-staging.pslone.co.za}
+      CADDY_ACME_EMAIL: ${CADDY_ACME_EMAIL:-}
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+    name: psl-one-beta-postgres
+  caddy_data:
+    name: psl-one-beta-caddy-data
+  caddy_config:
+    name: psl-one-beta-caddy-config
+
+networks:
+  internal:
+    driver: bridge
+    name: psl-one-beta

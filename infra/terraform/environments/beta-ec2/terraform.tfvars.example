@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars only for an authorised Terraform plan/apply.
+# Do NOT commit terraform.tfvars — it is in .gitignore.
+
+aws_region  = "af-south-1"
+environment = "beta"
+project     = "psl-one"
+
+# GUARDRAIL: t2.micro is Sprint 0 DenyNonFreeTierEC2-compatible.
+# Amend PSLOneSprint0DenyGuardrails to allow t3.micro before changing this value.
+# t2.micro: 1 vCPU, 1 GiB RAM — burstable, beta-only, not guaranteed free-tier.
+instance_type    = "t2.micro"
+root_volume_size = 20
+
+# Mode A (restricted internal testing — default):
+#   Restrict both port 80 and port 443 to reviewer IPs.
+#   Add EC2 public IP to /etc/hosts on tester machines:
+#     <EC2-IP>  api.staging.pslone.co.za  staging.pslone.co.za
+allowed_beta_cidrs = ["YOUR_REVIEWER_IP/32"]
+
+# Mode B (approved public HTTPS — requires explicit owner approval):
+#   allowed_beta_cidrs = ["0.0.0.0/0"]
+#   Also set create_elastic_ip = true and ensure DNS A records point to EC2 IP.
+
+# Enable only after owner approval for Mode B or stable-IP image baking.
+create_elastic_ip = false
+
+api_domain = "api.staging.pslone.co.za"
+web_domain  = "staging.pslone.co.za"
+
+# Leave empty for SSM Session Manager access only (recommended).
+key_pair_name = ""

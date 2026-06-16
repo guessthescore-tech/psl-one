@@ -1,0 +1,97 @@
+# PSL One Beta — Caddy reverse proxy
+#
+# Mode A (restricted IP testing — default):
+#   Set API_DOMAIN=api.staging.pslone.co.za, WEB_DOMAIN=staging.pslone.co.za (use defaults).
+#   Testers add to /etc/hosts on their machine:
+#     <EC2-IP>  api.staging.pslone.co.za  staging.pslone.co.za
+#   Caddy serves HTTP only (Caddy does not issue ACME for bare IP addresses).
+#   Restrict BOTH port 80 and port 443 to approved CIDRs via allowed_beta_cidrs in Terraform.
+#   Do not set API_DOMAIN or WEB_DOMAIN to the raw IP — use the hostnames for Host-header routing.
+#
+# Mode B (approved public HTTPS — explicit owner approval required):
+#   Set API_DOMAIN=api.staging.pslone.co.za, WEB_DOMAIN=staging.pslone.co.za (defaults).
+#   Set CADDY_ACME_EMAIL to a valid address in .env.beta.
+#   Create DNS A records pointing both hostnames to the EC2 public IP (use external DNS;
+#   Route 53 is blocked by the Sprint 0 guardrail).
+#   Open allowed_beta_cidrs = ["0.0.0.0/0"] in Terraform and apply.
+#   Caddy provisions TLS via Let's Encrypt HTTP-01 on first request.
+#   Rebuild web image with NEXT_PUBLIC_API_BASE_URL=https://{API_DOMAIN}.
+#   Requires Elastic IP (create_elastic_ip = true) for a stable IP during ACME validation.
+
+{
+	email {$CADDY_ACME_EMAIL}
+}
+
+{$API_DOMAIN:api.staging.pslone.co.za} {
+	reverse_proxy api:4000 {
+		# flush_interval -1 enables WebSocket and Server-Sent-Event streaming
+		flush_interval -1
+
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+			read_buffer_size    16KB
+		}
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options        "DENY"
+		Referrer-Policy        "strict-origin-when-cross-origin"
+		# Remove upstream server identification
+		-Server
+		-X-Powered-By
+	}
+
+	# Prevent caching of auth and admin API responses
+	@sensitive_api path /auth/* /admin/* /health/*
+	header @sensitive_api Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
+}
+
+{$WEB_DOMAIN:staging.pslone.co.za} {
+	reverse_proxy web:3001 {
+		flush_interval -1
+
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+			read_buffer_size    16KB
+		}
+	}
+
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		X-Content-Type-Options  "nosniff"
+		X-Frame-Options         "SAMEORIGIN"
+		Referrer-Policy         "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	# Prevent caching of auth, API proxy, and admin frontend routes
+	@sensitive_web path /api/* /login /logout /admin/*
+	header @sensitive_web Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
+}

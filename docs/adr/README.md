@@ -56,6 +56,7 @@ Created 2026-06-14 documenting decisions made and validated during Sprint 2 deli
 |-----|-------|--------|-------|
 | [ADR-027](ADR-027.md) | Durable Event Processing Deferred Pending Measured Requirement | PROPOSED | S3-INFRA-00 |
 | [ADR-028](ADR-028.md) | ECS Fargate Runtime and Immutable Container Image Strategy | ACCEPTED | S3-INFRA-01 |
+| [ADR-029](ADR-029-FREE-PLAN-BETA-STAGING-PROFILE.md) | Free Plan Beta Staging Profile (EC2 + Docker Compose) | ACCEPTED | S3-INFRA-02A |
 
 ---
 
@@ -64,7 +65,7 @@ Created 2026-06-14 documenting decisions made and validated during Sprint 2 deli
 - `ADR-001` through `ADR-011` — Sprint 0 architecture planning (3-digit, committed)
 - `ADR-012` through `ADR-026` — Sprint 2 validated decisions (3-digit, continuing series)
 - `ADR-027` onwards — Sprint 3 decisions
-- Next ADR: `ADR-029`
+- Next ADR: `ADR-030`
 
 ---
 

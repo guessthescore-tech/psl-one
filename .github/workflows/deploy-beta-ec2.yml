@@ -1,0 +1,426 @@
+name: Deploy — Beta EC2
+
+# Deploys an exact, pre-approved Git SHA to the beta EC2 environment.
+# No branch names, short tags, or 'latest' tags are permitted.
+# Requires environment protection: beta.
+
+on:
+  workflow_dispatch:
+    inputs:
+      git_sha:
+        description: "Exact 40-character lowercase hex Git SHA to deploy (e.g. 607449a585924eaddf4dec14aaa3f2890d981723)"
+        required: true
+        type: string
+      run_migrations:
+        description: "Run Prisma migrate deploy before starting services"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        type: string
+
+concurrency:
+  group: deploy-beta
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: af-south-1
+
+jobs:
+  # ── Step 1: Validate SHA ───────────────────────────────────────────────────────
+  validate-sha:
+    name: Validate SHA
+    runs-on: ubuntu-latest
+    environment: beta
+    outputs:
+      git_sha: ${{ steps.validate.outputs.git_sha }}
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "DEPLOY" ]; then
+            echo "::error::Confirmation was not 'DEPLOY'. Deployment aborted."
+            exit 1
+          fi
+
+      - name: Validate SHA format
+        id: validate
+        run: |
+          GIT_SHA="${{ github.event.inputs.git_sha }}"
+          if ! [[ "${GIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::git_sha must be exactly 40 lowercase hex characters. Got: '${GIT_SHA}'"
+            exit 1
+          fi
+          echo "git_sha=${GIT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify SHA is ancestor of origin/main
+        run: |
+          GIT_SHA="${{ steps.validate.outputs.git_sha }}"
+          git fetch origin main
+          if ! git merge-base --is-ancestor "${GIT_SHA}" origin/main; then
+            echo "::error::${GIT_SHA} is not an ancestor of origin/main. Only main-branch SHAs may be deployed to beta."
+            exit 1
+          fi
+          echo "SHA verified as ancestor of origin/main: ${GIT_SHA}"
+
+  # ── Step 2: Build and push all three images ────────────────────────────────────
+  build-and-push:
+    name: Build and push images
+    needs: validate-sha
+    runs-on: ubuntu-latest
+    environment: beta
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      ecr_registry: ${{ steps.ecr-login.outputs.registry }}
+      api_image_uri: ${{ steps.refs.outputs.api_image_uri }}
+      migration_image_uri: ${{ steps.refs.outputs.migration_image_uri }}
+      web_image_uri: ${{ steps.refs.outputs.web_image_uri }}
+    steps:
+      - name: Checkout exact SHA (detached)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.validate-sha.outputs.git_sha }}
+
+      - name: Verify detached HEAD matches approved SHA
+        run: |
+          ACTUAL=$(git rev-parse HEAD)
+          EXPECTED="${{ needs.validate-sha.outputs.git_sha }}"
+          if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+            echo "::error::HEAD mismatch: expected ${EXPECTED}, got ${ACTUAL}"
+            exit 1
+          fi
+          echo "Checked out exact SHA: ${ACTUAL}"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BETA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          # Trust: repo:guessthescore-tech/psl-one:environment:beta
+          # IAM role creation: APPROVAL_REQUIRED — not created by this workflow
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set immutable image URIs (full-SHA tags only)
+        id: refs
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          GIT_SHA: ${{ needs.validate-sha.outputs.git_sha }}
+        run: |
+          echo "api_image_uri=${REGISTRY}/psl-one-beta-api:${GIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "migration_image_uri=${REGISTRY}/psl-one-beta-api-migrator:${GIT_SHA}" >> "$GITHUB_OUTPUT"
+          echo "web_image_uri=${REGISTRY}/psl-one-beta-web:${GIT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx (Docker Build Cloud)
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: cloud
+          endpoint: ${{ secrets.DOCKER_BUILD_CLOUD_ENDPOINT }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ steps.refs.outputs.api_image_uri }}
+          cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-api:cache
+          cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-api:cache,mode=max
+
+      - name: Build and push Migrator image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ steps.refs.outputs.migration_image_uri }}
+          cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-api-migrator:cache
+          cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-api-migrator:cache,mode=max
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ steps.refs.outputs.web_image_uri }}
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=${{ secrets.BETA_API_BASE_URL }}
+          cache-from: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-web:cache
+          cache-to: type=registry,ref=${{ steps.ecr-login.outputs.registry }}/psl-one-beta-web:cache,mode=max
+
+  # ── Step 3: Deploy to EC2 via SSM Run Command ─────────────────────────────────
+  deploy:
+    name: Deploy to EC2
+    needs: [validate-sha, build-and-push]
+    runs-on: ubuntu-latest
+    environment: beta
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      migration_result: ${{ steps.ssm.outputs.migration_result }}
+      rollback_sha: ${{ steps.prev-sha.outputs.rollback_sha }}
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_BETA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Capture rollback SHA (current deployed SHA before update)
+        id: prev-sha
+        run: |
+          PREV=$(aws ssm get-parameter \
+            --name /psl-one/beta/git-sha \
+            --query "Parameter.Value" --output text 2>/dev/null || echo "unknown")
+          echo "rollback_sha=${PREV}" >> "$GITHUB_OUTPUT"
+          echo "Rollback SHA (previous deploy): ${PREV}"
+
+      - name: Update SSM deployment parameters
+        env:
+          GIT_SHA: ${{ needs.validate-sha.outputs.git_sha }}
+          API_IMAGE_URI: ${{ needs.build-and-push.outputs.api_image_uri }}
+          MIGRATION_IMAGE_URI: ${{ needs.build-and-push.outputs.migration_image_uri }}
+          WEB_IMAGE_URI: ${{ needs.build-and-push.outputs.web_image_uri }}
+        run: |
+          aws ssm put-parameter --name /psl-one/beta/git-sha             --value "${GIT_SHA}"             --type String --overwrite
+          aws ssm put-parameter --name /psl-one/beta/api-image-uri       --value "${API_IMAGE_URI}"       --type String --overwrite
+          aws ssm put-parameter --name /psl-one/beta/migration-image-uri --value "${MIGRATION_IMAGE_URI}" --type String --overwrite
+          aws ssm put-parameter --name /psl-one/beta/web-image-uri       --value "${WEB_IMAGE_URI}"       --type String --overwrite
+
+      - name: Deploy via SSM Run Command
+        id: ssm
+        env:
+          INSTANCE_ID: ${{ secrets.BETA_EC2_INSTANCE_ID }}
+          RUN_MIGRATIONS: ${{ github.event.inputs.run_migrations }}
+        run: |
+          # Python builds the JSON command list to avoid shell quoting issues.
+          # Migration runs without || true — any failure halts the deployment.
+          COMMAND_JSON=$(python3 - <<'PYEOF'
+import json, os
+
+run_mig = os.environ.get("RUN_MIGRATIONS", "true").strip().lower() == "true"
+
+cmds = [
+    "set -euo pipefail",
+    "cd /opt/psl-one",
+    "AWS_REGION=$(grep -m1 '^AWS_REGION=' .env.beta | cut -d= -f2- || echo af-south-1)",
+    "ECR_REGISTRY=$(grep -m1 '^ECR_REGISTRY=' .env.beta | cut -d= -f2-)",
+    "bash infra/beta/ecr-login.sh",
+    "API_IMAGE_URI=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/api-image-uri --query Parameter.Value --output text)",
+    "MIGRATION_IMAGE_URI=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/migration-image-uri --query Parameter.Value --output text)",
+    "WEB_IMAGE_URI=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/web-image-uri --query Parameter.Value --output text)",
+    "GIT_SHA=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/git-sha --query Parameter.Value --output text)",
+    "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "sed -i \"s|^API_IMAGE_URI=.*|API_IMAGE_URI=${API_IMAGE_URI}|\" .env.beta",
+    "sed -i \"s|^MIGRATION_IMAGE_URI=.*|MIGRATION_IMAGE_URI=${MIGRATION_IMAGE_URI}|\" .env.beta",
+    "sed -i \"s|^WEB_IMAGE_URI=.*|WEB_IMAGE_URI=${WEB_IMAGE_URI}|\" .env.beta",
+    "sed -i \"s|^GIT_SHA=.*|GIT_SHA=${GIT_SHA}|\" .env.beta",
+    "sed -i \"s|^BUILD_TIMESTAMP=.*|BUILD_TIMESTAMP=${BUILD_TIMESTAMP}|\" .env.beta",
+    "docker compose -f compose.beta.yaml --env-file .env.beta pull api migrate web",
+    "docker compose -f compose.beta.yaml --env-file .env.beta stop api web caddy",
+]
+
+if run_mig:
+    cmds.append(
+        "echo '[deploy] Running Prisma migration — failure will abort deployment'; "
+        "docker compose -f compose.beta.yaml --env-file .env.beta run --rm migrate; "
+        "echo '[deploy] Migration completed successfully'"
+    )
+else:
+    cmds.append("echo '[deploy] Migration explicitly skipped by workflow input run_migrations=false'")
+
+cmds += [
+    "docker compose -f compose.beta.yaml --env-file .env.beta up -d --no-deps api web caddy",
+    "echo '[deploy] Services started'",
+]
+
+print(json.dumps({"commands": cmds}))
+PYEOF
+          )
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${INSTANCE_ID}" \
+            --document-name "AWS-RunShellScript" \
+            --cli-input-json "${COMMAND_JSON}" \
+            --output text \
+            --query "Command.CommandId")
+
+          echo "SSM Command ID: ${COMMAND_ID}"
+
+          # Poll up to 10 minutes
+          STATUS="InProgress"
+          for i in $(seq 1 60); do
+            sleep 10
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${INSTANCE_ID}" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Poll ${i}/60 — ${STATUS}"
+            [ "${STATUS}" = "Success" ] && break
+            if [[ "${STATUS}" =~ ^(Failed|Cancelled|TimedOut|DeliveryTimedOut)$ ]]; then
+              echo "::error::SSM command failed with status: ${STATUS}"
+              aws ssm get-command-invocation \
+                --command-id "${COMMAND_ID}" \
+                --instance-id "${INSTANCE_ID}" \
+                --query "StandardErrorContent" --output text || true
+              exit 1
+            fi
+          done
+
+          if [ "${STATUS}" != "Success" ]; then
+            echo "::error::SSM command did not complete within timeout. Final status: ${STATUS}"
+            exit 1
+          fi
+
+          MIG_RESULT="${{ github.event.inputs.run_migrations == 'true' && 'success' || 'skipped' }}"
+          echo "migration_result=${MIG_RESULT}" >> "$GITHUB_OUTPUT"
+
+  # ── Step 4: Smoke tests ────────────────────────────────────────────────────────
+  smoke-test:
+    name: Smoke test
+    needs: [validate-sha, build-and-push, deploy]
+    runs-on: ubuntu-latest
+    environment: beta
+    outputs:
+      readiness_result: ${{ steps.readiness.outputs.readiness_result }}
+      smoke_result: ${{ steps.smoke.outputs.smoke_result }}
+    steps:
+      - name: Checkout (for smoke script)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate-sha.outputs.git_sha }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Wait for services to stabilise
+        run: sleep 20
+
+      - name: API readiness pre-check
+        id: readiness
+        env:
+          EC2_IP: ${{ secrets.BETA_EC2_IP }}
+          API_DOMAIN: ${{ secrets.BETA_API_DOMAIN }}
+        run: |
+          # Quick readiness gate before running the full smoke suite.
+          # Retries 6 times (total ~60 s) to allow Caddy + API to start.
+          for i in $(seq 1 6); do
+            STATUS=$(curl -sf --max-time 10 \
+              -H "Host: ${API_DOMAIN}" \
+              -o /dev/null -w "%{http_code}" \
+              "http://${EC2_IP}/health/ready" 2>/dev/null || echo "000")
+            echo "Attempt ${i}/6 — HTTP ${STATUS}"
+            [ "${STATUS}" = "200" ] && break
+            sleep 10
+          done
+          if [ "${STATUS}" != "200" ]; then
+            echo "::error::API /health/ready returned ${STATUS} after 6 attempts"
+            exit 1
+          fi
+          echo "readiness_result=pass" >> "$GITHUB_OUTPUT"
+
+      - name: Run structured smoke tests
+        id: smoke
+        env:
+          SMOKE_ENVIRONMENT: beta
+          SMOKE_EC2_IP: ${{ secrets.BETA_EC2_IP }}
+          BETA_API_BASE_URL: http://${{ secrets.BETA_API_DOMAIN }}
+          BETA_WEB_BASE_URL: http://${{ secrets.BETA_WEB_DOMAIN }}
+          EXPECTED_SHA: ${{ needs.validate-sha.outputs.git_sha }}
+        run: |
+          node scripts/smoke/staging-smoke.mjs
+          echo "smoke_result=pass" >> "$GITHUB_OUTPUT"
+
+  # ── Step 5: Release manifest ───────────────────────────────────────────────────
+  release-manifest:
+    name: Release manifest
+    needs: [validate-sha, build-and-push, deploy, smoke-test]
+    runs-on: ubuntu-latest
+    environment: beta
+    if: always()
+    steps:
+      - name: Write manifest and job summary
+        env:
+          GIT_SHA: ${{ needs.validate-sha.outputs.git_sha }}
+          API_IMAGE_URI: ${{ needs.build-and-push.outputs.api_image_uri }}
+          MIGRATION_IMAGE_URI: ${{ needs.build-and-push.outputs.migration_image_uri }}
+          WEB_IMAGE_URI: ${{ needs.build-and-push.outputs.web_image_uri }}
+          MIGRATION_RESULT: ${{ needs.deploy.outputs.migration_result }}
+          READINESS_RESULT: ${{ needs.smoke-test.outputs.readiness_result }}
+          SMOKE_RESULT: ${{ needs.smoke-test.outputs.smoke_result }}
+          ROLLBACK_SHA: ${{ needs.deploy.outputs.rollback_sha }}
+          INSTANCE_ID: ${{ secrets.BETA_EC2_INSTANCE_ID }}
+          DEPLOY_STATUS: ${{ needs.deploy.result }}
+        run: |
+          python3 - <<'PYEOF'
+import json, os
+from datetime import datetime, timezone
+
+deployed_at = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+manifest = {
+    "environment": "beta",
+    "gitSha": os.environ["GIT_SHA"],
+    "deployedAt": deployed_at,
+    "deployedBy": os.environ.get("GITHUB_ACTOR", "unknown"),
+    "workflowRunId": os.environ.get("GITHUB_RUN_ID", "unknown"),
+    "apiImageUri": os.environ["API_IMAGE_URI"],
+    "migrationImageUri": os.environ["MIGRATION_IMAGE_URI"],
+    "webImageUri": os.environ["WEB_IMAGE_URI"],
+    "instanceId": os.environ["INSTANCE_ID"],
+    "composeProject": "psl-one-beta",
+    "migrationResult": os.environ.get("MIGRATION_RESULT", "unknown"),
+    "readinessResult": os.environ.get("READINESS_RESULT", "unknown"),
+    "smokeTestResult": os.environ.get("SMOKE_RESULT", "unknown"),
+    "deployStatus": os.environ.get("DEPLOY_STATUS", "unknown"),
+    "rollbackSha": os.environ.get("ROLLBACK_SHA", "unknown"),
+}
+with open("release-manifest.json", "w") as f:
+    json.dump(manifest, f, indent=2)
+print(json.dumps(manifest, indent=2))
+
+# Write GitHub Step Summary
+summary_lines = [
+    f"## Beta Deployment — {deployed_at}",
+    "",
+    "| Field | Value |",
+    "|---|---|",
+    f"| Environment | beta |",
+    f"| Git SHA | `{manifest['gitSha']}` |",
+    f"| Deployed by | {manifest['deployedBy']} |",
+    f"| Workflow run | {manifest['workflowRunId']} |",
+    f"| API image | `{manifest['apiImageUri']}` |",
+    f"| Migrator image | `{manifest['migrationImageUri']}` |",
+    f"| Web image | `{manifest['webImageUri']}` |",
+    f"| Instance | {manifest['instanceId']} |",
+    f"| Migration | {manifest['migrationResult']} |",
+    f"| Readiness | {manifest['readinessResult']} |",
+    f"| Smoke test | {manifest['smokeTestResult']} |",
+    f"| Deploy status | {manifest['deployStatus']} |",
+    f"| Rollback SHA | `{manifest['rollbackSha']}` |",
+]
+summary = "\n".join(summary_lines) + "\n"
+with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+    f.write(summary)
+PYEOF
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beta-release-manifest-${{ needs.validate-sha.outputs.git_sha }}
+          path: release-manifest.json
+          retention-days: 90

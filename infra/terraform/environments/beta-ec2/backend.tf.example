@@ -1,0 +1,13 @@
+# Copy to backend.tf only after an approved S3 state bucket exists.
+# For initial beta, local state (no backend block) is acceptable.
+# Do not commit backend.tf or terraform.tfvars.
+
+terraform {
+  backend "s3" {
+    bucket         = "REPLACE_WITH_APPROVED_STATE_BUCKET"
+    key            = "s3-infra-02a/beta-ec2/terraform.tfstate"
+    region         = "af-south-1"
+    dynamodb_table = "REPLACE_WITH_APPROVED_LOCK_TABLE"
+    encrypt        = true
+  }
+}
