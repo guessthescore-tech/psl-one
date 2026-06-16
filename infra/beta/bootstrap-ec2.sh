@@ -19,9 +19,10 @@ exec > >(tee -a "${LOG}") 2>&1
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] PSL One beta bootstrap starting"
 
 # ── Identity ──────────────────────────────────────────────────────────────────
-AWS_REGION="${AWS_DEFAULT_REGION:-af-south-1}"
+# Export so that subshells (ecr-login.sh, systemd ExecStartPre) can inherit them.
+export AWS_REGION="${AWS_DEFAULT_REGION:-af-south-1}"
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+export ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 APP_DIR="/opt/psl-one"
 COMPOSE_FILE="${APP_DIR}/compose.beta.yaml"
 ENV_FILE="${APP_DIR}/.env.beta"
