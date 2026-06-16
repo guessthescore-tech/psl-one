@@ -10,8 +10,10 @@ RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 WORKDIR /app
 
 FROM base AS deps
+RUN apk add --no-cache python3 make g++ openssl-dev
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps/api/package.json ./apps/api/package.json
+COPY apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
 COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @psl-one/api...
 
