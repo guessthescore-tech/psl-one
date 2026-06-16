@@ -30,7 +30,27 @@ echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Account: ${ACCOUNT_ID}, Region: ${AWS_REG
 
 # ── System packages ───────────────────────────────────────────────────────────
 dnf update -y --quiet
-dnf install -y git jq curl unzip
+# curl-minimal is pre-installed on AL2023 and conflicts with the full curl package.
+# Installing the full curl alongside curl-minimal causes dnf to abort with a conflict
+# error, which terminates the script under set -euo pipefail. Drop curl from the
+# install list; curl-minimal already provides /usr/bin/curl for all runtime uses here.
+dnf install -y git jq unzip
+
+# ── Swap ──────────────────────────────────────────────────────────────────────
+# t3.micro has 1 GiB RAM — tight for three Docker services.
+# Provision a 2 GiB swap file idempotently before workloads start.
+if ! swapon --show=NAME --noheadings | grep -qx '/swapfile'; then
+  if [ ! -f /swapfile ]; then
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+  fi
+  swapon /swapfile
+  if ! grep -qE '^/swapfile[[:space:]]' /etc/fstab; then
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  fi
+fi
+echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Swap: $(swapon --show=SIZE --noheadings /swapfile 2>/dev/null || echo already-active)"
 
 # AL2023_DOCKER_BOOTSTRAP=NEEDS_RUNTIME_EVIDENCE
 #
