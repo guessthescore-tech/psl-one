@@ -26,7 +26,7 @@ FROM node:${NODE_VERSION} AS runner
 ENV NODE_ENV=production
 ENV PORT=4000
 WORKDIR /app
-RUN apk add --no-cache curl tini
+RUN apk add --no-cache curl tini openssl
 COPY --from=builder --chown=node:node /app/package.json ./package.json
 COPY --from=builder --chown=node:node /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
