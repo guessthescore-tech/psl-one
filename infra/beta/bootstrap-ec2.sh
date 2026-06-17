@@ -108,7 +108,8 @@ API_DOMAIN=$(ssm_get "/psl-one/beta/api-domain"           2>/dev/null || echo "a
 WEB_DOMAIN=$(ssm_get "/psl-one/beta/web-domain"           2>/dev/null || echo "staging.pslone.co.za")
 CORS_ORIGINS=$(ssm_get "/psl-one/beta/cors-origins"       2>/dev/null || echo "http://${API_DOMAIN},http://${WEB_DOMAIN}")
 
-DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+ENCODED_POSTGRES_PASSWORD=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "${POSTGRES_PASSWORD}")
+DATABASE_URL="postgresql://${POSTGRES_USER}:${ENCODED_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
 
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Secrets loaded from SSM (passwords not logged)"
 
