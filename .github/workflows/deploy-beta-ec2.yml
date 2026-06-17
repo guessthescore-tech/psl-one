@@ -248,7 +248,16 @@ jobs:
               "echo '[deploy] Services started'",
           ]
 
-          print(json.dumps({"commands": cmds}))
+          print(
+              json.dumps(
+                  {
+                      "Parameters": {
+                          "commands": cmds,
+                          "executionTimeout": ["1800"],
+                      }
+                  }
+              )
+          )
           PYEOF
           )
 
