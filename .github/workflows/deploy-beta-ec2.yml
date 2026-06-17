@@ -353,7 +353,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ vars.BETA_EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "${COMMAND_JSON}" \
+            --cli-input-json "${COMMAND_JSON}" \
             --query "Command.CommandId" --output text)
           echo "SSM readiness command: ${COMMAND_ID}"
 
@@ -409,7 +409,7 @@ jobs:
           COMMAND_ID=$(aws ssm send-command \
             --instance-ids "${{ vars.BETA_EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters "${COMMAND_JSON}" \
+            --cli-input-json "${COMMAND_JSON}" \
             --query "Command.CommandId" --output text)
           echo "SSM smoke command: ${COMMAND_ID}"
 
