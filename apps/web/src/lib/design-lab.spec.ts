@@ -158,10 +158,10 @@ describe('DesignLabToolbar', () => {
 /* ── Design Lab index page ─────────────────────────────────────── */
 describe('Design Lab index', () => {
   it('lists all four demos', () => {
-    expect(indexSrc).toContain('In-Season League Home');
-    expect(indexSrc).toContain('Prediction Fixture Carousel');
-    expect(indexSrc).toContain('Fantasy In-Season Hub');
-    expect(indexSrc).toContain('Account and Fan Identity');
+    expect(indexSrc).toContain('League Matchday');
+    expect(indexSrc).toContain('Predict');
+    expect(indexSrc).toContain('Fantasy Command Centre');
+    expect(indexSrc).toContain('My PSL One');
   });
 
   it('links to all demo routes', () => {
@@ -193,15 +193,15 @@ describe('Demo A — in-season home', () => {
   });
 
   it('has league table section', () => {
-    expect(inSeasonSrc).toContain('League table');
+    expect(inSeasonSrc).toContain('League standings');
   });
 
   it('has fantasy module', () => {
-    expect(inSeasonSrc).toContain('FantasyModule');
+    expect(inSeasonSrc).toContain('FantasyCard');
   });
 
   it('has fan value module', () => {
-    expect(inSeasonSrc).toContain('FanValueModule');
+    expect(inSeasonSrc).toContain('FanValueCard');
   });
 
   it('has mobile bottom navigation', () => {

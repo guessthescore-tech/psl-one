@@ -8,217 +8,9 @@ import { footballClient, type Team } from '@/lib/football-client';
 import { fanValueClient, type FanValueSummary } from '@/lib/fan-value-client';
 import { me, type MeResponse } from '@/lib/auth-client';
 
-/* ─── Auth tab ──────────────────────────────────────────────────── */
-type AuthTab = 'sign-in' | 'join';
-
-function AuthPanel({ onAuth }: { onAuth: () => void }) {
-  const [tab, setTab]           = useState<AuthTab>('join');
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDN]    = useState('');
-  const [loading, setLoading]   = useState(false);
-  const [msg, setMsg]           = useState('');
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setMsg('');
-    try {
-      /* In the design lab we just simulate success — no real auth */
-      await new Promise(r => setTimeout(r, 600));
-      setMsg(tab === 'join' ? 'Account created — this is a demo' : 'Signed in — this is a demo');
-      onAuth();
-    } catch {
-      setMsg('Something went wrong');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="max-w-md mx-auto">
-      {/* Tab switcher */}
-      <div className="flex rounded-xl overflow-hidden border border-gray-100 mb-6 bg-white">
-        {(['join', 'sign-in'] as AuthTab[]).map(t => (
-          <button
-            key={t}
-            onClick={() => { setTab(t); setMsg(''); }}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors capitalize ${
-              tab === t ? 'bg-psl-navy text-white' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            {t === 'join' ? 'Join Beta' : 'Sign In'}
-          </button>
-        ))}
-      </div>
-
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 shadow-sm">
-        <h2 className="text-lg font-black text-psl-navy">
-          {tab === 'join' ? 'Create your fan account' : 'Welcome back'}
-        </h2>
-
-        {tab === 'join' && (
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 mb-1">Display Name</label>
-            <input
-              type="text"
-              value={displayName}
-              onChange={e => setDN(e.target.value)}
-              placeholder="Your fan name"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-            />
-          </div>
-        )}
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-          />
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 mb-1">Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-          />
-        </div>
-
-        {msg && (
-          <p className="text-xs text-psl-green font-semibold">{msg}</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-psl-navy text-white py-3 rounded-xl font-bold text-sm hover:bg-psl-navy/90 transition-colors disabled:opacity-50"
-        >
-          {loading ? 'Please wait…' : tab === 'join' ? 'Create account' : 'Sign in'}
-        </button>
-
-        {/* Social login placeholders */}
-        <div className="relative py-2">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-100" />
-          </div>
-          <div className="relative text-center">
-            <span className="bg-white px-3 text-xs text-gray-400">or continue with</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          <button type="button" disabled className="flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-xs text-gray-400 disabled:cursor-not-allowed">
-            <span className="font-bold">G</span> Google
-          </button>
-          <button type="button" disabled className="flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-xs text-gray-400 disabled:cursor-not-allowed">
-            <span className="font-bold">f</span> Facebook
-          </button>
-        </div>
-        <p className="text-[10px] text-gray-400 text-center">Social login requires configuration in a live environment</p>
-
-        <p className="text-[10px] text-gray-400 text-center leading-relaxed">
-          By joining you agree to our Terms of Service. PSL One is a points-only fan engagement platform — not a gambling or betting service.
-        </p>
-      </form>
-    </div>
-  );
-}
-
-/* ─── Club selector ─────────────────────────────────────────────── */
-function ClubSelector({
-  teams,
-  selected,
-  onSelect,
-}: {
-  teams: Team[];
-  selected: string | null;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-semibold text-gray-400 mb-3">Select your favourite team</p>
-      <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
-        {teams.map(t => (
-          <button
-            key={t.id}
-            onClick={() => onSelect(t.id)}
-            aria-pressed={selected === t.id}
-            className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border-2 transition-all ${
-              selected === t.id
-                ? 'border-psl-navy bg-psl-navy/5'
-                : 'border-transparent hover:border-gray-200'
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ${
-              selected === t.id ? 'bg-psl-navy text-white' : 'bg-gray-100 text-gray-500'
-            }`}>
-              {t.shortName.slice(0, 3).toUpperCase()}
-            </div>
-            <span className="text-[9px] font-semibold text-gray-500 truncate w-full text-center">
-              {t.shortName}
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Notification prefs ─────────────────────────────────────────── */
-function NotificationPrefsPanel({
-  prefs,
-  onChange,
-}: {
-  prefs: Partial<NotificationPreferences>;
-  onChange: (key: keyof NotificationPreferences, val: boolean) => void;
-}) {
-  const items: { key: keyof NotificationPreferences; label: string; desc: string }[] = [
-    { key: 'matchReminders', label: 'Match Reminders', desc: 'Get notified before kick-off' },
-    { key: 'teamNews',        label: 'Team News',       desc: 'Squad updates and injury alerts' },
-    { key: 'fantasyUpdates',  label: 'Fantasy Updates', desc: 'Deadline alerts and score updates' },
-    { key: 'rewardsUpdates',  label: 'Fan Value',       desc: 'Points earned and milestone alerts' },
-  ];
-
-  return (
-    <div className="space-y-3">
-      {items.map(item => (
-        <label key={item.key} className="flex items-start justify-between gap-4 cursor-pointer">
-          <div>
-            <div className="text-sm font-semibold text-psl-navy">{item.label}</div>
-            <div className="text-xs text-gray-400">{item.desc}</div>
-          </div>
-          <button
-            role="switch"
-            aria-checked={!!prefs[item.key]}
-            onClick={() => onChange(item.key, !prefs[item.key])}
-            className={`shrink-0 w-10 h-6 rounded-full transition-colors relative ${
-              prefs[item.key] ? 'bg-psl-green' : 'bg-gray-200'
-            }`}
-          >
-            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${
-              prefs[item.key] ? 'left-5' : 'left-1'
-            }`} />
-          </button>
-        </label>
-      ))}
-    </div>
-  );
-}
-
-/* ─── Fan Identity card ─────────────────────────────────────────── */
+/* ── Fan Identity Card — physical card aesthetic ───────────────── */
 function FanIdentityCard({
-  user,
-  profile,
-  fanValue,
-  teams,
+  user, profile, fanValue, teams,
 }: {
   user: MeResponse | null;
   profile: FanProfile | null;
@@ -226,66 +18,285 @@ function FanIdentityCard({
   teams: Team[];
 }) {
   const team = teams.find(t => t.id === profile?.preferredTeamId);
+  const initials = (profile?.displayName ?? user?.email ?? 'F').charAt(0).toUpperCase();
+  const level = fanValue ? Math.floor(fanValue.totalPoints / 500) + 1 : 1;
+  const nextLevelPts = level * 500;
+  const progress = fanValue ? Math.min(100, Math.round(((fanValue.totalPoints % 500) / 500) * 100)) : 0;
+
   return (
-    <div className="bg-gradient-to-br from-psl-navy to-[#163060] rounded-2xl p-5 text-white">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Fan Identity</div>
-          <h3 className="text-xl font-black">{profile?.displayName ?? user?.email ?? 'Anonymous Fan'}</h3>
-          <div className="text-xs text-white/50 mt-0.5">{user?.email}</div>
-        </div>
-        <div className="w-12 h-12 rounded-full bg-psl-gold flex items-center justify-center text-psl-navy font-black text-lg">
-          {(profile?.displayName ?? user?.email ?? 'F').charAt(0).toUpperCase()}
-        </div>
-      </div>
+    <div
+      className="relative rounded-card overflow-hidden text-white shadow-card-xl"
+      style={{ background: 'linear-gradient(135deg, #0d1b2e 0%, #1b3a6b 55%, #163060 100%)' }}
+      aria-label="Fan identity card"
+    >
+      {/* Watermark circle */}
+      <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full border border-white/5 pointer-events-none" />
+      <div className="absolute -top-2 -right-2 w-24 h-24 rounded-full border border-white/5 pointer-events-none" />
 
-      {team && (
-        <div className="flex items-center gap-2 mb-4 bg-white/10 rounded-xl p-3">
-          <div className="w-8 h-8 rounded-full bg-psl-gold flex items-center justify-center text-psl-navy text-xs font-black">
-            {team.shortName.slice(0, 2)}
-          </div>
+      <div className="relative p-6">
+        {/* Header row */}
+        <div className="flex items-start justify-between mb-5">
           <div>
-            <div className="text-xs text-white/50">Favourite Club</div>
-            <div className="text-sm font-black">{team.name}</div>
+            <p className="text-label-sm text-white/40 mb-2">My PSL One</p>
+            <h2 className="text-display-sm text-white leading-tight">
+              {profile?.displayName ?? user?.email ?? 'Fan'}
+            </h2>
+            {user?.email && profile?.displayName && (
+              <p className="text-xs text-white/40 mt-0.5">{user.email}</p>
+            )}
+          </div>
+          <div className="w-12 h-12 rounded-full bg-psl-gold flex items-center justify-center text-psl-midnight font-black text-lg flex-shrink-0">
+            {initials}
           </div>
         </div>
-      )}
 
-      {fanValue && (
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-2xl font-black text-psl-gold">{fanValue.totalPoints.toLocaleString()}</div>
-            <div className="text-[10px] text-white/50">Fan Value Points</div>
+        {/* Club badge */}
+        {team && (
+          <div className="flex items-center gap-3 bg-white/10 rounded-card-sm px-3 py-2.5 mb-5">
+            <div className="w-8 h-8 rounded-full bg-psl-gold flex items-center justify-center text-psl-midnight text-xs font-black flex-shrink-0">
+              {team.shortName.slice(0, 2)}
+            </div>
+            <div>
+              <p className="text-[10px] text-white/40">Favourite Club</p>
+              <p className="text-sm font-bold text-white">{team.name}</p>
+            </div>
           </div>
-          <div className="bg-white/10 rounded-xl p-3 text-center">
-            <div className="text-2xl font-black text-psl-gold">{fanValue.totalEntries}</div>
-            <div className="text-[10px] text-white/50">Total Actions</div>
-          </div>
-        </div>
-      )}
+        )}
 
-      <p className="text-[10px] text-white/30 leading-relaxed">
-        Points are non-financial and cannot be redeemed for cash. PSL One is not a gambling product.
-      </p>
+        {/* Fan value stats */}
+        {fanValue && (
+          <div className="mb-4">
+            <div className="flex items-end justify-between mb-2">
+              <div>
+                <div className="text-stat-lg text-psl-gold tabular-nums leading-none">{fanValue.totalPoints.toLocaleString()}</div>
+                <div className="text-[10px] text-white/40 mt-0.5">fan value points · non-financial</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-black text-white">Level {level}</div>
+                <div className="text-[10px] text-white/40">{nextLevelPts - (fanValue.totalPoints % 500)} to next</div>
+              </div>
+            </div>
+            <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-psl-gold rounded-full motion-safe:transition-all motion-safe:duration-700"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <p className="text-[10px] text-white/20 leading-relaxed">
+          Points are non-financial. PSL One is not a gambling or betting product.
+        </p>
+      </div>
     </div>
   );
 }
 
-/* ─── Wallet notice ─────────────────────────────────────────────── */
+/* ── Auth panel ────────────────────────────────────────────────── */
+type AuthTab = 'join' | 'sign-in';
+
+function AuthPanel({ onAuth }: { onAuth: () => void }) {
+  const [tab, setTab]           = useState<AuthTab>('join');
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDN]    = useState('');
+  const [submitting, setSubmit] = useState(false);
+  const [msg, setMsg]           = useState('');
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmit(true);
+    setMsg('');
+    await new Promise(r => setTimeout(r, 600));
+    setMsg(tab === 'join' ? 'Account created — this is a design demo' : 'Signed in — this is a design demo');
+    setSubmit(false);
+    onAuth();
+  }
+
+  return (
+    <div className="w-full">
+      {/* Tab switcher */}
+      <div className="flex rounded-card-sm border border-[#e8eaf0] mb-6 overflow-hidden bg-white">
+        {(['join', 'sign-in'] as AuthTab[]).map(t => (
+          <button
+            key={t}
+            onClick={() => { setTab(t); setMsg(''); }}
+            className={`flex-1 py-3 text-sm font-semibold motion-safe:transition-colors focus-visible:outline-none ${
+              tab === t ? 'bg-psl-navy text-white' : 'text-psl-muted hover:text-psl-navy'
+            }`}
+          >
+            {t === 'join' ? 'Join Beta' : 'Sign In'}
+          </button>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit} className="bg-white rounded-card border border-[#e8eaf0] p-6 space-y-4 shadow-card-md">
+        <h2 className="text-display-sm text-psl-navy">
+          {tab === 'join' ? 'Create your fan account' : 'Welcome back'}
+        </h2>
+
+        {tab === 'join' && (
+          <div>
+            <label className="block text-label-sm text-psl-muted mb-1.5">Display Name</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={e => setDN(e.target.value)}
+              placeholder="Your fan name"
+              className="w-full border border-[#e8eaf0] rounded-card-sm px-3 py-3 text-sm text-psl-navy focus:outline-none focus:border-psl-navy motion-safe:transition-colors"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-label-sm text-psl-muted mb-1.5">Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="w-full border border-[#e8eaf0] rounded-card-sm px-3 py-3 text-sm text-psl-navy focus:outline-none focus:border-psl-navy motion-safe:transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="block text-label-sm text-psl-muted mb-1.5">Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
+            className="w-full border border-[#e8eaf0] rounded-card-sm px-3 py-3 text-sm text-psl-navy focus:outline-none focus:border-psl-navy motion-safe:transition-colors"
+          />
+        </div>
+
+        {msg && <p className="text-xs text-psl-green font-semibold">{msg}</p>}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-psl-navy text-white py-3 rounded-card-sm font-bold text-sm hover:bg-psl-navy/90 motion-safe:transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-navy"
+        >
+          {submitting ? 'Please wait…' : tab === 'join' ? 'Create account' : 'Sign in'}
+        </button>
+
+        {/* Social divider */}
+        <div className="relative py-1">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-[#f0f2f8]" />
+          </div>
+          <div className="relative text-center">
+            <span className="bg-white px-3 text-xs text-psl-muted">or continue with</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" disabled className="flex items-center justify-center gap-2 border border-[#e8eaf0] rounded-card-sm py-2.5 text-xs text-psl-muted disabled:cursor-not-allowed">
+            <span className="font-bold">G</span> Google
+          </button>
+          <button type="button" disabled className="flex items-center justify-center gap-2 border border-[#e8eaf0] rounded-card-sm py-2.5 text-xs text-psl-muted disabled:cursor-not-allowed">
+            <span className="font-bold">f</span> Facebook
+          </button>
+        </div>
+
+        <p className="text-[10px] text-psl-muted text-center">Social login requires configuration in a live environment.</p>
+
+        <p className="text-[10px] text-psl-muted text-center leading-relaxed">
+          By joining you agree to our Terms. PSL One is a points-only fan engagement platform — not a gambling service.
+        </p>
+      </form>
+    </div>
+  );
+}
+
+/* ── Club selector ─────────────────────────────────────────────── */
+function ClubSelector({ teams, selected, onSelect }: {
+  teams: Team[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div>
+      <p className="text-label-sm text-psl-muted mb-3">Select your favourite team</p>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {teams.map(t => (
+          <button
+            key={t.id}
+            onClick={() => onSelect(t.id)}
+            aria-pressed={selected === t.id}
+            className={`flex flex-col items-center gap-1.5 p-2 rounded-card-sm border-2 min-h-[44px] motion-safe:transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-navy ${
+              selected === t.id
+                ? 'border-psl-navy bg-psl-navy/5 shadow-card'
+                : 'border-transparent hover:border-[#e8eaf0]'
+            }`}
+          >
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black ${
+              selected === t.id ? 'bg-psl-navy text-white' : 'bg-[#f0f2f8] text-psl-muted'
+            }`}>
+              {t.shortName.slice(0, 3).toUpperCase()}
+            </div>
+            <span className="text-[9px] font-semibold text-psl-muted truncate w-full text-center">{t.shortName}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Notification prefs ────────────────────────────────────────── */
+function NotificationPrefsPanel({ prefs, onChange }: {
+  prefs: Partial<NotificationPreferences>;
+  onChange: (key: keyof NotificationPreferences, val: boolean) => void;
+}) {
+  const items: { key: keyof NotificationPreferences; label: string; desc: string }[] = [
+    { key: 'matchReminders', label: 'Match Reminders',  desc: 'Notified before kick-off' },
+    { key: 'teamNews',        label: 'Team News',         desc: 'Squad updates and injury alerts' },
+    { key: 'fantasyUpdates',  label: 'Fantasy Updates',   desc: 'Deadline alerts and score updates' },
+    { key: 'rewardsUpdates',  label: 'Fan Value',         desc: 'Points earned and milestone alerts' },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {items.map(item => (
+        <div key={item.key} className="flex items-center justify-between gap-4 py-0.5">
+          <div>
+            <div className="text-sm font-semibold text-psl-navy">{item.label}</div>
+            <div className="text-xs text-psl-muted">{item.desc}</div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={!!prefs[item.key]}
+            onClick={() => onChange(item.key, !prefs[item.key])}
+            className={`flex-shrink-0 w-10 h-6 rounded-pill motion-safe:transition-colors relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-navy focus-visible:ring-offset-1 ${
+              prefs[item.key] ? 'bg-psl-green' : 'bg-[#e8eaf0]'
+            }`}
+            aria-label={`Toggle ${item.label}`}
+          >
+            <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow motion-safe:transition-all ${
+              prefs[item.key] ? 'left-5' : 'left-1'
+            }`} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Wallet notice ─────────────────────────────────────────────── */
 function WalletNotice() {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+    <div className="rounded-card border border-amber-200 bg-amber-50 p-4">
       <div className="flex gap-3">
-        <div className="text-amber-500 text-lg shrink-0">⚠</div>
+        <div className="w-1 rounded-full bg-amber-400 flex-shrink-0" />
         <div>
           <h3 className="text-sm font-bold text-amber-800 mb-1">Sandbox Wallet</h3>
           <p className="text-xs text-amber-700 leading-relaxed">
-            Your wallet is in <strong>sandbox mode</strong>. No real money is involved. Points earned here are
-            fan value points only. Real-money features require identity verification and are not available
-            in the beta.
+            Your wallet is in <strong>sandbox mode</strong>. No real money is involved. Points earned are
+            fan value points only. Real-money features are not available in the beta.
           </p>
           <p className="text-xs text-amber-600 mt-2">
-            PSL One is a fan engagement platform — not a gambling or betting service. All fan value points are non-financial.
+            PSL One is a fan engagement platform — not a gambling or betting service.
           </p>
         </div>
       </div>
@@ -293,20 +304,95 @@ function WalletNotice() {
   );
 }
 
-/* ─── Main content ───────────────────────────────────────────────── */
+/* ── Section input field ───────────────────────────────────────── */
+function Field({ label, value, type = 'text', disabled = false, placeholder = '' }: {
+  label: string; value: string; type?: string; disabled?: boolean; placeholder?: string;
+}) {
+  const [val, setVal] = useState(value);
+  return (
+    <div>
+      <label className="block text-label-sm text-psl-muted mb-1.5">{label}</label>
+      <input
+        type={type}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        disabled={disabled}
+        placeholder={placeholder}
+        className={`w-full border rounded-card-sm px-3 py-2.5 text-sm focus:outline-none motion-safe:transition-colors ${
+          disabled
+            ? 'border-[#f0f2f8] bg-[#f5f7fb] text-psl-muted cursor-not-allowed'
+            : 'border-[#e8eaf0] text-psl-navy focus:border-psl-navy'
+        }`}
+      />
+    </div>
+  );
+}
+
+/* ── Unauthenticated split-screen ──────────────────────────────── */
+function UnauthView({ onAuth }: { onAuth: () => void }) {
+  return (
+    <div className="flex min-h-screen">
+      {/* Left: dark brand panel */}
+      <div className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-psl-midnight text-white p-12">
+        <div>
+          <p className="text-label-md text-white/30 mb-8">My PSL One</p>
+          <h1 className="text-display-xl text-white leading-tight mb-4">
+            The digital home of South African football
+          </h1>
+          <p className="text-body-md text-white/50 leading-relaxed mb-10">
+            Join thousands of fans tracking their teams, making predictions, and building their fantasy squads.
+          </p>
+          <div className="space-y-5">
+            {[
+              { title: 'Pick your squad',    desc: 'Build a fantasy team from real WC 2026 players' },
+              { title: 'Predict and earn',   desc: 'Guess scores and earn fan value points' },
+              { title: 'Follow the action',  desc: 'Live scores, stats, and match analysis' },
+              { title: 'Fan community',      desc: 'Compete with fans across South Africa' },
+            ].map(f => (
+              <div key={f.title} className="flex gap-3 items-start">
+                <span className="w-1.5 h-1.5 rounded-full bg-psl-gold mt-1.5 flex-shrink-0" />
+                <div>
+                  <div className="text-sm font-bold text-white">{f.title}</div>
+                  <div className="text-xs text-white/40">{f.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-card-sm border border-white/10 bg-white/5 p-4">
+          <p className="text-xs text-white/40 leading-relaxed">
+            Points-only platform. All gameplay earns fan value points.
+            No real money, no bets, no gambling.
+          </p>
+        </div>
+      </div>
+
+      {/* Right: auth form */}
+      <div className="flex-1 bg-psl-surface flex items-start justify-center py-16 px-6">
+        <div className="w-full max-w-md">
+          {/* Mobile brand */}
+          <p className="text-label-md text-psl-muted mb-6 lg:hidden">My PSL One</p>
+          <AuthPanel onAuth={onAuth} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main content ──────────────────────────────────────────────── */
 function AccountContent() {
   const { dataState, theme } = useDesignLab();
 
-  const [user, setUser]           = useState<MeResponse | null>(null);
-  const [profile, setProfile]     = useState<FanProfile | null>(null);
-  const [fanValue, setFanValue]   = useState<FanValueSummary | null>(null);
-  const [teams, setTeams]         = useState<Team[]>([]);
-  const [prefs, setPrefs]         = useState<Partial<NotificationPreferences>>({
+  const [user, setUser]       = useState<MeResponse | null>(null);
+  const [profile, setProfile] = useState<FanProfile | null>(null);
+  const [fanValue, setFanValue] = useState<FanValueSummary | null>(null);
+  const [teams, setTeams]     = useState<Team[]>([]);
+  const [prefs, setPrefs]     = useState<Partial<NotificationPreferences>>({
     matchReminders: true, teamNews: true, fantasyUpdates: true, rewardsUpdates: false,
   });
-  const [loading, setLoading]     = useState(true);
-  const [authed, setAuthed]       = useState(false);
-  const [activeSection, setActiveSection] = useState<'profile' | 'club' | 'notifications' | 'wallet'>('profile');
+  const [loading, setLoading] = useState(true);
+  const [authed, setAuthed]   = useState(false);
+  const [section, setSection] = useState<'profile' | 'club' | 'notifications' | 'wallet'>('profile');
 
   useEffect(() => {
     if (dataState === 'loading') { setLoading(true); return; }
@@ -318,107 +404,71 @@ function AccountContent() {
       me().then(u => { setUser(u); setAuthed(true); }),
       profileClient.getProfile().then(setProfile),
       fanValueClient.getSummary().then(setFanValue),
-      profileClient.getPreferences().then(p => setPrefs(p)),
+      profileClient.getPreferences().then(setPrefs),
       footballClient.getActiveSeason()
         .then(s => footballClient.listTeams({ seasonSlug: s.slug }))
         .then(t => setTeams(t.slice(0, 16))),
     ]).finally(() => setLoading(false));
   }, [dataState]);
 
-  const bg   = theme === 'dark' ? 'bg-psl-dark'   : 'bg-gray-50';
-  const card = theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-gray-100';
-  const head = theme === 'dark' ? 'text-white' : 'text-psl-navy';
-
-  const SECTIONS: { id: typeof activeSection; label: string }[] = [
-    { id: 'profile',       label: 'Profile' },
-    { id: 'club',          label: 'My Club' },
-    { id: 'notifications', label: 'Notifications' },
-    { id: 'wallet',        label: 'Wallet' },
-  ];
+  const isDark  = theme === 'dark';
+  const bg      = isDark ? 'bg-psl-dark'    : 'bg-psl-surface';
+  const card    = isDark ? 'bg-psl-card-dk border-white/10' : 'bg-white border-[#e8eaf0]';
+  const h       = isDark ? 'text-white'     : 'text-psl-navy';
+  const muted   = isDark ? 'text-white/40'  : 'text-psl-muted';
 
   if (loading) {
     return (
       <div className={`min-h-screen ${bg} flex items-center justify-center`}>
-        <div className="w-12 h-12 rounded-full border-4 border-psl-navy/20 border-t-psl-navy animate-spin" />
+        <div className="w-10 h-10 rounded-full border-4 border-psl-navy/20 border-t-psl-navy motion-safe:animate-spin" />
       </div>
     );
   }
 
-  /* Not authenticated — show auth panel */
   if (!authed && dataState === 'real') {
-    return (
-      <div className={`min-h-screen ${bg} py-12 px-4`}>
-        <div className="mx-auto max-w-7xl">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-16 lg:items-start">
-            {/* Auth form */}
-            <AuthPanel onAuth={() => setAuthed(true)} />
-
-            {/* Right: Feature highlights */}
-            <div className="hidden lg:block space-y-6 pt-4">
-              <div>
-                <h2 className={`text-3xl font-black ${head} mb-2`}>The digital home of South African football</h2>
-                <p className="text-gray-500 text-sm leading-relaxed">
-                  Join thousands of fans tracking their teams, making predictions, and building their fantasy squads.
-                </p>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { icon: '⚽', title: 'Pick your squad', desc: 'Build a fantasy team from real WC 2026 players' },
-                  { icon: '🏆', title: 'Predict and earn', desc: 'Guess scores and earn fan value points' },
-                  { icon: '📊', title: 'Follow the action', desc: 'Live scores, stats, and match analysis' },
-                  { icon: '🌍', title: 'Community', desc: 'Compete with fans across South Africa' },
-                ].map(f => (
-                  <div key={f.title} className="flex gap-3">
-                    <span className="text-xl">{f.icon}</span>
-                    <div>
-                      <div className={`text-sm font-bold ${head}`}>{f.title}</div>
-                      <div className="text-xs text-gray-400">{f.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-xl bg-psl-navy/5 border border-psl-navy/10 p-4">
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  <strong className="text-psl-navy">Points-only platform.</strong> All gameplay earns fan value points.
-                  No real money, no bets, no gambling. PSL One is not a gambling product.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <UnauthView onAuth={() => setAuthed(true)} />;
   }
+
+  const SECTIONS: { id: typeof section; label: string }[] = [
+    { id: 'profile',       label: 'Profile'        },
+    { id: 'club',          label: 'My Club'        },
+    { id: 'notifications', label: 'Notifications'  },
+    { id: 'wallet',        label: 'Wallet'         },
+  ];
 
   return (
     <div className={`min-h-screen ${bg} pb-20 md:pb-0`}>
       {/* Header */}
-      <div className="bg-psl-navy text-white px-4 py-4 border-b border-white/10">
-        <div className="mx-auto max-w-7xl flex items-center justify-between">
-          <h1 className="text-xl font-black">Account</h1>
-          <Link href="/" className="text-xs text-white/50 hover:text-white transition-colors">
-            Back to home →
+      <header className="bg-psl-midnight text-white sticky top-0 z-40 shadow-inner-top">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-label-sm text-white/40 mb-0.5">My PSL One</p>
+            <h1 className="font-black text-sm text-white">{profile?.displayName ?? user?.email ?? 'Fan Account'}</h1>
+          </div>
+          <Link href="/" className="text-xs text-white/40 hover:text-white motion-safe:transition-colors">
+            Home →
           </Link>
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Fan identity card + nav */}
+
+          {/* Left: Identity card + nav */}
           <div className="space-y-4">
             <FanIdentityCard user={user} profile={profile} fanValue={fanValue} teams={teams} />
 
-            {/* Section nav */}
-            <nav className={`rounded-xl border ${card} overflow-hidden`}>
+            <nav className={`rounded-card border ${card} overflow-hidden`} aria-label="Account sections">
               {SECTIONS.map(s => (
                 <button
                   key={s.id}
-                  onClick={() => setActiveSection(s.id)}
-                  className={`w-full text-left px-4 py-3 text-sm font-semibold border-b border-gray-50 last:border-0 transition-colors ${
-                    activeSection === s.id
+                  onClick={() => setSection(s.id)}
+                  className={`w-full text-left px-4 py-3.5 text-sm font-semibold border-b border-[#f0f2f8] last:border-0 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-inset focus-visible:ring-2 focus-visible:ring-psl-navy ${
+                    section === s.id
                       ? 'bg-psl-navy text-white'
-                      : `${head} hover:bg-gray-50`
+                      : `${h} hover:bg-[#f5f7fb] dark:hover:bg-white/5`
                   }`}
+                  aria-current={section === s.id ? 'page' : undefined}
                 >
                   {s.label}
                 </button>
@@ -428,113 +478,80 @@ function AccountContent() {
 
           {/* Right: Section content */}
           <div className="lg:col-span-2">
-            {activeSection === 'profile' && (
-              <div className={`rounded-2xl border ${card} p-6 space-y-5`}>
-                <h2 className={`text-base font-black ${head}`}>Profile Details</h2>
-
+            {section === 'profile' && (
+              <div className={`rounded-card border ${card} p-6 space-y-5`}>
+                <h2 className={`text-display-sm ${h}`}>Profile Details</h2>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Display Name</label>
-                    <input
-                      type="text"
-                      defaultValue={profile?.displayName ?? ''}
-                      placeholder="Your fan name"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">City</label>
-                    <input
-                      type="text"
-                      defaultValue={profile?.city ?? ''}
-                      placeholder="Johannesburg"
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Country</label>
-                    <input
-                      type="text"
-                      defaultValue={profile?.country ?? 'South Africa'}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-psl-navy"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-400 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={user?.email ?? ''}
-                      disabled
-                      className="w-full border border-gray-100 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
-                    />
-                  </div>
+                  <Field label="Display Name" value={profile?.displayName ?? ''} placeholder="Your fan name" />
+                  <Field label="City" value={profile?.city ?? ''} placeholder="Johannesburg" />
+                  <Field label="Country" value={profile?.country ?? 'South Africa'} />
+                  <Field label="Email" value={user?.email ?? ''} type="email" disabled />
                 </div>
-
                 <div className="flex gap-3 pt-2">
-                  <button className="bg-psl-navy text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-psl-navy/90 transition-colors">
+                  <button className="bg-psl-navy text-white px-5 py-2.5 rounded-card-sm text-sm font-bold hover:bg-psl-navy/90 motion-safe:transition-colors">
                     Save changes
                   </button>
-                  <button className="border border-gray-200 text-gray-500 px-5 py-2 rounded-lg text-sm font-semibold hover:border-gray-400 transition-colors">
+                  <button className={`border border-[#e8eaf0] ${muted} px-5 py-2.5 rounded-card-sm text-sm font-semibold hover:border-psl-navy/30 motion-safe:transition-colors`}>
                     Cancel
                   </button>
                 </div>
               </div>
             )}
 
-            {activeSection === 'club' && (
-              <div className={`rounded-2xl border ${card} p-6`}>
-                <h2 className={`text-base font-black ${head} mb-4`}>Favourite Club</h2>
+            {section === 'club' && (
+              <div className={`rounded-card border ${card} p-6`}>
+                <h2 className={`text-display-sm ${h} mb-5`}>Favourite Club</h2>
                 <ClubSelector
                   teams={teams}
                   selected={profile?.preferredTeamId ?? null}
                   onSelect={() => {}}
                 />
-                <button className="mt-5 bg-psl-navy text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-psl-navy/90 transition-colors">
+                <button className="mt-5 bg-psl-navy text-white px-5 py-2.5 rounded-card-sm text-sm font-bold hover:bg-psl-navy/90 motion-safe:transition-colors">
                   Save preference
                 </button>
               </div>
             )}
 
-            {activeSection === 'notifications' && (
-              <div className={`rounded-2xl border ${card} p-6 space-y-5`}>
-                <h2 className={`text-base font-black ${head}`}>Notification Preferences</h2>
+            {section === 'notifications' && (
+              <div className={`rounded-card border ${card} p-6 space-y-5`}>
+                <h2 className={`text-display-sm ${h}`}>Notification Preferences</h2>
                 <NotificationPrefsPanel
                   prefs={prefs}
                   onChange={(key, val) => setPrefs(p => ({ ...p, [key]: val }))}
                 />
-                <button className="bg-psl-navy text-white px-5 py-2 rounded-lg text-sm font-bold hover:bg-psl-navy/90 transition-colors">
+                <button className="bg-psl-navy text-white px-5 py-2.5 rounded-card-sm text-sm font-bold hover:bg-psl-navy/90 motion-safe:transition-colors">
                   Save preferences
                 </button>
               </div>
             )}
 
-            {activeSection === 'wallet' && (
+            {section === 'wallet' && (
               <div className="space-y-4">
                 <WalletNotice />
-                <div className={`rounded-2xl border ${card} p-6`}>
-                  <h2 className={`text-base font-black ${head} mb-3`}>Fan Value Summary</h2>
+                <div className={`rounded-card border ${card} p-6`}>
+                  <h2 className={`text-display-sm ${h} mb-4`}>Fan Value Summary</h2>
                   {fanValue ? (
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                        <span className="text-sm text-gray-500">Total Points</span>
-                        <span className="text-xl font-black text-psl-gold">{fanValue.totalPoints.toLocaleString()}</span>
+                      <div className="flex items-center justify-between py-2.5 border-b border-[#f0f2f8]">
+                        <span className={`text-sm ${muted}`}>Total Points</span>
+                        <span className="text-stat-md text-psl-gold tabular-nums leading-none">{fanValue.totalPoints.toLocaleString()}</span>
                       </div>
-                      <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                        <span className="text-sm text-gray-500">Total Actions</span>
-                        <span className="text-sm font-bold text-psl-navy">{fanValue.totalEntries}</span>
+                      <div className="flex items-center justify-between py-2.5 border-b border-[#f0f2f8]">
+                        <span className={`text-sm ${muted}`}>Total Actions</span>
+                        <span className={`text-sm font-bold ${h}`}>{fanValue.totalEntries}</span>
                       </div>
                       {fanValue.recentEntries.slice(0, 4).map(e => (
-                        <div key={e.id} className="flex items-center justify-between py-1.5 text-xs border-b border-gray-50 last:border-0">
-                          <span className="text-gray-500 truncate">{String(e.valueType).replace(/_/g, ' ')}</span>
-                          <span className="text-psl-gold font-bold ml-2">+{e.points}</span>
+                        <div key={e.id} className="flex items-center justify-between py-2 border-b border-[#f0f2f8] last:border-0 text-xs">
+                          <span className={`${muted} truncate capitalize`}>{String(e.valueType).replace(/_/g, ' ').toLowerCase()}</span>
+                          <span className="text-psl-gold font-bold ml-3 shrink-0">+{e.points}</span>
                         </div>
                       ))}
-                      <p className="text-[10px] text-gray-400 pt-2">{fanValue.nonFinancialDisclaimer}</p>
+                      <p className={`text-[10px] ${muted} pt-2`}>{fanValue.nonFinancialDisclaimer}</p>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400">No fan value data available</p>
+                    <p className={`text-sm ${muted}`}>No fan value data available</p>
                   )}
-                  <Link href="/fan-value" className="mt-4 block text-center text-xs text-psl-navy/60 hover:text-psl-navy transition-colors">
+                  <Link href="/fan-value" className={`mt-4 block text-center text-xs ${muted} hover:${h} motion-safe:transition-colors`}>
                     View full ledger →
                   </Link>
                 </div>
@@ -547,7 +564,6 @@ function AccountContent() {
   );
 }
 
-/* ─── Page ──────────────────────────────────────────────────────── */
 export default function AccountPage() {
   return (
     <DesignLabProvider defaultMode="IN_SEASON">

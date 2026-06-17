@@ -8,9 +8,10 @@ import { fantasyClient, type FantasyTeam, type FantasyTeamPlayer } from '@/lib/f
 import { gameweeksClient, type Gameweek } from '@/lib/gameweeks-client';
 import { getLeaderboardOverview, type LeaderboardResult } from '@/lib/leaderboards-client';
 
-/* ─── Countdown ─────────────────────────────────────────────────── */
-function Countdown({ to, label }: { to: string; label: string }) {
+/* ── Countdown ─────────────────────────────────────────────────── */
+function Countdown({ to }: { to: string }) {
   const [txt, setTxt] = useState('');
+
   useEffect(() => {
     function tick() {
       const diff = new Date(to).getTime() - Date.now();
@@ -25,129 +26,149 @@ function Countdown({ to, label }: { to: string; label: string }) {
     return () => clearInterval(id);
   }, [to]);
 
+  return <span className="font-mono tabular-nums font-black text-psl-gold">{txt || '–'}</span>;
+}
+
+/* ── Skeleton ──────────────────────────────────────────────────── */
+function Skeleton({ className = '' }: { className?: string }) {
   return (
-    <div className="text-center">
-      <div className="text-xs text-white/50 mb-0.5">{label}</div>
-      <div className="text-lg font-black font-mono tabular-nums text-psl-gold">{txt || '–'}</div>
-    </div>
+    <div className={`rounded-card-sm bg-gradient-to-r from-white/5 via-white/10 to-white/5 bg-[length:200%_100%] motion-safe:animate-shimmer ${className}`} />
   );
 }
 
-/* ─── Player card ───────────────────────────────────────────────── */
-function PlayerCard({
-  player,
-  onRemove,
-}: {
-  player: FantasyTeamPlayer;
-  onRemove?: () => void;
-}) {
-  const posColors: Record<string, string> = {
-    GOALKEEPER: 'text-amber-500',
+/* ── Player list row ───────────────────────────────────────────── */
+function PlayerListRow({ player }: { player: FantasyTeamPlayer }) {
+  const posShort: Record<string, string> = { GOALKEEPER: 'GK', DEFENDER: 'DEF', MIDFIELDER: 'MID', FORWARD: 'FWD' };
+  const posColor: Record<string, string> = {
+    GOALKEEPER: 'text-amber-400',
     DEFENDER:   'text-psl-green',
-    MIDFIELDER: 'text-psl-navy',
+    MIDFIELDER: 'text-indigo-400',
     FORWARD:    'text-psl-red',
   };
-  const posShort: Record<string, string> = {
-    GOALKEEPER: 'GK', DEFENDER: 'DEF', MIDFIELDER: 'MID', FORWARD: 'FWD',
-  };
-  const cls = posColors[player.position] ?? 'text-gray-400';
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
-      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-black text-gray-400">
-        {player.player.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+    <div className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-0">
+      <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[9px] font-black text-white/60 flex-shrink-0">
+        {player.player.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2)}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-psl-navy truncate">
+        <div className="text-sm font-semibold text-white truncate">
           {player.player.name}
-          {player.isCaptain && <span className="ml-1.5 text-[10px] bg-psl-gold/20 text-psl-navy px-1 rounded font-bold">C</span>}
-          {player.isViceCaptain && <span className="ml-1.5 text-[10px] bg-gray-100 text-gray-500 px-1 rounded font-bold">VC</span>}
+          {player.isCaptain && <span className="ml-1.5 text-[10px] bg-psl-gold/20 text-psl-gold px-1 rounded font-bold">C</span>}
+          {player.isViceCaptain && <span className="ml-1.5 text-[10px] bg-white/10 text-white/60 px-1 rounded font-bold">VC</span>}
         </div>
-        <div className="text-xs text-gray-400">
-          <span className={`font-bold ${cls}`}>{posShort[player.position]}</span>
-          <span className="mx-1">·</span>
+        <div className="text-xs text-white/40">
+          <span className={`font-bold ${posColor[player.position] ?? 'text-white/40'}`}>{posShort[player.position]}</span>
+          <span className="mx-1 text-white/20">·</span>
           <span>{player.player.team.shortName}</span>
           {player.squadRole === 'SUBSTITUTE' && (
-            <span className="ml-1.5 text-gray-300">bench {player.benchSlot}</span>
+            <span className="ml-1.5 text-white/20">bench {player.benchSlot}</span>
           )}
         </div>
       </div>
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="text-gray-300 hover:text-psl-red transition-colors text-lg leading-none"
-          aria-label={`Remove ${player.player.name}`}
-        >
-          ×
-        </button>
-      )}
     </div>
   );
 }
 
-/* ─── Mini league table ─────────────────────────────────────────── */
+/* ── Mini league ───────────────────────────────────────────────── */
 function MiniLeague({ result }: { result: LeaderboardResult | null }) {
   if (!result) {
-    return <div className="text-sm text-gray-400 text-center py-4">Sign in to see your league</div>;
+    return (
+      <div className="text-sm text-white/30 text-center py-6">Sign in to see your league</div>
+    );
   }
   return (
     <div>
       {result.entries.slice(0, 8).map((e, i) => (
-        <div key={e.userId} className={`flex items-center gap-3 py-1.5 border-b border-gray-50 last:border-0 text-xs ${i === 0 ? 'font-bold' : ''}`}>
-          <span className="w-5 text-center text-gray-400 font-mono">{e.rank}</span>
-          <span className="flex-1 text-psl-navy truncate">{e.displayName ?? 'Anonymous'}</span>
-          <span className="text-psl-gold font-black">{e.totalPoints}</span>
+        <div key={e.userId} className={`flex items-center gap-3 py-2 border-b border-white/5 last:border-0 text-xs ${i === 0 ? '' : ''}`}>
+          <span className={`w-5 text-center font-mono ${i === 0 ? 'text-psl-gold font-black' : 'text-white/30'}`}>{e.rank}</span>
+          <span className="flex-1 text-white/70 truncate">{e.displayName ?? 'Anonymous'}</span>
+          <span className="text-psl-gold font-black tabular-nums">{e.totalPoints}</span>
         </div>
       ))}
-      <Link href="/leaderboards/fantasy" className="block mt-3 text-center text-xs text-psl-navy/50 hover:text-psl-navy transition-colors">
-        Full table →
+      <Link href="/leaderboards/fantasy" className="block mt-3 text-center text-xs text-white/30 hover:text-white/60 motion-safe:transition-colors">
+        Full leaderboard →
       </Link>
     </div>
   );
 }
 
-/* ─── Gameweek timeline ─────────────────────────────────────────── */
+/* ── Gameweek timeline ─────────────────────────────────────────── */
 function GameweekTimeline({ gameweeks, currentId }: { gameweeks: Gameweek[]; currentId: string | undefined }) {
-  const shown = gameweeks.slice(0, 10);
   return (
-    <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-      {shown.map(gw => (
-        <div
-          key={gw.id}
-          className={`shrink-0 rounded-lg px-3 py-2 text-center cursor-default transition-colors ${
-            gw.id === currentId
-              ? 'bg-psl-navy text-white'
-              : gw.status === 'COMPLETED'
-              ? 'bg-gray-100 text-gray-500'
-              : 'bg-gray-50 text-gray-400'
-          }`}
-        >
-          <div className="text-[10px] font-semibold">{gw.name.replace('Gameweek ', 'GW')}</div>
-          {gw.id === currentId && (
-            <div className="text-[9px] text-white/60 mt-0.5">{gw.status}</div>
-          )}
-        </div>
-      ))}
+    <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {gameweeks.slice(0, 10).map(gw => {
+        const isCurrent = gw.id === currentId;
+        const isDone = gw.status === 'COMPLETED';
+        return (
+          <div
+            key={gw.id}
+            className={`flex-shrink-0 rounded-card-sm px-3 py-2 text-center motion-safe:transition-all cursor-default ${
+              isCurrent
+                ? 'bg-psl-gold text-psl-midnight font-bold shadow-glow-gold'
+                : isDone
+                ? 'bg-white/10 text-white/40'
+                : 'bg-white/5 text-white/25'
+            }`}
+          >
+            <div className="text-[10px] font-semibold">{gw.name.replace('Gameweek ', 'GW')}</div>
+            {isCurrent && <div className="text-[9px] text-psl-midnight/60 mt-0.5">{gw.status}</div>}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/* ─── Main content ─────────────────────────────────────────────────── */
-function FantasyHubContent() {
-  const { dataState, theme } = useDesignLab();
+/* ── Stats bar ─────────────────────────────────────────────────── */
+function StatsBar({ team, gameweek, starters, subs }: {
+  team: FantasyTeam | null;
+  gameweek: Gameweek | null;
+  starters: number;
+  subs: number;
+}) {
+  const stats = [
+    { label: 'Total Pts', value: team?.totalPoints ?? '–', highlight: true },
+    { label: 'Formation', value: team?.formation ?? '–', highlight: false },
+    { label: 'Starters',  value: starters,                highlight: false },
+    { label: 'Bench',     value: subs,                    highlight: false },
+  ];
+  return (
+    <div className="flex items-center gap-px bg-white/5 rounded-card-sm overflow-hidden">
+      {stats.map((s, i) => (
+        <div key={i} className="flex-1 text-center px-4 py-3 border-r border-white/5 last:border-0">
+          <div className={`text-base font-black tabular-nums leading-none ${s.highlight ? 'text-psl-gold' : 'text-white'}`}>
+            {String(s.value)}
+          </div>
+          <div className="text-[10px] text-white/30 mt-0.5">{s.label}</div>
+        </div>
+      ))}
+      {gameweek && (
+        <div className="flex-1 text-center px-4 py-3 border-r border-white/5 last:border-0">
+          <div className="text-[10px] text-white/30 mb-0.5">Transfers close</div>
+          <Countdown to={gameweek.transferDeadlineAt} />
+        </div>
+      )}
+    </div>
+  );
+}
 
-  const [team, setTeam] = useState<FantasyTeam | null>(null);
-  const [gameweek, setGameweek] = useState<Gameweek | null>(null);
-  const [allGameweeks, setAllGameweeks] = useState<Gameweek[]>([]);
+/* ── Main content ──────────────────────────────────────────────── */
+function FantasyHubContent() {
+  const { dataState } = useDesignLab();
+
+  const [team, setTeam]               = useState<FantasyTeam | null>(null);
+  const [gameweek, setGameweek]       = useState<Gameweek | null>(null);
+  const [allGameweeks, setAll]        = useState<Gameweek[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'pitch' | 'list' | 'history'>('pitch');
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [selectedId, setSelectedId]   = useState<string | null>(null);
+  const [tab, setTab]                 = useState<'pitch' | 'list' | 'history'>('pitch');
 
   useEffect(() => {
     if (dataState === 'loading') { setLoading(true); return; }
     if (dataState === 'empty')   { setLoading(false); setTeam(null); return; }
-    if (dataState === 'error')   { setLoading(false); setError('Demo error state'); return; }
+    if (dataState === 'error')   { setLoading(false); setError('API unavailable — design lab error state'); return; }
 
     setLoading(true);
     setError(null);
@@ -155,155 +176,149 @@ function FantasyHubContent() {
     Promise.allSettled([
       fantasyClient.getMyTeam().then(setTeam),
       gameweeksClient.getActive().then(setGameweek),
-      gameweeksClient.getAll().then(setAllGameweeks),
-      getLeaderboardOverview()
-        .then(o => setLeaderboard(o.leaderboards.fantasy))
-        .catch(() => {}),
+      gameweeksClient.getAll().then(setAll),
+      getLeaderboardOverview().then(o => setLeaderboard(o.leaderboards.fantasy)).catch(() => {}),
     ])
       .catch(e => setError(String(e)))
       .finally(() => setLoading(false));
   }, [dataState]);
 
-  const bg   = theme === 'dark' ? 'bg-[#12142b]' : 'bg-gray-50';
-  const card = theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-100 text-psl-navy';
-  const head = theme === 'dark' ? 'text-white' : 'text-psl-navy';
-
-  const starters   = team?.players.filter(p => p.squadRole === 'STARTER') ?? [];
-  const subs       = team?.players.filter(p => p.squadRole === 'SUBSTITUTE') ?? [];
+  const starters = team?.players.filter((p: FantasyTeamPlayer) => p.squadRole === 'STARTER') ?? [];
+  const subs     = team?.players.filter((p: FantasyTeamPlayer) => p.squadRole === 'SUBSTITUTE') ?? [];
 
   return (
-    <div className={`min-h-screen ${bg} pb-20 md:pb-0`}>
-      {/* Header */}
-      <div className="bg-[#1e1b4b] text-white px-4 py-4 border-b border-white/10">
-        <div className="mx-auto max-w-7xl flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-0.5">Fantasy Football</p>
-            <h1 className="text-xl font-black">{team?.name ?? 'My Squad'}</h1>
+    <div className="min-h-screen bg-[#0f1117] pb-20 md:pb-0">
+
+      {/* Header — immersive dark */}
+      <header className="bg-[#141929] border-b border-white/5 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-label-sm text-indigo-400 mb-1">Fantasy Command Centre</p>
+              <h1 className="text-display-sm text-white leading-tight">
+                {loading ? <span className="text-white/20">Loading…</span> : (team?.name ?? 'My Squad')}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/fantasy/transfers"
+                className="bg-psl-gold text-psl-midnight px-4 py-2 rounded-pill text-xs font-black hover:bg-yellow-300 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold"
+              >
+                Transfers
+              </Link>
+              <Link
+                href="/leaderboards/fantasy"
+                className="border border-white/10 text-white/60 px-3 py-2 rounded-pill text-xs font-semibold hover:text-white hover:border-white/20 motion-safe:transition-colors"
+              >
+                Leaderboard
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center gap-6">
-            {team && (
-              <div className="text-center">
-                <div className="text-2xl font-black text-psl-gold">{team.totalPoints}</div>
-                <div className="text-[10px] text-white/50">Total Points</div>
-              </div>
-            )}
-            {gameweek && (
-              <>
-                <Countdown to={gameweek.transferDeadlineAt} label="Transfer deadline" />
-                <Countdown to={gameweek.predictionDeadlineAt} label="Prediction deadline" />
-              </>
-            )}
-            <Link href="/fantasy/transfers" className="text-xs bg-psl-gold text-psl-navy px-3 py-1.5 rounded-lg font-bold hover:bg-yellow-400 transition-colors">
-              Transfers
-            </Link>
-          </div>
+          {!loading && (
+            <StatsBar team={team} gameweek={gameweek} starters={starters.length} subs={subs.length} />
+          )}
         </div>
-      </div>
+      </header>
 
       {error && (
-        <div className="mx-auto max-w-7xl px-4 mt-4">
-          <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <div className="rounded-card-sm bg-red-900/20 border border-red-500/20 p-3 text-sm text-red-400">{error}</div>
         </div>
       )}
 
-      <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
         {/* Gameweek timeline */}
         {allGameweeks.length > 0 && (
-          <section className="mb-6">
-            <h2 className={`text-xs font-bold uppercase tracking-widest ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'} mb-2`}>
-              Gameweeks
-            </h2>
+          <section aria-label="Gameweek timeline">
+            <p className="text-label-sm text-white/30 mb-2">Gameweeks</p>
             <GameweekTimeline gameweeks={allGameweeks} currentId={gameweek?.id} />
           </section>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Pitch + squad tabs */}
-          <div className="lg:col-span-2">
-            {/* Tab selector */}
-            <div className="flex gap-1 mb-4 bg-white rounded-xl border border-gray-100 p-1 w-fit">
-              {(['pitch', 'list', 'history'] as const).map(tab => (
+
+          {/* Pitch + squad — 2 cols */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Tab bar */}
+            <div className="flex gap-1 bg-white/5 rounded-card-sm p-1 w-fit">
+              {(['pitch', 'list', 'history'] as const).map(t => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors capitalize ${
-                    activeTab === tab
-                      ? 'bg-psl-navy text-white'
-                      : 'text-gray-400 hover:text-gray-600'
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-1.5 rounded-card-sm text-xs font-semibold motion-safe:transition-colors capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+                    tab === t ? 'bg-white/10 text-white' : 'text-white/30 hover:text-white/60'
                   }`}
                 >
-                  {tab}
+                  {t}
                 </button>
               ))}
             </div>
 
             {loading ? (
-              <div className="w-full h-80 rounded-xl bg-gray-100 animate-pulse" />
-            ) : activeTab === 'pitch' ? (
+              <Skeleton className="w-full h-96" />
+            ) : tab === 'pitch' ? (
               team && team.players.length > 0 ? (
                 <FantasyPitch
                   players={team.players}
                   formation={team.formation}
-                  selectedId={selectedPlayerId}
-                  onSelectPlayer={setSelectedPlayerId}
+                  selectedId={selectedId}
+                  onSelectPlayer={setSelectedId}
                 />
               ) : (
-                <div className={`rounded-xl border ${card} p-8 text-center text-sm ${theme === 'dark' ? 'text-white/40' : 'text-gray-400'}`}>
-                  {dataState === 'empty' ? 'No squad in empty state' : 'Sign in to view your squad'}
+                <div className="rounded-card bg-white/5 border border-white/10 p-12 text-center">
+                  <p className="text-sm text-white/40 mb-3">No squad data available</p>
+                  <Link href="/fantasy/new" className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 motion-safe:transition-colors">
+                    Set up your squad →
+                  </Link>
                 </div>
               )
-            ) : activeTab === 'list' ? (
-              <div className={`rounded-xl border ${card} divide-y divide-gray-50 overflow-hidden`}>
-                <div className="px-4 py-2 bg-gray-50">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    Starters ({starters.length})
-                  </span>
-                </div>
-                {starters.length === 0 ? (
-                  <div className="px-4 py-6 text-sm text-gray-400 text-center">No starters</div>
-                ) : (
-                  <div className="px-4">
-                    {starters.map(p => <PlayerCard key={p.id} player={p} />)}
-                  </div>
-                )}
-                <div className="px-4 py-2 bg-gray-50">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                    Bench ({subs.length})
-                  </span>
+            ) : tab === 'list' ? (
+              <div className="rounded-card bg-white/5 border border-white/5 overflow-hidden">
+                <div className="px-4 py-2.5 bg-white/5 border-b border-white/5">
+                  <span className="text-label-sm text-white/30">Starters ({starters.length})</span>
                 </div>
                 <div className="px-4">
-                  {subs.map(p => <PlayerCard key={p.id} player={p} />)}
+                  {starters.length === 0
+                    ? <div className="py-6 text-sm text-white/30 text-center">No starters</div>
+                    : starters.map((p: FantasyTeamPlayer) => <PlayerListRow key={p.id} player={p} />)
+                  }
+                </div>
+                <div className="px-4 py-2.5 bg-white/5 border-y border-white/5">
+                  <span className="text-label-sm text-white/30">Bench ({subs.length})</span>
+                </div>
+                <div className="px-4">
+                  {subs.map((p: FantasyTeamPlayer) => <PlayerListRow key={p.id} player={p} />)}
                 </div>
               </div>
             ) : (
-              <div className={`rounded-xl border ${card} p-6`}>
-                <h3 className={`text-sm font-bold ${head} mb-4`}>Gameweek History</h3>
-                <div className="space-y-2">
+              <div className="rounded-card bg-white/5 border border-white/5 p-5">
+                <h3 className="text-sm font-bold text-white mb-4">Gameweek History</h3>
+                <div className="space-y-1">
                   {allGameweeks.filter(g => g.status === 'COMPLETED').slice(0, 6).map((gw, i) => (
-                    <div key={gw.id} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0 text-xs">
-                      <span className={head}>{gw.name}</span>
-                      <span className="text-psl-gold font-black">{(3 - i % 3) + (i % 5)} pts</span>
+                    <div key={gw.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                      <span className="text-sm text-white/60">{gw.name}</span>
+                      <span className="text-psl-gold font-black tabular-nums">{(4 - i % 3) + (i % 4)} pts</span>
                     </div>
                   ))}
                   {allGameweeks.filter(g => g.status === 'COMPLETED').length === 0 && (
-                    <p className="text-gray-400 text-sm text-center py-4">No completed gameweeks yet</p>
+                    <p className="text-sm text-white/30 text-center py-6">No completed gameweeks yet</p>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-400 mt-3 italic">Points per gameweek — design demo</p>
               </div>
             )}
 
             {/* Selected player panel */}
-            {selectedPlayerId && team && (
-              <div className={`mt-4 rounded-xl border ${card} p-4`}>
+            {selectedId && team && (
+              <div className="rounded-card bg-white/5 border border-white/10 p-4 motion-safe:animate-slide-up">
                 {(() => {
-                  const p = team.players.find(x => x.id === selectedPlayerId);
+                  const p = team.players.find((x: FantasyTeamPlayer) => x.id === selectedId);
                   if (!p) return null;
                   return (
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className={`text-base font-black ${head}`}>{p.player.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">
+                        <div className="text-base font-black text-white">{p.player.name}</div>
+                        <div className="text-xs text-white/40 mt-0.5">
                           {p.position} · {p.player.team.name}
                           {p.isCaptain && ' · Captain'}
                           {p.isViceCaptain && ' · Vice-Captain'}
@@ -311,18 +326,17 @@ function FantasyHubContent() {
                       </div>
                       <div className="flex gap-2">
                         <button
-                          onClick={() => {
-                            setSelectedPlayerId(null);
-                          }}
-                          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                          onClick={() => setSelectedId(null)}
+                          className="text-xs text-white/30 hover:text-white/60 motion-safe:transition-colors px-2"
+                          aria-label="Close player panel"
                         >
-                          Close
+                          ✕
                         </button>
                         <Link
                           href={`/fantasy/players/${p.playerId}`}
-                          className="text-xs bg-psl-navy text-white px-3 py-1.5 rounded font-semibold hover:bg-psl-navy/90 transition-colors"
+                          className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-card-sm font-semibold hover:bg-indigo-500 motion-safe:transition-colors"
                         >
-                          View profile
+                          Profile
                         </Link>
                       </div>
                     </div>
@@ -334,70 +348,54 @@ function FantasyHubContent() {
 
           {/* Right column */}
           <div className="space-y-6">
-            {/* Manager card */}
-            <div className="bg-gradient-to-br from-[#1e1b4b] to-[#312e81] rounded-xl p-4 text-white">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 mb-3">Manager</div>
-              <div className="text-base font-black mb-0.5">{team?.name ?? 'No team'}</div>
-              <div className="text-3xl font-black text-psl-gold mb-1">{team?.totalPoints ?? 0}</div>
-              <div className="text-xs text-white/50">total points · {team?.formation ?? '–'} formation</div>
-              <div className="mt-3 pt-3 border-t border-white/10 grid grid-cols-2 gap-2 text-xs text-white/60">
-                <span>Starters: <strong className="text-white">{starters.length}</strong></span>
-                <span>Bench: <strong className="text-white">{subs.length}</strong></span>
+            {/* Gameweek deadline */}
+            {gameweek && (
+              <div className="rounded-card bg-white/5 border border-white/5 p-5">
+                <p className="text-label-sm text-white/30 mb-4">{gameweek.name}</p>
+                <div className="space-y-3 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/40">Status</span>
+                    <span className={`font-bold px-2 py-0.5 rounded-pill text-[10px] ${
+                      gameweek.status === 'OPEN' ? 'bg-psl-green/20 text-psl-green' : 'bg-white/10 text-white/60'
+                    }`}>{gameweek.status}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/40">Fixtures</span>
+                    <span className="font-bold text-white">{gameweek._count.fixtures}</span>
+                  </div>
+                  <div className="pt-3 border-t border-white/5">
+                    <div className="text-[10px] text-white/30 mb-1">Transfer window closes</div>
+                    <div className="font-semibold text-white text-sm">
+                      {new Date(gameweek.transferDeadlineAt).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <div className="pt-3 border-t border-white/5">
+                    <div className="text-[10px] text-white/30 mb-1">Prediction window closes</div>
+                    <div className="font-semibold text-white text-sm">
+                      {new Date(gameweek.predictionDeadlineAt).toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Mini-league */}
-            <div className={`rounded-xl border ${card} p-4`}>
-              <h3 className={`text-xs font-bold uppercase tracking-widest ${theme === 'dark' ? 'text-white/50' : 'text-gray-400'} mb-3`}>
-                Fantasy Leaderboard
-              </h3>
+            <div className="rounded-card bg-white/5 border border-white/5 p-5">
+              <p className="text-label-sm text-white/30 mb-3">Fantasy Leaderboard</p>
               {loading ? (
                 <div className="space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="h-6 rounded bg-gray-100 animate-pulse" />
-                  ))}
+                  {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-7" />)}
                 </div>
               ) : (
                 <MiniLeague result={leaderboard} />
               )}
             </div>
 
-            {/* Deadline card */}
-            {gameweek && (
-              <div className={`rounded-xl border ${card} p-4`}>
-                <h3 className={`text-xs font-bold uppercase tracking-widest ${theme === 'dark' ? 'text-white/50' : 'text-gray-400'} mb-3`}>
-                  {gameweek.name}
-                </h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className={theme === 'dark' ? 'text-white/50' : 'text-gray-400'}>Status</span>
-                    <span className={`font-bold ${head}`}>{gameweek.status}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className={theme === 'dark' ? 'text-white/50' : 'text-gray-400'}>Fixtures</span>
-                    <span className={`font-bold ${head}`}>{gameweek._count.fixtures}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className={theme === 'dark' ? 'text-white/50' : 'text-gray-400'}>Transfers</span>
-                    <span className={`font-bold ${head}`}>
-                      {new Date(gameweek.transferDeadlineAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className={theme === 'dark' ? 'text-white/50' : 'text-gray-400'}>Predictions</span>
-                    <span className={`font-bold ${head}`}>
-                      {new Date(gameweek.predictionDeadlineAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Non-financial notice */}
-            <div className="rounded-xl bg-psl-gold/10 border border-psl-gold/20 p-3">
-              <p className="text-[11px] text-gray-600 leading-relaxed">
-                Fantasy Football uses <strong>points only</strong>. No entry fees, no cash prizes,
-                no real-money mechanics. All scores are fan value points.
+            {/* Points-only notice */}
+            <div className="rounded-card-sm border border-psl-gold/15 bg-psl-gold/5 p-4">
+              <p className="text-[11px] text-white/50 leading-relaxed">
+                Fantasy Football is <strong className="text-white/70">points only</strong>. No entry fees,
+                no cash prizes, no real-money mechanics. All scores are fan value points.
               </p>
             </div>
           </div>
@@ -407,7 +405,6 @@ function FantasyHubContent() {
   );
 }
 
-/* ─── Page ──────────────────────────────────────────────────────── */
 export default function FantasyHubPage() {
   return (
     <DesignLabProvider defaultMode="IN_SEASON">
