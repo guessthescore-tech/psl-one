@@ -20,9 +20,10 @@
 
 {
 	email {$CADDY_ACME_EMAIL}
+	auto_https off
 }
 
-{$API_DOMAIN:api.staging.pslone.co.za} {
+http://{$API_DOMAIN:api.staging.pslone.co.za} {
 	reverse_proxy api:4000 {
 		# flush_interval -1 enables WebSocket and Server-Sent-Event streaming
 		flush_interval -1
@@ -33,7 +34,6 @@
 		transport http {
 			dial_timeout        5s
 			response_header_timeout 60s
-			read_buffer_size    16KB
 		}
 	}
 
@@ -60,7 +60,7 @@
 	}
 }
 
-{$WEB_DOMAIN:staging.pslone.co.za} {
+http://{$WEB_DOMAIN:staging.pslone.co.za} {
 	reverse_proxy web:3001 {
 		flush_interval -1
 
@@ -70,7 +70,6 @@
 		transport http {
 			dial_timeout        5s
 			response_header_timeout 60s
-			read_buffer_size    16KB
 		}
 	}
 

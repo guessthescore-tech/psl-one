@@ -228,6 +228,10 @@ jobs:
               "GIT_SHA=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/git-sha --query Parameter.Value --output text)",
               "BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)",
               "sed -i 's|^      - node_modules/.bin/prisma$|      - apps/api/node_modules/.bin/prisma|' compose.beta.yaml",
+              "sed -i '/read_buffer_size/d' infra/beta/Caddyfile",
+              "grep -q 'auto_https off' infra/beta/Caddyfile || python3 -c \"c=open('infra/beta/Caddyfile').read(); c=c.replace('{\\n\\temail', '{\\n\\tauto_https off\\n\\temail', 1); open('infra/beta/Caddyfile', 'w').write(c)\"",
+              "sed -i 's|^{\\$API_DOMAIN:|http://{\\$API_DOMAIN:|' infra/beta/Caddyfile",
+              "sed -i 's|^{\\$WEB_DOMAIN:|http://{\\$WEB_DOMAIN:|' infra/beta/Caddyfile",
               "sed -i \"s|^API_IMAGE_URI=.*|API_IMAGE_URI=${API_IMAGE_URI}|\" .env.beta",
               "sed -i \"s|^MIGRATION_IMAGE_URI=.*|MIGRATION_IMAGE_URI=${MIGRATION_IMAGE_URI}|\" .env.beta",
               "sed -i \"s|^WEB_IMAGE_URI=.*|WEB_IMAGE_URI=${WEB_IMAGE_URI}|\" .env.beta",
@@ -307,6 +311,9 @@ jobs:
     needs: [validate-sha, build-and-push, deploy]
     runs-on: ubuntu-latest
     environment: beta
+    permissions:
+      id-token: write
+      contents: read
     outputs:
       readiness_result: ${{ steps.readiness.outputs.readiness_result }}
       smoke_result: ${{ steps.smoke.outputs.smoke_result }}
@@ -316,47 +323,122 @@ jobs:
         with:
           ref: ${{ needs.validate-sha.outputs.git_sha }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          node-version: '22'
+          role-to-assume: ${{ secrets.AWS_BETA_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Wait for services to stabilise
-        run: sleep 20
+        run: sleep 30
 
-      - name: API readiness pre-check
+      - name: API readiness pre-check (via SSM)
         id: readiness
         env:
-          EC2_IP: ${{ vars.BETA_EC2_IP }}
+          INSTANCE_ID: ${{ vars.BETA_EC2_INSTANCE_ID }}
           API_DOMAIN: ${{ vars.BETA_API_DOMAIN }}
         run: |
-          # Quick readiness gate before running the full smoke suite.
-          # Retries 6 times (total ~60 s) to allow Caddy + API to start.
-          for i in $(seq 1 6); do
-            STATUS=$(curl -sf --max-time 10 \
-              -H "Host: ${API_DOMAIN}" \
-              -o /dev/null -w "%{http_code}" \
-              "http://${EC2_IP}/health/ready" 2>/dev/null || echo "000")
-            echo "Attempt ${i}/6 — HTTP ${STATUS}"
-            [ "${STATUS}" = "200" ] && break
+          # Runs health check from inside EC2 via SSM to bypass the security-group
+          # restriction that blocks GHA runner IPs from reaching port 80.
+          COMMAND_JSON=$(python3 - <<'PYEOF'
+          import json, os
+          domain = os.environ['API_DOMAIN']
+          cmds = [
+              f"STATUS=000; for i in $(seq 1 12); do STATUS=$(curl -sf --max-time 10 -o /dev/null -w '%{{http_code}}' -H 'Host: {domain}' http://127.0.0.1/health/ready 2>/dev/null || echo 000); echo \"Attempt $i/12 -- HTTP $STATUS\"; [ \"$STATUS\" = '200' ] && break; sleep 10; done; [ \"$STATUS\" = '200' ] || exit 1",
+          ]
+          print(json.dumps({'Parameters': {'commands': cmds, 'executionTimeout': ['180']}}))
+          PYEOF
+          )
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "${COMMAND_JSON}" \
+            --query "Command.CommandId" --output text)
+          echo "SSM readiness command: ${COMMAND_ID}"
+
+          STATUS="InProgress"
+          for i in $(seq 1 30); do
             sleep 10
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Poll ${i}/30 — ${STATUS}"
+            [ "${STATUS}" = "Success" ] && break
+            [[ "${STATUS}" =~ ^(Failed|Cancelled|TimedOut)$ ]] && break
           done
-          if [ "${STATUS}" != "200" ]; then
-            echo "::error::API /health/ready returned ${STATUS} after 6 attempts"
+
+          if [ "${STATUS}" != "Success" ]; then
+            echo "::error::API readiness check failed with SSM status: ${STATUS}"
+            aws ssm get-command-invocation \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+              --query "StandardOutputContent" --output text || true
             exit 1
           fi
           echo "readiness_result=pass" >> "$GITHUB_OUTPUT"
 
-      - name: Run structured smoke tests
+      - name: Run structured smoke tests (via SSM + Docker on EC2)
         id: smoke
         env:
-          SMOKE_ENVIRONMENT: beta
-          SMOKE_EC2_IP: ${{ vars.BETA_EC2_IP }}
-          BETA_API_BASE_URL: http://${{ vars.BETA_API_DOMAIN }}
-          BETA_WEB_BASE_URL: http://${{ vars.BETA_WEB_DOMAIN }}
+          INSTANCE_ID: ${{ vars.BETA_EC2_INSTANCE_ID }}
           EXPECTED_SHA: ${{ needs.validate-sha.outputs.git_sha }}
         run: |
-          node scripts/smoke/staging-smoke.mjs
+          # Runs the Node.js smoke suite inside a temporary Docker container on EC2,
+          # connected to the psl-one-beta network so it can reach api:4000 and web:3001
+          # directly without going through Caddy or the security group.
+          COMMAND_JSON=$(python3 - <<'PYEOF'
+          import json, os
+          sha = os.environ['EXPECTED_SHA']
+          cmds = [
+              "set -euo pipefail",
+              "cd /opt/psl-one",
+              f"docker run --rm --network psl-one-beta "
+              f"-v \"$(pwd)/scripts/smoke:/scripts:ro\" "
+              f"-e SMOKE_ENVIRONMENT=beta "
+              f"-e BETA_API_BASE_URL=http://api:4000 "
+              f"-e BETA_WEB_BASE_URL=http://web:3001 "
+              f"-e EXPECTED_SHA={sha} "
+              f"node:22-alpine node /scripts/staging-smoke.mjs",
+          ]
+          print(json.dumps({'Parameters': {'commands': cmds, 'executionTimeout': ['300']}}))
+          PYEOF
+          )
+
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+            --document-name "AWS-RunShellScript" \
+            --parameters "${COMMAND_JSON}" \
+            --query "Command.CommandId" --output text)
+          echo "SSM smoke command: ${COMMAND_ID}"
+
+          STATUS="InProgress"
+          for i in $(seq 1 40); do
+            sleep 15
+            STATUS=$(aws ssm get-command-invocation \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+              --query "Status" --output text 2>/dev/null || echo "Pending")
+            echo "Poll ${i}/40 — ${STATUS}"
+            [ "${STATUS}" = "Success" ] && break
+            [[ "${STATUS}" =~ ^(Failed|Cancelled|TimedOut)$ ]] && break
+          done
+
+          OUTPUT=$(aws ssm get-command-invocation \
+            --command-id "${COMMAND_ID}" \
+            --instance-id "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+            --query "StandardOutputContent" --output text 2>/dev/null || true)
+          echo "${OUTPUT}"
+
+          if [ "${STATUS}" != "Success" ]; then
+            echo "::error::Smoke tests failed with SSM status: ${STATUS}"
+            aws ssm get-command-invocation \
+              --command-id "${COMMAND_ID}" \
+              --instance-id "${{ vars.BETA_EC2_INSTANCE_ID }}" \
+              --query "StandardErrorContent" --output text || true
+            exit 1
+          fi
           echo "smoke_result=pass" >> "$GITHUB_OUTPUT"
 
   # ── Step 5: Release manifest ───────────────────────────────────────────────────
