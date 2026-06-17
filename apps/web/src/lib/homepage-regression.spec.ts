@@ -2,15 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const src = readFileSync(join(__dirname, '../app/page.tsx'), 'utf-8');
+const src       = readFileSync(join(__dirname, '../app/page.tsx'), 'utf-8');
+const navSrc    = readFileSync(join(__dirname, '../components/navigation/PrimaryNav.tsx'), 'utf-8');
+const mobileSrc = readFileSync(join(__dirname, '../components/navigation/MobileBottomNav.tsx'), 'utf-8');
 
 describe('Homepage (/) regression — STORY-FE-BETA-01', () => {
   it('includes main fan navigation', () => {
-    expect(src).toContain('aria-label="Main navigation"');
-    expect(src).toContain('/matches');
-    expect(src).toContain('/fantasy');
-    expect(src).toContain('/predictions');
-    expect(src).toContain('/leaderboards');
+    // Navigation is now in the shared PrimaryNav component (global layout)
+    expect(navSrc).toContain('Primary navigation');
+    expect(navSrc).toContain('/matches');
+    expect(navSrc).toContain('/fantasy');
+    expect(navSrc).toContain('/predictions');
+    expect(navSrc).toContain('/leaderboards');
   });
 
   it('includes upcoming fixtures section', () => {
@@ -40,8 +43,9 @@ describe('Homepage (/) regression — STORY-FE-BETA-01', () => {
   });
 
   it('includes mobile bottom navigation', () => {
-    expect(src).toContain('aria-label="Mobile navigation"');
-    expect(src).toContain('Mobile navigation');
+    // Mobile nav is now in the shared MobileBottomNav component (global layout)
+    expect(mobileSrc).toContain('aria-label="Mobile bottom navigation"');
+    expect(mobileSrc).toContain('Mobile bottom navigation');
   });
 
   it('includes World Cup 2026 beta season context', () => {
