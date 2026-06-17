@@ -45,4 +45,4 @@ CMD ["node", "apps/api/dist/main.js"]
 FROM runner AS migrator
 ENV NODE_ENV=production
 WORKDIR /app
-CMD ["node_modules/.bin/prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
+CMD ["apps/api/node_modules/.bin/prisma", "migrate", "deploy", "--schema", "apps/api/prisma/schema.prisma"]
