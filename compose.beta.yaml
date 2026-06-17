@@ -40,7 +40,7 @@ services:
     image: ${MIGRATION_IMAGE_URI}
     restart: "no"
     command:
-      - node_modules/.bin/prisma
+      - apps/api/node_modules/.bin/prisma
       - migrate
       - deploy
       - --schema
