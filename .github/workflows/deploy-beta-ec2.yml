@@ -388,14 +388,19 @@ jobs:
           # Runs the Node.js smoke suite inside a temporary Docker container on EC2,
           # connected to the psl-one-beta network so it can reach api:4000 and web:3001
           # directly without going through Caddy or the security group.
+          # The smoke script is base64-encoded here (checkout has the file) and written
+          # to EC2 via the SSM command, since /opt/psl-one/scripts/ is not synced to EC2.
           COMMAND_JSON=$(python3 - <<'PYEOF'
-          import json, os
+          import json, os, base64
           sha = os.environ['EXPECTED_SHA']
+          with open('scripts/smoke/staging-smoke.mjs', 'rb') as f:
+              smoke_b64 = base64.b64encode(f.read()).decode()
           cmds = [
               "set -euo pipefail",
-              "cd /opt/psl-one",
+              "mkdir -p /tmp/psl-smoke",
+              f"printf '%s' '{smoke_b64}' | base64 -d > /tmp/psl-smoke/staging-smoke.mjs",
               f"docker run --rm --network psl-one-beta "
-              f"-v \"$(pwd)/scripts/smoke:/scripts:ro\" "
+              f"-v /tmp/psl-smoke:/scripts:ro "
               f"-e SMOKE_ENVIRONMENT=beta "
               f"-e BETA_API_BASE_URL=http://api:4000 "
               f"-e BETA_WEB_BASE_URL=http://web:3001 "
