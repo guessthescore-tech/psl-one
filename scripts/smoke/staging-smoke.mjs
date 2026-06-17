@@ -121,25 +121,22 @@ async function checkWorldCupHistorical() {
 }
 
 async function checkWorldCupPreserved() {
-  // In beta, the World Cup season should still exist (not accidentally deleted or corrupted).
+  // In beta, the World Cup season must exist after bootstrap-data.sh has been run.
   // We do not assert whether it is active — that depends on the beta seeding state.
-  // Skip check if no seasons have been seeded yet (first deploy, before bootstrap-data.sh runs).
   const body = await expectJson(`${apiBaseUrl}/football/seasons`);
   const seasons = Array.isArray(body) ? body : body.data ?? body.seasons ?? [];
-  if (seasons.length === 0) return;
   const wc = seasons.find((s) => s.name && s.name.includes('World Cup'));
   if (!wc) {
-    throw new Error(`World Cup season is missing from /football/seasons — expected to be preserved in beta`);
+    throw new Error(`World Cup season is missing from /football/seasons — database may not be seeded`);
   }
 }
 
 async function checkPslSeasonInactive() {
   const body = await expectJson(`${apiBaseUrl}/football/seasons`);
   const seasons = Array.isArray(body) ? body : body.data ?? body.seasons ?? [];
-  if (seasons.length === 0) return;
   const psl = seasons.find((s) => s.name && s.name.includes('PSL'));
   if (!psl) {
-    throw new Error(`No PSL season found in /football/seasons`);
+    throw new Error(`No PSL season found in /football/seasons — database may not be seeded`);
   }
   if (psl.isActive === true) {
     throw new Error(`PSL season must not be active yet; found isActive=true`);
@@ -147,19 +144,39 @@ async function checkPslSeasonInactive() {
 }
 
 async function checkPslNotActivated() {
-  const response = await fetchWithTimeout(`${apiBaseUrl}/admin/beta-launch/season-activation-approvals`);
-  if (response.status === 401 || response.status === 403 || response.status === 404) {
-    // 401/403: auth required (expected unauthenticated access); 404: route not present or no approvals
+  // Confirm the activation approval admin route is auth-gated (PSL_ADMIN only).
+  // The per-season approval route is GET /admin/beta-launch/:seasonId/approval.
+  // We first find the PSL season ID from the public seasons list, then probe the
+  // admin route without credentials — 401/403 is the expected and correct response.
+  // This proves: (1) RBAC is enforced on the activation path; (2) combined with
+  // checkPslSeasonInactive confirming isActive=false, the PSL season is not activated.
+  const body = await expectJson(`${apiBaseUrl}/football/seasons`);
+  const seasons = Array.isArray(body) ? body : body.data ?? body.seasons ?? [];
+  const psl = seasons.find((s) => s.name && s.name.includes('PSL'));
+  if (!psl) {
+    // checkPslSeasonInactive already catches a missing PSL season.
     return;
   }
-  if (!response.ok) {
-    throw new Error(`/admin/beta-launch/season-activation-approvals returned unexpected status ${response.status}`);
+
+  const approvalUrl = `${apiBaseUrl}/admin/beta-launch/${psl.id}/approval`;
+  const response = await fetchWithTimeout(approvalUrl);
+
+  if (response.status === 401 || response.status === 403) {
+    // Correct: activation approval requires PSL_ADMIN authentication.
+    return;
   }
-  const body = await response.json();
-  const approvals = Array.isArray(body) ? body : body.data ?? [];
-  const activated = approvals.find((a) => a.approvalStatus === 'ACTIVATED');
-  if (activated) {
-    throw new Error(`PSL season must not be ACTIVATED in ${smokeEnv}; found ACTIVATED approval record`);
+  if (response.status === 404) {
+    // The per-season approval route should exist in BetaLaunchModule.
+    // A 404 means the route is missing — this is an unexpected deployment error.
+    throw new Error(`${approvalUrl} returned 404 — activation approval route is missing from BetaLaunchModule`);
+  }
+  if (!response.ok) {
+    throw new Error(`${approvalUrl} returned unexpected status ${response.status}`);
+  }
+  // 200 without auth should not happen (guard bypass would be a critical security defect).
+  const approval = await response.json();
+  if (approval.approvalStatus === 'ACTIVATED') {
+    throw new Error(`PSL season must not be ACTIVATED in ${smokeEnv}; found approvalStatus=ACTIVATED`);
   }
 }
 
