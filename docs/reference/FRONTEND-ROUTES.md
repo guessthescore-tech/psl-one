@@ -2,9 +2,9 @@
 
 **Purpose:** Accurate frontend route inventory extracted from actual page files  
 **Audience:** Frontend engineers, designers, QA  
-**Status:** Current as of STORY-39 (commit `08e3852`)  
-**Last verified:** 2026-06-14  
-**Total pages:** 337  
+**Status:** Current as of STORY-FE-UX-01  
+**Last verified:** 2026-06-17  
+**Total pages:** 342  
 **Source:** `find apps/web/src/app -type f -name 'page.tsx' | sort`  
 **Authority:** Files are the single source of truth — regenerate this when pages change  
 
@@ -672,6 +672,20 @@ All routes below correspond one-to-one with a `page.tsx` file in `apps/web/src/a
 | `/admin/imports/manual` | `admin/imports/manual/page.tsx` | Manual import |
 | `/admin/imports/preview` | `admin/imports/preview/page.tsx` | Import preview |
 | `/admin/imports/[id]` | `admin/imports/[id]/page.tsx` | Import detail |
+
+---
+
+## Internal — Design Lab (STORY-FE-UX-01)
+
+> Design lab is hidden from public navigation. Requires `NEXT_PUBLIC_DESIGN_LAB_ENABLED=true`.
+
+| URL | File | Description |
+|-----|------|-------------|
+| `/design-lab` | `design-lab/page.tsx` | Design lab index — 4 demo cards |
+| `/design-lab/in-season-home` | `design-lab/in-season-home/page.tsx` | Demo A: In-season league home |
+| `/design-lab/prediction-carousel` | `design-lab/prediction-carousel/page.tsx` | Demo B: Fixture prediction carousel |
+| `/design-lab/fantasy-hub` | `design-lab/fantasy-hub/page.tsx` | Demo C: Fantasy in-season hub |
+| `/design-lab/account` | `design-lab/account/page.tsx` | Demo D: Account and fan identity |
 
 ---
 
