@@ -217,30 +217,53 @@ function PredictCard({ overview, fixture }: { overview: LeaderboardOverview | nu
   );
 }
 
-/* ── Top Scorers ───────────────────────────────────────────────── */
-function TopScorersCard({ teams }: { teams: Team[] }) {
-  const entries = teams.slice(0, 5).map((t, i) => ({
-    name: `${t.shortName} ${['Striker', 'Forward', 'Winger', 'Attacker', 'Forward'][i]}`,
-    team: t.shortName,
-    goals: [7, 6, 5, 4, 4][i] ?? 3,
-  }));
+/* ── Group Leaders ─────────────────────────────────────────────── */
+function GroupLeadersCard({ groups }: { groups: StandingGroup[] }) {
+  const leaders = groups.slice(0, 4).map(g => ({ group: g.groupName, leader: g.standings[0] })).filter(l => l.leader);
+  if (leaders.length === 0) return null;
   return (
     <div className="rounded-card bg-white border border-[#e8eaf0] shadow-card overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#f0f2f8]">
-        <h3 className="text-sm font-black text-psl-navy">Top Scorers</h3>
-        <Link href="/players" className="text-[11px] text-psl-muted hover:text-psl-navy motion-safe:transition-colors">All stats →</Link>
+        <h3 className="text-sm font-black text-psl-navy">Group Leaders</h3>
+        <Link href="/football/standings" className="text-[11px] text-psl-muted hover:text-psl-navy motion-safe:transition-colors">Full table →</Link>
       </div>
       <div className="divide-y divide-[#f0f2f8]">
-        {entries.map((p, i) => (
-          <div key={i} className="flex items-center gap-3 px-4 py-2.5 motion-safe:transition-colors motion-safe:hover:bg-[#f5f7fb]">
-            <span className="w-5 text-center text-xs font-mono text-psl-muted">{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-semibold text-psl-navy truncate">{p.name}</div>
-              <div className="text-[10px] text-psl-muted">{p.team}</div>
+        {leaders.map(({ group, leader }) => leader && (
+          <div key={group} className="flex items-center gap-3 px-4 py-2.5 motion-safe:transition-colors motion-safe:hover:bg-[#f5f7fb]">
+            <div className="w-6 h-6 rounded-full bg-psl-green flex items-center justify-center text-white text-[10px] font-black flex-shrink-0">
+              {group.slice(-1)}
             </div>
-            <span className="text-sm font-black text-psl-gold tabular-nums">{p.goals}</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold text-psl-navy truncate">{leader.team.shortName}</div>
+              <div className="text-[10px] text-psl-muted">{leader.played} played</div>
+            </div>
+            <span className="text-sm font-black text-psl-navy tabular-nums">{leader.points}<span className="text-[10px] font-normal text-psl-muted ml-0.5">pts</span></span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Campaign Card ─────────────────────────────────────────────── */
+function CampaignCard() {
+  return (
+    <div className="rounded-card bg-psl-midnight overflow-hidden shadow-card-md">
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-psl-gold" aria-hidden />
+          <span className="text-[10px] font-bold text-psl-gold uppercase tracking-widest">Active Campaign</span>
+        </div>
+        <p className="text-sm font-black text-white mb-1 leading-tight">Fan of the Match</p>
+        <p className="text-xs text-white/50 leading-relaxed mb-5">
+          Vote for the standout performer from today&apos;s fixtures. Earn Fan Value points for every vote cast.
+        </p>
+        <Link
+          href="/campaigns"
+          className="block text-center py-2.5 rounded-card-sm bg-psl-gold text-psl-midnight text-xs font-black hover:bg-yellow-300 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight"
+        >
+          See all campaigns
+        </Link>
       </div>
     </div>
   );
@@ -541,21 +564,17 @@ function LeagueMatchdayContent() {
             <PredictCard overview={overview} fixture={nextFixture} />
           </div>
 
-          {/* Right: Fantasy + Top Scorers + Sponsor */}
+          {/* Right: Fantasy + Group Leaders + Campaign */}
           <div className="space-y-6">
             <FantasyCard team={fantasyTeam} gameweek={gameweek} />
 
             {loading ? (
-              <Skeleton className="h-56 rounded-card" />
-            ) : teams.length > 0 ? (
-              <TopScorersCard teams={teams} />
+              <Skeleton className="h-48 rounded-card" />
+            ) : groups.length > 0 ? (
+              <GroupLeadersCard groups={groups} />
             ) : null}
 
-            <div className="rounded-card border border-dashed border-psl-gold/30 bg-psl-gold/5 p-5 text-center">
-              <p className="text-label-sm text-psl-gold/60 mb-1">Sponsor Partner</p>
-              <p className="text-xs text-psl-muted mb-3">Campaign activation slot</p>
-              <Link href="/campaigns" className="text-xs font-semibold text-psl-navy hover:underline">View campaigns →</Link>
-            </div>
+            <CampaignCard />
           </div>
         </div>
 
