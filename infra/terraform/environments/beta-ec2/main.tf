@@ -213,16 +213,20 @@ resource "aws_instance" "beta" {
     delete_on_termination = true
   }
 
-  user_data = filebase64("${path.module}/../../../beta/bootstrap-ec2.sh")
+  # user_data_base64 is used instead of user_data because filebase64() produces
+  # a ~17 KB string that exceeds Terraform's 16384-char validation on user_data.
+  # The underlying EC2 limit is 16 KB of raw data; the 13 KB script is within that.
+  user_data_base64 = filebase64("${path.module}/../../../beta/bootstrap-ec2.sh")
 
   tags = { Name = local.name }
 
   lifecycle {
-    # user_data is intentionally NOT in ignore_changes.
-    # Changes to bootstrap-ec2.sh signal instance replacement.
-    # Take a database backup before applying bootstrap changes.
     # ami is frozen to prevent unintended instance replacement on each plan run.
-    ignore_changes = [ami]
+    # user_data / user_data_base64 are both listed because Terraform tracks the
+    # field internally as "user_data" in state even when the config uses
+    # "user_data_base64". Bootstrap changes must be applied deliberately:
+    # remove both from ignore_changes, take a DB backup, apply, restore.
+    ignore_changes = [ami, user_data, user_data_base64]
   }
 }
 
