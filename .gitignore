@@ -56,3 +56,8 @@ logs/
 
 # Turbo cache
 .turbo/
+
+# Local AI design skills
+.agents/skills/
+.claude/skills/
+skills-lock.json
