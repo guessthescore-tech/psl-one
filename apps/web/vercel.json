@@ -1,0 +1,31 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_VISION_STUDIO_ENABLED": "true",
+    "NEXT_PUBLIC_DESIGN_LAB_ENABLED": "true",
+    "NEXT_PUBLIC_ENVIRONMENT_LABEL": "vercel-preview",
+    "NEXT_PUBLIC_DATA_MODE": "DESIGN_REVIEW_DATA"
+  },
+  "headers": [
+    {
+      "source": "/vision/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/design-lab/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
+  ]
+}

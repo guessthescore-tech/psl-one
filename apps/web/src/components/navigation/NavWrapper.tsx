@@ -16,8 +16,9 @@ interface NavWrapperProps {
 export function NavWrapper({ children }: NavWrapperProps) {
   const pathname = usePathname();
   const isDesignLab = pathname?.startsWith('/design-lab') ?? false;
+  const isVision    = pathname?.startsWith('/vision') ?? false;
 
-  if (isDesignLab) {
+  if (isDesignLab || isVision) {
     return <>{children}</>;
   }
 

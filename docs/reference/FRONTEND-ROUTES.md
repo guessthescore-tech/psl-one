@@ -4,7 +4,7 @@
 **Audience:** Frontend engineers, designers, QA  
 **Status:** Current as of STORY-FE-UX-01  
 **Last verified:** 2026-06-17  
-**Total pages:** 342  
+**Total pages:** 350  
 **Source:** `find apps/web/src/app -type f -name 'page.tsx' | sort`  
 **Authority:** Files are the single source of truth — regenerate this when pages change  
 
@@ -686,6 +686,23 @@ All routes below correspond one-to-one with a `page.tsx` file in `apps/web/src/a
 | `/design-lab/prediction-carousel` | `design-lab/prediction-carousel/page.tsx` | Demo B: Fixture prediction carousel |
 | `/design-lab/fantasy-hub` | `design-lab/fantasy-hub/page.tsx` | Demo C: Fantasy in-season hub |
 | `/design-lab/account` | `design-lab/account/page.tsx` | Demo D: Account and fan identity |
+
+---
+
+## Vision Studio (8 pages)
+
+> Vision studio is hidden from public navigation. Requires `NEXT_PUBLIC_VISION_STUDIO_ENABLED=true`.
+
+| URL | File | Description |
+|-----|------|-------------|
+| `/vision` | `vision/page.tsx` | Vision studio hub — destination cards and design token reference |
+| `/vision/in-season` | `vision/in-season/page.tsx` | Flagship in-season layout — all 15 components composed |
+| `/vision/matchday` | `vision/matchday/page.tsx` | Live matchday dashboard — live scoreline, match stats, top scorer |
+| `/vision/predict` | `vision/predict/page.tsx` | Guess the score flow — score steppers, prediction card, share sheet |
+| `/vision/fantasy` | `vision/fantasy/page.tsx` | Fantasy squad pitch view — formation, gameweek panel, performers |
+| `/vision/clubs` | `vision/clubs/page.tsx` | Club identity browser — 16 clubs, sticky detail panel |
+| `/vision/player` | `vision/player/page.tsx` | Player spotlight — selector rail, season stats, upcoming fixture |
+| `/vision/account` | `vision/account/page.tsx` | Fan identity — profile header, fan value, fantasy, achievements |
 
 ---
 
