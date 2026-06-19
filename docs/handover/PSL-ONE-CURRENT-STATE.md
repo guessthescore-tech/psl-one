@@ -1,5 +1,5 @@
 # PSL One — Current State
-**Last updated:** 2026-06-19 (STORY-FE-PREMIUM-01A)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-00)
 
 ---
 
@@ -100,6 +100,26 @@
 | STORY-FE-UX-03 | Responsive Nav & Football Visual System | — |
 | STORY-FE-UX-04 | Motion Polish & Social Sharing | — |
 | STORY-FE-VISION-01 | Vision Studio (8 gated routes) | 543 |
+| STORY-FE-PREMIUM-01 | Premium Experience standalone frontend | 81 |
+| STORY-FE-PREMIUM-01A | Integrity review, handover docs, provider research | — |
+| STORY-FE-FANTASY-00 | Fantasy journey inventory & gap analysis | — |
+
+## Fantasy Journey Coverage (as of STORY-FE-FANTASY-00)
+
+Canonical 40-screen inventory from owner-supplied Premier League reference.
+
+| Phase | Screens | EXISTS_PARTIAL (apps/web) | MISSING_FRONTEND | MISSING_BOTH |
+|-------|---------|--------------------------|----------------|-------------|
+| Phase 1 — Fantasy Core | 11 | 7 | 1 | 3 |
+| Phase 2 — Research & Match | 17 | 9 | 3 | 5 |
+| Phase 3 — Account & Support | 12 | 6 | 1 | 5 |
+| **Total** | **40** | **22** | **5** | **13** |
+
+**EXISTS_PARTIAL** = Route and API exist in `apps/web` operational beta; functional gaps or not in `apps/experience`.
+**MISSING_FRONTEND** = API exists; no fan-facing page built.
+**MISSING_BOTH** = Neither page nor API; includes: FDR algorithm, rival team detail endpoint, player comparison, in-session password change, account deletion (POPIA), Awards, Hall of Fame, FAQs/Terms/Privacy/About (static), Quiz, Badge scan.
+
+Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 
 ## Premium Frontend (`apps/experience`)
 

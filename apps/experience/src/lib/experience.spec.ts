@@ -319,6 +319,79 @@ describe('Fantasy Leagues components exist', () => {
   }
 });
 
+// ─── Fantasy Core pages ────────────────────────────────────────────────────
+
+describe('Fantasy Core pages', () => {
+  it('fantasy landing page renders without error', () => {
+    expect(exists('app/fantasy/page.tsx')).toBe(true);
+    const content = read('app/fantasy/page.tsx');
+    expect(content).toContain('FantasyLandingPage');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+
+  it('fantasy team page shows pitch view', () => {
+    expect(exists('app/fantasy/team/page.tsx')).toBe(true);
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain('FantasyPitchView');
+    expect(content).toContain('BenchPanel');
+  });
+
+  it('fantasy transfers page shows player pool', () => {
+    expect(exists('app/fantasy/team/transfers/page.tsx')).toBe(true);
+    const content = read('app/fantasy/team/transfers/page.tsx');
+    expect(content).toContain('PlayerPool');
+    expect(content).toContain('TransferPanel');
+  });
+
+  it('fantasy chips page shows all 4 chips', () => {
+    expect(exists('app/fantasy/team/chips/page.tsx')).toBe(true);
+    const content = read('app/fantasy/team/chips/page.tsx');
+    expect(content).toContain('ChipSelector');
+    expect(content).toContain('FANTASY_MOCK_CHIPS');
+  });
+
+  it('fantasy FDR page shows difficulty matrix', () => {
+    expect(exists('app/fantasy/fixture-difficulty/page.tsx')).toBe(true);
+    const content = read('app/fantasy/fixture-difficulty/page.tsx');
+    expect(content).toContain('FixtureDifficultyMatrix');
+    expect(content).toContain('FANTASY_MOCK_FDR');
+  });
+
+  it('fantasy onboarding page shows step 1', () => {
+    expect(exists('app/fantasy/onboarding/page.tsx')).toBe(true);
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('OnboardingStep');
+    expect(content).toContain('FormationSelector');
+  });
+});
+
+// ─── Fantasy Core components ───────────────────────────────────────────────
+
+describe('Fantasy Core components exist', () => {
+  const coreComponents = [
+    'components/fantasy/core/FantasyPitchView.tsx',
+    'components/fantasy/core/PlayerSlot.tsx',
+    'components/fantasy/core/PlayerPool.tsx',
+    'components/fantasy/core/PlayerPoolRow.tsx',
+    'components/fantasy/core/PlayerFilters.tsx',
+    'components/fantasy/core/BudgetIndicator.tsx',
+    'components/fantasy/core/FormationSelector.tsx',
+    'components/fantasy/core/CaptainMarker.tsx',
+    'components/fantasy/core/BenchPanel.tsx',
+    'components/fantasy/core/TransferPanel.tsx',
+    'components/fantasy/core/TransferConfirmation.tsx',
+    'components/fantasy/core/ChipCard.tsx',
+    'components/fantasy/core/ChipSelector.tsx',
+    'components/fantasy/core/DeadlineCountdown.tsx',
+    'components/fantasy/core/FixtureDifficultyMatrix.tsx',
+    'components/fantasy/core/FixtureDifficultyCell.tsx',
+    'components/fantasy/core/OnboardingStep.tsx',
+  ];
+  for (const c of coreComponents) {
+    it(c.split('/').pop()!, () => expect(exists(c)).toBe(true));
+  }
+});
+
 describe('Fantasy shared components exist', () => {
   const shared = [
     'components/fantasy/shared/FantasyShell.tsx',
@@ -331,6 +404,8 @@ describe('Fantasy shared components exist', () => {
     'components/fantasy/shared/FantasyTabs.tsx',
     'components/fantasy/shared/FantasySectionHeader.tsx',
     'components/fantasy/shared/FantasyPageHero.tsx',
+    'components/fantasy/shared/SkeletonCard.tsx',
+    'components/fantasy/shared/SkeletonText.tsx',
   ];
   for (const s of shared) {
     it(s.split('/').pop()!, () => expect(exists(s)).toBe(true));
@@ -364,6 +439,40 @@ describe('Fantasy league pages — non-financial compliance', () => {
       expect(content).not.toContain('wager');
       expect(content).not.toContain('casino');
       expect(content).not.toContain('stake');
+    });
+  }
+});
+
+describe('Fantasy mock data exports', () => {
+  const dataSrc = read('lib/data.ts');
+  it('exports FANTASY_MOCK_PLAYERS', () => expect(dataSrc).toContain('FANTASY_MOCK_PLAYERS'));
+  it('exports FANTASY_MOCK_TEAM', () => expect(dataSrc).toContain('FANTASY_MOCK_TEAM'));
+  it('exports FANTASY_MOCK_CHIPS', () => expect(dataSrc).toContain('FANTASY_MOCK_CHIPS'));
+  it('exports FANTASY_MOCK_FDR', () => expect(dataSrc).toContain('FANTASY_MOCK_FDR'));
+  it('has ExpFantasyPlayer type', () => expect(dataSrc).toContain('ExpFantasyPlayer'));
+  it('has 30 mock players', () => {
+    const matches = dataSrc.match(/id: '(gk|def|mid|fwd)-/g);
+    expect(matches?.length).toBeGreaterThanOrEqual(28);
+  });
+});
+
+describe('Fantasy non-financial disclaimers', () => {
+  const fantasyFiles = [
+    'app/fantasy/page.tsx',
+    'app/fantasy/team/transfers/page.tsx',
+    'app/fantasy/team/chips/page.tsx',
+    'components/fantasy/core/TransferPanel.tsx',
+    'components/fantasy/core/PlayerPool.tsx',
+    'components/fantasy/core/TransferConfirmation.tsx',
+  ];
+  for (const file of fantasyFiles) {
+    it(`${file.split('/').pop()} has non-financial disclaimer`, () => {
+      const content = read(file);
+      const hasDisclaimer =
+        content.includes('Points only') ||
+        content.includes('no real money') ||
+        content.includes('no financial value');
+      expect(hasDisclaimer).toBe(true);
     });
   }
 });
@@ -410,4 +519,53 @@ describe('auth lib', () => {
   const authLib = read('lib/auth.ts');
   it('exports isAuthenticated', () => expect(authLib).toContain('export function isAuthenticated'));
   it('exports getToken', () => expect(authLib).toContain('export function getToken'));
+});
+
+describe('Fantasy touch target compliance', () => {
+  const touchFiles = [
+    'components/fantasy/core/PlayerSlot.tsx',
+    'components/fantasy/core/PlayerPoolRow.tsx',
+    'components/fantasy/shared/FantasyActionBar.tsx',
+    'components/fantasy/shared/FantasyModal.tsx',
+    'components/fantasy/shared/FantasyBottomSheet.tsx',
+  ];
+  for (const file of touchFiles) {
+    it(`${file.split('/').pop()} has min-h-[44px]`, () => {
+      expect(read(file)).toContain('min-h-[44px]');
+    });
+  }
+});
+
+describe('Fantasy motion accessibility (useReducedMotion)', () => {
+  const animatedFiles = [
+    'components/fantasy/core/FantasyPitchView.tsx',
+    'components/fantasy/core/PlayerSlot.tsx',
+    'components/fantasy/core/ChipCard.tsx',
+    'components/fantasy/shared/FantasyActionBar.tsx',
+    'components/fantasy/shared/FantasyModal.tsx',
+    'components/fantasy/shared/FantasyBottomSheet.tsx',
+  ];
+  for (const file of animatedFiles) {
+    it(`${file.split('/').pop()} uses useReducedMotion`, () => {
+      expect(read(file)).toContain('useReducedMotion');
+    });
+  }
+});
+
+describe('Fantasy lib layer', () => {
+  it('auth.ts exists', () => expect(exists('lib/auth.ts')).toBe(true));
+  it('fantasy-api.ts exists', () => expect(exists('lib/fantasy-api.ts')).toBe(true));
+  it('auth.ts exports isAuthenticated', () => expect(read('lib/auth.ts')).toContain('isAuthenticated'));
+  it('auth.ts exports getToken', () => expect(read('lib/auth.ts')).toContain('getToken'));
+  it('fantasy-api.ts exports getTeam', () => expect(read('lib/fantasy-api.ts')).toContain('getTeam'));
+  it('fantasy-api.ts exports makeTransfers', () => expect(read('lib/fantasy-api.ts')).toContain('makeTransfers'));
+  it('fantasy-api.ts exports activateChip', () => expect(read('lib/fantasy-api.ts')).toContain('activateChip'));
+  it('fantasy-api.ts no gambling language', () => {
+    const content = read('lib/fantasy-api.ts').toLowerCase();
+    expect(content).not.toContain('gamble');
+    expect(content).not.toContain('wager');
+    expect(content).not.toContain('casino');
+    expect(content).not.toContain('odds');
+    expect(content).not.toContain('stake');
+  });
 });

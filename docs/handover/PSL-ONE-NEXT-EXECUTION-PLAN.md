@@ -1,7 +1,20 @@
 # PSL One — Next Execution Plan
-**Last updated:** 2026-06-19 (STORY-FE-PREMIUM-01A)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-00)
 
 Dependency-ordered. Each item must be completed before the next begins unless marked as parallel.
+
+---
+
+## 0. Fantasy Journey Inventory
+
+**Status:** COMPLETE (STORY-FE-FANTASY-00)
+**Output:** `apps/experience/docs/FANTASY-USER-JOURNEY.md` — 40-screen canonical inventory
+**Key findings:**
+- 22 of 40 screens EXISTS_PARTIAL in `apps/web` (operational beta) with live API
+- 13 screens MISSING_BOTH (neither page nor API)
+- 5 screens MISSING_FRONTEND (API exists, no premium page)
+- No screens are EXISTS_COMPLETE in `apps/experience` yet (only homepage `/` is built)
+- Critical gaps requiring new backend work: FDR algorithm, rival team endpoint, in-session password change, account deletion (POPIA), quiz model, badge scan model
 
 ---
 
@@ -20,7 +33,7 @@ Dependency-ordered. Each item must be completed before the next begins unless ma
 - No secrets, no broken imports, no unlicensed imagery
 - No duplicate imports or dead code
 **Blockers:** None
-**Status:** COMPLETE (this story)
+**Status:** COMPLETE (STORY-FE-PREMIUM-01A)
 **Next command:**
 ```bash
 pnpm --filter @psl-one/experience dev
@@ -252,4 +265,70 @@ Review docs/data/PSL-DATA-LICENSING-GATE.md. Engage provider commercial team. Co
 **Next prompt:**
 ```
 Promote FootballDataProvider adapter to production. Add rate limiting, caching, circuit breaker, observability. Implement auto-import schedule. Run PSL season activation.
+```
+
+---
+
+## 12. Fantasy Phase 1 — Core Screens (apps/experience)
+
+**Owner:** Engineering lead
+**Prerequisites:** Steps 1–4 complete (premium frontend committed, Vercel preview live); Fantasy journey inventory reviewed and approved by owner (Step 0)
+**Scope:** 11 screens from `apps/experience/docs/FANTASY-USER-JOURNEY.md` Phase 1
+**Deliverables:**
+- `/fantasy` — Fantasy landing page (unauthenticated splash + returning manager fork)
+- `/fantasy/onboarding` — Multi-step squad creation wizard (pitch view + player pool + name team)
+- `/fantasy/team` — Team profile with formation pitch view (GK/DEF/MID/FWD rows)
+- `/fantasy/team/transfers` — Transfer flow with pitch interaction
+- `/fantasy/team/chips` — Chip selector with status awareness
+- `/fantasy/fixture-difficulty` — FDR matrix (requires new backend FDR endpoint)
+- `/fantasy/leagues` — League hub (my leagues + join + create)
+- `/fantasy/leagues/join` — Join by code or public league
+- `/fantasy/leagues/[leagueId]` — League standings
+- `/fantasy/leagues/[leagueId]/teams/[teamId]` — Rival team (requires new `GET /api/fantasy/teams/:teamId/public`)
+- `/fantasy/help` — Help & Rules with live config values
+**New components required:** ~20 (see `apps/experience/docs/COMPONENT-INVENTORY.md` Phase 1 section)
+**New API required:**
+- `GET /api/fantasy/fixture-difficulty` — FDR computation (club × next 6 GWs)
+- `GET /api/fantasy/teams/:teamId/public` — Rival team detail (read-only, same-league only)
+**Tests required:** All new screens must have vitest structural + integration tests
+**Acceptance criteria:**
+- First-time journey (Journey A) completable end-to-end in `apps/experience`
+- Returning manager journey (Journey B) completable end-to-end
+- All screens pass typecheck, tests, build, codex:validate, docs:validate
+**Next prompt:**
+```
+Begin STORY-FE-FANTASY-01 — Fantasy Phase 1 screens for apps/experience. Reference apps/experience/docs/FANTASY-USER-JOURNEY.md for all screen requirements.
+```
+
+---
+
+## 13. Fantasy Phase 2 — Research and Match Context (apps/experience)
+
+**Owner:** Engineering lead
+**Prerequisites:** Step 12 complete
+**Scope:** Phase 2 screens from journey inventory
+**Key screens:** `/matches`, `/matches/[fixtureId]`, `/players/[playerId]`, `/players/[playerId]/stats`, `/stats/season`, `/stats/compare`, `/fantasy/history`
+**New API required:**
+- `GET /api/stats/compare?playerA=:id&playerB=:id` — player comparison aggregation
+**Next prompt:**
+```
+Begin STORY-FE-FANTASY-02 — Fantasy Phase 2 screens for apps/experience. Reference FANTASY-USER-JOURNEY.md Phase 2.
+```
+
+---
+
+## 14. Fantasy Phase 3 — Account and Support (apps/experience)
+
+**Owner:** Engineering lead + Legal (for Terms/Privacy)
+**Prerequisites:** Step 13 complete; legal team has approved T&C and Privacy Policy text
+**Scope:** Phase 3 screens from journey inventory
+**Key screens:** `/account`, `/account/profile`, `/account/security`, `/sign-in`, `/forgot-password`, `/help`, `/terms`, `/privacy`, `/about`
+**New API required:**
+- `POST /api/auth/password/change` — in-session password change
+- `DELETE /api/auth/account` — POPIA-compliant account deletion
+**New models required:** Account deletion audit trail; deletion scheduled job
+**Legal gate:** `/terms` and `/privacy` must be reviewed and signed off by legal before any user-facing release
+**Next prompt:**
+```
+Begin STORY-FE-FANTASY-03 — Fantasy Phase 3 account and support screens for apps/experience. Reference FANTASY-USER-JOURNEY.md Phase 3. Legal review gate for /terms and /privacy.
 ```

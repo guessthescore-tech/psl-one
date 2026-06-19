@@ -1,9 +1,11 @@
 # apps/experience — Component Inventory
-**Last updated:** 2026-06-19 (STORY-FE-PREMIUM-01A)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-00)
 
 ---
 
-## Shell Components
+## Built Components (STORY-FE-PREMIUM-01A)
+
+### Shell Components
 
 | Component | File | Props | Key features |
 |-----------|------|-------|--------------|
@@ -11,7 +13,7 @@
 | `MobileBottomNav` | `components/shell/MobileBottomNav.tsx` | none | 5 tabs, spring indicator, `pb-safe`, `useReducedMotion` |
 | `MatchweekNav` | `components/shell/MatchweekNav.tsx` | `currentGW`, `totalGW`, `label`, `onPrev`, `onNext` | Direction-aware slide transition, `useReducedMotion` |
 
-## UI Components
+### UI Components
 
 | Component | File | Props | Key features |
 |-----------|------|-------|--------------|
@@ -25,12 +27,119 @@
 | `GameEntryCard` | `components/ui/GameEntryCard.tsx` | `fixture`, `variant?` | `predict`/`fantasy`/`challenge` variants, disclaimer, `whileTap` |
 | `SponsorMoment` | `components/ui/SponsorMoment.tsx` | none | Picsum bg, transparency label, non-financial disclaimer |
 
-## Action Components
+### Action Components
 
 | Component | File | Props | Key features |
 |-----------|------|-------|--------------|
 | `ShareAction` | `components/actions/ShareAction.tsx` | `title`, `text`, `url?`, `compact?` | Spring bottom sheet, WhatsApp/X/Copy, `role="dialog"`, safe-area padding |
 | `ChallengeAction` | `components/actions/ChallengeAction.tsx` | `fixture`, variant? | Compact + full versions, Sword icon |
+
+---
+
+## Proposed Components — Phase 1 (Fantasy Core)
+
+These components are required to build the 11 Phase 1 screens. None exist yet in `apps/experience`.
+
+### Fantasy Pitch
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `FantasyPitchView` | Formation pitch showing 15 players (GK / DEF / MID / FWD rows) | No — new |
+| `PlayerSlot` | Individual slot on pitch — empty or filled with player card | No — new |
+| `SquadPlayerCard` | Compact player on pitch: jersey number, name, points, captain badge | Uses `PlayerPortrait` pattern |
+| `TransferBar` | Sticky bar: budget remaining + transfers available + confirm CTA | No — new |
+| `DeadlineCountdown` | Live countdown to next transfer deadline | No — new |
+| `PointsSummaryHeader` | Sticky header: GW points total + rank movement | No — new |
+
+### Transfer Flow
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `PlayerPoolRow` | Player in transfer list: position badge, name, club, price, points, ownership % | No — new |
+| `PlayerPoolFilter` | Position / price range / club filter controls | No — new |
+| `TransferComparison` | Side-by-side OUT vs IN player before confirming | No — new |
+| `BudgetIndicator` | Colour bar showing budget headroom | No — new |
+
+### Chips
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `ChipCard` | Chip tile: name, description, status (available / used / active), activate button | No — new |
+| `ChipStatusBadge` | Pill: ACTIVE / USED / AVAILABLE | No — new |
+
+### Fixture Difficulty Rating
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `FDRMatrix` | Horizontal-scroll table: clubs × next 6 gameweeks | No — new |
+| `FDRCell` | Individual cell: colour + opponent abbr + H/A indicator | No — new |
+
+### Leagues
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `LeagueCard` | Summary card: name, type badge, own rank, points gap to leader | No — new |
+| `LeagueStandingsTable` | Full standings: Rank / Manager / Team / GW / Total / movement | Extends `LeagueTable` |
+| `ManagerRow` | Row in standings: avatar, manager name, team name, rank, points | No — new |
+| `RivalTeamPitchView` | Read-only pitch for a rival's team | Extends `FantasyPitchView` |
+| `LeagueCodeInput` | Code input with join action and error messaging | No — new |
+
+### Onboarding
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `OnboardingStep` | Step indicator: numbered circles + connecting line | No — new |
+| `BudgetMeter` | Budget progress bar during squad build | No — new |
+| `PositionSlotGroup` | Row of empty position slots during onboarding | No — new |
+
+---
+
+## Proposed Components — Phase 2 (Research and Match Context)
+
+### Match
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `ScoreHeader` | Sticky score: teams, score, minute, status | No — new |
+| `MatchTabBar` | Tab bar: Summary / Lineups / Stats / Fantasy | No — new |
+| `TimelineEvent` | Goal / card / sub event: minute, player, team colour | No — new |
+| `LineupFormation` | Visual 11-player formation diagram | No — new |
+| `TeamStatsBar` | Dual-bar stat row: possession, shots, corners | No — new |
+| `LivePulseBadge` | "LIVE 23'" animated badge | No — new |
+| `MOTMHero` | Man of the Match hero: portrait + key stats | Extends `PlayerPortrait` |
+
+### Player Research
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `PlayerStatGrid` | Goals / Assists / Minutes / Cards grid | No — new |
+| `PerGameweekTable` | GW-by-GW stat table with sortable columns | No — new |
+| `PlayerComparisonColumn` | One side of a two-player comparison view | Extends `PlayerStatGrid` |
+| `WinnerHighlight` | Per-row winner indicator in comparison | No — new |
+
+### Season Stats
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `TopScorersList` | Ranked list: position number, name, club, stat value | No — new |
+| `StandingsTable` | Full PSL standings with sortable columns | Extends `LeagueTable` |
+| `AwardCard` | Award category card: icon, category, current leader | No — new |
+
+---
+
+## Proposed Components — Phase 3 (Account and Support)
+
+| Component | Purpose | Reuses existing? |
+|-----------|---------|-----------------|
+| `AccountMenuList` | List of account sections with chevrons | No — new |
+| `ProfileForm` | Name, bio, email fields with save | No — new |
+| `PasswordChangeForm` | Current + new + confirm password fields | No — new |
+| `ClubBadgeSelector` | 4-column grid of club badges with selection state | Extends `TeamIdentity` |
+| `SignInForm` | Email + password + submit | No — new |
+| `ForgotPasswordForm` | Email input for reset request | No — new |
+| `FAQAccordion` | Category-filtered expandable FAQ list | No — new |
+| `StaticContentPage` | Shared layout for Terms, Privacy, About | No — new |
+| `QRScanner` | Camera viewfinder with QR detection | No — new (native camera API) |
 
 ---
 
