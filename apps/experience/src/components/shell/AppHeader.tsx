@@ -7,9 +7,9 @@ import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons
 
 const NAV = [
   { label: 'Home',     href: '/',           Icon: House          },
-  { label: 'Fixtures', href: '/fixtures',   Icon: CalendarBlank  },
+  { label: 'Matches',  href: '/matches',    Icon: CalendarBlank  },
   { label: 'Fantasy',  href: '/fantasy',    Icon: Trophy         },
-  { label: 'Clubs',    href: '/clubs',      Icon: Users          },
+  { label: 'Players',  href: '/players',    Icon: Users          },
   { label: 'Account',  href: '/account',    Icon: UserCircle     },
 ];
 
@@ -70,7 +70,7 @@ export function AppHeader() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/login"
+              href="/sign-in"
               className="text-sm text-white/55 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm px-1"
             >
               Sign in

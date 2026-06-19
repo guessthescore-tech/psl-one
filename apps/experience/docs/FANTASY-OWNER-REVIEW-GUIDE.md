@@ -12,7 +12,23 @@ pnpm --filter @psl-one/experience dev
 # Open http://localhost:3002
 ```
 
-The app runs in `DESIGN_REVIEW_DATA` mode by default — a purple banner confirms this. All data is mock WC 2026 data. Authentication is simulated (any credentials work).
+The app runs in `DESIGN_REVIEW_DATA` mode by default — a **purple banner at the top** confirms this. All data is mock WC 2026 data. Authentication is simulated (any credentials are accepted).
+
+---
+
+## What You Are Reviewing
+
+This is a visual and UX design review. You are NOT reviewing:
+- Backend functionality (all data is mock)
+- Authentication (all forms work with any input)
+- Real PSL data (WC 2026 placeholder data is used)
+
+You ARE reviewing:
+- Does each page render correctly?
+- Does navigation feel intuitive?
+- Are the design language and visual hierarchy correct?
+- Are touch targets large enough on mobile?
+- Does the Fantasy journey flow make sense end-to-end?
 
 ---
 
@@ -22,105 +38,117 @@ The app runs in `DESIGN_REVIEW_DATA` mode by default — a purple banner confirm
 
 | Screen | URL | What to Check |
 |--------|-----|---------------|
-| Fantasy Hub | `/fantasy` | Gameweek summary, points display, captain, transfers remaining |
-| My Team / Pitch View | `/fantasy/team` | 15-player pitch layout, captain badge (C), position rows |
-| Transfer Market | `/fantasy/team/transfers` | Budget display, position filter, player pool rows, add button |
-| Chips | `/fantasy/team/chips` | 4 chip types, icons, activate/cancel buttons |
-| FDR | `/fantasy/team/fdr` | Fixture difficulty colour grid |
-| Onboarding | `/fantasy/onboarding` | 4-step first-time setup wizard |
+| Fantasy Hub | `/fantasy` | Gameweek summary card, points display, captain name, transfers remaining counter |
+| My Team — Pitch View | `/fantasy/team` | 15-player pitch layout, captain badge (C), vice-captain badge (VC), position rows (GK/DEF/MID/FWD), bench row |
+| Transfer Market | `/fantasy/team/transfers` | Budget display, position filter tabs, player pool rows (G·A stats), add button |
+| Chips Panel | `/fantasy/team/chips` | 4 chip types (Wildcard, Bench Boost, Triple Captain, Free Hit), icons, activate state |
+| Fixture Difficulty | `/fantasy/fixture-difficulty` | Colour grid, team names, difficulty scale |
+| Onboarding | `/fantasy/onboarding` | 4-step wizard flow, progress indicator |
 | History | `/fantasy/history` | Gameweek history list |
-| Leagues | `/fantasy/leagues` | League list with standings |
-| League Detail | `/fantasy/leagues/[id]` | Manager ranking, standing table |
+| League List | `/fantasy/leagues` | My leagues listing |
+| League Detail | `/fantasy/leagues/[id]` | Manager ranking, standings table, rank movement arrows |
+| Join League | `/fantasy/leagues/join` | Code entry input, join button |
+| Create League | `/fantasy/leagues/create` | Name field, public/private toggle, create button |
 
 ### Phase 2 — Research & Football Context
 
 | Screen | URL | What to Check |
 |--------|-----|---------------|
-| Fixtures | `/matches` | Full fixture calendar |
-| Live Match | `/matches/[id]` | Match detail, commentary feed |
-| Player Browser | `/players` | Position-filtered player pool |
-| Player Profile | `/players/[id]` | Stats, club crest, position |
-| Club List | `/clubs` | All 8 WC 2026 clubs |
-| Club Detail | `/clubs/[id]` | Squad, stats |
-| Media Hub | `/media` | Articles, video thumbnails |
-| Stats: Standings | `/stats/standings` | Group/league table |
-| Stats: Season | `/stats/season` | Season-level stats |
+| Fixtures Calendar | `/matches` | Match cards, status badges (LIVE/FT/Scheduled), scores |
+| Match Detail | `/matches/mock-1` | Score header, timeline events, lineups pitch, match stats panel |
+| Player Browser | `/players` | Position filter tabs, player cards, photo, position badge |
+| Player Profile | `/players/p1` | Hero section, career stats grid, club crest |
+| Player Stats Detail | `/players/p1/stats` | GW-by-GW stats table, back navigation |
+| Player Compare | `/stats/compare` | Side-by-side metric comparison |
+| Media Hub | `/media` | Article grid, video rail, thumbnails |
+| Media Article | `/media/s1` | Article content, headline, body |
+| Video Detail | `/media/v1` | Video player shell, title |
+| Stats: Standings | `/stats/standings` | Standings table with form dots |
+| Stats: Season | `/stats/season` | Season-level aggregate stats |
+| Stats: Awards | `/stats/awards` | Award display cards |
+| Stats: Hall of Fame | `/stats/hall-of-fame` | Hall of fame entries |
 
 ### Phase 3 — Account & Support
 
 | Screen | URL | What to Check |
 |--------|-----|---------------|
-| Sign In | `/sign-in` | Form, error state, show/hide password |
-| Register | `/register` | Form, POPIA disclaimer |
-| Account Dashboard | `/account` | Navigation links, profile summary |
-| Edit Profile | `/account/profile` | Name/avatar fields |
-| Notifications | `/account/notifications` | Toggle preferences |
-| Favourite Team | `/account/favourite-team` | Team selector grid |
-| Achievements | `/account/achievements` | Badge grid |
-| Wallet | `/account/wallet` | Fan Value balance (non-financial disclaimer) |
-| Privacy | `/account/privacy` | POPIA rights summary |
-| Delete Account | `/account/delete` | POPIA deletion placeholder |
-| Help | `/help` | Help category list |
-| Terms | `/terms` | Terms and conditions |
-| Privacy Policy | `/privacy` | Privacy policy |
+| Sign In | `/sign-in` | Form layout, show/hide password, sign-in link |
+| Register | `/register` | Form fields, POPIA disclaimer, terms link |
+| Forgot Password | `/forgot-password` | Email field, submit feedback |
+| Account Dashboard | `/account` | Nav links to profile/security/team/delete, profile summary |
+| Edit Profile | `/account/profile` | Display name field, save button |
+| Change Password | `/account/security` | Old/new/confirm fields |
+| Favourite Team | `/account/favourite-team` | Team selector grid with crests |
+| Delete Account | `/account/delete` | POPIA message, placeholder (backend not built) |
+| Help Centre | `/help` | Category cards grid |
+| Help Article | `/help/fixture-locked` | Article content, navigation back |
+| Badge Scanner | `/scan` | Scanner UI shell |
+| Quiz | `/quiz/wc2026-group-stage` | Question + answer options |
+| Terms | `/terms` | Legal document layout |
+| Privacy | `/privacy` | Legal document layout |
+| About | `/about` | About page |
+
+### Navigation & Shell
+
+| Element | Where to Find | What to Check |
+|---------|--------------|---------------|
+| `AppHeader` (desktop) | Any page, wide viewport | Wordmark, 5 nav items (Home/Matches/Fantasy/Players/Account), Sign in + Join links |
+| `MobileBottomNav` | Any page, narrow viewport | 5 tabs (Home/Matches/Fantasy/Predict/Profile), spring active indicator |
+| `FantasyTabs` | Any `/fantasy/*` page | 9 tabs horizontally scrollable, gold active state |
+| Design Review Banner | Top of all pages | Purple banner confirming DESIGN_REVIEW_DATA mode |
 
 ---
 
-## Design Review Checklist
+## Stub Pages (Intentionally Incomplete)
 
-### Motion
-- [ ] Page transitions feel intentional (not jarring)
-- [ ] Score stepper counter animates smoothly
-- [ ] Prediction submission state transition
-- [ ] FantasyTabs scrolls smoothly on mobile-width viewport
+These pages exist but show "coming soon" content. They are NOT bugs:
 
-### Touch & Interaction
-- [ ] All buttons are at least 44px tall (confirmed)
-- [ ] Bottom nav active indicator animates to new tab
-- [ ] Transfer market row shows + icon with hover state
-- [ ] Chip card active state visually distinct
-
-### Accessibility
-- [ ] Tab through sign-in form — all fields focusable, focus ring visible
-- [ ] Score stepper announces value changes (aria-live)
-- [ ] Tab through fixture selector dots
-
-### Responsive
-- [ ] Homepage renders correctly at 390px (iPhone 14 Pro)
-- [ ] `/fantasy/team` pitch view at 390px
-- [ ] FantasyTabs scrolls horizontally at 390px
-- [ ] MobileBottomNav appears at mobile widths
+| Route | Why it's a stub |
+|-------|----------------|
+| `/fantasy/points` | Awaiting backend Gameweek scoring API contract |
+| `/fantasy/fixtures` | UX decision pending: merge with `/matches` or separate page? |
+| `/fantasy/stats` | Awaiting backend fantasy stats API contract |
+| `/fantasy/rules` | Awaiting rules content from Product team |
+| `/predict` | Full prediction game UI is a separate story |
 
 ---
 
-## Non-Financial Compliance Spots
+## Routes NOT Built in This Story
 
-Every gambling-adjacent surface carries a disclaimer. Verify:
-- Homepage `GuessTheScoreSection` footer: "Points only - no real money - no financial value"
-- `/fantasy/*` pages: same disclaimer
-- `/account/wallet`: "Fan value is a non-financial points score"
-- `/register` page: no betting/odds/wagering language
-
----
-
-## What Is Intentionally Incomplete
-
-| Item | Status | Why |
-|------|--------|-----|
-| `/fantasy/points` | Stub page | Backend contract pending |
-| `/fantasy/fixtures` | Stub page | Duplicate of `/matches` until design confirmed |
-| `/fantasy/stats` | Stub page | Backend contract pending |
-| `/fantasy/rules` | Stub page | Content from Product pending |
-| `/predict` | Stub page | Full prediction game UI in next story |
-| Images | `picsum.photos` | Licensed photography required before public launch |
-| Live data | WC 2026 mock | Provider licensing gate not yet cleared |
+| Route | Status | Why |
+|-------|--------|-----|
+| `/clubs` | Not built | No club detail API contract; users go to `/players` |
+| `/social` | Not built | Requires backend social activity feed module |
+| `/account/notifications` | Not built | No notification preferences API |
+| `/account/achievements` | Not built | Achievements API not wired in experience layer |
+| `/account/wallet` | Not built | Fan Value wallet UI deferred to separate story |
 
 ---
 
-## Owner Sign-Off
+## Acceptance Criteria
 
-Once satisfied with the visual review:
+Before approving this story for push/merge, the owner should confirm:
 
-1. Confirm: **APPROVED for push and PR creation** — or — list specific changes needed
-2. The branch will be pushed and a PR opened against `main`
-3. No merge until owner explicitly approves
+- [ ] Fantasy pitch layout is visually correct (formation rows, captain/VC badges, bench)
+- [ ] Transfer market player cards are readable on mobile
+- [ ] Navigation tabs (desktop header + mobile bottom nav + fantasy tabs) work correctly
+- [ ] Auth forms (sign-in, register) render cleanly and have no layout issues
+- [ ] DESIGN_REVIEW_DATA purple banner is visible and not obstructive
+- [ ] Stub pages are clearly labelled ("coming soon") — not blank or broken
+- [ ] Match detail page renders with score header, timeline, and lineup pitch
+- [ ] Player profile renders with hero image, stats grid, and back navigation
+- [ ] Media hub shows articles and video thumbnails
+
+---
+
+## After Review
+
+If changes are needed: list specific routes and what to change. Engineering will implement before push.
+
+If approved:
+```bash
+git push -u origin feature/fantasy-complete-experience
+# Then create PR via: gh pr create
+```
+
+Pushing the branch does NOT deploy anything. Vercel is not configured for `apps/experience`. No deployment occurs until the owner approves a merge to `main`.

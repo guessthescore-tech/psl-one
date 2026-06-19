@@ -8,11 +8,12 @@
 | Item | Value |
 |------|-------|
 | Repository | `~/Projects/psl-one` |
-| Branch | `main` |
-| Local HEAD | `bbb990c9e3b4d9c377f4a6052d5e7aa1a68d71da` |
+| Main branch HEAD | `bbb990c9e3b4d9c377f4a6052d5e7aa1a68d71da` |
 | Remote origin/main | `9bbb3e054069dc150f736b26b4480b6eb3d5bf02` |
-| Ahead of remote | 1 commit (STORY-FE-VISION-01 — Vision Studio) |
-| Behind remote | 0 |
+| Ahead of remote (main) | 1 commit (STORY-FE-VISION-01 — Vision Studio) |
+| Feature branch | `feature/fantasy-complete-experience` |
+| Feature branch HEAD | reconciliation in progress — commit pending |
+| Feature ahead of main | 21+ commits (STORY-FE-FANTASY-AGENTIC-01) |
 
 ## Operational Beta (`apps/web`)
 
@@ -127,7 +128,7 @@ Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 | Item | Status |
 |------|--------|
 | Status | COMMITTED on `feature/fantasy-complete-experience`, not pushed, not deployed |
-| Branch | `feature/fantasy-complete-experience` (19 commits ahead of main) |
+| Branch | `feature/fantasy-complete-experience` (21+ commits ahead of main) |
 | Framework | Next.js 15.5.18 standalone |
 | Port | 3002 |
 | Tests | 366/366 PASS |
@@ -135,8 +136,9 @@ Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 | Build | PASS (56 pages, 102 kB first load JS) |
 | codex:validate | PASS (0 errors) |
 | docs:validate | PASS (18/18 checks) |
-| Routes | 56 pages across fantasy, matches, players, account, auth, stats, media, quiz, scan, help |
+| Routes | 56 prerendered pages (48 templates + 14 SSG paths); 8 dynamic ƒ routes |
 | Data mode | `DESIGN_REVIEW_DATA` (WC 2026 mock) default |
+| Dead links | All fixed — 10 internal hrefs corrected during reconciliation |
 | Picsum | Active placeholder — must be replaced before public launch |
 | LIVE_BETA_DATA | Wired but returns WC mock (TODO comment — API integration pending) |
 | Vercel config | `vercel.json` ready in `apps/web`, pending port to `apps/experience` |

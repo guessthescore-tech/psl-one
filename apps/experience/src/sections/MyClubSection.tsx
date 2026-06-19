@@ -30,7 +30,7 @@ export function MyClubSection({ data }: MyClubSectionProps) {
         <SectionHeader
           title="My Club"
           subtitle="Quick look"
-          href={`/clubs/${myClub.id}`}
+          href="/players"
           linkLabel={`${myClub.name} hub`}
         />
 

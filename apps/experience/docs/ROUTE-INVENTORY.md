@@ -1,6 +1,8 @@
 # apps/experience — Route Inventory
-**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01 final)
-**Total pages:** 56
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01 — final reconciliation)
+**Route templates:** 49 page.tsx files
+**Prerendered pages:** 56 (includes 11 × /help/[slug] + 3 × /quiz/[quizId] SSG paths)
+**Dynamic routes (ƒ):** 8 (server-rendered on demand, not prerendered)
 
 ---
 

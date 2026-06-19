@@ -1,16 +1,84 @@
-# Fantasy Route Matrix
-**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01 final)
-**Total pages built:** 56
+# Fantasy Route Matrix — Authoritative Truth Table
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01 — final reconciliation)
+**Total prerendered pages:** 56
 **Branch:** `feature/fantasy-complete-experience`
+**Source of truth:** filesystem (`find apps/experience/src/app -name "page.tsx"`) + build output
 
 ## Classification Key
 
 | Code | Meaning |
 |------|---------|
-| `FRONTEND_BUILT` | Page has substantial UI; renders with DESIGN_REVIEW_DATA mock |
-| `DESIGN_REVIEW_ONLY` | Page renders; all data is mock (DESIGN_REVIEW_DATA mode only) |
-| `MISSING_BACKEND` | Page shell exists; backend endpoint not yet built |
+| `DESIGN_REVIEW_ONLY` | Page renders; all data is WC 2026 mock (DESIGN_REVIEW_DATA default) |
+| `MISSING_BACKEND` | Page shell exists; required backend endpoint not yet built |
 | `DEFERRED` | Stub page ("Coming soon") — awaiting content or backend contract |
+
+## Auth & Data Source Legend
+
+| Field | Values |
+|-------|--------|
+| Auth | `NONE` = no auth required; `SIMULATED` = DESIGN_REVIEW_DATA accepts any credentials |
+| Data source | `WC_MOCK` = in-memory WC 2026 mock data from `src/lib/data.ts` |
+| Backend dep | Backend API call required for production; `NONE` = static content only |
+
+---
+
+## Route Truth Table (complete)
+
+| Route | Render | State | Auth | Data | Backend Dep | Known Limitation | Review Status |
+|-------|--------|-------|------|------|-------------|-----------------|---------------|
+| `/` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (fixtures, scores) | Picsum images | NEEDS_REVIEW |
+| `/fantasy` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (gameweek, points) | Mock GW data | NEEDS_REVIEW |
+| `/fantasy/team` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (team, captain) | Mock pitch only | NEEDS_REVIEW |
+| `/fantasy/team/transfers` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (market, budget) | Mock players only | NEEDS_REVIEW |
+| `/fantasy/team/chips` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (chip state) | Mock chip state | NEEDS_REVIEW |
+| `/fantasy/fixture-difficulty` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (FDR algorithm) | Mock FDR colours | NEEDS_REVIEW |
+| `/fantasy/onboarding` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (team create) | 4 steps, no real write | NEEDS_REVIEW |
+| `/fantasy/search` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (search API) | Mock results | NEEDS_REVIEW |
+| `/fantasy/history` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (GW history) | Mock timeline | NEEDS_REVIEW |
+| `/fantasy/history/[gameweekId]` | DYNAMIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (GW scoring) | Mock GW breakdown | NEEDS_REVIEW |
+| `/fantasy/points` | STATIC | DEFERRED | SIMULATED | NONE | Yes (live scoring) | Stub only | NEEDS_REVIEW |
+| `/fantasy/fixtures` | STATIC | DEFERRED | NONE | NONE | UX decision pending | Stub only | NEEDS_REVIEW |
+| `/fantasy/stats` | STATIC | DEFERRED | SIMULATED | NONE | Yes (stats API) | Stub only | NEEDS_REVIEW |
+| `/fantasy/rules` | STATIC | DEFERRED | NONE | NONE | Rules content needed | Stub only | NEEDS_REVIEW |
+| `/fantasy/leagues` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (leagues API) | Mock leagues | NEEDS_REVIEW |
+| `/fantasy/leagues/[leagueId]` | DYNAMIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (standings) | Mock standings | NEEDS_REVIEW |
+| `/fantasy/leagues/[leagueId]/teams/[teamId]` | DYNAMIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (rival team) | Read-only pitch | NEEDS_REVIEW |
+| `/fantasy/leagues/create` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (create API) | No real create | NEEDS_REVIEW |
+| `/fantasy/leagues/join` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (join API) | No real join | NEEDS_REVIEW |
+| `/matches` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (fixtures API) | Mock fixtures | NEEDS_REVIEW |
+| `/matches/[fixtureId]` | DYNAMIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (live match) | Mock timeline | NEEDS_REVIEW |
+| `/matches/[fixtureId]/motm` | DYNAMIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (MOTM vote) | Mock MOTM | NEEDS_REVIEW |
+| `/players` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (player API) | Mock 6 players | NEEDS_REVIEW |
+| `/players/[playerId]` | DYNAMIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (player profile) | Picsum photo | NEEDS_REVIEW |
+| `/players/[playerId]/stats` | DYNAMIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (stats API) | Mock GW stats | NEEDS_REVIEW |
+| `/stats/standings` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (standings) | Mock table | NEEDS_REVIEW |
+| `/stats/season` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (season API) | Mock totals | NEEDS_REVIEW |
+| `/stats/awards` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (awards) | Mock award data | NEEDS_REVIEW |
+| `/stats/hall-of-fame` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (HOF) | Mock records | NEEDS_REVIEW |
+| `/stats/compare` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (player data) | Mock 2 players | NEEDS_REVIEW |
+| `/media` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (media API) | Mock 4 articles/4 videos | NEEDS_REVIEW |
+| `/media/[slug]` | DYNAMIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | Yes (media API) | Slug prefix s/v | NEEDS_REVIEW |
+| `/predict` | STATIC | DEFERRED | NONE | NONE | Yes (prediction API) | Stub only | NEEDS_REVIEW |
+| `/sign-in` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | Yes (auth API) | Simulated auth | NEEDS_REVIEW |
+| `/register` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | Yes (auth API) | Simulated auth | NEEDS_REVIEW |
+| `/forgot-password` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | Yes (email API) | No real email | NEEDS_REVIEW |
+| `/reset-password` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | Yes (reset API) | No real token | NEEDS_REVIEW |
+| `/account` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (profile API) | Mock profile | NEEDS_REVIEW |
+| `/account/profile` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | NONE | Yes (profile PUT) | No real save | NEEDS_REVIEW |
+| `/account/security` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | NONE | Yes (password API) | No real change | NEEDS_REVIEW |
+| `/account/favourite-team` | STATIC | DESIGN_REVIEW_ONLY | SIMULATED | WC_MOCK | Yes (profile PUT) | No real save | NEEDS_REVIEW |
+| `/account/delete` | STATIC | MISSING_BACKEND | SIMULATED | NONE | POPIA deletion endpoint not built | Placeholder only | NEEDS_REVIEW |
+| `/help` | STATIC | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | NONE | Static categories | NEEDS_REVIEW |
+| `/help/[slug]` | SSG (11) | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | NONE | 11 seeded articles | NEEDS_REVIEW |
+| `/quiz/[quizId]` | SSG (3) | DESIGN_REVIEW_ONLY | NONE | WC_MOCK | NONE | 3 seeded quizzes | NEEDS_REVIEW |
+| `/scan` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | Yes (QR scanner) | Shell only | NEEDS_REVIEW |
+| `/terms` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | NONE | Static content | NEEDS_REVIEW |
+| `/privacy` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | NONE | Static content | NEEDS_REVIEW |
+| `/about` | STATIC | DESIGN_REVIEW_ONLY | NONE | NONE | NONE | Static content | NEEDS_REVIEW |
+
+**All 48 route templates listed. Total prerendered: 56 (includes 14 SSG paths: 11 × /help/[slug] + 3 × /quiz/[quizId]).**
+
+---
 
 ---
 

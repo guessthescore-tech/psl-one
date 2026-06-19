@@ -29,7 +29,7 @@ export function ClubIdentitySection({ data }: ClubIdentitySectionProps) {
           {data.clubs.map(club => (
             <Link
               key={club.id}
-              href={`/clubs/${club.id}`}
+              href="/players"
               role="listitem"
               className="flex-shrink-0 snap-start flex flex-col items-center gap-2.5 p-4 w-28 rounded-card hover:bg-exp-surface border border-transparent hover:border-exp-border transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-green group"
               aria-label={`${club.name} club page`}

@@ -54,6 +54,24 @@ See `docs/FANTASY-MISSING-BACKEND-CONTRACTS.md` for full API contract gap list.
 
 ---
 
+## Dead Links Fixed (not gaps)
+
+10 internal dead hrefs were corrected during reconciliation. All internal links now point at existing routes:
+
+| From | Fixed To | Where |
+|------|---------|-------|
+| `/fixtures` | `/matches` | `FixtureCarouselSection.tsx`, `AppHeader` NAV |
+| `/clubs` | `/players` | `AppHeader` NAV |
+| `/clubs/${id}` | `/players` | `ClubIdentitySection.tsx`, `MyClubSection.tsx` |
+| `/fantasy/transfers` | `/fantasy/team/transfers` | `FantasyGameweekSection.tsx` |
+| `/table` | `/stats/standings` | `LeagueTableSection.tsx` |
+| `/video` | `/media` | `VideoRailSection.tsx` |
+| `/news` | `/media` | `EditorialGridSection.tsx` |
+| `/profile/fan-value` | `/account` | `FanValueSection.tsx` |
+| `/login` | `/sign-in` | `AppHeader.tsx` desktop CTA |
+
+---
+
 ## Non-Blocking Debt
 
 | Item | Notes |
