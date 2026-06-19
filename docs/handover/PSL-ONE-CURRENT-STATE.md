@@ -1,5 +1,5 @@
 # PSL One — Current State
-**Last updated:** 2026-06-19 (STORY-FE-FANTASY-00)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01)
 
 ---
 
@@ -57,6 +57,7 @@
 
 | Story | Description | Tests |
 |-------|-------------|-------|
+| STORY-FE-FANTASY-AGENTIC-01 | Full Fantasy experience in apps/experience | 366 |
 | STORY-11 | Prediction lock/settle/void | — |
 | STORY-12 | Fantasy Deadlines & Transfer Rules | 362 |
 | STORY-14 | Fantasy Rules Admin Config | 380 |
@@ -125,15 +126,16 @@ Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 
 | Item | Status |
 |------|--------|
-| Status | BUILT LOCALLY, not committed, not pushed, not deployed |
+| Status | COMMITTED on `feature/fantasy-complete-experience`, not pushed, not deployed |
+| Branch | `feature/fantasy-complete-experience` (19 commits ahead of main) |
 | Framework | Next.js 15.5.18 standalone |
 | Port | 3002 |
-| Tests | 81/81 PASS |
+| Tests | 366/366 PASS |
 | Typecheck | PASS (0 errors) |
-| Build | PASS (154 kB first load JS, static) |
-| Routes | 1 (homepage `/`) |
-| Sections | 13 homepage sections |
-| Components | 16 base components |
+| Build | PASS (55 pages, 102 kB first load JS) |
+| codex:validate | PASS (0 errors) |
+| docs:validate | PASS (18/18 checks) |
+| Routes | 55 pages across fantasy, matches, players, account, auth, stats, clubs, quiz, scan, help |
 | Data mode | `DESIGN_REVIEW_DATA` (WC 2026 mock) default |
 | Picsum | Active placeholder — must be replaced before public launch |
 | LIVE_BETA_DATA | Wired but returns WC mock (TODO comment — API integration pending) |
@@ -163,14 +165,14 @@ Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 | `MatchweekNav` not used in homepage (unused component) | LOW | Available for future routes |
 | Focus trap missing in `ShareAction` bottom sheet | LOW | Deferred |
 
-## Uncommitted Files (2026-06-19)
+## Untracked Files (2026-06-19)
 
 ```
-M  pnpm-lock.yaml              (framer-motion added to apps/experience)
-?? apps/experience/            (entire premium frontend)
 ?? docs/infrastructure/S3-INFRA-02-TERRAFORM-PLAN-REVIEW.md
 ?? impeccable/                 (local framework install, separate from project)
 ```
+
+Note: `apps/experience` is now committed and tracked on `feature/fantasy-complete-experience`.
 
 ## Current Test Counts
 
@@ -178,8 +180,8 @@ M  pnpm-lock.yaml              (framer-motion added to apps/experience)
 |-------|-------|
 | API tests (`apps/api`) | 1,652 |
 | Web tests (`apps/web`) | 543 |
-| Premium tests (`apps/experience`) | 81 |
-| **Total** | **2,276** |
+| Premium tests (`apps/experience`) | 366 |
+| **Total** | **2,561** |
 
 ## Deployment Status
 
