@@ -84,7 +84,7 @@ export function FantasyGameweekSection({ data }: FantasyGameweekSectionProps) {
             </div>
             <div className="w-full bg-white/10 rounded-full h-1 mt-3 mb-4">
               <div
-                className="bg-exp-green h-1 rounded-full transition-all duration-500"
+                className="bg-exp-green h-1 rounded-full transition-[width] duration-300 ease-out"
                 style={{ width: `${(fantasyTeam.transfersRemaining / 2) * 100}%` }}
                 aria-hidden
               />

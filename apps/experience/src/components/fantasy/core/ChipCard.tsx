@@ -1,27 +1,28 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowsCounterClockwise, ArrowFatLineUp, Crosshair, Star } from '@phosphor-icons/react/dist/ssr';
 import type { ExpChip } from '@/lib/data';
 import type { ChipType, ChipStatus } from '@/lib/fantasy-api';
 
-const CHIP_META: Record<ChipType, { emoji: string; name: string; description: string }> = {
+const CHIP_META: Record<ChipType, { Icon: React.ElementType; name: string; description: string }> = {
   WILDCARD: {
-    emoji: '🔄',
+    Icon: ArrowsCounterClockwise,
     name: 'Wildcard',
     description: 'All transfers this gameweek are free. No limit on transfers.',
   },
   BENCH_BOOST: {
-    emoji: '⬆️',
+    Icon: ArrowFatLineUp,
     name: 'Bench Boost',
     description: "Your bench players' points count this gameweek.",
   },
   TRIPLE_CAPTAIN: {
-    emoji: '3×',
+    Icon: Star,
     name: 'Triple Captain',
     description: 'Your captain scores triple points this gameweek instead of double.',
   },
   FREE_HIT: {
-    emoji: '🎯',
+    Icon: Crosshair,
     name: 'Free Hit',
     description: 'Use any players for one gameweek. Your squad reverts after.',
   },
@@ -62,7 +63,11 @@ export function ChipCard({ chip, onActivate, onCancel, isDeadlineLocked }: ChipC
       whileHover={isAvailable && !reduce ? { scale: 1.01 } : undefined}
     >
       <div className="flex items-start gap-3">
-        <span className="text-3xl flex-shrink-0" aria-hidden="true">{meta?.emoji}</span>
+        {meta && (
+          <span className={`flex-shrink-0 p-2 rounded-card-xs ${isActive ? 'bg-exp-gold/20 text-exp-gold' : isAvailable ? 'bg-exp-navy-2 text-white' : 'bg-exp-ink text-exp-muted'}`}>
+            <meta.Icon size={24} weight="bold" aria-hidden="true" />
+          </span>
+        )}
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-display-sm text-white">{meta?.name}</h3>
@@ -83,7 +88,7 @@ export function ChipCard({ chip, onActivate, onCancel, isDeadlineLocked }: ChipC
           <button
             type="button"
             onClick={() => onCancel(chip.type)}
-            className="w-full min-h-[44px] rounded-pill border border-exp-live/40 text-exp-live text-label-lg focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+            className="w-full min-h-[44px] rounded-pill border border-exp-live/40 text-exp-live text-label-lg hover:bg-exp-live/10 active:scale-98 transition-all duration-150 focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
           >
             Cancel chip
           </button>
@@ -93,7 +98,7 @@ export function ChipCard({ chip, onActivate, onCancel, isDeadlineLocked }: ChipC
             type="button"
             onClick={() => onActivate(chip.type)}
             disabled={isDeadlineLocked}
-            className="w-full min-h-[44px] rounded-pill bg-exp-green text-white text-label-lg disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+            className="w-full min-h-[44px] rounded-pill bg-exp-green text-white text-label-lg hover:bg-exp-green/90 active:scale-98 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
           >
             {isDeadlineLocked ? 'Deadline passed' : 'Activate chip'}
           </button>

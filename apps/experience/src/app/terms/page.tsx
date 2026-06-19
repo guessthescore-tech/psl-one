@@ -44,7 +44,7 @@ export default function TermsPage() {
   return (
     <FantasyShell>
       <LegalDocument
-        title="PSL One — Terms and Conditions"
+        title="PSL One: Terms and Conditions"
         sections={TERMS_SECTIONS}
       />
     </FantasyShell>

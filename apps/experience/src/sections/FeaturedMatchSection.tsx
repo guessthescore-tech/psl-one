@@ -25,7 +25,7 @@ function StatBar({ label, home, away }: StatBarProps) {
         <span className="font-bold text-white tabular-nums w-8 text-right">{away}</span>
       </div>
       <div className="flex h-1 rounded-full overflow-hidden">
-        <div className="bg-exp-gold rounded-full transition-all duration-500" style={{ width: `${homePct}%` }} aria-hidden />
+        <div className="bg-exp-gold rounded-full transition-[width] duration-500 ease-out" style={{ width: `${homePct}%` }} aria-hidden />
         <div className="bg-white/20 flex-1 rounded-full" aria-hidden />
       </div>
     </div>

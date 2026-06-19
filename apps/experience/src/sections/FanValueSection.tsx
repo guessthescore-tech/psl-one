@@ -72,7 +72,7 @@ export function FanValueSection({ data }: FanValueSectionProps) {
                 </div>
                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className={`${cat.color} h-full rounded-full transition-all duration-700`}
+                    className={`${cat.color} h-full rounded-full transition-[width] duration-500 ease-out`}
                     style={{ width: `${pct}%` }}
                     role="progressbar"
                     aria-valuenow={pct}

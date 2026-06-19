@@ -36,7 +36,7 @@ export default function PrivacyPage() {
   return (
     <FantasyShell>
       <LegalDocument
-        title="PSL One — Privacy Policy"
+        title="PSL One: Privacy Policy"
         sections={PRIVACY_SECTIONS}
       />
     </FantasyShell>

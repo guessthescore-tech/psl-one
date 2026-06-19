@@ -162,7 +162,7 @@ export function GuessTheScoreSection({ data }: GuessTheScoreSectionProps) {
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                className="w-full bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
+                className="w-full bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
               >
                 Lock in prediction
               </button>

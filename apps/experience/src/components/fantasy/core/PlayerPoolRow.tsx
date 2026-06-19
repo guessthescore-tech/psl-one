@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
+import { Plus } from '@phosphor-icons/react/dist/ssr';
 import type { ExpFantasyPlayer } from '@/lib/data';
 
 interface PlayerPoolRowProps {
@@ -60,7 +61,7 @@ export function PlayerPoolRow({
             {posAbbr[player.position]}
           </span>
           <span className="text-label-sm text-exp-muted">{player.club.abbr}</span>
-          <span className="text-label-sm text-exp-muted">⚽ {player.goalsThisTournament} 🅰 {player.assistsThisTournament}</span>
+          <span className="text-label-sm text-exp-muted">G {player.goalsThisTournament} · A {player.assistsThisTournament}</span>
         </div>
       </div>
 
@@ -77,9 +78,9 @@ export function PlayerPoolRow({
           type="button"
           onClick={() => onSelect(player)}
           aria-label={`Add ${player.name}`}
-          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-exp-green hover:text-white transition-colors focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2 text-xl font-bold"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-exp-green hover:bg-exp-green hover:text-white active:scale-95 transition-all duration-150 focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
         >
-          +
+          <Plus size={20} weight="bold" aria-hidden="true" />
         </button>
       )}
     </motion.div>
