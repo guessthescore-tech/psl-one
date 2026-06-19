@@ -328,6 +328,147 @@ export const WC_FAN_VALUE: ExpFanValue = {
   },
 };
 
+/* ── Fantasy League & History types ─────────────────────────────────── */
+
+export interface ExpLeague {
+  id: string;
+  name: string;
+  type: 'PRIVATE' | 'PUBLIC' | 'GLOBAL';
+  memberCount: number;
+  myRank: number;
+  myPoints: number;
+  inviteCode?: string;
+  managedBy: string;
+  seasonId: string;
+}
+
+export interface ExpLeagueManager {
+  id: string;
+  name: string;
+  teamName: string;
+  gwPoints: number;
+  totalPoints: number;
+  rank: number;
+  previousRank: number;
+}
+
+export interface ExpHistoryEntry {
+  gameweekId: string;
+  gameweekName: string;
+  points: number;
+  rank: number;
+  overallRank: number;
+  transfersMade: number;
+  chipUsed?: string;
+}
+
+export interface ExpFantasySquad {
+  id: string;
+  teamName: string;
+  managerName: string;
+  totalPoints: number;
+  gwPoints: number;
+  rank: number;
+  players: ExpPlayer[];
+  bench: ExpPlayer[];
+}
+
+export interface ExpFantasyPlayer extends ExpPlayer {
+  gwPoints?: number;
+  isCaptain?: boolean;
+  isViceCaptain?: boolean;
+}
+
+/* ── Fantasy mock data ───────────────────────────────────────────────── */
+
+export const FANTASY_MOCK_LEAGUES: ExpLeague[] = [
+  {
+    id: 'league-private-1',
+    name: 'Bafana Believers',
+    type: 'PRIVATE',
+    memberCount: 8,
+    myRank: 3,
+    myPoints: 1247,
+    inviteCode: 'BAN247',
+    managedBy: 'You',
+    seasonId: 'wc-2026',
+  },
+  {
+    id: 'league-public-1',
+    name: 'SA Fantasy FC',
+    type: 'PUBLIC',
+    memberCount: 1024,
+    myRank: 142,
+    myPoints: 1247,
+    managedBy: 'PSL One',
+    seasonId: 'wc-2026',
+  },
+  {
+    id: 'league-global-1',
+    name: 'World Cup 2026 Global',
+    type: 'GLOBAL',
+    memberCount: 2000000,
+    myRank: 88403,
+    myPoints: 1247,
+    managedBy: 'PSL One',
+    seasonId: 'wc-2026',
+  },
+];
+
+export const FANTASY_MOCK_STANDINGS: ExpLeagueManager[] = [
+  { id: 'm1', name: 'Sipho Dlamini',   teamName: 'Amakhosi XI',       gwPoints: 82, totalPoints: 1489, rank: 1, previousRank: 2 },
+  { id: 'm2', name: 'Lerato Mokoena',  teamName: 'Soweto Stars',      gwPoints: 71, totalPoints: 1371, rank: 2, previousRank: 1 },
+  { id: 'm3', name: 'You',             teamName: 'My WC Fantasy Team', gwPoints: 64, totalPoints: 1247, rank: 3, previousRank: 3 },
+  { id: 'm4', name: 'Thabo Nkosi',     teamName: 'Golden Squad',      gwPoints: 59, totalPoints: 1188, rank: 4, previousRank: 5 },
+  { id: 'm5', name: 'Nomsa Vilakazi',  teamName: 'Atlas Lions FC',    gwPoints: 55, totalPoints: 1102, rank: 5, previousRank: 4 },
+  { id: 'm6', name: 'Kagiso Sithole',  teamName: 'Mzansi Magic',      gwPoints: 48, totalPoints: 984,  rank: 6, previousRank: 6 },
+  { id: 'm7', name: 'Zanele Mbatha',   teamName: 'Phoenix Rising',    gwPoints: 41, totalPoints: 879,  rank: 7, previousRank: 7 },
+  { id: 'm8', name: 'Bongani Khoza',   teamName: 'Tribal Warriors',   gwPoints: 37, totalPoints: 723,  rank: 8, previousRank: 8 },
+];
+
+export const FANTASY_MOCK_HISTORY: ExpHistoryEntry[] = [
+  { gameweekId: 'gw-1', gameweekName: 'Matchday 1', points: 74,  rank: 15420, overallRank: 102340, transfersMade: 0, chipUsed: undefined },
+  { gameweekId: 'gw-2', gameweekName: 'Matchday 2', points: 88,  rank: 9841,  overallRank: 88403,  transfersMade: 1, chipUsed: undefined },
+  { gameweekId: 'gw-3', gameweekName: 'Matchday 3', points: 64,  rank: 12034, overallRank: 91200,  transfersMade: 0, chipUsed: undefined },
+  { gameweekId: 'gw-4', gameweekName: 'Matchday 4', points: 112, rank: 4320,  overallRank: 72100,  transfersMade: 2, chipUsed: 'Triple Captain' },
+  { gameweekId: 'gw-5', gameweekName: 'Matchday 5', points: 57,  rank: 18901, overallRank: 95000,  transfersMade: 0, chipUsed: undefined },
+  { gameweekId: 'gw-6', gameweekName: 'Matchday 6', points: 91,  rank: 7203,  overallRank: 80500,  transfersMade: 1, chipUsed: undefined },
+  { gameweekId: 'gw-7', gameweekName: 'Matchday 7', points: 103, rank: 5841,  overallRank: 74200,  transfersMade: 1, chipUsed: undefined },
+  { gameweekId: 'gw-8', gameweekName: 'Matchday 8', points: 69,  rank: 13200, overallRank: 88900,  transfersMade: 0, chipUsed: undefined },
+  { gameweekId: 'gw-9', gameweekName: 'Matchday 9', points: 82,  rank: 9021,  overallRank: 82100,  transfersMade: 1, chipUsed: undefined },
+  { gameweekId: 'gw-10', gameweekName: 'Matchday 10', points: 64, rank: 12034, overallRank: 88403, transfersMade: 0, chipUsed: undefined },
+];
+
+export const FANTASY_MOCK_PLAYERS: ExpPlayer[] = WC_PLAYERS;
+
+export const FANTASY_MOCK_TEAM: ExpFantasySquad = {
+  id: 'team-mock-1',
+  teamName: 'My WC Fantasy Team',
+  managerName: 'You',
+  totalPoints: 1247,
+  gwPoints: 64,
+  rank: 88403,
+  players: [
+    WC_PLAYERS[4]!, // GK (Ruben Dias used as placeholder)
+    WC_PLAYERS[5]!, // DEF
+    WC_PLAYERS[4]!, // DEF
+    WC_PLAYERS[5]!, // DEF
+    WC_PLAYERS[4]!, // DEF
+    WC_PLAYERS[2]!, // MID (Bellingham)
+    WC_PLAYERS[3]!, // MID (Pedri)
+    WC_PLAYERS[2]!, // MID
+    WC_PLAYERS[1]!, // FWD (Vinicius)
+    WC_PLAYERS[0]!, // FWD (Mbappe - captain)
+    WC_PLAYERS[1]!, // FWD
+  ],
+  bench: [
+    WC_PLAYERS[5]!,
+    WC_PLAYERS[4]!,
+    WC_PLAYERS[3]!,
+    WC_PLAYERS[2]!,
+  ],
+};
+
 /* ── Data accessor (chooses mock vs live) ───────────────────────────── */
 
 export interface ExperienceData {
