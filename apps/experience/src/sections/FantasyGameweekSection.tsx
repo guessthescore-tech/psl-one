@@ -90,7 +90,7 @@ export function FantasyGameweekSection({ data }: FantasyGameweekSectionProps) {
               />
             </div>
             <Link
-              href="/fantasy/transfers"
+              href="/fantasy/team/transfers"
               className="text-label-md text-exp-gold hover:text-exp-gold-2 transition-colors duration-100 focus-visible:outline-none focus-visible:underline"
             >
               Make transfers

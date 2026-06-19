@@ -30,7 +30,7 @@ export function FixtureCarouselSection({ data }: FixtureCarouselSectionProps) {
           <SectionHeader
             title="Fixtures"
             subtitle={data.gameweek.label}
-            href="/fixtures"
+            href="/matches"
           />
           {/* Scroll controls - desktop only */}
           <div className="hidden sm:flex items-center gap-2">

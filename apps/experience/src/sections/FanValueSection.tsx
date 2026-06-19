@@ -33,7 +33,7 @@ export function FanValueSection({ data }: FanValueSectionProps) {
           title="Fan Value"
           subtitle="Your engagement score"
           dark
-          href="/profile/fan-value"
+          href="/account"
           linkLabel="Full breakdown"
         />
 

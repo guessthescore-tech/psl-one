@@ -19,7 +19,7 @@ export function EditorialGridSection({ data }: EditorialGridSectionProps) {
         <SectionHeader
           title="Latest"
           subtitle="News and editorial"
-          href="/news"
+          href="/media"
           linkLabel="All stories"
         />
 

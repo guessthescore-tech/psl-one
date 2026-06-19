@@ -17,8 +17,8 @@ export function ClubIdentitySection({ data }: ClubIdentitySectionProps) {
         <SectionHeader
           title="Teams"
           subtitle={data.competitionName}
-          href="/clubs"
-          linkLabel="All clubs"
+          href="/players"
+          linkLabel="All players"
         />
 
         <div
