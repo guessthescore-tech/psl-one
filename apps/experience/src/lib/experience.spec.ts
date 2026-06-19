@@ -246,3 +246,204 @@ describe('next.config.ts', () => {
   it('has standalone output', () => expect(nc).toContain('standalone'));
   it('has picsum.photos in image domains', () => expect(nc).toContain('picsum.photos'));
 });
+
+// ─── Account & Auth pages ──────────────────────────────────────────────────
+
+describe('Account & Auth pages', () => {
+  it('sign-in page renders email and password fields', () => {
+    const content = read('app/sign-in/page.tsx');
+    expect(content).toContain('type="email"');
+    expect(content).toContain('type={showPassword');
+    expect(content).toContain('Sign in');
+  });
+
+  it('register page renders form with terms checkbox', () => {
+    const content = read('app/register/page.tsx');
+    expect(content).toContain('type="checkbox"');
+    expect(content).toContain('Terms');
+    expect(content).toContain('Create Account');
+  });
+
+  it('account overview renders profile summary', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain('displayName');
+    expect(content).toContain('memberSince');
+    expect(content).toContain('Fantasy Summary');
+  });
+
+  it('help page renders FAQ categories', () => {
+    const content = read('app/help/page.tsx');
+    expect(content).toContain('Getting Started');
+    expect(content).toContain('Fantasy Rules');
+    expect(content).toContain('Account');
+    expect(content).toContain('Technical');
+  });
+
+  it('terms page renders legal document', () => {
+    const content = read('app/terms/page.tsx');
+    expect(content).toContain('Acceptance of Terms');
+    expect(content).toContain('Governing Law');
+    expect(content).toContain('LegalDocument');
+  });
+
+  it('privacy page renders data rights section', () => {
+    const content = read('app/privacy/page.tsx');
+    expect(content).toContain('POPIA');
+    expect(content).toContain('Data Controller');
+    expect(content).toContain('LegalDocument');
+  });
+
+  it('about page renders mission statement', () => {
+    const content = read('app/about/page.tsx');
+    expect(content).toContain('The Digital Operating System');
+    expect(content).toContain('Points Engine');
+    expect(content).toContain('Club Experience');
+    expect(content).toContain('Social Leagues');
+  });
+
+  it('quiz shell renders question and answer options', () => {
+    const content = read('components/account/QuizShell.tsx');
+    expect(content).toContain('question');
+    expect(content).toContain('options');
+    expect(content).toContain('correctIndex');
+    expect(content).toContain('Fan Points');
+  });
+});
+
+// ─── Account component existence ──────────────────────────────────────────
+
+describe('account components exist', () => {
+  const components = [
+    'components/account/AuthLayout.tsx',
+    'components/account/AuthTabs.tsx',
+    'components/account/AccountNav.tsx',
+    'components/account/ProfileForm.tsx',
+    'components/account/PasswordForm.tsx',
+    'components/account/FavouriteTeamSelector.tsx',
+    'components/account/DeleteAccountDialog.tsx',
+    'components/account/HelpCategoryList.tsx',
+    'components/account/HelpArticle.tsx',
+    'components/account/LegalDocument.tsx',
+    'components/account/BadgeScannerShell.tsx',
+    'components/account/QuizShell.tsx',
+  ];
+  for (const c of components) {
+    it(c, () => expect(exists(c)).toBe(true));
+  }
+});
+
+// ─── Account page existence ────────────────────────────────────────────────
+
+describe('account pages exist', () => {
+  const pages = [
+    'app/sign-in/page.tsx',
+    'app/register/page.tsx',
+    'app/forgot-password/page.tsx',
+    'app/reset-password/page.tsx',
+    'app/account/page.tsx',
+    'app/account/profile/page.tsx',
+    'app/account/security/page.tsx',
+    'app/account/favourite-team/page.tsx',
+    'app/account/delete/page.tsx',
+    'app/help/page.tsx',
+    'app/help/[slug]/page.tsx',
+    'app/terms/page.tsx',
+    'app/privacy/page.tsx',
+    'app/about/page.tsx',
+    'app/scan/page.tsx',
+    'app/quiz/[quizId]/page.tsx',
+  ];
+  for (const p of pages) {
+    it(p, () => expect(exists(p)).toBe(true));
+  }
+});
+
+// ─── Auth lib existence ────────────────────────────────────────────────────
+
+describe('auth lib exists', () => {
+  it('lib/auth.ts present', () => expect(exists('lib/auth.ts')).toBe(true));
+  it('lib/profile-api.ts present', () => expect(exists('lib/profile-api.ts')).toBe(true));
+
+  it('auth.ts exports login', () => expect(read('lib/auth.ts')).toContain('export async function login'));
+  it('auth.ts exports register', () => expect(read('lib/auth.ts')).toContain('export async function register'));
+  it('auth.ts exports logout', () => expect(read('lib/auth.ts')).toContain('export async function logout'));
+  it('auth.ts exports getMe', () => expect(read('lib/auth.ts')).toContain('export async function getMe'));
+  it('auth.ts exports isAuthenticated', () => expect(read('lib/auth.ts')).toContain('export function isAuthenticated'));
+  it('auth.ts exports requestPasswordReset', () => expect(read('lib/auth.ts')).toContain('export async function requestPasswordReset'));
+  it('auth.ts exports confirmPasswordReset', () => expect(read('lib/auth.ts')).toContain('export async function confirmPasswordReset'));
+
+  it('profile-api.ts exports getProfile', () => expect(read('lib/profile-api.ts')).toContain('export async function getProfile'));
+  it('profile-api.ts exports updateProfile', () => expect(read('lib/profile-api.ts')).toContain('export async function updateProfile'));
+  it('profile-api.ts exports getProfileSummary', () => expect(read('lib/profile-api.ts')).toContain('export async function getProfileSummary'));
+});
+
+// ─── POPIA & non-gambling compliance ──────────────────────────────────────
+
+describe('POPIA compliance messaging', () => {
+  it('delete account page references POPIA', () => {
+    expect(read('components/account/DeleteAccountDialog.tsx')).toContain('POPIA');
+  });
+  it('privacy page references POPIA', () => {
+    expect(read('app/privacy/page.tsx')).toContain('POPIA');
+  });
+  it('delete button is disabled', () => {
+    expect(read('components/account/DeleteAccountDialog.tsx')).toContain('disabled');
+  });
+});
+
+describe('no gambling language in auth/account pages', () => {
+  const files = [
+    'app/sign-in/page.tsx',
+    'app/register/page.tsx',
+    'app/account/page.tsx',
+    'components/account/QuizShell.tsx',
+  ];
+  for (const file of files) {
+    it(`${file} has no gambling references`, () => {
+      const content = read(file).toLowerCase();
+      expect(content).not.toContain('gamble');
+      expect(content).not.toContain('betting');
+      expect(content).not.toContain('wager');
+      expect(content).not.toContain('casino');
+    });
+  }
+});
+
+describe('quiz mentions points-only disclaimer', () => {
+  it('QuizShell has points-only note', () => {
+    const content = read('components/account/QuizShell.tsx');
+    expect(
+      content.includes('Points only') ||
+      content.includes('no real money') ||
+      content.includes('no financial value'),
+    ).toBe(true);
+  });
+});
+
+// ─── Accessibility checks (account) ───────────────────────────────────────
+
+describe('touch target compliance in account components', () => {
+  const interactiveFiles = [
+    'components/account/AuthTabs.tsx',
+    'components/account/AccountNav.tsx',
+    'components/account/ProfileForm.tsx',
+    'components/account/FavouriteTeamSelector.tsx',
+  ];
+  for (const file of interactiveFiles) {
+    it(`${file} has min-h-[44px]`, () => {
+      expect(read(file)).toContain('min-h-[44px]');
+    });
+  }
+});
+
+describe('aria labels on auth forms', () => {
+  it('sign-in form has aria-label', () => {
+    expect(read('app/sign-in/page.tsx')).toContain('aria-label="Sign in"');
+  });
+  it('register form has aria-label', () => {
+    expect(read('app/register/page.tsx')).toContain('aria-label="Create account"');
+  });
+  it('sign-in button has aria-busy', () => {
+    expect(read('app/sign-in/page.tsx')).toContain('aria-busy');
+  });
+});
