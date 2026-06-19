@@ -58,7 +58,7 @@ export default function TeamPage() {
             {[
               { label: 'Total Points', value: team.totalPoints, color: 'text-exp-gold' },
               { label: 'This GW', value: team.gameweekPoints, color: 'text-white' },
-              { label: 'Rank', value: `#${team.rank.toLocaleString()}`, color: 'text-white' },
+              { label: 'Transfers', value: team.transfersRemaining, color: 'text-white' },
             ].map(stat => (
               <div key={stat.label} className="text-center bg-exp-ink rounded-card-xs py-2.5">
                 <p className={`text-stat-md font-mono ${stat.color}`}>{stat.value}</p>
@@ -72,8 +72,7 @@ export default function TeamPage() {
 
           {/* Transfer info */}
           <p className="text-label-sm text-exp-muted text-center mt-2">
-            {team.transfersRemaining} free transfer{team.transfersRemaining !== 1 ? 's' : ''} remaining ·
-            £{team.budget.toFixed(1)}m in bank
+            {team.transfersRemaining} free transfer{team.transfersRemaining !== 1 ? 's' : ''} remaining
           </p>
         </motion.div>
 
@@ -81,7 +80,7 @@ export default function TeamPage() {
         <div className="px-3 py-4">
           <FantasyPitchView
             players={starters}
-            formation={team.formation}
+            formation="4-3-3"
             onPlayerClick={handlePlayerClick}
           />
         </div>
@@ -137,13 +136,13 @@ export default function TeamPage() {
                   {selectedPlayer.isCaptain && <CaptainMarker type="C" />}
                   {selectedPlayer.isViceCaptain && <CaptainMarker type="VC" />}
                 </div>
-                <p className="text-body-sm text-exp-muted">{selectedPlayer.club} · £{selectedPlayer.price}m</p>
+                <p className="text-body-sm text-exp-muted">{selectedPlayer.club.shortName} · £{selectedPlayer.fantasyPrice}m</p>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-center">
               {[
-                { label: 'Points', value: selectedPlayer.points },
+                { label: 'Points', value: selectedPlayer.fantasyPoints },
                 { label: 'Goals', value: selectedPlayer.goalsThisTournament },
                 { label: 'Assists', value: selectedPlayer.assistsThisTournament },
               ].map(s => (

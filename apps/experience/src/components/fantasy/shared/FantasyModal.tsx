@@ -101,7 +101,7 @@ export function FantasyModal({ open, onClose, title, children }: FantasyModalPro
                 ref={closeRef}
                 type="button"
                 onClick={onClose}
-                className="inline-flex items-center justify-center w-11 h-11 rounded-full text-white/60 hover:text-white hover:bg-exp-ink transition-colors focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-full text-white/60 hover:text-white hover:bg-exp-ink transition-colors focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
                 aria-label="Close modal"
               >
                 <X size={20} weight="bold" aria-hidden="true" />

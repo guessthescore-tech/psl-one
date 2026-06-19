@@ -5,7 +5,8 @@ import { PlayerFilters } from './PlayerFilters';
 import { PlayerPoolRow } from './PlayerPoolRow';
 import type { ExpFantasyPlayer } from '@/lib/data';
 
-type PositionFilter = 'ALL' | 'GOALKEEPER' | 'DEFENDER' | 'MIDFIELDER' | 'FORWARD';
+type PositionFilter = 'ALL' | 'GK' | 'DEF' | 'MID' | 'FWD';
+type SortKey = 'fantasyPoints' | 'fantasyPrice' | 'gameweekPoints';
 
 interface PlayerPoolProps {
   players: ExpFantasyPlayer[];
@@ -16,7 +17,7 @@ interface PlayerPoolProps {
 
 export function PlayerPool({ players, onSelect, pickedIds = [], filterPosition }: PlayerPoolProps) {
   const [position, setPosition] = useState<PositionFilter>(filterPosition ?? 'ALL');
-  const [sortBy, setSortBy] = useState<'points' | 'price' | 'form'>('points');
+  const [sortBy, setSortBy] = useState<SortKey>('fantasyPoints');
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
@@ -28,14 +29,14 @@ export function PlayerPool({ players, onSelect, pickedIds = [], filterPosition }
       const q = search.toLowerCase();
       list = list.filter(p =>
         p.name.toLowerCase().includes(q) ||
-        p.club.toLowerCase().includes(q) ||
-        p.clubShort.toLowerCase().includes(q)
+        p.club.name.toLowerCase().includes(q) ||
+        p.club.abbr.toLowerCase().includes(q)
       );
     }
     list.sort((a, b) => {
-      if (sortBy === 'points') return b.points - a.points;
-      if (sortBy === 'price') return b.price - a.price;
-      return b.form - a.form;
+      if (sortBy === 'fantasyPoints') return b.fantasyPoints - a.fantasyPoints;
+      if (sortBy === 'fantasyPrice') return b.fantasyPrice - a.fantasyPrice;
+      return b.gameweekPoints - a.gameweekPoints;
     });
     return list;
   }, [players, position, search, sortBy]);

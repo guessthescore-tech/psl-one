@@ -30,10 +30,10 @@ export function FantasyPitchView({
   const starters = players.filter(p => !p || p.squadRole === 'STARTER');
 
   // Build rows: GK (1) + formation rows
-  const gkPlayers = starters.filter(p => !p || p?.position === 'GOALKEEPER').slice(0, 1);
-  const defPlayers = starters.filter(p => !p || p?.position === 'DEFENDER').slice(0, formationRows[0] ?? 4);
-  const midPlayers = starters.filter(p => !p || p?.position === 'MIDFIELDER').slice(0, formationRows[1] ?? 3);
-  const fwdPlayers = starters.filter(p => !p || p?.position === 'FORWARD').slice(0, formationRows[2] ?? 3);
+  const gkPlayers = starters.filter(p => !p || p?.position === 'GK').slice(0, 1);
+  const defPlayers = starters.filter(p => !p || p?.position === 'DEF').slice(0, formationRows[0] ?? 4);
+  const midPlayers = starters.filter(p => !p || p?.position === 'MID').slice(0, formationRows[1] ?? 3);
+  const fwdPlayers = starters.filter(p => !p || p?.position === 'FWD').slice(0, formationRows[2] ?? 3);
 
   // Pad to formation counts
   while (defPlayers.length < (formationRows[0] ?? 4)) defPlayers.push(null);
@@ -41,10 +41,10 @@ export function FantasyPitchView({
   while (fwdPlayers.length < (formationRows[2] ?? 3)) fwdPlayers.push(null);
 
   const rows: Array<{ label: string; pos: string; slots: (ExpFantasyPlayer | null)[] }> = [
-    { label: 'GK', pos: 'GOALKEEPER', slots: gkPlayers },
-    { label: 'DEF', pos: 'DEFENDER', slots: defPlayers },
-    { label: 'MID', pos: 'MIDFIELDER', slots: midPlayers },
-    { label: 'FWD', pos: 'FORWARD', slots: fwdPlayers },
+    { label: 'GK',  pos: 'GK',  slots: gkPlayers  },
+    { label: 'DEF', pos: 'DEF', slots: defPlayers  },
+    { label: 'MID', pos: 'MID', slots: midPlayers  },
+    { label: 'FWD', pos: 'FWD', slots: fwdPlayers  },
   ];
 
   return (

@@ -1,7 +1,8 @@
 'use client';
 
 import { motion, useReducedMotion } from 'framer-motion';
-import type { ExpChip, ChipType, ChipStatus } from '@/lib/data';
+import type { ExpChip } from '@/lib/data';
+import type { ChipType, ChipStatus } from '@/lib/fantasy-api';
 
 const CHIP_META: Record<ChipType, { emoji: string; name: string; description: string }> = {
   WILDCARD: {
@@ -26,11 +27,12 @@ const CHIP_META: Record<ChipType, { emoji: string; name: string; description: st
   },
 };
 
-const STATUS_STYLES: Record<ChipStatus, string> = {
-  AVAILABLE: 'text-exp-green border-exp-green/40 bg-exp-green/10',
-  ACTIVE:    'text-exp-gold border-exp-gold/40 bg-exp-gold/10',
-  USED:      'text-exp-muted border-exp-border-dk bg-exp-ink',
-  EXPIRED:   'text-exp-muted border-exp-border-dk bg-exp-ink',
+const STATUS_STYLES: Partial<Record<ChipStatus, string>> = {
+  AVAILABLE:  'text-exp-green border-exp-green/40 bg-exp-green/10',
+  ACTIVE:     'text-exp-gold border-exp-gold/40 bg-exp-gold/10',
+  USED:       'text-exp-muted border-exp-border-dk bg-exp-ink',
+  CANCELLED:  'text-exp-muted border-exp-border-dk bg-exp-ink',
+  EXPIRED:    'text-exp-muted border-exp-border-dk bg-exp-ink',
 };
 
 interface ChipCardProps {
@@ -45,7 +47,7 @@ export function ChipCard({ chip, onActivate, onCancel, isDeadlineLocked }: ChipC
   const meta = CHIP_META[chip.type];
   const isAvailable = chip.status === 'AVAILABLE';
   const isActive = chip.status === 'ACTIVE';
-  const isUsed = chip.status === 'USED' || chip.status === 'EXPIRED';
+  const isUsed = chip.status === 'USED';
 
   return (
     <motion.div
@@ -60,17 +62,17 @@ export function ChipCard({ chip, onActivate, onCancel, isDeadlineLocked }: ChipC
       whileHover={isAvailable && !reduce ? { scale: 1.01 } : undefined}
     >
       <div className="flex items-start gap-3">
-        <span className="text-3xl flex-shrink-0" aria-hidden="true">{meta.emoji}</span>
+        <span className="text-3xl flex-shrink-0" aria-hidden="true">{meta?.emoji}</span>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-display-sm text-white">{meta.name}</h3>
-            <span className={`text-label-sm px-2 py-0.5 rounded-pill border ${STATUS_STYLES[chip.status]}`}>
+            <h3 className="text-display-sm text-white">{meta?.name}</h3>
+            <span className={`text-label-sm px-2 py-0.5 rounded-pill border ${STATUS_STYLES[chip.status] ?? 'text-exp-muted border-exp-border-dk bg-exp-ink'}`}>
               {chip.status === 'USED' && chip.usedInGameweek
                 ? `Used GW${chip.usedInGameweek}`
                 : chip.status}
             </span>
           </div>
-          <p className="text-body-sm text-exp-muted">{meta.description}</p>
+          <p className="text-body-sm text-exp-muted">{meta?.description}</p>
           <p className="text-label-sm text-exp-muted mt-1">Points only — no financial value</p>
         </div>
       </div>

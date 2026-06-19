@@ -1,7 +1,8 @@
 'use client';
 
 import { ChipCard } from './ChipCard';
-import type { ExpChip, ChipType } from '@/lib/data';
+import type { ExpChip } from '@/lib/data';
+import type { ChipType } from '@/lib/fantasy-api';
 
 interface ChipSelectorProps {
   chips: ExpChip[];

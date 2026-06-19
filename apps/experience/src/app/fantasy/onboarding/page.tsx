@@ -79,7 +79,7 @@ export default function OnboardingPage() {
 
   const allPlayers = [...squad.starters, ...squad.bench].filter(Boolean) as ExpFantasyPlayer[];
   const pickedIds = allPlayers.map(p => p.id);
-  const totalValue = allPlayers.reduce((sum, p) => sum + p.price, 0);
+  const totalValue = allPlayers.reduce((sum, p) => sum + p.fantasyPrice, 0);
   const budgetRemaining = Math.max(0, TOTAL_BUDGET - totalValue);
   const squadComplete = squad.starters.every(Boolean) && squad.bench.every(Boolean);
 
@@ -149,11 +149,14 @@ export default function OnboardingPage() {
     try {
       const { createTeam } = await import('@/lib/fantasy-api');
       await createTeam({
-        teamName,
-        formation,
-        playerIds: pickedIds,
-        captainId: captainId ?? '',
-        viceCaptainId: viceCaptainId ?? '',
+        name: teamName,
+        players: allPlayers.map(p => ({
+          playerId: p.id,
+          squadRole: p.squadRole,
+          benchSlot: p.benchSlot ?? undefined,
+          isCaptain: p.id === captainId,
+          isViceCaptain: p.id === viceCaptainId,
+        })),
       });
       router.push('/fantasy/team');
     } catch {

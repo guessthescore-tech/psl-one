@@ -2,24 +2,25 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 
-type PositionFilter = 'ALL' | 'GOALKEEPER' | 'DEFENDER' | 'MIDFIELDER' | 'FORWARD';
+type PositionFilter = 'ALL' | 'GK' | 'DEF' | 'MID' | 'FWD';
+type SortKey = 'fantasyPoints' | 'fantasyPrice' | 'gameweekPoints';
 
 interface PlayerFiltersProps {
   position: PositionFilter;
   onPositionChange: (p: PositionFilter) => void;
-  sortBy?: 'points' | 'price' | 'form';
-  onSortChange?: (s: 'points' | 'price' | 'form') => void;
+  sortBy?: SortKey;
+  onSortChange?: (s: SortKey) => void;
 }
 
 const POSITIONS: Array<{ id: PositionFilter; label: string }> = [
   { id: 'ALL', label: 'All' },
-  { id: 'GOALKEEPER', label: 'GK' },
-  { id: 'DEFENDER', label: 'DEF' },
-  { id: 'MIDFIELDER', label: 'MID' },
-  { id: 'FORWARD', label: 'FWD' },
+  { id: 'GK',  label: 'GK'  },
+  { id: 'DEF', label: 'DEF' },
+  { id: 'MID', label: 'MID' },
+  { id: 'FWD', label: 'FWD' },
 ];
 
-export function PlayerFilters({ position, onPositionChange, sortBy = 'points', onSortChange }: PlayerFiltersProps) {
+export function PlayerFilters({ position, onPositionChange, sortBy = 'fantasyPoints', onSortChange }: PlayerFiltersProps) {
   const reduce = useReducedMotion();
 
   return (
@@ -52,17 +53,17 @@ export function PlayerFilters({ position, onPositionChange, sortBy = 'points', o
       {onSortChange && (
         <div className="flex items-center gap-2">
           <span className="text-label-sm text-exp-muted">Sort:</span>
-          {(['points', 'price', 'form'] as const).map(s => (
+          {(['fantasyPoints', 'fantasyPrice', 'gameweekPoints'] as const).map(s => (
             <button
               key={s}
               type="button"
               onClick={() => onSortChange(s)}
               aria-pressed={s === sortBy}
-              className={`min-h-[32px] px-2.5 py-1 text-label-sm rounded-card-xs capitalize focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2 ${
+              className={`min-h-[32px] px-2.5 py-1 text-label-sm rounded-card-xs focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2 ${
                 s === sortBy ? 'text-exp-gold bg-exp-gold/10' : 'text-exp-muted hover:text-white'
               }`}
             >
-              {s}
+              {s === 'fantasyPoints' ? 'Pts' : s === 'fantasyPrice' ? 'Price' : 'GW Pts'}
             </button>
           ))}
         </div>

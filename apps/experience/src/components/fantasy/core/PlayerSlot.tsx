@@ -42,9 +42,9 @@ export function PlayerSlot({
   }
 
   const posColor =
-    player.position === 'GOALKEEPER' ? 'bg-amber-500' :
-    player.position === 'DEFENDER'   ? 'bg-blue-500' :
-    player.position === 'MIDFIELDER' ? 'bg-exp-green' :
+    player.position === 'GK'  ? 'bg-amber-500' :
+    player.position === 'DEF' ? 'bg-blue-500' :
+    player.position === 'MID' ? 'bg-exp-green' :
     'bg-exp-live';
 
   return (
@@ -69,9 +69,7 @@ export function PlayerSlot({
         {player.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
         {/* Position badge */}
         <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-bold text-white px-1 rounded-sm ${posColor}`}>
-          {player.position === 'GOALKEEPER' ? 'GK' :
-           player.position === 'DEFENDER'   ? 'DEF' :
-           player.position === 'MIDFIELDER' ? 'MID' : 'FWD'}
+          {player.position}
         </span>
         {/* Captain marker */}
         {(player.isCaptain || player.isViceCaptain) && (
@@ -91,7 +89,7 @@ export function PlayerSlot({
       {/* Name + price row */}
       <div className="text-center max-w-[64px]">
         <p className="text-label-sm text-white leading-tight truncate">{player.name.split(' ').pop()}</p>
-        <p className="text-label-sm text-exp-gold font-mono">£{player.price}m</p>
+        <p className="text-label-sm text-exp-gold font-mono">£{player.fantasyPrice}m</p>
       </div>
     </motion.button>
   );

@@ -50,14 +50,14 @@ export function FixtureDifficultyMatrix({
           </thead>
           <tbody>
             {data.map((entry, rowIdx) => (
-              <tr key={entry.clubShort} className={rowIdx % 2 === 0 ? 'bg-exp-ink' : 'bg-exp-navy'}>
+              <tr key={entry.club.abbr} className={rowIdx % 2 === 0 ? 'bg-exp-ink' : 'bg-exp-navy'}>
                 <td className="px-3 py-2 text-label-md text-white font-semibold whitespace-nowrap">
-                  {entry.clubShort}
+                  {entry.club.abbr}
                 </td>
                 {entry.fixtures.map((fx, fxIdx) => (
                   <FixtureDifficultyCell
                     key={fxIdx}
-                    opponent={fx.opponentShort}
+                    opponent={fx.opponentAbbr}
                     difficulty={fx.difficulty}
                     isHome={fx.isHome}
                   />

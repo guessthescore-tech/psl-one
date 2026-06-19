@@ -451,7 +451,7 @@ describe('Fantasy mock data exports', () => {
   it('exports FANTASY_MOCK_FDR', () => expect(dataSrc).toContain('FANTASY_MOCK_FDR'));
   it('has ExpFantasyPlayer type', () => expect(dataSrc).toContain('ExpFantasyPlayer'));
   it('has 30 mock players', () => {
-    const matches = dataSrc.match(/id: '(gk|def|mid|fwd)-/g);
+    const matches = dataSrc.match(/id: 'fp-(gk|def|mid|fwd)-/g);
     expect(matches?.length).toBeGreaterThanOrEqual(28);
   });
 });

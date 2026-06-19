@@ -27,7 +27,7 @@ export function TransferPanel({ transferOut, transferIn, freeTransfers, isWildca
           {transferOut ? (
             <div>
               <p className="text-body-sm text-white font-semibold">{transferOut.name}</p>
-              <p className="text-label-sm text-exp-muted">{transferOut.clubShort} · £{transferOut.price}m</p>
+              <p className="text-label-sm text-exp-muted">{transferOut.club.abbr} · £{transferOut.fantasyPrice}m</p>
             </div>
           ) : (
             <p className="text-body-sm text-exp-muted">Select player</p>
@@ -43,7 +43,7 @@ export function TransferPanel({ transferOut, transferIn, freeTransfers, isWildca
           {transferIn ? (
             <div>
               <p className="text-body-sm text-white font-semibold">{transferIn.name}</p>
-              <p className="text-label-sm text-exp-muted">{transferIn.clubShort} · £{transferIn.price}m</p>
+              <p className="text-label-sm text-exp-muted">{transferIn.club.abbr} · £{transferIn.fantasyPrice}m</p>
             </div>
           ) : (
             <p className="text-body-sm text-exp-muted">Select replacement</p>

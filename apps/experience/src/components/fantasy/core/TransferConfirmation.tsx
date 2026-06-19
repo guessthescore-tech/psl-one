@@ -27,7 +27,7 @@ export function TransferConfirmation({
           <div>
             <p className="text-label-sm text-exp-live uppercase tracking-widest">Removing</p>
             <p className="text-body-md text-white font-semibold">{transferOut.name}</p>
-            <p className="text-label-sm text-exp-muted">{transferOut.clubShort} · £{transferOut.price}m · {transferOut.points}pts</p>
+            <p className="text-label-sm text-exp-muted">{transferOut.club.abbr} · £{transferOut.fantasyPrice}m · {transferOut.fantasyPoints}pts</p>
           </div>
           <div className="text-exp-live text-2xl">↑</div>
         </div>
@@ -36,7 +36,7 @@ export function TransferConfirmation({
           <div>
             <p className="text-label-sm text-exp-green uppercase tracking-widest">Adding</p>
             <p className="text-body-md text-white font-semibold">{transferIn.name}</p>
-            <p className="text-label-sm text-exp-muted">{transferIn.clubShort} · £{transferIn.price}m · {transferIn.points}pts</p>
+            <p className="text-label-sm text-exp-muted">{transferIn.club.abbr} · £{transferIn.fantasyPrice}m · {transferIn.fantasyPoints}pts</p>
           </div>
           <div className="text-exp-green text-2xl">↓</div>
         </div>

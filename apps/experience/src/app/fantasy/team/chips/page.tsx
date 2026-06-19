@@ -7,7 +7,8 @@ import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';
 import { FantasyModal } from '@/components/fantasy/shared/FantasyModal';
 import { ChipSelector } from '@/components/fantasy/core/ChipSelector';
 import { FANTASY_MOCK_CHIPS, getDataMode } from '@/lib/data';
-import type { ExpChip, ChipType } from '@/lib/data';
+import type { ExpChip } from '@/lib/data';
+import type { ChipType } from '@/lib/fantasy-api';
 
 const MOCK_DEADLINE_LOCKED = false;
 
@@ -52,7 +53,7 @@ export default function ChipsPage() {
 
     try {
       const { activateChip } = await import('@/lib/fantasy-api');
-      await activateChip(pendingChip);
+      await activateChip(pendingChip, 'current');
       setChips(prev => prev.map(c =>
         c.type === pendingChip ? { ...c, status: 'ACTIVE' as const } : c
       ));
@@ -91,14 +92,13 @@ export default function ChipsPage() {
     }
   }
 
-  const pendingMeta = pendingChip
-    ? {
-        WILDCARD: { name: 'Wildcard', warning: 'This will allow unlimited free transfers this gameweek.' },
-        BENCH_BOOST: { name: 'Bench Boost', warning: 'Bench players will score points this gameweek.' },
-        TRIPLE_CAPTAIN: { name: 'Triple Captain', warning: 'Your captain earns triple points this gameweek.' },
-        FREE_HIT: { name: 'Free Hit', warning: 'Your squad reverts to its current state after this gameweek.' },
-      }[pendingChip]
-    : null;
+  const CHIP_CONFIRM: Record<ChipType, { name: string; warning: string }> = {
+    WILDCARD:       { name: 'Wildcard',        warning: 'This will allow unlimited free transfers this gameweek.' },
+    BENCH_BOOST:    { name: 'Bench Boost',     warning: 'Bench players will score points this gameweek.' },
+    TRIPLE_CAPTAIN: { name: 'Triple Captain',  warning: 'Your captain earns triple points this gameweek.' },
+    FREE_HIT:       { name: 'Free Hit',        warning: 'Your squad reverts to its current state after this gameweek.' },
+  };
+  const pendingMeta = pendingChip ? CHIP_CONFIRM[pendingChip] : null;
 
   return (
     <FantasyShell title="Chips" back={{ href: '/fantasy/team', label: 'Back to Team' }}>
@@ -106,10 +106,7 @@ export default function ChipsPage() {
         <FantasyPageHero
           title="Game Chips"
           subtitle="Use chips strategically to boost your score"
-          stats={[
-            { label: 'Available', value: availableCount },
-            { label: 'Active', value: activeChip ? activeChip.type.replace('_', ' ') : 'None' },
-          ]}
+          stat={{ label: 'Available', value: `${availableCount} chips` }}
         />
 
         {MOCK_DEADLINE_LOCKED && (

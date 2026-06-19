@@ -12,17 +12,17 @@ interface PlayerPoolRowProps {
 }
 
 const posAbbr: Record<string, string> = {
-  GOALKEEPER: 'GK',
-  DEFENDER: 'DEF',
-  MIDFIELDER: 'MID',
-  FORWARD: 'FWD',
+  GK:  'GK',
+  DEF: 'DEF',
+  MID: 'MID',
+  FWD: 'FWD',
 };
 
 const posColor: Record<string, string> = {
-  GOALKEEPER: 'text-amber-400',
-  DEFENDER: 'text-blue-400',
-  MIDFIELDER: 'text-exp-green',
-  FORWARD: 'text-exp-live',
+  GK:  'text-amber-400',
+  DEF: 'text-blue-400',
+  MID: 'text-exp-green',
+  FWD: 'text-exp-live',
 };
 
 export function PlayerPoolRow({
@@ -59,16 +59,16 @@ export function PlayerPoolRow({
           <span className={`text-label-sm ${posColor[player.position] ?? 'text-exp-muted'}`}>
             {posAbbr[player.position]}
           </span>
-          <span className="text-label-sm text-exp-muted">{player.clubShort}</span>
+          <span className="text-label-sm text-exp-muted">{player.club.abbr}</span>
           <span className="text-label-sm text-exp-muted">⚽ {player.goalsThisTournament} 🅰 {player.assistsThisTournament}</span>
         </div>
       </div>
 
       {/* Stats */}
       <div className="flex flex-col items-end gap-0.5">
-        <span className="text-label-md text-exp-gold font-mono">£{player.price}m</span>
-        <span className="text-label-sm text-exp-muted">{player.points}pts</span>
-        <span className="text-label-sm text-white/60">Form {player.form.toFixed(1)}</span>
+        <span className="text-label-md text-exp-gold font-mono">£{player.fantasyPrice}m</span>
+        <span className="text-label-sm text-exp-muted">{player.fantasyPoints}pts</span>
+        <span className="text-label-sm text-white/60">GW {player.gameweekPoints}</span>
       </div>
 
       {/* Add button */}

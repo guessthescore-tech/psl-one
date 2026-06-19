@@ -216,7 +216,7 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'GW Points', value: team.gameweekPoints },
-              { label: 'Rank', value: `#${team.rank.toLocaleString()}` },
+              { label: 'Rank', value: '#88,403' },
               { label: 'Free transfers', value: team.transfersRemaining },
             ].map(stat => (
               <div key={stat.label} className="text-center bg-exp-ink rounded-card-xs py-2">
@@ -268,7 +268,7 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
               <p className="text-label-sm text-exp-gold uppercase tracking-widest">Captain this GW</p>
               <p className="text-body-md text-white font-semibold">{team.players.find(p => p.isCaptain)?.name}</p>
               <p className="text-label-sm text-exp-muted">
-                {team.players.find(p => p.isCaptain)?.points}pts this tournament
+                {team.players.find(p => p.isCaptain)?.fantasyPoints}pts this tournament
               </p>
             </div>
           </div>

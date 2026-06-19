@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useId } from 'react';
+import { X } from '@phosphor-icons/react/dist/ssr';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 type SnapHeight = 'half' | 'three-quarters' | 'full';
@@ -71,13 +72,21 @@ export function FantasyBottomSheet({
 
             {/* Header */}
             {title && (
-              <div className="px-4 pb-3 flex-shrink-0">
+              <div className="px-4 pb-3 flex-shrink-0 flex items-center justify-between">
                 <h2
                   id={titleId}
                   className="font-display text-display-sm text-white"
                 >
                   {title}
                 </h2>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-full text-white/60 hover:text-white hover:bg-exp-ink transition-colors focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+                >
+                  <X size={18} weight="bold" aria-hidden="true" />
+                </button>
               </div>
             )}
 

@@ -87,7 +87,7 @@ export default function TransfersPage() {
     setSubmitting(true);
     try {
       const { makeTransfers } = await import('@/lib/fantasy-api');
-      await makeTransfers([{ outPlayerId: transferOut.id, inPlayerId: transferIn.id }]);
+      await makeTransfers({ removePlayerId: transferOut.id, addPlayerId: transferIn.id });
       setConfirmOpen(false);
       setTransferOut(null);
       setTransferIn(null);
@@ -154,7 +154,7 @@ export default function TransfersPage() {
         <div className="px-3 py-4">
           <FantasyPitchView
             players={starters}
-            formation={FANTASY_MOCK_TEAM.formation}
+            formation="4-3-3"
             onPlayerClick={handlePlayerClick}
             transferOutId={transferOut?.id ?? null}
           />
@@ -194,11 +194,7 @@ export default function TransfersPage() {
           players={FANTASY_MOCK_PLAYERS}
           onSelect={handlePoolSelect}
           pickedIds={pickedIds.filter(id => id !== transferOut?.id)}
-          filterPosition={
-            transferOut
-              ? (transferOut.position as 'ALL' | 'GOALKEEPER' | 'DEFENDER' | 'MIDFIELDER' | 'FORWARD')
-              : 'ALL'
-          }
+          filterPosition={transferOut?.position ?? 'ALL'}
         />
       </FantasyBottomSheet>
 
