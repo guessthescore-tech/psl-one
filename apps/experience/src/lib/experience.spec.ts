@@ -246,3 +246,245 @@ describe('next.config.ts', () => {
   it('has standalone output', () => expect(nc).toContain('standalone'));
   it('has picsum.photos in image domains', () => expect(nc).toContain('picsum.photos'));
 });
+
+// ─── Football Context pages ────────────────────────────────────────────────
+
+describe('Football Context pages', () => {
+  it('matches list renders fixture cards', () => {
+    expect(exists('app/matches/page.tsx')).toBe(true);
+    const content = read('app/matches/page.tsx');
+    expect(content).toContain('WC_FIXTURES');
+    expect(content).toContain('MatchHeader');
+    expect(content).toContain('MatchStateBadge');
+    expect(content).toContain("'results'");
+    expect(content).toContain("'fixtures'");
+    expect(content).toContain("'live'");
+  });
+
+  it('match detail page has four tabs', () => {
+    expect(exists('app/matches/[fixtureId]/page.tsx')).toBe(true);
+    const content = read('app/matches/[fixtureId]/page.tsx');
+    expect(content).toContain("'overview'");
+    expect(content).toContain("'stats'");
+    expect(content).toContain("'lineups'");
+    expect(content).toContain("'timeline'");
+    expect(content).toContain('MatchTimeline');
+    expect(content).toContain('MatchStatsPanel');
+    expect(content).toContain('LineupPitch');
+  });
+
+  it('MOTM page exists and uses ManOfTheMatchCard', () => {
+    expect(exists('app/matches/[fixtureId]/motm/page.tsx')).toBe(true);
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    expect(content).toContain('ManOfTheMatchCard');
+    expect(content).toContain('mbappe');
+  });
+
+  it('player directory renders player rows', () => {
+    expect(exists('app/players/page.tsx')).toBe(true);
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('WC_PLAYERS');
+    expect(content).toContain('PlayerProfileHero');
+    expect(content).toContain('search');
+    // Position filters
+    expect(content).toContain("'GK'");
+    expect(content).toContain("'DEF'");
+    expect(content).toContain("'MID'");
+    expect(content).toContain("'FWD'");
+  });
+
+  it('player profile page renders stat grid and tabs', () => {
+    expect(exists('app/players/[playerId]/page.tsx')).toBe(true);
+    const content = read('app/players/[playerId]/page.tsx');
+    expect(content).toContain('PlayerStatGrid');
+    expect(content).toContain('PlayerGameweekTable');
+    expect(content).toContain("'season'");
+    expect(content).toContain("'fantasy'");
+    expect(content).toContain("'matches'");
+    expect(content).toContain('Add to Fantasy Team');
+  });
+
+  it('player stats page has radar and fantasy breakdown', () => {
+    expect(exists('app/players/[playerId]/stats/page.tsx')).toBe(true);
+    const content = read('app/players/[playerId]/stats/page.tsx');
+    expect(content).toContain('PlayerStatGrid');
+    expect(content).toContain('PlayerGameweekTable');
+    expect(content).toContain('Fantasy Points Breakdown');
+    expect(content).toContain('Radar');
+  });
+
+  it('standings page renders league table', () => {
+    expect(exists('app/stats/standings/page.tsx')).toBe(true);
+    const content = read('app/stats/standings/page.tsx');
+    expect(content).toContain('WC_STANDINGS');
+    expect(content).toContain('StandingsTable');
+  });
+
+  it('season stats page renders top scorers', () => {
+    expect(exists('app/stats/season/page.tsx')).toBe(true);
+    const content = read('app/stats/season/page.tsx');
+    expect(content).toContain('SeasonLeaderboard');
+    expect(content).toContain('buildLeaderboard');
+    expect(content).toContain("'goals'");
+    expect(content).toContain("'assists'");
+    expect(content).toContain('Total Goals');
+  });
+
+  it('compare page renders two player selectors', () => {
+    expect(exists('app/stats/compare/page.tsx')).toBe(true);
+    const content = read('app/stats/compare/page.tsx');
+    expect(content).toContain('PlayerComparison');
+    expect(content).toContain('selectedA');
+    expect(content).toContain('selectedB');
+    expect(content).toContain('mbappe');
+    expect(content).toContain('vinicius');
+  });
+
+  it('awards page renders award cards', () => {
+    expect(exists('app/stats/awards/page.tsx')).toBe(true);
+    const content = read('app/stats/awards/page.tsx');
+    expect(content).toContain('AwardCard');
+    expect(content).toContain('Goal of the Tournament');
+    expect(content).toContain('Golden Boot');
+  });
+
+  it('hall of fame page renders teaser cards and coming soon state', () => {
+    expect(exists('app/stats/hall-of-fame/page.tsx')).toBe(true);
+    const content = read('app/stats/hall-of-fame/page.tsx');
+    expect(content).toContain('HallOfFameCard');
+    expect(content).toContain('Hall of Fame');
+    expect(content).toContain('tournament concludes');
+  });
+
+  it('media detail page renders article content', () => {
+    expect(exists('app/media/[slug]/page.tsx')).toBe(true);
+    const content = read('app/media/[slug]/page.tsx');
+    expect(content).toContain('ArticleDetail');
+    expect(content).toContain('VideoPlayerShell');
+    expect(content).toContain('WC_STORIES');
+    expect(content).toContain('WC_VIDEOS');
+  });
+});
+
+// ─── Football components exist ─────────────────────────────────────────────
+
+describe('football components exist', () => {
+  const components = [
+    'components/football/MatchHeader.tsx',
+    'components/football/MatchStateBadge.tsx',
+    'components/football/MatchTimeline.tsx',
+    'components/football/MatchStatsPanel.tsx',
+    'components/football/LineupPitch.tsx',
+    'components/football/PlayerProfileHero.tsx',
+    'components/football/PlayerStatGrid.tsx',
+    'components/football/PlayerGameweekTable.tsx',
+    'components/football/PlayerComparison.tsx',
+    'components/football/ComparisonMetric.tsx',
+    'components/football/SeasonLeaderboard.tsx',
+    'components/football/StandingsTable.tsx',
+    'components/football/AwardCard.tsx',
+    'components/football/HallOfFameCard.tsx',
+    'components/football/ManOfTheMatchCard.tsx',
+    'components/football/ArticleDetail.tsx',
+    'components/football/VideoPlayerShell.tsx',
+  ];
+  for (const comp of components) {
+    it(comp, () => expect(exists(comp)).toBe(true));
+  }
+});
+
+// ─── Non-financial disclaimers on football pages ───────────────────────────
+
+describe('no gambling language in football pages', () => {
+  const footballFiles = [
+    'app/players/page.tsx',
+    'app/players/[playerId]/page.tsx',
+    'app/stats/compare/page.tsx',
+    'components/football/PlayerComparison.tsx',
+    'components/football/ManOfTheMatchCard.tsx',
+  ];
+  for (const file of footballFiles) {
+    it(`${file} has no gambling references`, () => {
+      const content = read(file).toLowerCase();
+      expect(content).not.toContain('gamble');
+      expect(content).not.toContain('betting');
+      expect(content).not.toContain('wager');
+      expect(content).not.toContain('casino');
+      expect(content).not.toContain('odds');
+    });
+  }
+});
+
+describe('non-financial disclaimers on football surfaces', () => {
+  const surfaces = [
+    'app/players/page.tsx',
+    'app/players/[playerId]/page.tsx',
+    'app/players/[playerId]/stats/page.tsx',
+    'app/stats/season/page.tsx',
+    'app/stats/compare/page.tsx',
+    'components/football/PlayerComparison.tsx',
+    'components/football/ManOfTheMatchCard.tsx',
+  ];
+  for (const file of surfaces) {
+    it(`${file} has non-financial disclaimer`, () => {
+      const content = read(file);
+      const hasDisclaimer =
+        content.includes('Points only') ||
+        content.includes('no real money') ||
+        content.includes('no financial value') ||
+        content.includes('No gambling');
+      expect(hasDisclaimer).toBe(true);
+    });
+  }
+});
+
+// ─── Touch targets on football interactive elements ────────────────────────
+
+describe('touch target compliance on football pages', () => {
+  const interactive = [
+    'app/matches/page.tsx',
+    'app/players/page.tsx',
+    'app/stats/compare/page.tsx',
+    'components/football/ManOfTheMatchCard.tsx',
+  ];
+  for (const file of interactive) {
+    it(`${file} has min-h-[44px]`, () => {
+      expect(read(file)).toContain('min-h-[44px]');
+    });
+  }
+});
+
+// ─── LIVE pulse animation ──────────────────────────────────────────────────
+
+describe('live pulse animation', () => {
+  it('MatchStateBadge uses animate-live-pulse for LIVE status', () => {
+    const content = read('components/football/MatchStateBadge.tsx');
+    expect(content).toContain('animate-live-pulse');
+  });
+
+  it('matches page shows live pulse indicator', () => {
+    const content = read('app/matches/page.tsx');
+    expect(content).toContain('animate-live-pulse');
+  });
+});
+
+// ─── design-review-only screens ───────────────────────────────────────────
+
+describe('DESIGN_REVIEW_DATA only screens', () => {
+  it('MOTM page shows design review notice', () => {
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+  it('compare page shows design review notice', () => {
+    const content = read('app/stats/compare/page.tsx');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+  it('awards page shows design review notice', () => {
+    const content = read('app/stats/awards/page.tsx');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+  it('hall of fame page shows design review notice', () => {
+    const content = read('app/stats/hall-of-fame/page.tsx');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+});
