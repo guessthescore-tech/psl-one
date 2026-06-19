@@ -1041,3 +1041,169 @@ describe('fantasy route pages exist', () => {
     it(r, () => expect(exists(r)).toBe(true));
   }
 });
+
+// ─── Accessibility ───────────────────────────────────────────────────────────
+
+describe('global accessibility markers', () => {
+  it('main layout has id="main-content"', () => {
+    expect(read('app/layout.tsx')).toContain('id="main-content"');
+  });
+  it('mobile nav has aria-label', () => {
+    expect(read('components/shell/MobileBottomNav.tsx')).toContain('aria-label');
+  });
+  it('FantasyTabs has aria-label', () => {
+    expect(read('components/fantasy/nav/FantasyTabs.tsx')).toContain('aria-label');
+  });
+  it('FantasyModal has role dialog', () => {
+    expect(read('components/fantasy/shared/FantasyModal.tsx')).toContain('role="dialog"');
+  });
+  it('FantasyModal has aria-modal', () => {
+    expect(read('components/fantasy/shared/FantasyModal.tsx')).toContain('aria-modal');
+  });
+  it('FantasyBottomSheet has role dialog', () => {
+    expect(read('components/fantasy/shared/FantasyBottomSheet.tsx')).toContain('role="dialog"');
+  });
+});
+
+describe('reduced motion guards', () => {
+  it('FantasyActionBar uses useReducedMotion', () => {
+    expect(read('components/fantasy/shared/FantasyActionBar.tsx')).toContain('useReducedMotion');
+  });
+  it('FantasyModal uses useReducedMotion', () => {
+    expect(read('components/fantasy/shared/FantasyModal.tsx')).toContain('useReducedMotion');
+  });
+  it('FantasyBottomSheet uses useReducedMotion', () => {
+    expect(read('components/fantasy/shared/FantasyBottomSheet.tsx')).toContain('useReducedMotion');
+  });
+});
+
+// ─── Release readiness ───────────────────────────────────────────────────────
+
+describe('critical fantasy components have non-financial disclaimers', () => {
+  it('fantasy landing mentions points', () => {
+    const content = read('app/fantasy/page.tsx');
+    expect(
+      content.includes('point') ||
+      content.includes('pts') ||
+      content.includes('Points')
+    ).toBe(true);
+  });
+  it('onboarding has points-only note', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(
+      content.includes('Points only') ||
+      content.includes('no real money') ||
+      content.includes('no financial value')
+    ).toBe(true);
+  });
+});
+
+describe('no hardcoded secrets or API keys', () => {
+  const files = [
+    'lib/fantasy-api.ts',
+    'lib/auth.ts',
+    'lib/data.ts',
+  ];
+  for (const f of files) {
+    it(`${f} has no hardcoded API key`, () => {
+      const content = read(f);
+      expect(content).not.toMatch(/sk-[a-zA-Z0-9]{32,}/);
+      expect(content).not.toMatch(/Bearer [a-zA-Z0-9]{32,}/);
+    });
+  }
+});
+
+describe('data layer uses correct field names', () => {
+  it('data.ts uses fantasyPrice not price', () => expect(read('lib/data.ts')).toContain('fantasyPrice'));
+  it('data.ts uses fantasyPoints not points', () => expect(read('lib/data.ts')).toContain('fantasyPoints'));
+  it('data.ts uses club object not string', () => {
+    const content = read('lib/data.ts');
+    expect(content).toContain('club:');
+    expect(content).toContain('abbr:');
+  });
+  it('data.ts player position uses short form', () => {
+    const content = read('lib/data.ts');
+    expect(content).toContain("'GK'");
+    expect(content).toContain("'DEF'");
+    expect(content).toContain("'MID'");
+    expect(content).toContain("'FWD'");
+  });
+});
+
+describe('fantasy api lib exports', () => {
+  it('fantasy-api.ts exports createTeam', () => expect(read('lib/fantasy-api.ts')).toContain('createTeam'));
+  it('fantasy-api.ts exports makeTransfers', () => expect(read('lib/fantasy-api.ts')).toContain('makeTransfers'));
+  it('fantasy-api.ts exports activateChip', () => expect(read('lib/fantasy-api.ts')).toContain('activateChip'));
+  it('fantasy-api.ts exports getTeam', () => expect(read('lib/fantasy-api.ts')).toContain('getTeam'));
+  it('fantasy-api.ts exports getLeagueStandings', () => expect(read('lib/fantasy-api.ts')).toContain('getLeagueStandings'));
+});
+
+describe('core fantasy journey pages are complete', () => {
+  it('team page has FantasyPitchView', () => expect(read('app/fantasy/team/page.tsx')).toContain('FantasyPitchView'));
+  it('transfers page has PlayerPool', () => expect(read('app/fantasy/team/transfers/page.tsx')).toContain('PlayerPool'));
+  it('chips page has chip UI', () => {
+    const c = read('app/fantasy/team/chips/page.tsx');
+    expect(c.includes('ChipCard') || c.includes('ChipSelector') || c.includes('Chip')).toBe(true);
+  });
+  it('onboarding page has FormationSelector', () => expect(read('app/fantasy/onboarding/page.tsx')).toContain('FormationSelector'));
+  it('leagues page has LeagueCard or league content', () => {
+    const content = read('app/fantasy/leagues/page.tsx');
+    expect(content.includes('LeagueCard') || content.includes('league')).toBe(true);
+  });
+});
+
+describe('fantasy components exist', () => {
+  it('FantasyPitchView.tsx', () => expect(exists('components/fantasy/core/FantasyPitchView.tsx')).toBe(true));
+  it('PlayerPool.tsx', () => expect(exists('components/fantasy/core/PlayerPool.tsx')).toBe(true));
+  it('ChipCard.tsx', () => expect(exists('components/fantasy/core/ChipCard.tsx')).toBe(true));
+  it('FormationSelector.tsx', () => expect(exists('components/fantasy/core/FormationSelector.tsx')).toBe(true));
+  it('LeagueCard.tsx', () => expect(exists('components/fantasy/leagues/LeagueCard.tsx')).toBe(true));
+});
+
+describe('no PSL activation references in experience app', () => {
+  const appFiles = ['app/page.tsx', 'app/layout.tsx', 'lib/data.ts'];
+  for (const f of appFiles) {
+    it(`${f} does not activate PSL season`, () => {
+      const lines = read(f).toLowerCase().split('\n').filter(l => l.includes('psl') && l.includes('activ'));
+      expect(lines).toHaveLength(0);
+    });
+  }
+});
+
+describe('shell component content', () => {
+  it('AppHeader renders brand', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content.includes('PSL') || content.includes('Competition') || content.includes('logo')).toBe(true);
+  });
+  it('MatchweekNav has navigation role', () => {
+    const content = read('components/shell/MatchweekNav.tsx');
+    expect(content.includes('nav') || content.includes('navigation') || content.includes('aria')).toBe(true);
+  });
+});
+
+describe('section component content checks', () => {
+  it('LeagueTableSection renders standings', () => {
+    const c = read('sections/LeagueTableSection.tsx');
+    expect(c.includes('standing') || c.includes('table') || c.includes('Table')).toBe(true);
+  });
+  it('PlayerSpotlightSection renders player data', () => {
+    const c = read('sections/PlayerSpotlightSection.tsx');
+    expect(c.includes('player') || c.includes('Player') || c.includes('PlayerPortrait')).toBe(true);
+  });
+  it('EditorialGridSection renders stories', () => {
+    const c = read('sections/EditorialGridSection.tsx');
+    expect(c.includes('story') || c.includes('Story') || c.includes('editorial')).toBe(true);
+  });
+  it('VideoRailSection renders videos', () => {
+    const c = read('sections/VideoRailSection.tsx');
+    expect(c.includes('video') || c.includes('Video') || c.includes('VideoCard')).toBe(true);
+  });
+  it('ClubIdentitySection renders clubs', () => {
+    const c = read('sections/ClubIdentitySection.tsx');
+    expect(c.includes('club') || c.includes('Club') || c.includes('TeamIdentity')).toBe(true);
+  });
+  it('SponsorSection renders sponsor content', () => {
+    const c = read('sections/SponsorSection.tsx');
+    expect(c.includes('sponsor') || c.includes('Sponsor') || c.includes('SponsorMoment')).toBe(true);
+  });
+});

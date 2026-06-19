@@ -39,7 +39,7 @@ export function MatchweekNav({
         onClick={handlePrev}
         disabled={currentGW <= 1}
         className={clsx(
-          'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150',
+          'w-8 h-8 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center transition-colors duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold',
           currentGW <= 1
             ? 'text-white/20 cursor-not-allowed'
@@ -69,7 +69,7 @@ export function MatchweekNav({
         onClick={handleNext}
         disabled={currentGW >= totalGW}
         className={clsx(
-          'w-8 h-8 rounded-full flex items-center justify-center transition-colors duration-150',
+          'w-8 h-8 min-h-[44px] min-w-[44px] rounded-full flex items-center justify-center transition-colors duration-150',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold',
           currentGW >= totalGW
             ? 'text-white/20 cursor-not-allowed'

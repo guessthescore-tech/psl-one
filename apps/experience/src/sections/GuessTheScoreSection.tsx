@@ -130,7 +130,8 @@ export function GuessTheScoreSection({ data }: GuessTheScoreSectionProps) {
               </p>
               <button
                 onClick={() => { setSubmitted(false); setHomeScore(1); setAwayScore(1); }}
-                className="mt-5 text-label-md text-exp-gold underline underline-offset-2 hover:text-exp-gold-2 transition-colors duration-100"
+                className="mt-5 text-label-md text-exp-gold underline underline-offset-2 hover:text-exp-gold-2 transition-colors duration-100 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm"
+                aria-label="Change prediction"
               >
                 Change prediction
               </button>

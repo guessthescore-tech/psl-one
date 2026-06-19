@@ -77,7 +77,7 @@ export function AppHeader() {
             </Link>
             <Link
               href="/register"
-              className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[36px] flex items-center"
+              className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[44px] flex items-center"
             >
               Join free
             </Link>
@@ -87,7 +87,7 @@ export function AppHeader() {
           <div className="md:hidden">
             <Link
               href="/account"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold"
+              className="w-9 h-9 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold"
               aria-label="Account"
             >
               <UserCircle size={22} aria-hidden />
