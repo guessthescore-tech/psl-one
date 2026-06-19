@@ -93,13 +93,18 @@ const config: Config = {
           '0%':   { transform: 'translateX(0)'    },
           '100%': { transform: 'translateX(-50%)' },
         },
+        'bottom-sheet': {
+          '0%':   { transform: 'translateY(100%)' },
+          '100%': { transform: 'translateY(0)'    },
+        },
       },
       animation: {
-        'live-pulse':  'live-pulse 1.4s ease-in-out infinite',
-        shimmer:       'shimmer 2s linear infinite',
-        'slide-up':    'slide-up 0.35s cubic-bezier(0.16,1,0.3,1) both',
-        'fade-in':     'fade-in 0.25s ease-out both',
-        'ticker-left': 'ticker-left 28s linear infinite',
+        'live-pulse':   'live-pulse 1.4s ease-in-out infinite',
+        shimmer:        'shimmer 2s linear infinite',
+        'slide-up':     'slide-up 0.35s cubic-bezier(0.16,1,0.3,1) both',
+        'fade-in':      'fade-in 0.25s ease-out both',
+        'ticker-left':  'ticker-left 28s linear infinite',
+        'bottom-sheet': 'bottom-sheet 0.3s cubic-bezier(0.16,1,0.3,1)',
       },
       backgroundImage: {
         'pitch-dark':    'repeating-linear-gradient(180deg,#145c2e 0px,#145c2e 36px,#115228 36px,#115228 72px)',
