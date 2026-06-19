@@ -881,3 +881,16 @@ export const FANTASY_MOCK_FDR: ExpFDREntry[] = [
     ],
   },
 ];
+
+/* ── Mock league standings ───────────────────────────────────────────────────── */
+
+export const FANTASY_MOCK_STANDINGS: ExpLeagueManager[] = [
+  { rank: 1, previousRank: 2, managerName: 'Sipho Dlamini',   teamName: 'Bafana Bafana XI',  gameweekPoints: 78, totalPoints: 1428, isMe: false },
+  { rank: 2, previousRank: 1, managerName: 'Lerato Mokoena',  teamName: 'Soweto Stars',       gameweekPoints: 71, totalPoints: 1371, isMe: false },
+  { rank: 3, previousRank: 3, managerName: 'You',             teamName: 'My WC Fantasy Team', gameweekPoints: 64, totalPoints: 1247, isMe: true  },
+  { rank: 4, previousRank: 5, managerName: 'Thabo Nkosi',     teamName: 'Golden Squad',       gameweekPoints: 59, totalPoints: 1188, isMe: false },
+  { rank: 5, previousRank: 4, managerName: 'Nomsa Vilakazi',  teamName: 'Atlas Lions FC',     gameweekPoints: 55, totalPoints: 1102, isMe: false },
+  { rank: 6, previousRank: 6, managerName: 'Kagiso Sithole',  teamName: 'Mzansi Magic',       gameweekPoints: 48, totalPoints: 984,  isMe: false },
+  { rank: 7, previousRank: 7, managerName: 'Zanele Mbatha',   teamName: 'Phoenix Rising',     gameweekPoints: 41, totalPoints: 879,  isMe: false },
+  { rank: 8, previousRank: 8, managerName: 'Bongani Khoza',   teamName: 'Tribal Warriors',    gameweekPoints: 37, totalPoints: 723,  isMe: false },
+];

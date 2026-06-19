@@ -246,3 +246,168 @@ describe('next.config.ts', () => {
   it('has standalone output', () => expect(nc).toContain('standalone'));
   it('has picsum.photos in image domains', () => expect(nc).toContain('picsum.photos'));
 });
+
+// ─── Fantasy Leagues pages ─────────────────────────────────────────────────
+
+describe('Fantasy Leagues pages', () => {
+  it('leagues hub renders tabs', () => {
+    expect(exists('app/fantasy/leagues/page.tsx')).toBe(true);
+    const content = read('app/fantasy/leagues/page.tsx');
+    expect(content).toContain('FantasyTabs');
+    expect(content).toContain('My Leagues');
+    expect(content).toContain('Public');
+    expect(content).toContain('Global');
+  });
+
+  it('join league page renders code input', () => {
+    expect(exists('app/fantasy/leagues/join/page.tsx')).toBe(true);
+    const content = read('app/fantasy/leagues/join/page.tsx');
+    expect(content).toContain('LeagueCodeInput');
+    expect(content).toContain('Find League');
+  });
+
+  it('create league page renders form', () => {
+    expect(exists('app/fantasy/leagues/create/page.tsx')).toBe(true);
+    const content = read('app/fantasy/leagues/create/page.tsx');
+    expect(content).toContain('LeagueCreateForm');
+    expect(content).toContain('InviteLeagueSheet');
+  });
+
+  it('league detail renders standings table', () => {
+    expect(exists('app/fantasy/leagues/[leagueId]/page.tsx')).toBe(true);
+    const content = read('app/fantasy/leagues/[leagueId]/page.tsx');
+    expect(content).toContain('LeagueStandingsTable');
+    expect(content).toContain('InviteLeagueSheet');
+    expect(content).toContain('Standings');
+    expect(content).toContain('About');
+  });
+
+  it('history page renders timeline', () => {
+    expect(exists('app/fantasy/history/page.tsx')).toBe(true);
+    const content = read('app/fantasy/history/page.tsx');
+    expect(content).toContain('FantasyHistoryTimeline');
+    expect(content).toContain('FANTASY_MOCK_HISTORY');
+  });
+
+  it('search page renders search input', () => {
+    expect(exists('app/fantasy/search/page.tsx')).toBe(true);
+    const content = read('app/fantasy/search/page.tsx');
+    expect(content).toContain('ManagerSearch');
+    expect(content).toContain('ManagerFilters');
+  });
+});
+
+// ─── Fantasy Leagues components ────────────────────────────────────────────
+
+describe('Fantasy Leagues components exist', () => {
+  const components = [
+    'components/fantasy/leagues/LeagueCard.tsx',
+    'components/fantasy/leagues/LeagueCodeInput.tsx',
+    'components/fantasy/leagues/LeagueCreateForm.tsx',
+    'components/fantasy/leagues/LeagueStandingsTable.tsx',
+    'components/fantasy/leagues/ManagerRow.tsx',
+    'components/fantasy/leagues/RankMovement.tsx',
+    'components/fantasy/leagues/RivalTeamPitchView.tsx',
+    'components/fantasy/leagues/FantasyHistoryTimeline.tsx',
+    'components/fantasy/leagues/GameweekHistoryCard.tsx',
+    'components/fantasy/leagues/InviteLeagueSheet.tsx',
+    'components/fantasy/leagues/ManagerSearch.tsx',
+    'components/fantasy/leagues/ManagerFilters.tsx',
+  ];
+  for (const c of components) {
+    it(c.split('/').pop()!, () => expect(exists(c)).toBe(true));
+  }
+});
+
+describe('Fantasy shared components exist', () => {
+  const shared = [
+    'components/fantasy/shared/FantasyShell.tsx',
+    'components/fantasy/shared/FantasyLoadingState.tsx',
+    'components/fantasy/shared/FantasyEmptyState.tsx',
+    'components/fantasy/shared/FantasyErrorState.tsx',
+    'components/fantasy/shared/FantasyActionBar.tsx',
+    'components/fantasy/shared/FantasyModal.tsx',
+    'components/fantasy/shared/FantasyBottomSheet.tsx',
+    'components/fantasy/shared/FantasyTabs.tsx',
+    'components/fantasy/shared/FantasySectionHeader.tsx',
+    'components/fantasy/shared/FantasyPageHero.tsx',
+  ];
+  for (const s of shared) {
+    it(s.split('/').pop()!, () => expect(exists(s)).toBe(true));
+  }
+});
+
+describe('Fantasy data layer exports', () => {
+  const dt = read('lib/data.ts');
+  it('exports FANTASY_MOCK_LEAGUES', () => expect(dt).toContain('export const FANTASY_MOCK_LEAGUES'));
+  it('exports FANTASY_MOCK_HISTORY', () => expect(dt).toContain('export const FANTASY_MOCK_HISTORY'));
+  it('exports FANTASY_MOCK_TEAM',    () => expect(dt).toContain('export const FANTASY_MOCK_TEAM'));
+  it('exports FANTASY_MOCK_PLAYERS', () => expect(dt).toContain('export const FANTASY_MOCK_PLAYERS'));
+  it('exports ExpLeague type',        () => expect(dt).toContain('export interface ExpLeague'));
+  it('exports ExpHistoryEntry type',  () => expect(dt).toContain('export interface ExpHistoryEntry'));
+  it('exports ExpLeagueManager type', () => expect(dt).toContain('export interface ExpLeagueManager'));
+  it('exports ExpFantasySquad type',  () => expect(dt).toContain('export interface ExpFantasySquad'));
+});
+
+describe('Fantasy league pages — non-financial compliance', () => {
+  const leaguePages = [
+    'app/fantasy/leagues/create/page.tsx',
+    'components/fantasy/leagues/LeagueCreateForm.tsx',
+    'app/fantasy/history/[gameweekId]/page.tsx',
+    'components/fantasy/leagues/InviteLeagueSheet.tsx',
+  ];
+  for (const file of leaguePages) {
+    it(`${file} has no gambling language`, () => {
+      const content = read(file).toLowerCase();
+      expect(content).not.toContain('gamble');
+      expect(content).not.toContain('betting');
+      expect(content).not.toContain('wager');
+      expect(content).not.toContain('casino');
+      expect(content).not.toContain('stake');
+    });
+  }
+});
+
+describe('RankMovement component', () => {
+  it('renders with up movement text', () => {
+    const content = read('components/fantasy/leagues/RankMovement.tsx');
+    expect(content).toContain('ArrowUp');
+    expect(content).toContain('ArrowDown');
+    expect(content).toContain('Minus');
+  });
+  it('uses accessible aria-labels', () => {
+    const content = read('components/fantasy/leagues/RankMovement.tsx');
+    expect(content).toContain('aria-label');
+  });
+});
+
+describe('LeagueCodeInput', () => {
+  it('auto-uppercases input', () => {
+    const content = read('components/fantasy/leagues/LeagueCodeInput.tsx');
+    expect(content).toContain('toUpperCase');
+  });
+  it('supports paste from clipboard', () => {
+    const content = read('components/fantasy/leagues/LeagueCodeInput.tsx');
+    expect(content).toContain('clipboard');
+  });
+  it('has accessible aria labels', () => {
+    const content = read('components/fantasy/leagues/LeagueCodeInput.tsx');
+    expect(content).toContain('aria-label');
+  });
+});
+
+describe('fantasy-api lib', () => {
+  const api = read('lib/fantasy-api.ts');
+  it('exports getMyLeagues', () => expect(api).toContain('export function getMyLeagues'));
+  it('exports joinLeagueByCode', () => expect(api).toContain('export function joinLeagueByCode'));
+  it('exports createLeague', () => expect(api).toContain('export function createLeague'));
+  it('exports getHistory', () => expect(api).toContain('export function getHistory'));
+  it('exports League type', () => expect(api).toContain('export interface League'));
+  it('exports ClassicStandingsRow type', () => expect(api).toContain('export interface ClassicStandingsRow'));
+});
+
+describe('auth lib', () => {
+  const authLib = read('lib/auth.ts');
+  it('exports isAuthenticated', () => expect(authLib).toContain('export function isAuthenticated'));
+  it('exports getToken', () => expect(authLib).toContain('export function getToken'));
+});
