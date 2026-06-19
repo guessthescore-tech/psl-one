@@ -328,6 +328,211 @@ export const WC_FAN_VALUE: ExpFanValue = {
   },
 };
 
+/* ── Fantasy-specific types ─────────────────────────────────────────── */
+
+export interface ExpFantasyPlayer {
+  id: string;
+  name: string;
+  position: 'GOALKEEPER' | 'DEFENDER' | 'MIDFIELDER' | 'FORWARD';
+  club: string;
+  clubShort: string;
+  price: number;
+  points: number;
+  form: number;
+  ownership: number;
+  goalsThisTournament: number;
+  assistsThisTournament: number;
+  cleanSheetsThisTournament: number;
+  isCaptain: boolean;
+  isViceCaptain: boolean;
+  squadRole: 'STARTER' | 'SUBSTITUTE';
+  benchSlot: number | null;
+}
+
+export interface ExpFantasySquad {
+  teamName: string;
+  totalPoints: number;
+  gameweekPoints: number;
+  rank: number;
+  transfersRemaining: number;
+  budget: number;
+  formation: string;
+  players: ExpFantasyPlayer[];
+}
+
+export type ChipType = 'WILDCARD' | 'BENCH_BOOST' | 'TRIPLE_CAPTAIN' | 'FREE_HIT';
+export type ChipStatus = 'AVAILABLE' | 'ACTIVE' | 'USED' | 'EXPIRED';
+
+export interface ExpChip {
+  type: ChipType;
+  status: ChipStatus;
+  usedInGameweek?: number;
+}
+
+export interface ExpFDREntry {
+  club: string;
+  clubShort: string;
+  fixtures: Array<{
+    opponent: string;
+    opponentShort: string;
+    difficulty: 1 | 2 | 3 | 4 | 5;
+    isHome: boolean;
+  }>;
+}
+
+/* ── Fantasy mock players (30 players, WC 2026) ─────────────────────── */
+
+export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
+  // GOALKEEPERS (6)
+  { id: 'gk-lloris',    name: 'Hugo Lloris',     position: 'GOALKEEPER', club: 'France',      clubShort: 'FRA', price: 6.0,  points: 42, form: 6.2, ownership: 28.4, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'gk-alisson',   name: 'Alisson',          position: 'GOALKEEPER', club: 'Brazil',      clubShort: 'BRA', price: 6.5,  points: 38, form: 5.8, ownership: 22.1, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 1, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: 1 },
+  { id: 'gk-courtois',  name: 'T. Courtois',      position: 'GOALKEEPER', club: 'Belgium',     clubShort: 'BEL', price: 6.0,  points: 35, form: 5.2, ownership: 18.9, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 1, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'gk-martinez',  name: 'E. Martinez',      position: 'GOALKEEPER', club: 'Argentina',   clubShort: 'ARG', price: 6.5,  points: 48, form: 7.1, ownership: 31.2, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'gk-pickford',  name: 'J. Pickford',      position: 'GOALKEEPER', club: 'England',     clubShort: 'ENG', price: 5.5,  points: 28, form: 4.0, ownership: 14.3, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'gk-unai',      name: 'U. Simon',         position: 'GOALKEEPER', club: 'Spain',       clubShort: 'ESP', price: 5.5,  points: 44, form: 6.5, ownership: 19.8, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  // DEFENDERS (8)
+  { id: 'def-upamecano', name: 'D. Upamecano',   position: 'DEFENDER',   club: 'France',      clubShort: 'FRA', price: 6.5,  points: 44, form: 6.8, ownership: 24.1, goalsThisTournament: 0, assistsThisTournament: 1, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'def-hernandez', name: 'T. Hernandez',   position: 'DEFENDER',   club: 'France',      clubShort: 'FRA', price: 7.0,  points: 52, form: 7.8, ownership: 32.5, goalsThisTournament: 1, assistsThisTournament: 2, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'def-dias',      name: 'Ruben Dias',      position: 'DEFENDER',   club: 'Portugal',    clubShort: 'POR', price: 7.5,  points: 55, form: 8.0, ownership: 38.7, goalsThisTournament: 1, assistsThisTournament: 1, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'def-hakimi',    name: 'A. Hakimi',       position: 'DEFENDER',   club: 'Morocco',     clubShort: 'MAR', price: 6.5,  points: 38, form: 5.8, ownership: 21.3, goalsThisTournament: 0, assistsThisTournament: 2, cleanSheetsThisTournament: 1, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'def-militao',   name: 'E. Militao',      position: 'DEFENDER',   club: 'Brazil',      clubShort: 'BRA', price: 6.0,  points: 35, form: 5.2, ownership: 17.4, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 1, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: 2 },
+  { id: 'def-walker',    name: 'K. Walker',       position: 'DEFENDER',   club: 'England',     clubShort: 'ENG', price: 5.5,  points: 28, form: 4.2, ownership: 13.8, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'def-kimmich',   name: 'J. Kimmich',      position: 'DEFENDER',   club: 'Germany',     clubShort: 'GER', price: 7.0,  points: 41, form: 6.1, ownership: 26.9, goalsThisTournament: 0, assistsThisTournament: 2, cleanSheetsThisTournament: 1, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'def-araujo',    name: 'R. Araujo',       position: 'DEFENDER',   club: 'Spain',       clubShort: 'ESP', price: 6.0,  points: 46, form: 7.0, ownership: 22.4, goalsThisTournament: 0, assistsThisTournament: 0, cleanSheetsThisTournament: 2, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  // MIDFIELDERS (9)
+  { id: 'mid-bellingham', name: 'J. Bellingham',  position: 'MIDFIELDER', club: 'England',     clubShort: 'ENG', price: 11.0, points: 72, form: 9.8, ownership: 61.2, goalsThisTournament: 3, assistsThisTournament: 4, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: true,  squadRole: 'STARTER',    benchSlot: null },
+  { id: 'mid-pedri',      name: 'Pedri',           position: 'MIDFIELDER', club: 'Spain',       clubShort: 'ESP', price: 10.0, points: 68, form: 9.2, ownership: 54.8, goalsThisTournament: 2, assistsThisTournament: 5, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'mid-guendouzi',  name: 'M. Guendouzi',   position: 'MIDFIELDER', club: 'France',      clubShort: 'FRA', price: 7.5,  points: 58, form: 8.1, ownership: 38.2, goalsThisTournament: 1, assistsThisTournament: 3, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'mid-rodrigo',    name: 'Rodrigo',         position: 'MIDFIELDER', club: 'Spain',       clubShort: 'ESP', price: 8.5,  points: 55, form: 7.6, ownership: 42.1, goalsThisTournament: 2, assistsThisTournament: 2, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'mid-kroos',      name: 'T. Kroos',        position: 'MIDFIELDER', club: 'Germany',     clubShort: 'GER', price: 9.0,  points: 50, form: 6.9, ownership: 35.6, goalsThisTournament: 1, assistsThisTournament: 4, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: 3 },
+  { id: 'mid-caicedo',    name: 'M. Caicedo',      position: 'MIDFIELDER', club: 'Ecuador',     clubShort: 'ECU', price: 6.5,  points: 32, form: 4.8, ownership: 12.4, goalsThisTournament: 1, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'mid-sabitzer',   name: 'M. Sabitzer',     position: 'MIDFIELDER', club: 'Austria',     clubShort: 'AUT', price: 5.5,  points: 24, form: 3.6, ownership: 8.1,  goalsThisTournament: 0, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'mid-fred',       name: 'Fred',            position: 'MIDFIELDER', club: 'Brazil',      clubShort: 'BRA', price: 6.0,  points: 28, form: 4.2, ownership: 9.8,  goalsThisTournament: 0, assistsThisTournament: 2, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'mid-amrabat',    name: 'S. Amrabat',      position: 'MIDFIELDER', club: 'Morocco',     clubShort: 'MAR', price: 5.5,  points: 30, form: 4.5, ownership: 11.2, goalsThisTournament: 0, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  // FORWARDS (7)
+  { id: 'fwd-mbappe',     name: 'K. Mbappe',       position: 'FORWARD',    club: 'France',      clubShort: 'FRA', price: 13.0, points: 94, form: 12.4, ownership: 72.3, goalsThisTournament: 5, assistsThisTournament: 2, cleanSheetsThisTournament: 0, isCaptain: true,  isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'fwd-vinicius',   name: 'Vinicius Jr',      position: 'FORWARD',    club: 'Brazil',      clubShort: 'BRA', price: 11.5, points: 78, form: 10.2, ownership: 58.4, goalsThisTournament: 4, assistsThisTournament: 3, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'fwd-leao',       name: 'R. Leao',         position: 'FORWARD',    club: 'Portugal',    clubShort: 'POR', price: 9.0,  points: 60, form: 8.2, ownership: 41.7, goalsThisTournament: 3, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'STARTER',    benchSlot: null },
+  { id: 'fwd-saka',       name: 'B. Saka',         position: 'FORWARD',    club: 'England',     clubShort: 'ENG', price: 9.5,  points: 56, form: 7.8, ownership: 44.2, goalsThisTournament: 2, assistsThisTournament: 2, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: 4 },
+  { id: 'fwd-havertz',    name: 'K. Havertz',      position: 'FORWARD',    club: 'Germany',     clubShort: 'GER', price: 8.5,  points: 44, form: 6.2, ownership: 28.9, goalsThisTournament: 2, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'fwd-benzema',    name: 'K. Benzema',      position: 'FORWARD',    club: 'France',      clubShort: 'FRA', price: 10.5, points: 38, form: 5.1, ownership: 22.3, goalsThisTournament: 1, assistsThisTournament: 0, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+  { id: 'fwd-jesus',      name: 'G. Jesus',        position: 'FORWARD',    club: 'Brazil',      clubShort: 'BRA', price: 8.0,  points: 35, form: 5.0, ownership: 18.6, goalsThisTournament: 1, assistsThisTournament: 1, cleanSheetsThisTournament: 0, isCaptain: false, isViceCaptain: false, squadRole: 'SUBSTITUTE', benchSlot: null },
+];
+
+export const FANTASY_MOCK_TEAM: ExpFantasySquad = {
+  teamName: 'Golden Lions FC',
+  totalPoints: 347,
+  gameweekPoints: 64,
+  rank: 1842,
+  transfersRemaining: 2,
+  budget: 4.5,
+  formation: '4-3-3',
+  players: FANTASY_MOCK_PLAYERS.filter(p =>
+    ['gk-lloris', 'def-upamecano', 'def-hernandez', 'def-dias', 'def-hakimi',
+     'mid-bellingham', 'mid-pedri', 'mid-guendouzi', 'mid-rodrigo',
+     'fwd-mbappe', 'fwd-vinicius', 'fwd-leao',
+     'def-militao', 'mid-kroos', 'fwd-saka'].includes(p.id)
+  ),
+};
+
+export const FANTASY_MOCK_CHIPS: ExpChip[] = [
+  { type: 'WILDCARD',       status: 'USED',      usedInGameweek: 1 },
+  { type: 'BENCH_BOOST',    status: 'AVAILABLE' },
+  { type: 'TRIPLE_CAPTAIN', status: 'AVAILABLE' },
+  { type: 'FREE_HIT',       status: 'AVAILABLE' },
+];
+
+export const FANTASY_MOCK_FDR: ExpFDREntry[] = [
+  {
+    club: 'France', clubShort: 'FRA',
+    fixtures: [
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: true  },
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 2, isHome: false },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 4, isHome: true  },
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 4, isHome: false },
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 5, isHome: true  },
+      { opponent: 'Portugal',    opponentShort: 'POR', difficulty: 3, isHome: false },
+    ],
+  },
+  {
+    club: 'Brazil', clubShort: 'BRA',
+    fixtures: [
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 4, isHome: true  },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 2, isHome: false },
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 2, isHome: true  },
+      { opponent: 'France',      opponentShort: 'FRA', difficulty: 4, isHome: true  },
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: false },
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 4, isHome: true  },
+    ],
+  },
+  {
+    club: 'Argentina', clubShort: 'ARG',
+    fixtures: [
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 4, isHome: false },
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 3, isHome: true  },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: false },
+      { opponent: 'Portugal',    opponentShort: 'POR', difficulty: 3, isHome: true  },
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 2, isHome: false },
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: true  },
+    ],
+  },
+  {
+    club: 'England', clubShort: 'ENG',
+    fixtures: [
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 4, isHome: true  },
+      { opponent: 'France',      opponentShort: 'FRA', difficulty: 4, isHome: true  },
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 3, isHome: false },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: true  },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 3, isHome: true  },
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: false },
+    ],
+  },
+  {
+    club: 'Germany', clubShort: 'GER',
+    fixtures: [
+      { opponent: 'France',      opponentShort: 'FRA', difficulty: 4, isHome: false },
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 3, isHome: true  },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 3, isHome: true  },
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 3, isHome: false },
+      { opponent: 'Portugal',    opponentShort: 'POR', difficulty: 3, isHome: true  },
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 4, isHome: false },
+    ],
+  },
+  {
+    club: 'Spain', clubShort: 'ESP',
+    fixtures: [
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 2, isHome: false },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 3, isHome: false },
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: true  },
+      { opponent: 'Portugal',    opponentShort: 'POR', difficulty: 3, isHome: false },
+      { opponent: 'France',      opponentShort: 'FRA', difficulty: 4, isHome: false },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: true  },
+    ],
+  },
+  {
+    club: 'Portugal', clubShort: 'POR',
+    fixtures: [
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: true  },
+      { opponent: 'Portugal',    opponentShort: 'POR', difficulty: 3, isHome: false },
+      { opponent: 'France',      opponentShort: 'FRA', difficulty: 4, isHome: false },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 3, isHome: false },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: false },
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 4, isHome: false },
+    ],
+  },
+  {
+    club: 'Netherlands', clubShort: 'NED',
+    fixtures: [
+      { opponent: 'Morocco',     opponentShort: 'MAR', difficulty: 1, isHome: true  },
+      { opponent: 'England',     opponentShort: 'ENG', difficulty: 3, isHome: false },
+      { opponent: 'Spain',       opponentShort: 'ESP', difficulty: 4, isHome: true  },
+      { opponent: 'Germany',     opponentShort: 'GER', difficulty: 3, isHome: false },
+      { opponent: 'Brazil',      opponentShort: 'BRA', difficulty: 4, isHome: true  },
+      { opponent: 'Argentina',   opponentShort: 'ARG', difficulty: 3, isHome: false },
+    ],
+  },
+];
+
 /* ── Data accessor (chooses mock vs live) ───────────────────────────── */
 
 export interface ExperienceData {
