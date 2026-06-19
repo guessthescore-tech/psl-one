@@ -1,0 +1,35 @@
+{
+  "name": "@psl-one/experience",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "start": "next start",
+    "dev": "next dev -p 3002",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "next lint",
+    "clean": "rimraf .next out"
+  },
+  "dependencies": {
+    "@phosphor-icons/react": "^2.1.7",
+    "clsx": "^2.0.0",
+    "framer-motion": "^12.40.0",
+    "next": "15.5.18",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "15.5.18",
+    "postcss": "^8.0.0",
+    "rimraf": "*",
+    "tailwindcss": "^3.4.0",
+    "typescript": "*",
+    "vitest": "*"
+  }
+}

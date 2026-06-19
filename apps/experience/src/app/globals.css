@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --scroll-behavior: smooth;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply antialiased;
+  }
+
+  /* Scrollbar styling for carousels */
+  .scrollbar-none {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Live pulse animation — hardware accelerated */
+  .animate-live-pulse {
+    animation: live-pulse 1.4s ease-in-out infinite;
+    will-change: opacity, transform;
+  }
+
+  /* Score ticker */
+  .ticker-track {
+    display: flex;
+    animation: ticker-left 28s linear infinite;
+    will-change: transform;
+  }
+  .ticker-track:hover {
+    animation-play-state: paused;
+  }
+
+  /* Horizontal scroll-snap rail */
+  .snap-rail {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .snap-card {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
+}
+
+@layer utilities {
+  /* Safe area helpers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
