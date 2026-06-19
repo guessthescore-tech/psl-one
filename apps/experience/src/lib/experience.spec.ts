@@ -991,3 +991,53 @@ describe('aria labels on auth forms', () => {
     expect(read('app/sign-in/page.tsx')).toContain('aria-busy');
   });
 });
+
+// ─── Navigation ──────────────────────────────────────────────────────────────
+
+describe('FantasyTabs component', () => {
+  it('FantasyTabs exists', () => expect(exists('components/fantasy/nav/FantasyTabs.tsx')).toBe(true));
+  it('FantasyTabs has all 9 tabs', () => {
+    const content = read('components/fantasy/nav/FantasyTabs.tsx');
+    expect(content).toContain('/fantasy/team');
+    expect(content).toContain('/fantasy/points');
+    expect(content).toContain('/fantasy/leagues');
+    expect(content).toContain('/fantasy/fixtures');
+    expect(content).toContain('/fantasy/stats');
+    expect(content).toContain('/fantasy/history');
+    expect(content).toContain('/fantasy/rules');
+  });
+  it('FantasyTabs uses usePathname', () => expect(read('components/fantasy/nav/FantasyTabs.tsx')).toContain('usePathname'));
+  it('FantasyTabs has min-h-[44px]', () => expect(read('components/fantasy/nav/FantasyTabs.tsx')).toContain('min-h-[44px]'));
+  it('FantasyShell includes FantasyTabs', () => expect(read('components/fantasy/shared/FantasyShell.tsx')).toContain('FantasyTabs'));
+});
+
+describe('MobileBottomNav', () => {
+  it('MobileBottomNav exists', () => expect(exists('components/shell/MobileBottomNav.tsx')).toBe(true));
+  it('MobileBottomNav has 5 destinations', () => {
+    const content = read('components/shell/MobileBottomNav.tsx');
+    expect(content).toContain("'/'");
+    expect(content).toContain('/matches');
+    expect(content).toContain('/fantasy');
+    expect(content).toContain('/predict');
+    expect(content).toContain('/account');
+  });
+  it('MobileBottomNav uses usePathname', () => expect(read('components/shell/MobileBottomNav.tsx')).toContain('usePathname'));
+});
+
+describe('fantasy route pages exist', () => {
+  const routes = [
+    'app/fantasy/page.tsx',
+    'app/fantasy/points/page.tsx',
+    'app/fantasy/fixtures/page.tsx',
+    'app/fantasy/stats/page.tsx',
+    'app/fantasy/history/page.tsx',
+    'app/fantasy/rules/page.tsx',
+    'app/fantasy/leagues/page.tsx',
+    'app/fantasy/team/page.tsx',
+    'app/fantasy/team/transfers/page.tsx',
+    'app/fantasy/onboarding/page.tsx',
+  ];
+  for (const r of routes) {
+    it(r, () => expect(exists(r)).toBe(true));
+  }
+});

@@ -4,14 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { House, CalendarBlank, Trophy, Target, UserCircle } from '@phosphor-icons/react';
+import { House, Sword, Trophy, Target, UserCircle } from '@phosphor-icons/react';
 
 const TABS = [
-  { label: 'Home',    href: '/',         Icon: House         },
-  { label: 'Matches', href: '/fixtures', Icon: CalendarBlank },
-  { label: 'Predict', href: '/predict',  Icon: Target        },
-  { label: 'Fantasy', href: '/fantasy',  Icon: Trophy        },
-  { label: 'Me',      href: '/account',  Icon: UserCircle    },
+  { label: 'Home',    href: '/',        Icon: House       },
+  { label: 'Matches', href: '/matches', Icon: Sword       },
+  { label: 'Fantasy', href: '/fantasy', Icon: Trophy      },
+  { label: 'Predict', href: '/predict', Icon: Target      },
+  { label: 'Profile', href: '/account', Icon: UserCircle  },
 ];
 
 export function MobileBottomNav() {

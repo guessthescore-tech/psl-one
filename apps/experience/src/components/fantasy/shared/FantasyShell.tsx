@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { CaretLeft } from '@phosphor-icons/react/dist/ssr';
 import { DesignReviewBanner } from './DesignReviewBanner';
+import { FantasyTabs } from '../nav/FantasyTabs';
 
 interface BackLink {
   href: string;
@@ -44,6 +45,11 @@ export function FantasyShell({ children, title, subtitle, back }: FantasyShellPr
           )}
         </div>
       )}
+
+      {/* Fantasy section tabs */}
+      <div className="border-b border-exp-border-dk px-4">
+        <FantasyTabs />
+      </div>
 
       {/* Main content */}
       <div>{children}</div>
