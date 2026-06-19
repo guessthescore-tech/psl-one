@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react/dist/ssr';
 import type { ExperienceData } from '@/lib/data';
 import { FixtureCard } from '@/components/ui/FixtureCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';

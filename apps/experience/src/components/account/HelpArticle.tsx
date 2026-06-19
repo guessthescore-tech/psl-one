@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft } from '@phosphor-icons/react';
+import { ArrowLeft } from '@phosphor-icons/react/dist/ssr';
 
 interface RelatedArticle {
   slug: string;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react/dist/ssr';
 
 interface MatchweekNavProps {
   currentGW: number;

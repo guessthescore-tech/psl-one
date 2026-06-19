@@ -2,11 +2,11 @@
 
 import { use } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Star, ArrowsLeftRight } from '@phosphor-icons/react';
+import { Star, ArrowsLeftRight } from '@phosphor-icons/react/dist/ssr';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { RivalTeamPitchView } from '@/components/fantasy/leagues/RivalTeamPitchView';
 import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
-import { CalendarBlank } from '@phosphor-icons/react';
+import { CalendarBlank } from '@phosphor-icons/react/dist/ssr';
 import { FANTASY_MOCK_HISTORY, FANTASY_MOCK_TEAM } from '@/lib/data';
 
 interface GameweekDetailPageProps {

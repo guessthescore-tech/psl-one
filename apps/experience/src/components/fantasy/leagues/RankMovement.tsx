@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react';
+import { ArrowUp, ArrowDown, Minus } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 
 interface RankMovementProps {

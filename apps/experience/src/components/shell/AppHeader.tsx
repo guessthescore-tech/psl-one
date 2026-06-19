@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons/react';
+import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons/react/dist/ssr';
 
 const NAV = [
   { label: 'Home',     href: '/',           Icon: House          },

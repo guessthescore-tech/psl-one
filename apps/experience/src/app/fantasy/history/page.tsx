@@ -4,7 +4,7 @@ import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';
 import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
 import { FantasyHistoryTimeline } from '@/components/fantasy/leagues/FantasyHistoryTimeline';
-import { CalendarBlank } from '@phosphor-icons/react';
+import { CalendarBlank } from '@phosphor-icons/react/dist/ssr';
 import { FANTASY_MOCK_HISTORY } from '@/lib/data';
 
 function computeSummary(entries: typeof FANTASY_MOCK_HISTORY) {

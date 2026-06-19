@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { use } from 'react';
-import { ShareNetwork, Lock, Users, Globe } from '@phosphor-icons/react';
+import { ShareNetwork, Lock, Users, Globe } from '@phosphor-icons/react/dist/ssr';
 import { motion, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';

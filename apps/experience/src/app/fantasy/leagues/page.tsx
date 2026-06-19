@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Plus, Key, Users, Globe } from '@phosphor-icons/react';
+import { Plus, Key, Users, Globe } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';

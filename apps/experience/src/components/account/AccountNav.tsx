@@ -9,7 +9,7 @@ import {
   Heart,
   Trash,
   CaretRight,
-} from '@phosphor-icons/react';
+} from '@phosphor-icons/react/dist/ssr';
 
 const NAV_ITEMS = [
   { label: 'Edit Profile',    href: '/account/profile',       Icon: User  },

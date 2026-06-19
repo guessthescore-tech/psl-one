@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { Trophy } from '@phosphor-icons/react';
+import { Trophy } from '@phosphor-icons/react/dist/ssr';
 
 interface QuizQuestion {
   text: string;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, EyeSlash } from '@phosphor-icons/react';
+import { Eye, EyeSlash } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 
 /**

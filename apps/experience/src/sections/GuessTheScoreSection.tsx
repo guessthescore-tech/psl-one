@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Minus, Plus, Trophy } from '@phosphor-icons/react';
+import { Minus, Plus, Trophy } from '@phosphor-icons/react/dist/ssr';
 import type { ExperienceData } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { SectionHeader } from '@/components/ui/SectionHeader';

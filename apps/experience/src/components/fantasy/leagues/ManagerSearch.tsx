@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { MagnifyingGlass, ArrowRight } from '@phosphor-icons/react';
+import { MagnifyingGlass, ArrowRight } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 
 interface MockManager {

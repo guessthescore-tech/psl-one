@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Warning } from '@phosphor-icons/react';
+import { Warning } from '@phosphor-icons/react/dist/ssr';
 
 /**
  * Destructive action component for account deletion.

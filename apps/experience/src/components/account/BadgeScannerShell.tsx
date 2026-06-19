@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { Scan } from '@phosphor-icons/react';
+import { Scan } from '@phosphor-icons/react/dist/ssr';
 
 interface ScanRecord {
   id: string;

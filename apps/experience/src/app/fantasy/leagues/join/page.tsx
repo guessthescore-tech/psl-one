@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Users, CheckCircle, WarningCircle } from '@phosphor-icons/react';
+import { Users, CheckCircle, WarningCircle } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasySectionHeader } from '@/components/fantasy/shared/FantasySectionHeader';

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
-import { House, Sword, Trophy, Target, UserCircle } from '@phosphor-icons/react';
+import { House, Sword, Trophy, Target, UserCircle } from '@phosphor-icons/react/dist/ssr';
 
 function NavItem({
   href,

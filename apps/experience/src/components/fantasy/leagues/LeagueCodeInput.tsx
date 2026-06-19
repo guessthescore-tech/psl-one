@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ClipboardText } from '@phosphor-icons/react';
+import { ClipboardText } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 
 interface LeagueCodeInputProps {

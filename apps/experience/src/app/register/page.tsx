@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeSlash } from '@phosphor-icons/react';
+import { Eye, EyeSlash } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 import { AuthLayout } from '@/components/account/AuthLayout';
 import { AuthTabs } from '@/components/account/AuthTabs';

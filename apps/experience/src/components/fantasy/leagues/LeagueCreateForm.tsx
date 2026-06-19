@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Users } from '@phosphor-icons/react';
+import { Lock, Users } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 
 interface LeagueCreateFormProps {

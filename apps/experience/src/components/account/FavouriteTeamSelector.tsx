@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { clsx } from 'clsx';
-import { CheckCircle } from '@phosphor-icons/react';
+import { CheckCircle } from '@phosphor-icons/react/dist/ssr';
 import type { ExpClub } from '@/lib/data';
 
 interface FavouriteTeamSelectorProps {

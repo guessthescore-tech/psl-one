@@ -1,21 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeSlash } from '@phosphor-icons/react';
+import { Eye, EyeSlash } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 import { AuthLayout } from '@/components/account/AuthLayout';
 import { AuthTabs } from '@/components/account/AuthTabs';
 import { getDataMode } from '@/lib/data';
 import { login } from '@/lib/auth';
 
-/**
- * /sign-in — Login page
- * LIVE_BETA_DATA: calls login() API.
- * DESIGN_REVIEW_DATA: simulates success with any credentials.
- */
-export default function SignInPage() {
+function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = getDataMode();
@@ -33,7 +28,6 @@ export default function SignInPage() {
 
     try {
       if (mode === 'DESIGN_REVIEW_DATA') {
-        // Simulate success in design review mode
         await new Promise(res => setTimeout(res, 600));
         const redirect = searchParams?.get('redirect') ?? '/fantasy/team';
         router.push(redirect);
@@ -51,7 +45,7 @@ export default function SignInPage() {
   }
 
   return (
-    <AuthLayout>
+    <>
       {mode === 'DESIGN_REVIEW_DATA' && (
         <div
           role="note"
@@ -69,7 +63,6 @@ export default function SignInPage() {
         className="flex flex-col gap-5"
         noValidate
       >
-        {/* Email */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="email" className="text-label-lg text-exp-muted uppercase tracking-wider">
             Email
@@ -91,7 +84,6 @@ export default function SignInPage() {
           />
         </div>
 
-        {/* Password */}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="password" className="text-label-lg text-exp-muted uppercase tracking-wider">
             Password
@@ -122,7 +114,6 @@ export default function SignInPage() {
           </div>
         </div>
 
-        {/* Forgot password link */}
         <div className="text-right -mt-2">
           <Link
             href="/forgot-password"
@@ -132,14 +123,12 @@ export default function SignInPage() {
           </Link>
         </div>
 
-        {/* Error */}
         {error && (
           <div role="alert" className="text-body-sm text-exp-live bg-exp-live/10 rounded-card-xs px-3 py-2">
             {error}
           </div>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={loading}
@@ -153,6 +142,16 @@ export default function SignInPage() {
           {loading ? 'Signing in…' : 'Sign In'}
         </button>
       </form>
+    </>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <AuthLayout>
+      <Suspense>
+        <SignInForm />
+      </Suspense>
     </AuthLayout>
   );
 }

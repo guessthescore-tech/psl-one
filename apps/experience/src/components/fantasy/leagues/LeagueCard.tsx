@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Lock, Globe, Users } from '@phosphor-icons/react';
+import { ArrowRight, Lock, Globe, Users } from '@phosphor-icons/react/dist/ssr';
 import { clsx } from 'clsx';
 import type { ExpLeague } from '@/lib/data';
 

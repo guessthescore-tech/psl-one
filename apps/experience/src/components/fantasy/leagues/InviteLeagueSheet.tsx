@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ShareNetwork, CopySimple, Check } from '@phosphor-icons/react';
+import { ShareNetwork, CopySimple, Check } from '@phosphor-icons/react/dist/ssr';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FantasyBottomSheet } from '@/components/fantasy/shared/FantasyBottomSheet';
 
