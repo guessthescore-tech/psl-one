@@ -343,31 +343,18 @@ export interface ExperienceData {
   fantasyTeam: ExpFantasyTeam;
   fanValue: ExpFanValue;
   competitionName: string;
+  fantasyPlayers: ExpFantasyPlayer[];
+  fantasySquad: ExpFantasySquad;
+  fantasyLeagues: ExpLeague[];
+  fantasyChips: ExpChip[];
+  fantasyHistory: ExpHistoryEntry[];
+  fantasyFDR: ExpFDREntry[];
 }
 
 export function getExperienceData(): ExperienceData {
   const mode = getDataMode();
 
-  if (mode === 'LIVE_BETA_DATA') {
-    /* TODO: replace with real API calls when LIVE_BETA_DATA is wired. */
-    /* Showing WC mock data with LIVE banner until API integration. */
-    return {
-      mode,
-      clubs: WC_CLUBS,
-      fixtures: WC_FIXTURES,
-      liveFixture: WC_FIXTURES.find(f => f.status === 'LIVE') ?? null,
-      standings: WC_STANDINGS,
-      players: WC_PLAYERS,
-      stories: WC_STORIES,
-      videos: WC_VIDEOS,
-      gameweek: WC_GAMEWEEK,
-      fantasyTeam: WC_FANTASY_TEAM,
-      fanValue: WC_FAN_VALUE,
-      competitionName: 'FIFA World Cup 2026',
-    };
-  }
-
-  return {
+  const base = {
     mode,
     clubs: WC_CLUBS,
     fixtures: WC_FIXTURES,
@@ -380,5 +367,517 @@ export function getExperienceData(): ExperienceData {
     fantasyTeam: WC_FANTASY_TEAM,
     fanValue: WC_FAN_VALUE,
     competitionName: 'FIFA World Cup 2026',
+    fantasyPlayers: FANTASY_MOCK_PLAYERS,
+    fantasySquad: FANTASY_MOCK_TEAM,
+    fantasyLeagues: FANTASY_MOCK_LEAGUES,
+    fantasyChips: FANTASY_MOCK_CHIPS,
+    fantasyHistory: FANTASY_MOCK_HISTORY,
+    fantasyFDR: FANTASY_MOCK_FDR,
   };
+
+  if (mode === 'LIVE_BETA_DATA') {
+    /* TODO: replace with real API calls when LIVE_BETA_DATA is wired. */
+    /* Showing WC mock data with LIVE banner until API integration. */
+    return base;
+  }
+
+  return base;
 }
+
+/* ── Extended Fantasy types ─────────────────────────────────────────────────── */
+
+export interface ExpFantasyPlayer extends ExpPlayer {
+  squadRole: 'STARTER' | 'SUBSTITUTE';
+  benchSlot: number | null;
+  isCaptain: boolean;
+  isViceCaptain: boolean;
+  gameweekPoints: number;
+  isUnavailable: boolean;
+}
+
+export interface ExpLeague {
+  id: string;
+  name: string;
+  type: 'PRIVATE' | 'PUBLIC' | 'GLOBAL';
+  scoringType: 'CLASSIC' | 'HEAD_TO_HEAD';
+  rank: number;
+  totalManagers: number;
+  myPoints: number;
+  leaderPoints: number;
+  inviteCode: string | null;
+}
+
+export interface ExpLeagueManager {
+  rank: number;
+  previousRank: number;
+  managerName: string;
+  teamName: string;
+  gameweekPoints: number;
+  totalPoints: number;
+  isMe: boolean;
+}
+
+export interface ExpChip {
+  type: 'BENCH_BOOST' | 'FREE_HIT' | 'TRIPLE_CAPTAIN' | 'WILDCARD';
+  status: 'AVAILABLE' | 'ACTIVE' | 'USED';
+  usedInGameweek: number | null;
+}
+
+export interface ExpHistoryEntry {
+  gameweekNumber: number;
+  gameweekLabel: string;
+  points: number;
+  totalPoints: number;
+  rank: number;
+  transfers: number;
+  transferCost: number;
+  chipUsed: string | null;
+}
+
+export interface ExpFDREntry {
+  club: ExpClub;
+  fixtures: {
+    gameweekNumber: number;
+    opponentAbbr: string;
+    isHome: boolean;
+    difficulty: 1 | 2 | 3 | 4 | 5;
+  }[];
+}
+
+export interface ExpFantasySquad {
+  teamName: string;
+  totalPoints: number;
+  gameweekPoints: number;
+  transfersRemaining: number;
+  players: ExpFantasyPlayer[];
+}
+
+/* ── DESIGN_REVIEW_DATA: Fantasy mock data (WC 2026 context) ─────────────── */
+/* 30 players across 4 positions from the 8 WC 2026 clubs. Read-only.       */
+
+export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
+  /* ── Goalkeepers (6) ────────────────────────────────────────────────────── */
+  {
+    id: 'fp-gk-maignan', name: 'Mike Maignan', position: 'GK', club: WC_CLUBS[0]!,
+    nationality: 'French', imageKey: 'wc-player-maignan',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 22, fantasyPrice: 5.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 8, isUnavailable: false,
+  },
+  {
+    id: 'fp-gk-neuer', name: 'Manuel Neuer', position: 'GK', club: WC_CLUBS[1]!,
+    nationality: 'German', imageKey: 'wc-player-neuer',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 14, fantasyPrice: 5.0,
+    squadRole: 'SUBSTITUTE', benchSlot: 1, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 2, isUnavailable: false,
+  },
+  {
+    id: 'fp-gk-martinez', name: 'Emiliano Martinez', position: 'GK', club: WC_CLUBS[2]!,
+    nationality: 'Argentine', imageKey: 'wc-player-emiliano',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 18, fantasyPrice: 5.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 6, isUnavailable: false,
+  },
+  {
+    id: 'fp-gk-alisson', name: 'Alisson Becker', position: 'GK', club: WC_CLUBS[3]!,
+    nationality: 'Brazilian', imageKey: 'wc-player-alisson',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 16, fantasyPrice: 5.0,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 4, isUnavailable: false,
+  },
+  {
+    id: 'fp-gk-unai', name: 'Unai Simon', position: 'GK', club: WC_CLUBS[4]!,
+    nationality: 'Spanish', imageKey: 'wc-player-unai',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 19, fantasyPrice: 5.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 10, isUnavailable: false,
+  },
+  {
+    id: 'fp-gk-pickford', name: 'Jordan Pickford', position: 'GK', club: WC_CLUBS[5]!,
+    nationality: 'English', imageKey: 'wc-player-pickford',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 11, fantasyPrice: 4.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 1, isUnavailable: false,
+  },
+  /* ── Defenders (8) ──────────────────────────────────────────────────────── */
+  {
+    id: 'fp-def-hernandez', name: 'Theo Hernandez', position: 'DEF', club: WC_CLUBS[0]!,
+    nationality: 'French', imageKey: 'wc-player-hernandez',
+    goalsThisTournament: 1, assistsThisTournament: 2,
+    fantasyPoints: 21, fantasyPrice: 7.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 9, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-rudiger', name: 'Antonio Rudiger', position: 'DEF', club: WC_CLUBS[1]!,
+    nationality: 'German', imageKey: 'wc-player-rudiger',
+    goalsThisTournament: 0, assistsThisTournament: 1,
+    fantasyPoints: 13, fantasyPrice: 5.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 4, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-molina', name: 'Nahuel Molina', position: 'DEF', club: WC_CLUBS[2]!,
+    nationality: 'Argentine', imageKey: 'wc-player-molina',
+    goalsThisTournament: 1, assistsThisTournament: 1,
+    fantasyPoints: 17, fantasyPrice: 6.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 7, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-militao', name: 'Eder Militao', position: 'DEF', club: WC_CLUBS[3]!,
+    nationality: 'Brazilian', imageKey: 'wc-player-militao',
+    goalsThisTournament: 0, assistsThisTournament: 0,
+    fantasyPoints: 12, fantasyPrice: 5.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 3, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-carvajal', name: 'Dani Carvajal', position: 'DEF', club: WC_CLUBS[4]!,
+    nationality: 'Spanish', imageKey: 'wc-player-carvajal',
+    goalsThisTournament: 0, assistsThisTournament: 2,
+    fantasyPoints: 19, fantasyPrice: 7.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 8, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-dias', name: 'Ruben Dias', position: 'DEF', club: WC_CLUBS[6]!,
+    nationality: 'Portuguese', imageKey: 'wc-player-dias-portrait',
+    goalsThisTournament: 1, assistsThisTournament: 1,
+    fantasyPoints: 15, fantasyPrice: 7.5,
+    squadRole: 'SUBSTITUTE', benchSlot: 2, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 4, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-hakimi', name: 'Achraf Hakimi', position: 'DEF', club: WC_CLUBS[7]!,
+    nationality: 'Moroccan', imageKey: 'wc-player-hakimi-portrait',
+    goalsThisTournament: 0, assistsThisTournament: 2,
+    fantasyPoints: 14, fantasyPrice: 6.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 4, isUnavailable: false,
+  },
+  {
+    id: 'fp-def-saka', name: 'Bukayo Saka', position: 'DEF', club: WC_CLUBS[5]!,
+    nationality: 'English', imageKey: 'wc-player-saka',
+    goalsThisTournament: 1, assistsThisTournament: 1,
+    fantasyPoints: 17, fantasyPrice: 8.0,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 5, isUnavailable: false,
+  },
+  /* ── Midfielders (9) ────────────────────────────────────────────────────── */
+  {
+    id: 'fp-mid-griezmann', name: 'Antoine Griezmann', position: 'MID', club: WC_CLUBS[0]!,
+    nationality: 'French', imageKey: 'wc-player-griezmann',
+    goalsThisTournament: 2, assistsThisTournament: 3,
+    fantasyPoints: 20, fantasyPrice: 9.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 11, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-muller', name: 'Thomas Muller', position: 'MID', club: WC_CLUBS[1]!,
+    nationality: 'German', imageKey: 'wc-player-muller',
+    goalsThisTournament: 1, assistsThisTournament: 2,
+    fantasyPoints: 13, fantasyPrice: 8.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 5, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-depay', name: 'Memphis Depay', position: 'MID', club: WC_CLUBS[2]!,
+    nationality: 'Argentine', imageKey: 'wc-player-depay',
+    goalsThisTournament: 1, assistsThisTournament: 1,
+    fantasyPoints: 15, fantasyPrice: 8.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 6, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-casemiro', name: 'Casemiro', position: 'MID', club: WC_CLUBS[3]!,
+    nationality: 'Brazilian', imageKey: 'wc-player-casemiro',
+    goalsThisTournament: 0, assistsThisTournament: 1,
+    fantasyPoints: 10, fantasyPrice: 7.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 2, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-pedri', name: 'Pedri', position: 'MID', club: WC_CLUBS[4]!,
+    nationality: 'Spanish', imageKey: 'wc-player-pedri-portrait',
+    goalsThisTournament: 2, assistsThisTournament: 5,
+    fantasyPoints: 25, fantasyPrice: 10.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: true,
+    gameweekPoints: 14, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-bellingham', name: 'Jude Bellingham', position: 'MID', club: WC_CLUBS[5]!,
+    nationality: 'English', imageKey: 'wc-player-bellingham-portrait',
+    goalsThisTournament: 3, assistsThisTournament: 4,
+    fantasyPoints: 23, fantasyPrice: 11.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 13, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-bruno', name: 'Bruno Fernandes', position: 'MID', club: WC_CLUBS[6]!,
+    nationality: 'Portuguese', imageKey: 'wc-player-bruno',
+    goalsThisTournament: 1, assistsThisTournament: 3,
+    fantasyPoints: 18, fantasyPrice: 9.0,
+    squadRole: 'SUBSTITUTE', benchSlot: 3, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 6, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-ziyech', name: 'Hakim Ziyech', position: 'MID', club: WC_CLUBS[7]!,
+    nationality: 'Moroccan', imageKey: 'wc-player-ziyech',
+    goalsThisTournament: 0, assistsThisTournament: 2,
+    fantasyPoints: 12, fantasyPrice: 7.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 4, isUnavailable: false,
+  },
+  {
+    id: 'fp-mid-gnabry', name: 'Serge Gnabry', position: 'MID', club: WC_CLUBS[1]!,
+    nationality: 'German', imageKey: 'wc-player-gnabry',
+    goalsThisTournament: 1, assistsThisTournament: 0,
+    fantasyPoints: 10, fantasyPrice: 7.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 3, isUnavailable: true,
+  },
+  /* ── Forwards (7) ───────────────────────────────────────────────────────── */
+  {
+    id: 'fp-fwd-mbappe', name: 'Kylian Mbappe', position: 'FWD', club: WC_CLUBS[0]!,
+    nationality: 'French', imageKey: 'wc-player-mbappe-portrait',
+    goalsThisTournament: 5, assistsThisTournament: 2,
+    fantasyPoints: 25, fantasyPrice: 13.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: true, isViceCaptain: false,
+    gameweekPoints: 18, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-vinicius', name: 'Vinicius Jr', position: 'FWD', club: WC_CLUBS[3]!,
+    nationality: 'Brazilian', imageKey: 'wc-player-vinicius-portrait',
+    goalsThisTournament: 4, assistsThisTournament: 3,
+    fantasyPoints: 22, fantasyPrice: 11.5,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 15, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-lewandowski', name: 'Robert Lewandowski', position: 'FWD', club: WC_CLUBS[4]!,
+    nationality: 'Polish', imageKey: 'wc-player-lewandowski',
+    goalsThisTournament: 2, assistsThisTournament: 0,
+    fantasyPoints: 16, fantasyPrice: 10.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 9, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-kane', name: 'Harry Kane', position: 'FWD', club: WC_CLUBS[5]!,
+    nationality: 'English', imageKey: 'wc-player-kane',
+    goalsThisTournament: 2, assistsThisTournament: 1,
+    fantasyPoints: 17, fantasyPrice: 11.0,
+    squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 10, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-ronaldo', name: 'Cristiano Ronaldo', position: 'FWD', club: WC_CLUBS[6]!,
+    nationality: 'Portuguese', imageKey: 'wc-player-ronaldo',
+    goalsThisTournament: 3, assistsThisTournament: 0,
+    fantasyPoints: 19, fantasyPrice: 12.0,
+    squadRole: 'SUBSTITUTE', benchSlot: 4, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 7, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-lautaro', name: 'Lautaro Martinez', position: 'FWD', club: WC_CLUBS[2]!,
+    nationality: 'Argentine', imageKey: 'wc-player-lautaro',
+    goalsThisTournament: 2, assistsThisTournament: 1,
+    fantasyPoints: 15, fantasyPrice: 9.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 6, isUnavailable: false,
+  },
+  {
+    id: 'fp-fwd-rashford', name: 'Marcus Rashford', position: 'FWD', club: WC_CLUBS[5]!,
+    nationality: 'English', imageKey: 'wc-player-rashford',
+    goalsThisTournament: 1, assistsThisTournament: 0,
+    fantasyPoints: 11, fantasyPrice: 8.5,
+    squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
+    gameweekPoints: 3, isUnavailable: false,
+  },
+];
+
+/* ── Mock squad (15-player active team) ─────────────────────────────────────── */
+
+export const FANTASY_MOCK_TEAM: ExpFantasySquad = {
+  teamName: 'Golden Bafana XI',
+  totalPoints: 347,
+  gameweekPoints: 47,
+  transfersRemaining: 1,
+  players: FANTASY_MOCK_PLAYERS.filter(p =>
+    [
+      'fp-gk-maignan',
+      'fp-def-hernandez', 'fp-def-rudiger', 'fp-def-molina', 'fp-def-militao', 'fp-def-carvajal',
+      'fp-mid-griezmann', 'fp-mid-muller', 'fp-mid-pedri', 'fp-mid-bellingham', 'fp-mid-depay',
+      'fp-fwd-mbappe', 'fp-fwd-vinicius', 'fp-fwd-kane', 'fp-fwd-lewandowski',
+    ].includes(p.id),
+  ).concat(
+    // bench slot assignments — override for 4 subs
+    [
+      { ...FANTASY_MOCK_PLAYERS.find(p => p.id === 'fp-gk-neuer')!, squadRole: 'SUBSTITUTE' as const, benchSlot: 1 },
+      { ...FANTASY_MOCK_PLAYERS.find(p => p.id === 'fp-def-dias')!, squadRole: 'SUBSTITUTE' as const, benchSlot: 2 },
+      { ...FANTASY_MOCK_PLAYERS.find(p => p.id === 'fp-mid-bruno')!, squadRole: 'SUBSTITUTE' as const, benchSlot: 3 },
+      { ...FANTASY_MOCK_PLAYERS.find(p => p.id === 'fp-fwd-ronaldo')!, squadRole: 'SUBSTITUTE' as const, benchSlot: 4 },
+    ],
+  ),
+};
+
+/* ── Mock leagues ────────────────────────────────────────────────────────────── */
+
+export const FANTASY_MOCK_LEAGUES: ExpLeague[] = [
+  {
+    id: 'league-private-001',
+    name: 'Friends League',
+    type: 'PRIVATE',
+    scoringType: 'CLASSIC',
+    rank: 3,
+    totalManagers: 8,
+    myPoints: 347,
+    leaderPoints: 398,
+    inviteCode: 'WC2026FRN',
+  },
+  {
+    id: 'league-public-001',
+    name: 'PSL SA League',
+    type: 'PUBLIC',
+    scoringType: 'CLASSIC',
+    rank: 142,
+    totalManagers: 1024,
+    myPoints: 347,
+    leaderPoints: 512,
+    inviteCode: null,
+  },
+  {
+    id: 'league-global-001',
+    name: 'Global WC 2026',
+    type: 'GLOBAL',
+    scoringType: 'CLASSIC',
+    rank: 88403,
+    totalManagers: 2000000,
+    myPoints: 347,
+    leaderPoints: 743,
+    inviteCode: null,
+  },
+];
+
+/* ── Mock chips ──────────────────────────────────────────────────────────────── */
+
+export const FANTASY_MOCK_CHIPS: ExpChip[] = [
+  { type: 'BENCH_BOOST',     status: 'AVAILABLE', usedInGameweek: null },
+  { type: 'FREE_HIT',        status: 'AVAILABLE', usedInGameweek: null },
+  { type: 'TRIPLE_CAPTAIN',  status: 'AVAILABLE', usedInGameweek: null },
+  { type: 'WILDCARD',        status: 'USED',       usedInGameweek: 1    },
+];
+
+/* ── Mock history (10 gameweeks) ─────────────────────────────────────────────── */
+
+export const FANTASY_MOCK_HISTORY: ExpHistoryEntry[] = [
+  { gameweekNumber: 1, gameweekLabel: 'Matchday 1', points: 45, totalPoints: 45,   rank: 120000, transfers: 0, transferCost: 0, chipUsed: 'WILDCARD' },
+  { gameweekNumber: 2, gameweekLabel: 'Matchday 2', points: 58, totalPoints: 103,  rank: 98500,  transfers: 1, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 3, gameweekLabel: 'Matchday 3', points: 67, totalPoints: 170,  rank: 81200,  transfers: 2, transferCost: 4, chipUsed: null },
+  { gameweekNumber: 4, gameweekLabel: 'Matchday 4', points: 52, totalPoints: 222,  rank: 88100,  transfers: 1, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 5, gameweekLabel: 'Matchday 5', points: 61, totalPoints: 283,  rank: 79400,  transfers: 1, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 6, gameweekLabel: 'Round of 16 — 1', points: 49, totalPoints: 332, rank: 85700, transfers: 2, transferCost: 4, chipUsed: null },
+  { gameweekNumber: 7, gameweekLabel: 'Round of 16 — 2', points: 63, totalPoints: 395, rank: 76300, transfers: 1, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 8, gameweekLabel: 'Quarter-finals',  points: 54, totalPoints: 449, rank: 83900, transfers: 0, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 9, gameweekLabel: 'Semi-finals',     points: 47, totalPoints: 496, rank: 88403, transfers: 1, transferCost: 0, chipUsed: null },
+  { gameweekNumber: 10, gameweekLabel: 'Final',          points: 47, totalPoints: 543, rank: 88403, transfers: 0, transferCost: 0, chipUsed: null },
+];
+
+/* ── Mock FDR (8 clubs × 6 upcoming gameweeks) ───────────────────────────────── */
+
+export const FANTASY_MOCK_FDR: ExpFDREntry[] = [
+  {
+    club: WC_CLUBS[0]!, // France
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'MAR', isHome: true,  difficulty: 2 },
+      { gameweekNumber: 5, opponentAbbr: 'ESP', isHome: false, difficulty: 4 },
+      { gameweekNumber: 6, opponentAbbr: 'BRA', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'GER', isHome: false, difficulty: 3 },
+      { gameweekNumber: 8, opponentAbbr: 'ARG', isHome: true,  difficulty: 4 },
+      { gameweekNumber: 9, opponentAbbr: 'ENG', isHome: false, difficulty: 3 },
+    ],
+  },
+  {
+    club: WC_CLUBS[1]!, // Germany
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'POR', isHome: false, difficulty: 3 },
+      { gameweekNumber: 5, opponentAbbr: 'BRA', isHome: true,  difficulty: 4 },
+      { gameweekNumber: 6, opponentAbbr: 'ENG', isHome: false, difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'FRA', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 8, opponentAbbr: 'MAR', isHome: false, difficulty: 1 },
+      { gameweekNumber: 9, opponentAbbr: 'ESP', isHome: true,  difficulty: 4 },
+    ],
+  },
+  {
+    club: WC_CLUBS[2]!, // Argentina
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'ENG', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 5, opponentAbbr: 'MAR', isHome: false, difficulty: 2 },
+      { gameweekNumber: 6, opponentAbbr: 'POR', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'ESP', isHome: false, difficulty: 4 },
+      { gameweekNumber: 8, opponentAbbr: 'FRA', isHome: false, difficulty: 4 },
+      { gameweekNumber: 9, opponentAbbr: 'BRA', isHome: true,  difficulty: 5 },
+    ],
+  },
+  {
+    club: WC_CLUBS[3]!, // Brazil
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'ESP', isHome: false, difficulty: 4 },
+      { gameweekNumber: 5, opponentAbbr: 'GER', isHome: false, difficulty: 4 },
+      { gameweekNumber: 6, opponentAbbr: 'FRA', isHome: false, difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'MAR', isHome: true,  difficulty: 1 },
+      { gameweekNumber: 8, opponentAbbr: 'POR', isHome: false, difficulty: 3 },
+      { gameweekNumber: 9, opponentAbbr: 'ARG', isHome: false, difficulty: 5 },
+    ],
+  },
+  {
+    club: WC_CLUBS[4]!, // Spain
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'BRA', isHome: true,  difficulty: 4 },
+      { gameweekNumber: 5, opponentAbbr: 'FRA', isHome: true,  difficulty: 4 },
+      { gameweekNumber: 6, opponentAbbr: 'ARG', isHome: false, difficulty: 4 },
+      { gameweekNumber: 7, opponentAbbr: 'POR', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 8, opponentAbbr: 'ENG', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 9, opponentAbbr: 'GER', isHome: false, difficulty: 4 },
+    ],
+  },
+  {
+    club: WC_CLUBS[5]!, // England
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'ARG', isHome: false, difficulty: 3 },
+      { gameweekNumber: 5, opponentAbbr: 'POR', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 6, opponentAbbr: 'GER', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'MAR', isHome: false, difficulty: 1 },
+      { gameweekNumber: 8, opponentAbbr: 'ESP', isHome: false, difficulty: 3 },
+      { gameweekNumber: 9, opponentAbbr: 'FRA', isHome: true,  difficulty: 3 },
+    ],
+  },
+  {
+    club: WC_CLUBS[6]!, // Portugal
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'GER', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 5, opponentAbbr: 'ENG', isHome: false, difficulty: 3 },
+      { gameweekNumber: 6, opponentAbbr: 'ARG', isHome: false, difficulty: 3 },
+      { gameweekNumber: 7, opponentAbbr: 'ESP', isHome: false, difficulty: 4 },
+      { gameweekNumber: 8, opponentAbbr: 'BRA', isHome: true,  difficulty: 3 },
+      { gameweekNumber: 9, opponentAbbr: 'MAR', isHome: true,  difficulty: 1 },
+    ],
+  },
+  {
+    club: WC_CLUBS[7]!, // Morocco
+    fixtures: [
+      { gameweekNumber: 4, opponentAbbr: 'FRA', isHome: false, difficulty: 2 },
+      { gameweekNumber: 5, opponentAbbr: 'ARG', isHome: true,  difficulty: 2 },
+      { gameweekNumber: 6, opponentAbbr: 'BRA', isHome: false, difficulty: 2 },
+      { gameweekNumber: 7, opponentAbbr: 'ENG', isHome: true,  difficulty: 1 },
+      { gameweekNumber: 8, opponentAbbr: 'GER', isHome: true,  difficulty: 1 },
+      { gameweekNumber: 9, opponentAbbr: 'POR', isHome: false, difficulty: 1 },
+    ],
+  },
+];
