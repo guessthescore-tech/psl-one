@@ -1,174 +1,173 @@
 # apps/experience — Component Inventory
-**Last updated:** 2026-06-19 (STORY-FE-FANTASY-00)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01 final)
+**Total components:** 83
 
 ---
 
-## Built Components (STORY-FE-PREMIUM-01A)
+## Shell Components
 
-### Shell Components
-
-| Component | File | Props | Key features |
-|-----------|------|-------|--------------|
-| `AppHeader` | `components/shell/AppHeader.tsx` | none | Sticky dark, wordmark, desktop nav, mobile account icon |
-| `MobileBottomNav` | `components/shell/MobileBottomNav.tsx` | none | 5 tabs, spring indicator, `pb-safe`, `useReducedMotion` |
-| `MatchweekNav` | `components/shell/MatchweekNav.tsx` | `currentGW`, `totalGW`, `label`, `onPrev`, `onNext` | Direction-aware slide transition, `useReducedMotion` |
-
-### UI Components
-
-| Component | File | Props | Key features |
-|-----------|------|-------|--------------|
-| `SectionHeader` | `components/ui/SectionHeader.tsx` | `title`, `subtitle?`, `href?`, `linkLabel?`, `dark?` | Light/dark variant, optional "View all" link |
-| `FixtureCard` | `components/ui/FixtureCard.tsx` | `fixture`, `index?` | Live/finished/scheduled states, dual colour bar, stagger animation |
-| `TeamIdentity` | `components/ui/TeamIdentity.tsx` | `club`, `size`, `showName?`, `nameClass?` | 4 sizes (sm/md/lg/xl), colour badge derived from club data |
-| `PlayerPortrait` | `components/ui/PlayerPortrait.tsx` | `player`, `compact?` | Full card + compact list variant, stats grid |
-| `LeagueTable` | `components/ui/LeagueTable.tsx` | `standings` | CSS grid, zone colour bars, form dots |
-| `EditorialStory` | `components/ui/EditorialStory.tsx` | `story`, `featured?` | Featured full-height + compact grid variant |
-| `VideoCard` | `components/ui/VideoCard.tsx` | `video` | Snap card, play overlay, duration + category badges |
-| `GameEntryCard` | `components/ui/GameEntryCard.tsx` | `fixture`, `variant?` | `predict`/`fantasy`/`challenge` variants, disclaimer, `whileTap` |
-| `SponsorMoment` | `components/ui/SponsorMoment.tsx` | none | Picsum bg, transparency label, non-financial disclaimer |
-
-### Action Components
-
-| Component | File | Props | Key features |
-|-----------|------|-------|--------------|
-| `ShareAction` | `components/actions/ShareAction.tsx` | `title`, `text`, `url?`, `compact?` | Spring bottom sheet, WhatsApp/X/Copy, `role="dialog"`, safe-area padding |
-| `ChallengeAction` | `components/actions/ChallengeAction.tsx` | `fixture`, variant? | Compact + full versions, Sword icon |
+| Component | File | Notes |
+|-----------|------|-------|
+| `AppHeader` | `shell/AppHeader.tsx` | Sticky dark; wordmark; desktop nav; mobile account icon; `min-h-[44px]` on all targets |
+| `MobileBottomNav` (shell) | `shell/MobileBottomNav.tsx` | Original shell nav; 5 tabs |
+| `MatchweekNav` | `shell/MatchweekNav.tsx` | Gameweek prev/next arrows; direction-aware slide; `min-h-[44px]` |
 
 ---
 
-## Proposed Components — Phase 1 (Fantasy Core)
+## Navigation Components
 
-These components are required to build the 11 Phase 1 screens. None exist yet in `apps/experience`.
-
-### Fantasy Pitch
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `FantasyPitchView` | Formation pitch showing 15 players (GK / DEF / MID / FWD rows) | No — new |
-| `PlayerSlot` | Individual slot on pitch — empty or filled with player card | No — new |
-| `SquadPlayerCard` | Compact player on pitch: jersey number, name, points, captain badge | Uses `PlayerPortrait` pattern |
-| `TransferBar` | Sticky bar: budget remaining + transfers available + confirm CTA | No — new |
-| `DeadlineCountdown` | Live countdown to next transfer deadline | No — new |
-| `PointsSummaryHeader` | Sticky header: GW points total + rank movement | No — new |
-
-### Transfer Flow
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `PlayerPoolRow` | Player in transfer list: position badge, name, club, price, points, ownership % | No — new |
-| `PlayerPoolFilter` | Position / price range / club filter controls | No — new |
-| `TransferComparison` | Side-by-side OUT vs IN player before confirming | No — new |
-| `BudgetIndicator` | Colour bar showing budget headroom | No — new |
-
-### Chips
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `ChipCard` | Chip tile: name, description, status (available / used / active), activate button | No — new |
-| `ChipStatusBadge` | Pill: ACTIVE / USED / AVAILABLE | No — new |
-
-### Fixture Difficulty Rating
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `FDRMatrix` | Horizontal-scroll table: clubs × next 6 gameweeks | No — new |
-| `FDRCell` | Individual cell: colour + opponent abbr + H/A indicator | No — new |
-
-### Leagues
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `LeagueCard` | Summary card: name, type badge, own rank, points gap to leader | No — new |
-| `LeagueStandingsTable` | Full standings: Rank / Manager / Team / GW / Total / movement | Extends `LeagueTable` |
-| `ManagerRow` | Row in standings: avatar, manager name, team name, rank, points | No — new |
-| `RivalTeamPitchView` | Read-only pitch for a rival's team | Extends `FantasyPitchView` |
-| `LeagueCodeInput` | Code input with join action and error messaging | No — new |
-
-### Onboarding
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `OnboardingStep` | Step indicator: numbered circles + connecting line | No — new |
-| `BudgetMeter` | Budget progress bar during squad build | No — new |
-| `PositionSlotGroup` | Row of empty position slots during onboarding | No — new |
+| Component | File | Notes |
+|-----------|------|-------|
+| `MobileBottomNav` (nav) | `nav/MobileBottomNav.tsx` | framer-motion spring indicator; 5 destinations (Home, Matches, Fantasy, Predict, Profile) |
+| `FantasyTabs` (nav) | `fantasy/nav/FantasyTabs.tsx` | 9-tab horizontal scroll; `usePathname()` active detection; `min-h-[44px]` |
 
 ---
 
-## Proposed Components — Phase 2 (Research and Match Context)
+## UI Primitives
 
-### Match
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `ScoreHeader` | Sticky score: teams, score, minute, status | No — new |
-| `MatchTabBar` | Tab bar: Summary / Lineups / Stats / Fantasy | No — new |
-| `TimelineEvent` | Goal / card / sub event: minute, player, team colour | No — new |
-| `LineupFormation` | Visual 11-player formation diagram | No — new |
-| `TeamStatsBar` | Dual-bar stat row: possession, shots, corners | No — new |
-| `LivePulseBadge` | "LIVE 23'" animated badge | No — new |
-| `MOTMHero` | Man of the Match hero: portrait + key stats | Extends `PlayerPortrait` |
-
-### Player Research
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `PlayerStatGrid` | Goals / Assists / Minutes / Cards grid | No — new |
-| `PerGameweekTable` | GW-by-GW stat table with sortable columns | No — new |
-| `PlayerComparisonColumn` | One side of a two-player comparison view | Extends `PlayerStatGrid` |
-| `WinnerHighlight` | Per-row winner indicator in comparison | No — new |
-
-### Season Stats
-
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `TopScorersList` | Ranked list: position number, name, club, stat value | No — new |
-| `StandingsTable` | Full PSL standings with sortable columns | Extends `LeagueTable` |
-| `AwardCard` | Award category card: icon, category, current leader | No — new |
+| Component | File | Notes |
+|-----------|------|-------|
+| `SectionHeader` | `ui/SectionHeader.tsx` | Light/dark variant; optional "View all" link |
+| `TeamIdentity` | `ui/TeamIdentity.tsx` | Club crest + name; `sm/md/lg` sizes |
+| `FixtureCard` | `ui/FixtureCard.tsx` | Fixture card; score/status |
+| `EditorialStory` | `ui/EditorialStory.tsx` | Story card; featured variant |
+| `VideoCard` | `ui/VideoCard.tsx` | Video thumbnail + title |
+| `PlayerPortrait` | `ui/PlayerPortrait.tsx` | Player photo + position badge |
+| `LeagueTable` | `ui/LeagueTable.tsx` | Standings table; form dots |
+| `SponsorMoment` | `ui/SponsorMoment.tsx` | Sponsor full-bleed card |
+| `GameEntryCard` | `ui/GameEntryCard.tsx` | Game entry CTA card |
 
 ---
 
-## Proposed Components — Phase 3 (Account and Support)
+## Fantasy Shared Primitives
 
-| Component | Purpose | Reuses existing? |
-|-----------|---------|-----------------|
-| `AccountMenuList` | List of account sections with chevrons | No — new |
-| `ProfileForm` | Name, bio, email fields with save | No — new |
-| `PasswordChangeForm` | Current + new + confirm password fields | No — new |
-| `ClubBadgeSelector` | 4-column grid of club badges with selection state | Extends `TeamIdentity` |
-| `SignInForm` | Email + password + submit | No — new |
-| `ForgotPasswordForm` | Email input for reset request | No — new |
-| `FAQAccordion` | Category-filtered expandable FAQ list | No — new |
-| `StaticContentPage` | Shared layout for Terms, Privacy, About | No — new |
-| `QRScanner` | Camera viewfinder with QR detection | No — new (native camera API) |
-
----
-
-## Design System
-
-All components use the `exp-*` Tailwind token set defined in `tailwind.config.ts`.
-
-**Do not use:** `bg-gray-*`, `text-slate-*`, or any Tailwind default colours in this app. Use `exp-*` tokens only.
-
-**Token reference:**
-
-| Category | Tokens |
-|----------|--------|
-| Dark surfaces | `exp-void`, `exp-navy`, `exp-navy-2`, `exp-ink` |
-| Light surfaces | `exp-surface`, `exp-card` |
-| Accents | `exp-gold`, `exp-gold-2`, `exp-green`, `exp-green-2`, `exp-blue`, `exp-live` |
-| Text | `exp-muted`, `exp-border`, `exp-border-dk` |
-| Typography | `text-display-2xl` through `text-display-sm`, `text-body-lg/md/sm`, `text-label-lg/md/sm`, `text-score-xl/lg/md` |
-| Radii | `rounded-card` (14px), `rounded-card-sm` (10px), `rounded-card-xs` (8px), `rounded-pill` (100px) |
-| Shadows | `shadow-card`, `shadow-card-md`, `shadow-card-lg`, `shadow-card-xl`, `shadow-glow-gold`, `shadow-glow-green` |
-| Animations | `animate-live-pulse`, `animate-shimmer`, `animate-slide-up`, `animate-fade-in`, `animate-ticker-left` |
+| Component | File | Notes |
+|-----------|------|-------|
+| `FantasyShell` | `fantasy/shared/FantasyShell.tsx` | Top-level shell; AppHeader + FantasyTabs + MobileBottomNav |
+| `FantasyLoadingState` | `fantasy/shared/FantasyLoadingState.tsx` | Shared skeleton loader |
+| `FantasyEmptyState` | `fantasy/shared/FantasyEmptyState.tsx` | Empty state with CTA |
+| `FantasyErrorState` | `fantasy/shared/FantasyErrorState.tsx` | Error state with retry |
+| `FantasyModal` | `fantasy/shared/FantasyModal.tsx` | Modal wrapper |
+| `FantasyBottomSheet` | `fantasy/shared/FantasyBottomSheet.tsx` | Bottom sheet (mobile) |
+| `FantasyActionBar` | `fantasy/shared/FantasyActionBar.tsx` | Sticky action bar |
+| `FantasyPageHero` | `fantasy/shared/FantasyPageHero.tsx` | Page hero with title/subtitle |
+| `FantasySectionHeader` | `fantasy/shared/FantasySectionHeader.tsx` | Section header (fantasy variant) |
+| `FantasyTabs` (shared) | `fantasy/shared/FantasyTabs.tsx` | Tab bar (shared variant) |
+| `SkeletonCard` | `fantasy/shared/SkeletonCard.tsx` | Skeleton card placeholder |
+| `SkeletonText` | `fantasy/shared/SkeletonText.tsx` | Skeleton text line |
+| `DesignReviewBanner` | `fantasy/shared/DesignReviewBanner.tsx` | Purple DESIGN_REVIEW_DATA mode banner |
 
 ---
 
-## Motion Standards
+## Fantasy Core Components
 
-All animated components must:
-1. Import `useReducedMotion` from `framer-motion`
-2. Pass `false` as `initial` prop when `reduce` is true (disables entrance animation)
-3. Use `[0.16, 1, 0.3, 1]` as the enter easing curve
-4. Keep duration ≤ 350ms for functional transitions, ≤ 150ms for micro-interactions
-5. Animate only `opacity` and transform properties (`y`, `x`, `scale`) — never `width`, `height`, `top`, `left`
+| Component | File | Notes |
+|-----------|------|-------|
+| `FantasyPitchView` | `fantasy/core/FantasyPitchView.tsx` | 15-slot pitch; GK/DEF/MID/FWD rows; captain badge |
+| `PlayerSlot` | `fantasy/core/PlayerSlot.tsx` | Single player slot; captain/vice badge |
+| `CaptainMarker` | `fantasy/core/CaptainMarker.tsx` | C/VC badge overlay |
+| `BenchPanel` | `fantasy/core/BenchPanel.tsx` | 4-player bench row |
+| `BudgetIndicator` | `fantasy/core/BudgetIndicator.tsx` | Budget remaining display |
+| `TransferPanel` | `fantasy/core/TransferPanel.tsx` | Transfer action panel |
+| `TransferConfirmation` | `fantasy/core/TransferConfirmation.tsx` | Confirm transfer modal |
+| `PlayerPool` | `fantasy/core/PlayerPool.tsx` | Scrollable player list |
+| `PlayerPoolRow` | `fantasy/core/PlayerPoolRow.tsx` | Compact player row; Phosphor Plus icon; G · A stats |
+| `PlayerFilters` | `fantasy/core/PlayerFilters.tsx` | Position filter tabs |
+| `ChipCard` | `fantasy/core/ChipCard.tsx` | Individual chip card (Phosphor icons, hover/active states) |
+| `ChipSelector` | `fantasy/core/ChipSelector.tsx` | Chip selection grid |
+| `DeadlineCountdown` | `fantasy/core/DeadlineCountdown.tsx` | Deadline timer display |
+| `FormationSelector` | `fantasy/core/FormationSelector.tsx` | Formation picker |
+| `OnboardingStep` | `fantasy/core/OnboardingStep.tsx` | Single onboarding step |
+| `FixtureDifficultyCell` | `fantasy/core/FixtureDifficultyCell.tsx` | Single FDR cell |
+| `FixtureDifficultyMatrix` | `fantasy/core/FixtureDifficultyMatrix.tsx` | Full FDR colour grid |
+
+---
+
+## Fantasy League Components
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `LeagueCard` | `fantasy/leagues/LeagueCard.tsx` | League entry card |
+| `LeagueStandingsTable` | `fantasy/leagues/LeagueStandingsTable.tsx` | Standings table with rank movement |
+| `LeagueCreateForm` | `fantasy/leagues/LeagueCreateForm.tsx` | Create league form |
+| `LeagueCodeInput` | `fantasy/leagues/LeagueCodeInput.tsx` | Join-by-code input |
+| `InviteLeagueSheet` | `fantasy/leagues/InviteLeagueSheet.tsx` | Invite members bottom sheet |
+| `ManagerSearch` | `fantasy/leagues/ManagerSearch.tsx` | Manager search input |
+| `ManagerRow` | `fantasy/leagues/ManagerRow.tsx` | Manager row in standings |
+| `ManagerFilters` | `fantasy/leagues/ManagerFilters.tsx` | Filter controls for manager list |
+| `RankMovement` | `fantasy/leagues/RankMovement.tsx` | Up/down/same rank indicator |
+| `GameweekHistoryCard` | `fantasy/leagues/GameweekHistoryCard.tsx` | GW history list item |
+| `FantasyHistoryTimeline` | `fantasy/leagues/FantasyHistoryTimeline.tsx` | Historical points timeline |
+| `RivalTeamPitchView` | `fantasy/leagues/RivalTeamPitchView.tsx` | Rival manager's pitch (read-only) |
+
+---
+
+## Football Context Components
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `MatchHeader` | `football/MatchHeader.tsx` | Match score header |
+| `MatchTimeline` | `football/MatchTimeline.tsx` | Events timeline (goals, cards) |
+| `MatchStatsPanel` | `football/MatchStatsPanel.tsx` | Match statistics panel |
+| `MatchStateBadge` | `football/MatchStateBadge.tsx` | Live/FT/HT badge |
+| `LineupPitch` | `football/LineupPitch.tsx` | Team lineups pitch view |
+| `ManOfTheMatchCard` | `football/ManOfTheMatchCard.tsx` | MOTM display card |
+| `PlayerProfileHero` | `football/PlayerProfileHero.tsx` | Player profile hero section |
+| `PlayerStatGrid` | `football/PlayerStatGrid.tsx` | Player stats grid |
+| `PlayerGameweekTable` | `football/PlayerGameweekTable.tsx` | Player GW-by-GW stats |
+| `PlayerComparison` | `football/PlayerComparison.tsx` | Two-player comparison |
+| `ComparisonMetric` | `football/ComparisonMetric.tsx` | Single comparison metric row |
+| `StandingsTable` | `football/StandingsTable.tsx` | League standings table |
+| `SeasonLeaderboard` | `football/SeasonLeaderboard.tsx` | Season leaderboard |
+| `AwardCard` | `football/AwardCard.tsx` | Award display card |
+| `HallOfFameCard` | `football/HallOfFameCard.tsx` | Hall of Fame entry |
+| `ArticleDetail` | `football/ArticleDetail.tsx` | Article content display |
+| `VideoPlayerShell` | `football/VideoPlayerShell.tsx` | Video player wrapper |
+
+---
+
+## Account & Auth Components
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `AuthLayout` | `account/AuthLayout.tsx` | Centered auth page layout |
+| `AuthTabs` | `account/AuthTabs.tsx` | Sign In / Register tab switcher |
+| `AccountNav` | `account/AccountNav.tsx` | Account sidebar nav (4 items + Sign Out) |
+| `ProfileForm` | `account/ProfileForm.tsx` | Edit display name form |
+| `PasswordForm` | `account/PasswordForm.tsx` | Change password form |
+| `FavouriteTeamSelector` | `account/FavouriteTeamSelector.tsx` | Team selector grid |
+| `DeleteAccountDialog` | `account/DeleteAccountDialog.tsx` | POPIA deletion placeholder |
+| `HelpCategoryList` | `account/HelpCategoryList.tsx` | Help categories grid |
+| `HelpArticle` | `account/HelpArticle.tsx` | Help article content |
+| `LegalDocument` | `account/LegalDocument.tsx` | Terms/Privacy document layout |
+| `BadgeScannerShell` | `account/BadgeScannerShell.tsx` | Badge scanner UI shell |
+| `QuizShell` | `account/QuizShell.tsx` | Quiz question/answer shell |
+
+---
+
+## Action Components
+
+| Component | File | Notes |
+|-----------|------|-------|
+| `ShareAction` | `actions/ShareAction.tsx` | Share sheet; note: no focus trap (deferred) |
+| `ChallengeAction` | `actions/ChallengeAction.tsx` | Challenge a friend CTA |
+
+---
+
+## Homepage Sections
+
+| Section | File |
+|---------|------|
+| `MatchweekHeroSection` | `sections/MatchweekHeroSection.tsx` |
+| `FixtureCarouselSection` | `sections/FixtureCarouselSection.tsx` |
+| `FeaturedMatchSection` | `sections/FeaturedMatchSection.tsx` |
+| `GuessTheScoreSection` | `sections/GuessTheScoreSection.tsx` |
+| `LeagueTableSection` | `sections/LeagueTableSection.tsx` |
+| `FantasyGameweekSection` | `sections/FantasyGameweekSection.tsx` |
+| `PlayerSpotlightSection` | `sections/PlayerSpotlightSection.tsx` |
+| `EditorialGridSection` | `sections/EditorialGridSection.tsx` |
+| `VideoRailSection` | `sections/VideoRailSection.tsx` |
+| `ClubIdentitySection` | `sections/ClubIdentitySection.tsx` |
+| `SponsorSection` | `sections/SponsorSection.tsx` |
+| `FanValueSection` | `sections/FanValueSection.tsx` |
+| `MyClubSection` | `sections/MyClubSection.tsx` |

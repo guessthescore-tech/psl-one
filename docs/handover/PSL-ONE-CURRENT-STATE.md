@@ -132,10 +132,10 @@ Full detail: `apps/experience/docs/FANTASY-USER-JOURNEY.md`
 | Port | 3002 |
 | Tests | 366/366 PASS |
 | Typecheck | PASS (0 errors) |
-| Build | PASS (55 pages, 102 kB first load JS) |
+| Build | PASS (56 pages, 102 kB first load JS) |
 | codex:validate | PASS (0 errors) |
 | docs:validate | PASS (18/18 checks) |
-| Routes | 55 pages across fantasy, matches, players, account, auth, stats, clubs, quiz, scan, help |
+| Routes | 56 pages across fantasy, matches, players, account, auth, stats, media, quiz, scan, help |
 | Data mode | `DESIGN_REVIEW_DATA` (WC 2026 mock) default |
 | Picsum | Active placeholder — must be replaced before public launch |
 | LIVE_BETA_DATA | Wired but returns WC mock (TODO comment — API integration pending) |
