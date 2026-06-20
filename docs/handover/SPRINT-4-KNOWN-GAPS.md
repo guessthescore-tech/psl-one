@@ -119,6 +119,36 @@ These are intentionally deferred.
 
 ---
 
+## Gap 9: vercel.json outputDirectory Corrected
+
+**Type:** Configuration defect — fixed during reconciliation
+**Story:** STORY-S4-01
+**Status:** FIXED — committed in reconciliation pass
+
+The original `vercel.json` had `"outputDirectory": "apps/experience/.next"`. When Vercel links the project with rootDirectory `apps/experience`, outputDirectory is resolved relative to rootDirectory. The correct value is `".next"`. Fixed in the reconciliation commit.
+
+---
+
+## Gap 10: /fantasy/fixtures Reclassified
+
+**Type:** Documentation inaccuracy — corrected during reconciliation
+**Story:** STORY-S4-03
+**Status:** FIXED — wiring matrix updated
+
+The API wiring matrix incorrectly classified `/fantasy/fixtures` as `LIVE_BETA_DATA`. The actual page shows `FantasyEmptyState` with no API call. Reclassified to `DESIGN_REVIEW_DATA`. Backend endpoint exists when wiring is completed in a later sprint.
+
+---
+
+## Gap 11: /account/notifications Missing from Wiring Matrix
+
+**Type:** Documentation gap — corrected during reconciliation
+**Story:** STORY-S4-03
+**Status:** FIXED — added to wiring matrix as `PARTIAL`
+
+The new notifications page was not listed in the API wiring matrix. Added with classification `PARTIAL` (LIVE when authenticated, design defaults when not).
+
+---
+
 ## Summary
 
 | Gap | Blocker Type | Sprint 5 Priority |
@@ -132,3 +162,6 @@ These are intentionally deferred.
 | Analytics implementation | Development | MEDIUM |
 | Quiz engine | Infrastructure | LOW |
 | Badge scan | Physical infrastructure | LOW |
+| vercel.json outputDirectory | Fixed in reconciliation | — |
+| /fantasy/fixtures reclassification | Fixed in reconciliation | — |
+| /account/notifications wiring matrix | Fixed in reconciliation | — |

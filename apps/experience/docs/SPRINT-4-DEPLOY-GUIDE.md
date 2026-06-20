@@ -112,7 +112,7 @@ The `apps/experience/vercel.json` file is committed to source control and contro
 {
   "framework": "nextjs",
   "buildCommand": "cd ../.. && pnpm --filter @psl-one/experience build",
-  "outputDirectory": "apps/experience/.next",
+  "outputDirectory": ".next",
   "installCommand": "pnpm install --frozen-lockfile",
   "env": {
     "NEXT_PUBLIC_DATA_MODE": "DESIGN_REVIEW_DATA",

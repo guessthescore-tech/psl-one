@@ -3,7 +3,8 @@
 **Story:** STORY-S4-03  
 **Agent:** Agent 4 — API Wiring and Data Truth  
 **Date:** 2026-06-20  
-**Routes audited:** 49 pages in `apps/experience/src/app`
+**Routes audited:** 52 pages in `apps/experience/src/app`
+**Last reconciled:** 2026-06-20 (Sprint 4 final reconciliation)
 
 ---
 
@@ -44,7 +45,7 @@
 | `/fantasy/team` | `app/fantasy/team/page.tsx` | `LIVE_BETA_DATA` | `GET /fantasy/team`, `GET /fantasy/players` | Squad view |
 | `/fantasy/team/transfers` | `app/fantasy/team/transfers/page.tsx` | `LIVE_BETA_DATA` | `POST /fantasy/transfers` | Transfer window |
 | `/fantasy/team/chips` | `app/fantasy/team/chips/page.tsx` | `LIVE_BETA_DATA` | `GET /fantasy/team`, `POST /fantasy/chips` | Chips |
-| `/fantasy/fixtures` | `app/fantasy/fixtures/page.tsx` | `LIVE_BETA_DATA` | `GET /football/fixtures` | Upcoming fixtures |
+| `/fantasy/fixtures` | `app/fantasy/fixtures/page.tsx` | `DESIGN_REVIEW_DATA` | `GET /football/fixtures` | Empty state stub; backend exists but wiring deferred |
 | `/fantasy/fixture-difficulty` | `app/fantasy/fixture-difficulty/page.tsx` | `DESIGN_REVIEW_DATA` | — | `MISSING_BACKEND_CONTRACT` — FDR algorithm not built |
 | `/fantasy/stats` | `app/fantasy/stats/page.tsx` | `DESIGN_REVIEW_DATA` | — | `MISSING_BACKEND_CONTRACT` — fantasy stats summary |
 | `/fantasy/points` | `app/fantasy/points/page.tsx` | `DESIGN_REVIEW_DATA` | `GET /fantasy/points-history` | Backend exists; wiring deferred |
@@ -58,6 +59,7 @@
 | `/fantasy/leagues/[leagueId]` | `app/fantasy/leagues/[leagueId]/page.tsx` | `LIVE_BETA_DATA` | `GET /fantasy/leagues/:id` | League standings |
 | `/fantasy/leagues/[leagueId]/teams/[teamId]` | `app/fantasy/leagues/[leagueId]/teams/[teamId]/page.tsx` | `LIVE_BETA_DATA` | `GET /fantasy/teams/:id` | Rival team |
 | `/account` | `app/account/page.tsx` | `PARTIAL` | `GET /profile/summary` | Summary from API; nav static |
+| `/account/notifications` | `app/account/notifications/page.tsx` | `PARTIAL` | `GET /notifications/preferences`, `PATCH /notifications/preferences` | LIVE when authenticated; falls back to design defaults if unauthenticated or DESIGN_REVIEW_DATA mode |
 | `/account/profile` | `app/account/profile/page.tsx` | `LIVE_BETA_DATA` | `GET /profile/me`, `PATCH /profile/me` | Profile edit |
 | `/account/security` | `app/account/security/page.tsx` | `DESIGN_REVIEW_DATA` | `POST /auth/password/change` | `MISSING_BACKEND_CONTRACT` — password change |
 | `/account/favourite-team` | `app/account/favourite-team/page.tsx` | `PARTIAL` | `PATCH /profile/me` | Uses WC_CLUBS design data for club list |
@@ -82,12 +84,14 @@
 
 | Classification | Count | % |
 |---------------|-------|---|
-| `LIVE_BETA_DATA` | 19 | 39% |
-| `PARTIAL` | 4 | 8% |
-| `DESIGN_REVIEW_DATA` | 17 | 35% |
+| `LIVE_BETA_DATA` | 18 | 35% |
+| `PARTIAL` | 5 | 10% |
+| `DESIGN_REVIEW_DATA` | 18 | 35% |
 | `STATIC_CONTENT` | 6 | 12% |
 | `DEFERRED_STUB` | 2 | 4% |
 | `MISSING_BACKEND_CONTRACT` | 7 | 14% |
+
+_Totals exceed 52 because MISSING_BACKEND_CONTRACT routes are a subset of DESIGN_REVIEW_DATA._
 
 ---
 

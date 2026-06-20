@@ -20,7 +20,7 @@
 | Share: Copy link | ✅ PASS | `navigator.clipboard.writeText` with fallback |
 | Points-only disclaimer visible | ✅ PASS | All game surfaces show disclaimer |
 | Account notifications page | ✅ PASS | `/account/notifications` — wired to `/notifications/preferences` |
-| API wiring matrix complete | ✅ PASS | All 49 original + 3 new routes classified |
+| API wiring matrix complete | ✅ PASS | 52 routes classified; 1 reclassification + 1 new route added during reconciliation |
 | Missing contracts documented | ✅ PASS | 7 missing contracts documented with ADR |
 | Provider research complete | ✅ PASS | Recommendation: Sportmonks; licensing gate documented |
 | PoC adapter interface | ✅ PASS | `tools/data-provider-spike/adapter-interface.ts` |
@@ -32,7 +32,7 @@
 | Dead links | ✅ PASS | No dead links in new pages |
 | Typecheck: experience | ✅ PASS | `tsc --noEmit` → 0 errors |
 | Tests: experience | ✅ PASS | 434/434 tests pass |
-| Build: experience | ✅ PASS | 52 pages built cleanly |
+| Build: experience | ✅ PASS | 59 static pages generated; 52 unique routes |
 | Tests: API | ✅ PASS | 1,652/1,652 tests pass |
 | codex:validate | ✅ PASS | 0 errors, 0 warnings |
 | docs:validate | ✅ PASS | All 18 checks pass |
