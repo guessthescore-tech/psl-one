@@ -78,6 +78,7 @@ export default function AccountProfilePage() {
     <FantasyShell
       title="Edit Profile"
       back={{ href: '/account', label: 'Account' }}
+      hideFantasyTabs
     >
       {loading && <FantasyLoadingState />}
 

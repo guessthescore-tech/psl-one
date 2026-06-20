@@ -15,16 +15,18 @@ interface FantasyShellProps {
   title?: string;
   subtitle?: string;
   back?: BackLink;
+  /** Set true to suppress FantasyTabs (e.g. onboarding wizard, account pages) */
+  hideFantasyTabs?: boolean;
 }
 
-export function FantasyShell({ children, title, subtitle, back }: FantasyShellProps) {
+export function FantasyShell({ children, title, subtitle, back, hideFantasyTabs }: FantasyShellProps) {
   return (
     <div className="min-h-screen bg-exp-void pb-safe">
       <DesignReviewBanner />
 
       {/* Page header */}
       {(back || title) && (
-        <div className="px-4 pt-4 pb-2 bg-exp-void">
+        <div className="px-4 pt-4 pb-2 bg-exp-void max-w-7xl mx-auto w-full">
           {back && (
             <Link
               href={back.href}
@@ -46,13 +48,15 @@ export function FantasyShell({ children, title, subtitle, back }: FantasyShellPr
         </div>
       )}
 
-      {/* Fantasy section tabs */}
-      <div className="border-b border-exp-border-dk px-4">
-        <FantasyTabs />
-      </div>
+      {/* Fantasy section tabs — hidden for wizard flows and account pages */}
+      {!hideFantasyTabs && (
+        <div className="border-b border-exp-border-dk px-4">
+          <FantasyTabs />
+        </div>
+      )}
 
       {/* Main content */}
-      <div>{children}</div>
+      <div className="max-w-7xl mx-auto w-full">{children}</div>
     </div>
   );
 }

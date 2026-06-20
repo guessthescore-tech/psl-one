@@ -1,6 +1,6 @@
 # STORY-FE-FANTASY-AGENTIC-01 — Handover
-**Status:** COMPLETE — all gates pass, ready for owner review
-**Date:** 2026-06-19
+**Status:** COMPLETE — visual corrections applied, ready for owner re-review
+**Date:** 2026-06-20 (updated: STORY-FE-EXPERIENCE-CORRECTIONS-01)
 **Branch:** `feature/fantasy-complete-experience`
 
 ---
@@ -11,16 +11,31 @@ Full 40-screen Fantasy journey implemented in `apps/experience` using a 10-agent
 
 ---
 
-## Final Gate Checks
+## Final Gate Checks (STORY-FE-EXPERIENCE-CORRECTIONS-01)
 
-| Gate | Result |
-|------|--------|
-| `typecheck` | PASS (0 errors) |
-| `test` | PASS (366/366) |
-| `build` | PASS (56 pages, 102 kB first load JS) |
-| `codex:validate` | PASS (0 errors) |
-| `docs:validate` | PASS (18/18) |
-| `git diff --check` | PASS (0 whitespace errors) |
+| Gate | Result | Notes |
+|------|--------|-------|
+| `typecheck` | PASS (0 errors) | — |
+| `test` | PASS (384/384) | +18 tests for correction coverage |
+| `build` | PASS (56 pages, 102 kB first load JS) | No new pages |
+| `codex:validate` | PASS (0 errors) | — |
+| `docs:validate` | PASS (18/18) | — |
+| `git diff --check` | PASS (0 whitespace errors) | — |
+
+## Key Fixes Applied (STORY-FE-EXPERIENCE-CORRECTIONS-01)
+
+| Fix | Files |
+|-----|-------|
+| `expImg` — SVG data URI placeholder (removed picsum.photos) | `src/lib/data.ts`, `next.config.ts` |
+| `FantasyShell.hideFantasyTabs` prop — suppress tabs on wizard/account | `FantasyShell.tsx` |
+| Onboarding step-1 coaching content | `fantasy/onboarding/page.tsx` |
+| Account pages: `hideFantasyTabs` on all 5 routes | 5 files |
+| `/players` responsive grid — `md:grid-cols-2 xl:grid-cols-3` | `players/page.tsx` |
+| `FantasyShell` content wrapper `max-w-7xl` cap | `FantasyShell.tsx` |
+| `AuthLayout` football tagline | `AuthLayout.tsx` |
+| `TeamIdentity` shield badge shape | `TeamIdentity.tsx` |
+| `FantasyPitchView` animation timing (0.35→0.25s, 0.07→0.04s stagger) | `FantasyPitchView.tsx` |
+| Test suite: 7 new describe blocks, +18 tests | `experience.spec.ts` |
 
 ---
 

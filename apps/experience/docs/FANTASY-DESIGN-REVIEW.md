@@ -1,5 +1,5 @@
 # Fantasy Design Review
-**Date:** 2026-06-19 | **Status:** PASS — design polish complete
+**Date:** 2026-06-20 | **Status:** PASS — visual corrections applied (STORY-FE-EXPERIENCE-CORRECTIONS-01)
 
 ---
 
@@ -54,8 +54,23 @@
 
 ---
 
+## Corrections Applied (STORY-FE-EXPERIENCE-CORRECTIONS-01)
+
+| Correction | Detail |
+|-----------|--------|
+| Image placeholders | `picsum.photos` replaced with football-branded SVG data URIs; 6 category types (player, stadium, video, editorial, club, generic) with deterministic club-color gradients |
+| `FantasyTabs` on onboarding | Hidden via `hideFantasyTabs` prop on `FantasyShell`; was appearing mid-wizard |
+| `FantasyTabs` on account pages | Hidden on all 5 account pages (`/account`, `/profile`, `/security`, `/favourite-team`, `/delete`) |
+| Onboarding step-1 coaching | 4-card coaching panel added: Pick 15 players / Earn points / Compete / Manage transfers |
+| Desktop multi-column layout | `/players` upgraded to `md:grid-cols-2 xl:grid-cols-3`; `FantasyShell` wrapper gets `max-w-7xl` |
+| Sign-in football tagline | `"The digital home of South African football"` subtitle added below PSL One logo |
+| Club badge shape | `TeamIdentity` uses CSS shield border-radius `rounded-[28%_28%_50%_50%/20%_20%_40%_40%]` |
+| Pitch animation timing | Stagger reduced: `0.35s/0.07s` → `0.25s/0.04s`; last row at ~370ms (was ~560ms) |
+
+---
+
 ## What Needs Owner Sign-Off
 
-- Photography: `picsum.photos` placeholder — needs licensed football photography
+- Photography: SVG data URIs are structural placeholders — needs licensed football photography
 - Typography: `Geist` (default) — confirm this is the right brand font choice
 - `exp-gold` hue: double-check against PSL One brand guidelines

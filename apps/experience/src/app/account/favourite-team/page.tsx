@@ -25,6 +25,7 @@ export default function FavouriteTeamPage() {
       title="Favourite Team"
       subtitle="Choose the team you support"
       back={{ href: '/account', label: 'Account' }}
+      hideFantasyTabs
     >
       <FavouriteTeamSelector
         clubs={WC_CLUBS}

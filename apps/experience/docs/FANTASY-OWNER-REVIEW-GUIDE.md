@@ -1,6 +1,23 @@
 # Fantasy Experience — Owner Review Guide
-**Date:** 2026-06-19
-**Branch:** `feature/fantasy-complete-experience`
+**Date:** 2026-06-20 (updated — visual corrections applied)
+**Branch:** `feature/fantasy-complete-experience` (includes `fix/fantasy-visual-corrections`)
+
+---
+
+## Visual Corrections Applied (STORY-FE-EXPERIENCE-CORRECTIONS-01)
+
+Before reviewing, note these improvements over the initial build:
+
+| Finding | Fix Applied |
+|---------|-------------|
+| FantasyTabs shown mid-onboarding wizard | Suppressed via `hideFantasyTabs` prop |
+| FantasyTabs shown on account pages | Suppressed on all 5 account pages |
+| Empty space on onboarding step 1 | Added 4-card "What you get" coaching panel |
+| Random external placeholder images | Replaced with football-branded SVG data URIs |
+| Players list narrow on desktop | Upgraded to responsive 2/3-column grid |
+| Sign-in page large empty space | Football tagline added below PSL One logo |
+| Generic circle club badges | Shield-shaped badge CSS (more football-authentic) |
+| Pitch rows animating too slowly | Stagger reduced to complete within ~370ms of mount |
 
 ---
 

@@ -62,7 +62,7 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <FantasyShell title="Account">
+      <FantasyShell title="Account" hideFantasyTabs>
         <FantasyLoadingState />
       </FantasyShell>
     );
@@ -70,7 +70,7 @@ export default function AccountPage() {
 
   if (!profile) {
     return (
-      <FantasyShell title="Account">
+      <FantasyShell title="Account" hideFantasyTabs>
         <div className="text-center py-12 flex flex-col items-center gap-4">
           <p className="text-body-md text-exp-muted">Sign in to access your account</p>
           <Link
@@ -97,7 +97,7 @@ export default function AccountPage() {
   });
 
   return (
-    <FantasyShell>
+    <FantasyShell hideFantasyTabs>
       <div className="flex flex-col gap-6">
         {/* Profile hero */}
         <div className="flex items-center gap-4 p-5 bg-exp-navy border border-exp-border-dk rounded-card">
