@@ -1,11 +1,17 @@
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
+import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
 
 export default function FantasyRulesPage() {
   return (
-    <FantasyShell title="Rules">
-      <div className="px-4 py-12 text-center">
-        <p className="text-exp-muted text-body-md">Coming soon</p>
-      </div>
+    <FantasyShell
+      title="Fantasy Rules"
+      subtitle="How the game works"
+    >
+      <FantasyEmptyState
+        title="Rules guide coming soon"
+        message="Scoring rules, transfer limits, chip usage, and deadline information will be published here when the PSL fantasy season opens."
+        action={{ label: 'View my squad', href: '/fantasy/team' }}
+      />
     </FantasyShell>
   );
 }
