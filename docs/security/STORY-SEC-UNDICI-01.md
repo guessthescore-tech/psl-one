@@ -66,6 +66,8 @@ All confirmed via `pnpm audit` against the npm advisory database.
 | `pnpm-lock.yaml` | `undici@8.4.1` → `undici@8.5.0` throughout |
 | `.github/workflows/ci.yml` | `exit-code: 0` → `exit-code: 1` on Trivy filesystem scan; advisory comment removed |
 | `.github/workflows/container-build.yml` | `exit-code: 0` → `exit-code: 1` on Trivy image scan; advisory comment removed |
+| `apps/api/Dockerfile` | Remove npm/npx from runner stage (see picomatch section below) |
+| `apps/web/Dockerfile` | Remove npm/npx from runner stage (see picomatch section below) |
 
 ---
 
@@ -103,14 +105,33 @@ Remaining moderate findings (out of scope for this story):
 
 These moderate findings predate this story and are not introduced by the undici fix. They are tracked for future security triage stories.
 
-### Container image scans
+### Container image scans — round 1 (CI run 27866247639)
 
-Local Docker not available in this environment. The Trivy image scan in CI (`aquasecurity/trivy-action@v0.36.0`) scans the built container filesystem. Since:
-- The containers copy `pnpm-lock.yaml` and install from it
-- `pnpm-lock.yaml` now resolves `undici@8.5.0`
-- The `packages/testing` package is a development/test dependency not included in production container images
+After the undici fix, the filesystem scan passed with `exit-code: 1`. However, the three container image
+scans still failed:
 
-The `packages/testing` testcontainers dependency is dev-only and does not appear in the API, web, or migrator Docker images. Container image scans are expected to show 0 HIGH/CRITICAL findings related to undici.
+```
+picomatch (package.json) | CVE-2026-33671 | HIGH | fixed | 4.0.3 | 4.0.4, 3.0.2, 2.3.2
+Path: usr/local/lib/node_modules/npm/node_modules/picomatch/package.json
+```
+
+**Root cause:** The `node:22-alpine` base image ships npm as a bundled tool at
+`/usr/local/lib/node_modules/npm/`. npm@10.x bundles `picomatch@4.0.3` internally. This is
+npm's own runtime dependency — not our application code. Our application (NestJS API, Next.js web)
+does not import or use picomatch at runtime.
+
+**Fix:** Remove npm and npx from the production runner stages. The runner targets only
+execute pre-compiled application code (`node apps/api/dist/main.js`, `node apps/web/server.js`,
+`prisma migrate deploy`). None of these require npm.
+
+Added to both `apps/api/Dockerfile` and `apps/web/Dockerfile` runner stages:
+```dockerfile
+RUN apk add --no-cache curl tini [openssl] && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+```
+
+Benefits beyond the CVE fix: reduces container attack surface (principle of least privilege),
+removes an unused package manager from production images.
 
 ---
 
