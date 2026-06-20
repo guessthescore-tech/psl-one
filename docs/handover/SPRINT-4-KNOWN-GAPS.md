@@ -1,27 +1,30 @@
 # Sprint 4 — Known Gaps
 
-**Date:** 2026-06-20  
+**Date:** 2026-06-20
 **Branch:** `feature/sprint-4-premium-activation`
 
 ---
 
-## Gap 1: Vercel Preview Not Yet Live
+## Gap 1: Vercel Preview — RESOLVED
 
-**Type:** Credential blocker  
-**Story:** STORY-S4-01  
-**Status:** BLOCKED — requires owner action
+**Type:** Credential blocker — now resolved
+**Story:** STORY-S4-01
+**Status:** FIXED — preview deployed 2026-06-20
 
-The complete Vercel configuration is committed (`vercel.json`, `.env.example`, `SPRINT-4-DEPLOY-GUIDE.md`). The blocker is the `vercel link` step which requires the owner to authenticate with their Vercel account.
+Preview URL: https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app
+Deployment ID: `dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ`
+Protection: none (SSO disabled; accessible without login)
+Smoke checks: 9/9 routes HTTP 200
+Screenshots: 34 PNG at `~/Desktop/psl-one-sprint4-preview-review/`
 
-**Impact:** Stakeholder cannot access the preview at a URL until this is done.  
-**Workaround:** Run `pnpm --filter @psl-one/experience dev` locally on port 3002.
+**Impact:** Resolved. Stakeholder can access the preview at the URL above.
 
 ---
 
 ## Gap 2: Real Team Crests / Logos Not Available
 
-**Type:** Asset gap  
-**Story:** STORY-S4-02  
+**Type:** Asset gap
+**Story:** STORY-S4-02
 **Status:** DEFERRED
 
 All team crests use colored shield shapes with initials (TeamIdentity component). Real team logos require:
@@ -29,15 +32,15 @@ All team crests use colored shield shapes with initials (TeamIdentity component)
 2. Asset delivery
 3. CDN/image serving setup
 
-**Impact:** Visual experience looks designed but not authentic for PSL clubs.  
+**Impact:** Visual experience looks designed but not authentic for PSL clubs.
 **Mitigation:** Acceptable for design review; must be resolved before public launch.
 
 ---
 
 ## Gap 3: Player Images Are Placeholder
 
-**Type:** Asset gap  
-**Story:** STORY-S4-02  
+**Type:** Asset gap
+**Story:** STORY-S4-02
 **Status:** DEFERRED
 
 Player profile images use picsum.photos placeholder images. Real player headshots require:
@@ -45,28 +48,28 @@ Player profile images use picsum.photos placeholder images. Real player headshot
 2. Image rights
 3. CDN hosting
 
-**Impact:** Players/stats pages look generic.  
+**Impact:** Players/stats pages look generic.
 **Mitigation:** Acceptable for design review; must be resolved before public launch.
 
 ---
 
 ## Gap 4: Sports Data Provider Not Contracted
 
-**Type:** Commercial gap  
-**Story:** STORY-S4-06  
+**Type:** Commercial gap
+**Story:** STORY-S4-06
 **Status:** BLOCKED — requires owner action
 
 Provider recommendation is Sportmonks. Architecture is designed (NestJS adapter interface in `tools/data-provider-spike/`). The platform currently uses WC 2026 design review data.
 
-**Impact:** Live fixture data, standings, and player stats cannot be served until a provider is licensed.  
+**Impact:** Live fixture data, standings, and player stats cannot be served until a provider is licensed.
 **Next step:** Owner to review `SPRINT-4-PROVIDER-LICENSING-GATE.md` and begin commercial discussion with Sportmonks.
 
 ---
 
 ## Gap 5: Missing Backend Contracts (7)
 
-**Type:** Backend gap  
-**Story:** STORY-S4-04  
+**Type:** Backend gap
+**Story:** STORY-S4-04
 **Status:** Documented; implementation deferred to Sprint 5
 
 The following frontend pages fall back to design review data because their backend APIs don't exist yet:
@@ -84,8 +87,8 @@ See: `apps/experience/docs/SPRINT-4-MISSING-CONTRACTS.md`
 
 ## Gap 6: Challenge Backend Integration (Design Review Only)
 
-**Type:** Feature gap  
-**Story:** STORY-S4-05  
+**Type:** Feature gap
+**Story:** STORY-S4-05
 **Status:** Partially implemented
 
 The challenge pages use a URL-based approach (query params) for design review. The backend `ChallengesController` exists (`POST /challenges`, `POST /challenges/:id/accept`). Wiring the frontend challenge pages to the backend requires authentication state management (currently challenges are unauthenticated in the frontend).
@@ -96,20 +99,20 @@ The challenge pages use a URL-based approach (query params) for design review. T
 
 ## Gap 7: Analytics Not Yet Instrumentated
 
-**Type:** Implementation gap  
-**Story:** STORY-S4-08  
+**Type:** Implementation gap
+**Story:** STORY-S4-08
 **Status:** Documented only
 
 The analytics event catalogue is complete (`SPRINT-4-ANALYTICS-EVENT-CATALOGUE.md`) but no analytics adapter is implemented in the frontend code. Events are documented but not fired.
 
-**Impact:** No tracking data from the preview.  
+**Impact:** No tracking data from the preview.
 **Next step:** Sprint 5 — implement a consent-aware analytics adapter (PostHog or similar).
 
 ---
 
 ## Gap 8: Quiz and Badge Scan (Design Only)
 
-**Type:** Feature gap  
+**Type:** Feature gap
 **Status:** DEFERRED — requires physical/content infrastructure
 
 - `/quiz/[quizId]` — quiz pages render but need a quiz engine backend
@@ -153,7 +156,7 @@ The new notifications page was not listed in the API wiring matrix. Added with c
 
 | Gap | Blocker Type | Sprint 5 Priority |
 |-----|-------------|-------------------|
-| Vercel preview URL | Owner action needed | HIGH — do immediately |
+| Vercel preview URL | RESOLVED — live at preview URL | — |
 | Team crests | Asset/licensing | HIGH for launch |
 | Player images | Asset/licensing | HIGH for launch |
 | Sports data provider | Commercial | HIGH — begin discussions |

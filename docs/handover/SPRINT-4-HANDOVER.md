@@ -18,7 +18,7 @@ A stakeholder can open the premium PSL One experience, complete the primary Fant
 
 | Story | Title | Status | Notes |
 |-------|-------|--------|-------|
-| S4-01 | External Premium Experience Preview | ✅ COMPLETE (blocked at credentials) | `vercel.json` committed; deploy guide written; stops at `vercel link` |
+| S4-01 | External Premium Experience Preview | ✅ COMPLETE | Preview live: https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app (deploy ID `dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ`; 59 pages; noindex; 9/9 smoke checks PASS) |
 | S4-02 | Owner Visual Acceptance System | ✅ COMPLETE | 52-screen matrix, defect log, owner review guide |
 | S4-03 | Real API Wiring Matrix | ✅ COMPLETE | All 52 routes classified; data-source truth table |
 | S4-04 | Missing Backend Contracts | ✅ COMPLETE (documented) | 7 contracts documented; 2 high-priority for Sprint 5 |

@@ -1,10 +1,10 @@
 # Sprint 4 — Screen Acceptance Matrix
 
-**Document type:** Visual acceptance matrix  
-**Agent:** Agent 3 (Visual Acceptance) / Agent 10 (Accessibility/Responsive)  
-**Date:** 2026-06-20  
-**Basis:** Code audit of `apps/experience/src/app` (no live screenshots; design-review mode)  
-**Total pages audited:** 52  
+**Document type:** Visual acceptance matrix
+**Agent:** Agent 3 (Visual Acceptance) / Agent 10 (Accessibility/Responsive)
+**Date:** 2026-06-20
+**Basis:** Code audit + live preview verification (https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app); 34 browser screenshots captured (17 routes x mobile-390 + desktop-1440) at `~/Desktop/psl-one-sprint4-preview-review/`
+**Total pages audited:** 52
 
 ---
 

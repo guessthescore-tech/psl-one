@@ -3,7 +3,7 @@
 **Story:** STORY-S4-01  
 **Agent:** Agent 2 — Preview Hosting and Release Engineering  
 **Date:** 2026-06-20  
-**Status:** Configuration complete — requires owner to complete Vercel project linking
+**Status:** DEPLOYED — preview live at https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app
 
 ---
 
@@ -195,16 +195,30 @@ curl -I "$PREVIEW_URL/api/health" # Should 404 (API is separate)
 |------|--------|
 | `vercel.json` | COMMITTED (`apps/experience/vercel.json`) |
 | `.env.example` | COMMITTED (`apps/experience/.env.example`) |
-| Vercel project linking | PENDING — requires owner to run `vercel link` |
-| Environment variables | PENDING — owner must set in Vercel dashboard |
-| Preview deployment | PENDING — after above steps |
-| Password protection | RECOMMENDED but optional |
-| Preview URL | TBD after linking |
+| Vercel project | LINKED — project ID `prj_LHTitj7ECcQLtrisl8s9AL1gVZPZ` |
+| Deployment approach | Vercel API + GitHub gitSource (full monorepo checkout) |
+| Environment variables | CONFIGURED via Vercel API (NEXT_PUBLIC_* only) |
+| Preview deployment | LIVE — `dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ` |
+| SSO protection | DISABLED — accessible without Vercel login |
+| Preview URL | https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app |
+| noindex headers | CONFIRMED — `x-robots-tag: noindex, nofollow` on all routes |
+| Smoke checks | 9/9 routes HTTP 200 |
+| Screenshots | 34 PNG files in `~/Desktop/psl-one-sprint4-preview-review/` |
 
 ---
 
-## Blocker
+## Deployment Approach (Actual — Monorepo Note)
 
-**Hard blocker at Step 3**: Vercel project linking requires the owner to authenticate via `vercel login` with the Vercel account associated with `guessthescore-tech/psl-one` on GitHub. This cannot be done autonomously.
+Standard `vercel link` + `vercel deploy` from `apps/experience` does NOT work because Vercel uploads
+only the current directory, missing the pnpm workspace root that `apps/experience` depends on.
 
-**All other Sprint 4 work continues independently of this blocker.**
+**Solution used:** Deploy via Vercel REST API with a `gitSource` pointing to the GitHub branch SHA.
+Vercel checks out the full `guessthescore-tech/psl-one` repository, uses `apps/experience` as
+`rootDirectory`, then runs `cd ../.. && pnpm --filter @psl-one/experience build` from that directory.
+This gives the build access to the full pnpm workspace.
+
+To trigger a redeployment (e.g., after merging to main):
+```bash
+# POST to Vercel API with gitSource — see SPRINT-4-DEPLOY-GUIDE for full curl command
+# Or: push to feature branch; Vercel auto-deploys on push (GitHub integration active)
+```

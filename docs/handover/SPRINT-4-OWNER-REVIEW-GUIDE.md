@@ -7,32 +7,21 @@ This guide tells you exactly what to do to review Sprint 4 and decide whether to
 
 ---
 
-## Step 1 — Deploy the Preview (15 minutes)
+## Step 1 — Open the Live Preview (Already Deployed)
 
-The Vercel configuration is ready. You just need to link and deploy.
+The preview is already live. No Vercel CLI steps required.
 
-```bash
-# 1. Install Vercel CLI (skip if already installed)
-npm install -g vercel
+**Preview URL:** https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app
 
-# 2. Login with your account
-vercel login
+Open this URL in a browser — no login, no password required.
 
-# 3. Link the experience project
-cd ~/Projects/psl-one/apps/experience
-vercel link
-# When prompted:
-# - Create new project: yes
-# - Project name: psl-one-experience
-# - Root directory: . (current — apps/experience)
+Key facts:
+- Data mode: `DESIGN_REVIEW_DATA` (WC 2026 mock data; no PSL data)
+- noindex: all pages are blocked from search engines
+- Screenshots: 34 PNG files (mobile + desktop) at `~/Desktop/psl-one-sprint4-preview-review/`
+- Inspector: https://vercel.com/guess-the-score/psl-one-experience-preview/W1mvR8gYtbeUhza1ZJAC6s8UoRtJ
 
-# 4. Deploy
-vercel
-```
-
-**Expected output:** A URL like `https://psl-one-experience-xxxx.vercel.app`
-
-For the full guide: `apps/experience/docs/SPRINT-4-DEPLOY-GUIDE.md`
+For deployment details: `apps/experience/docs/SPRINT-4-DEPLOY-GUIDE.md`
 
 ---
 

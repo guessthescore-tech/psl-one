@@ -16,19 +16,17 @@ This document records decisions requiring owner input during Sprint 4.
 - Created `apps/experience/.env.example` — all env vars documented
 - Created `apps/experience/docs/SPRINT-4-DEPLOY-GUIDE.md` — step-by-step instructions
 
-**What the owner must do:**
-```bash
-vercel login          # authenticate with guessthescore2@gmail.com Vercel account
-cd apps/experience
-vercel link           # link to new Vercel project "psl-one-experience"
-```
-Then set env vars in Vercel dashboard (see SPRINT-4-DEPLOY-GUIDE.md).
+**Deployed by:** autonomous API deployment via Vercel API + GitHub gitSource (2026-06-20)
 
-**Options:**
-1. Deploy to Vercel Preview (recommended) — free tier, available immediately
-2. Skip Vercel — use local `pnpm --filter @psl-one/experience dev` for review
+**Preview URL:** https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app
+**Deployment ID:** `dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ`
+**Inspector:** https://vercel.com/guess-the-score/psl-one-experience-preview/W1mvR8gYtbeUhza1ZJAC6s8UoRtJ
+**Protection:** None (SSO disabled — accessible without login)
+**Smoke checks:** 9/9 routes HTTP 200
+**Data mode:** `DESIGN_REVIEW_DATA`
+**Screenshots:** 34 PNG files in `~/Desktop/psl-one-sprint4-preview-review/` (17 routes × mobile + desktop)
 
-**Decision:** PENDING
+**Decision:** DONE — preview deployed; visual acceptance review is next (DECISION-S4-02)
 
 ---
 

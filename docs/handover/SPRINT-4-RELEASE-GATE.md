@@ -12,6 +12,7 @@
 | Gate | Status | Evidence |
 |------|--------|---------|
 | External preview configuration | ✅ PASS | `vercel.json` + `.env.example` committed |
+| External preview deployed | ✅ PASS | https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app (`dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ`); 9/9 smoke checks HTTP 200; noindex confirmed; 34 screenshots at `~/Desktop/psl-one-sprint4-preview-review/` |
 | Visual review package complete | ✅ PASS | Screen acceptance matrix + visual defect log created |
 | Predict page implemented | ✅ PASS | `/predict` fully implemented (was "Coming soon") |
 | Challenge flow implemented | ✅ PASS | `/predict/challenge` + `/predict/challenge/accept` |
