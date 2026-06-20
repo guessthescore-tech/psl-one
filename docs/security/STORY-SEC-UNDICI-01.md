@@ -3,7 +3,7 @@
 **Date:** 2026-06-20
 **Starting main SHA:** `6ed5f23801043718f862de5fea1442dc08b649c1`
 **Security branch:** `fix/security-undici-cves`
-**Status:** REMEDIATED — Trivy blocking mode restored
+**Status:** COMPLETE — all 6/6 CI checks green, blocking mode active
 
 ---
 
@@ -147,6 +147,12 @@ removes an unused package manager from production images.
 | docs:validate | PASS (18/18) |
 | git diff --check | PASS |
 | pnpm audit (HIGH/CRITICAL) | PASS (0 HIGH, 0 CRITICAL) |
+| CI: build-and-test | PASS (run 27868007855) |
+| CI: event-schema-validation | PASS (run 27868007855) |
+| CI: security-scan (filesystem, exit-code: 1) | PASS (run 27868007855) |
+| CI: build-and-scan (api) | PASS (run 27868007856) |
+| CI: build-and-scan (api-migrator) | PASS (run 27868007856) |
+| CI: build-and-scan (web) | PASS (run 27868007856) |
 
 ---
 
