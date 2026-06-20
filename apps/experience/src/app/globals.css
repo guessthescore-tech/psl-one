@@ -62,3 +62,8 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* ── Fantasy module overrides ── */
+.fantasy-scrollbar::-webkit-scrollbar { width: 0; height: 0; }
+.fantasy-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.tab-underline { transition: transform 150ms cubic-bezier(0.16,1,0.3,1); }

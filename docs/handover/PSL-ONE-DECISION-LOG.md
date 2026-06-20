@@ -1,5 +1,5 @@
 # PSL One — Decision Log
-**Last updated:** 2026-06-19 (STORY-FE-PREMIUM-01A)
+**Last updated:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01)
 
 Each entry records: Date, Decision, Context, Options, Chosen, Reason, Consequences, Revisit trigger.
 
@@ -149,3 +149,33 @@ Each entry records: Date, Decision, Context, Options, Chosen, Reason, Consequenc
 **Reason:** Design reviews with international stakeholders benefit from recognisable teams. Avoids risk of PSL club branding being presented without commercial authorisation.
 **Consequences:** The creative product does not currently reflect PSL club visual identity. PSL club colours exist in the database (16 clubs seeded) but are not displayed in `apps/experience` yet.
 **Revisit trigger:** PSL data provider selected and club identity assets confirmed.
+
+---
+
+## DEC-011: All Phosphor icons in apps/experience must use /dist/ssr
+
+**Date:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01)
+**Decision:** Every `@phosphor-icons/react` import in `apps/experience` must use `@phosphor-icons/react/dist/ssr`, never the bare package.
+**Context:** Next.js 15 statically pre-renders all pages. The non-SSR Phosphor package uses `createContext()` at module level, which fails during static generation.
+**Options considered:**
+1. Use the non-SSR package with `"use client"` directives everywhere
+2. Use `/dist/ssr` which is pre-rendering safe
+**Chosen:** Option 2 — `/dist/ssr` on all imports
+**Reason:** The non-SSR package's `createContext()` call fails at build time even for Client Components in Next.js 15. 28 files were fixed in commit `a40526d`.
+**Consequences:** All future additions of Phosphor icons must import from `/dist/ssr`.
+**Revisit trigger:** Phosphor Icons releases a version that does not use `createContext()` at module level. Until then, `/dist/ssr` is mandatory.
+
+---
+
+## DEC-012: useSearchParams must be wrapped in Suspense in Next.js 15
+
+**Date:** 2026-06-19 (STORY-FE-FANTASY-AGENTIC-01)
+**Decision:** Any page component that calls `useSearchParams()` must extract the logic into a child component and wrap it in `<Suspense>`.
+**Context:** Next.js 15 static pre-rendering requires `useSearchParams()` to have a Suspense boundary. Without it, the build throws an error and the page fails to export.
+**Options considered:**
+1. Mark entire page as dynamic with `export const dynamic = 'force-dynamic'`
+2. Extract component and wrap in `<Suspense>`
+**Chosen:** Option 2 — component extraction + Suspense
+**Reason:** Option 2 keeps pages statically pre-rendered where possible. The inner component handles the dynamic search params; the outer page is still static.
+**Consequences:** `/sign-in` and `/reset-password` use this pattern. Any future pages using `useSearchParams()` must follow it.
+**Revisit trigger:** Next.js changes its static rendering behaviour for `useSearchParams()`.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight } from '@phosphor-icons/react/dist/ssr';
 import type { ExperienceData } from '@/lib/data';
 import { FixtureCard } from '@/components/ui/FixtureCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -30,20 +30,20 @@ export function FixtureCarouselSection({ data }: FixtureCarouselSectionProps) {
           <SectionHeader
             title="Fixtures"
             subtitle={data.gameweek.label}
-            href="/fixtures"
+            href="/matches"
           />
           {/* Scroll controls - desktop only */}
           <div className="hidden sm:flex items-center gap-2">
             <button
               onClick={() => scroll('left')}
-              className="w-9 h-9 rounded-full border border-exp-border bg-exp-card flex items-center justify-center text-exp-muted hover:text-exp-navy hover:border-exp-navy transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-green"
+              className="w-9 h-9 min-h-[44px] min-w-[44px] rounded-full border border-exp-border bg-exp-card flex items-center justify-center text-exp-muted hover:text-exp-navy hover:border-exp-navy transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-green"
               aria-label="Scroll fixtures left"
             >
               <CaretLeft size={16} weight="bold" aria-hidden />
             </button>
             <button
               onClick={() => scroll('right')}
-              className="w-9 h-9 rounded-full border border-exp-border bg-exp-card flex items-center justify-center text-exp-muted hover:text-exp-navy hover:border-exp-navy transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-green"
+              className="w-9 h-9 min-h-[44px] min-w-[44px] rounded-full border border-exp-border bg-exp-card flex items-center justify-center text-exp-muted hover:text-exp-navy hover:border-exp-navy transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-green"
               aria-label="Scroll fixtures right"
             >
               <CaretRight size={16} weight="bold" aria-hidden />

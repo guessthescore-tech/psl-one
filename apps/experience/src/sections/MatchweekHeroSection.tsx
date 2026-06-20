@@ -61,7 +61,7 @@ export function MatchweekHeroSection({ data }: MatchweekHeroSectionProps) {
             </h1>
             <p className="text-body-lg text-white/60 mb-6">
               {gameweek.status === 'ACTIVE' ? 'In progress' : 'Upcoming'}
-              {' — '}deadline{' '}
+              {' · '}deadline{' '}
               {new Date(gameweek.deadlineAt).toLocaleDateString('en-ZA', {
                 weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
               })}

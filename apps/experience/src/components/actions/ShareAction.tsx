@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ShareNetwork, WhatsappLogo, TwitterLogo, CheckCircle } from '@phosphor-icons/react';
+import { ShareNetwork, WhatsappLogo, TwitterLogo, CheckCircle } from '@phosphor-icons/react/dist/ssr';
 
 interface ShareActionProps {
   title: string;

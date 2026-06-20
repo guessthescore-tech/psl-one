@@ -3,13 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
-import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons/react';
+import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons/react/dist/ssr';
 
 const NAV = [
   { label: 'Home',     href: '/',           Icon: House          },
-  { label: 'Fixtures', href: '/fixtures',   Icon: CalendarBlank  },
+  { label: 'Matches',  href: '/matches',    Icon: CalendarBlank  },
   { label: 'Fantasy',  href: '/fantasy',    Icon: Trophy         },
-  { label: 'Clubs',    href: '/clubs',      Icon: Users          },
+  { label: 'Players',  href: '/players',    Icon: Users          },
   { label: 'Account',  href: '/account',    Icon: UserCircle     },
 ];
 
@@ -70,14 +70,14 @@ export function AppHeader() {
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-3">
             <Link
-              href="/login"
+              href="/sign-in"
               className="text-sm text-white/55 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm px-1"
             >
               Sign in
             </Link>
             <Link
               href="/register"
-              className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[36px] flex items-center"
+              className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[44px] flex items-center"
             >
               Join free
             </Link>
@@ -87,7 +87,7 @@ export function AppHeader() {
           <div className="md:hidden">
             <Link
               href="/account"
-              className="w-9 h-9 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold"
+              className="w-9 h-9 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold"
               aria-label="Account"
             >
               <UserCircle size={22} aria-hidden />

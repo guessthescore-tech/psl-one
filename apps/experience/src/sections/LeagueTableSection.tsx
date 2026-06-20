@@ -17,7 +17,7 @@ export function LeagueTableSection({ data }: LeagueTableSectionProps) {
           <SectionHeader
             title="Standings"
             subtitle={data.competitionName}
-            href="/table"
+            href="/stats/standings"
             linkLabel="Full table"
           />
         </div>

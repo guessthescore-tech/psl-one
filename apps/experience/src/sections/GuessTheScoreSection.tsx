@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Minus, Plus, Trophy } from '@phosphor-icons/react';
+import { Minus, Plus, Trophy } from '@phosphor-icons/react/dist/ssr';
 import type { ExperienceData } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -130,7 +130,8 @@ export function GuessTheScoreSection({ data }: GuessTheScoreSectionProps) {
               </p>
               <button
                 onClick={() => { setSubmitted(false); setHomeScore(1); setAwayScore(1); }}
-                className="mt-5 text-label-md text-exp-gold underline underline-offset-2 hover:text-exp-gold-2 transition-colors duration-100"
+                className="mt-5 text-label-md text-exp-gold underline underline-offset-2 hover:text-exp-gold-2 transition-colors duration-100 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm"
+                aria-label="Change prediction"
               >
                 Change prediction
               </button>
@@ -161,7 +162,7 @@ export function GuessTheScoreSection({ data }: GuessTheScoreSectionProps) {
               {/* Submit */}
               <button
                 onClick={handleSubmit}
-                className="w-full bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-all duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
+                className="w-full bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
               >
                 Lock in prediction
               </button>

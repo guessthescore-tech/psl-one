@@ -3,7 +3,9 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   output: 'standalone',
   images: {
-    domains: ['picsum.photos'],
+    // No external image CDN required — placeholder images use branded SVG data URIs.
+    // Add domains here when licensed football photography is integrated.
+    remotePatterns: [],
   },
 };
 

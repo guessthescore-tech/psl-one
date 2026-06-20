@@ -19,7 +19,7 @@ export function VideoRailSection({ data }: VideoRailSectionProps) {
           title="Highlights"
           subtitle="Watch the best moments"
           dark
-          href="/video"
+          href="/media"
           linkLabel="All videos"
         />
       </div>
