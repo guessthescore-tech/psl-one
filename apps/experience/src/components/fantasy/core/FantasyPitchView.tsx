@@ -71,9 +71,9 @@ export function FantasyPitchView({
           <motion.div
             key={row.label}
             className="flex justify-around items-center"
-            initial={reduce ? false : { opacity: 0, y: 6 }}
+            initial={reduce ? false : { opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, delay: rowIdx * 0.07, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.25, delay: rowIdx * 0.04, ease: [0.16, 1, 0.3, 1] }}
           >
             {row.slots.map((player, slotIdx) => (
               <PlayerSlot

@@ -12,6 +12,7 @@ export default function AccountSecurityPage() {
       title="Security"
       subtitle="Manage your password and account security"
       back={{ href: '/account', label: 'Account' }}
+      hideFantasyTabs
     >
       <PasswordForm />
     </FantasyShell>

@@ -45,6 +45,17 @@
 
 ---
 
+## Desktop Improvements (STORY-FE-EXPERIENCE-CORRECTIONS-01)
+
+| Change | Detail |
+|--------|--------|
+| `FantasyShell` content wrapper | Added `max-w-7xl mx-auto` cap; was full-width bleed |
+| `/players` header | `max-w-2xl` → `max-w-7xl` |
+| `/players` grid | `space-y-2` → `grid-cols-1 md:grid-cols-2 xl:grid-cols-3` |
+| `/players` sort row | Now confined within `max-w-7xl` |
+
+---
+
 ## Test Matrix
 
 | Viewport | Route | Status |
@@ -52,5 +63,11 @@
 | 390×844 (iPhone 14 Pro) | `/` | PASS (visual check) |
 | 390×844 | `/fantasy/team` | PASS |
 | 390×844 | `/fantasy/team/transfers` | PASS |
+| 390×844 | `/fantasy/onboarding` | PASS (corrections-01) |
+| 390×844 | `/players` | PASS (corrections-01) |
+| 390×844 | `/account` | PASS (corrections-01) |
+| 390×844 | `/sign-in` | PASS (corrections-01) |
 | 768×1024 (iPad) | `/fantasy/team` | PASS |
 | 1280×800 (Desktop) | `/fantasy/team` | PASS |
+| 1440×900 (Desktop) | `/players` | PASS — 2-column grid (corrections-01) |
+| 1920×1080 (Wide) | `/players` | PASS — 3-column grid (corrections-01) |

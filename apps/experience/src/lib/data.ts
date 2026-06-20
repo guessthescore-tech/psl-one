@@ -111,9 +111,79 @@ export interface ExpFantasyTeam {
 }
 
 /* ── Image helper ──────────────────────────────────────────────────── */
+/* Returns football-branded SVG placeholder data URIs. No external image deps. */
+
+function hashCode(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+const CLUB_PALETTE: Record<string, [string, string]> = {
+  fra: ['#002395', '#4060cc'], ger: ['#1a1a1a', '#3a3a3a'],
+  arg: ['#74ACDF', '#4080bb'], bra: ['#009C3B', '#00cc50'],
+  esp: ['#C60B1E', '#e02030'], eng: ['#C8102E', '#e02040'],
+  por: ['#006600', '#008800'], mar: ['#C1272D', '#e02030'],
+};
 
 export function expImg(seed: string, w: number, h: number): string {
-  return `https://picsum.photos/seed/${seed}/${w}/${h}`;
+  const h2 = hashCode(seed);
+
+  // Detect image category from key
+  const isPlayer = seed.includes('player') || seed.includes('portrait');
+  const isStadium = seed.includes('stadium') || seed.includes('match-night') || seed.includes('fanpark');
+  const isVideo = seed.includes('video');
+  const isStory = seed.includes('story') || seed.includes('africa') || seed.includes('fantasy');
+
+  // Derive club from key if possible
+  const clubMatch = Object.keys(CLUB_PALETTE).find(k => seed.includes(k));
+  const [c1, c2] = clubMatch ? CLUB_PALETTE[clubMatch]! : ['#0d3a1a', '#1a6633'];
+
+  let bg1: string, bg2: string, symbol: string;
+
+  if (isStadium) {
+    bg1 = '#060d19'; bg2 = '#0d2a3a'; symbol = '⚽';
+  } else if (isPlayer) {
+    bg1 = c1; bg2 = c2;
+    // Extract readable initials from key: wc-player-mbappe → MB
+    const part = seed.replace(/^wc-player-|-portrait$|-stats$/g, '').split('-').pop() ?? seed;
+    symbol = part.slice(0, 2).toUpperCase();
+  } else if (isVideo) {
+    bg1 = '#0a0a14'; bg2 = '#1a1a2a'; symbol = '▶';
+  } else if (isStory) {
+    const editorialPalettes: [string, string, string][] = [
+      ['#0d2218', '#1a4a30', '⚽'],
+      ['#1a0d12', '#3a1a22', '🏆'],
+      ['#0d1a2a', '#1a3050', '📊'],
+      ['#1a1408', '#3a2a10', '⭐'],
+    ];
+    const p = editorialPalettes[h2 % editorialPalettes.length]!;
+    [bg1, bg2, symbol] = p;
+  } else {
+    bg1 = '#0d1f12'; bg2 = '#1a3a22'; symbol = '⚽';
+  }
+
+  const fontSize = Math.round(Math.min(w, h) * (isPlayer ? 0.28 : 0.35));
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,
+    `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">`,
+    `<stop offset="0%" stop-color="${bg1}"/>`,
+    `<stop offset="100%" stop-color="${bg2}"/>`,
+    `</linearGradient></defs>`,
+    `<rect width="${w}" height="${h}" fill="url(#g)"/>`,
+    // Subtle pitch stripe pattern for non-player images
+    isPlayer
+      ? `<circle cx="${w * 0.5}" cy="${h * 0.45}" r="${Math.min(w, h) * 0.3}" fill="rgba(255,255,255,0.06)"/>`
+      : `<rect x="0" y="0" width="${w}" height="${h}" fill="url(#stripe)" opacity="0.08"/>`,
+    `<text x="${w / 2}" y="${h / 2}" text-anchor="middle" dominant-baseline="middle" `,
+    `font-family="system-ui,sans-serif" font-size="${fontSize}" font-weight="700" `,
+    `fill="rgba(255,255,255,0.25)">${symbol}</text>`,
+    `</svg>`,
+  ].join('');
+
+  // btoa is available in Node 16+ and all modern browsers
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 }
 
 /* ── DESIGN_REVIEW_DATA: FIFA World Cup 2026 presentation dataset ──── */

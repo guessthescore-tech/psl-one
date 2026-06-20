@@ -12,6 +12,7 @@ export default function DeleteAccountPage() {
       title="Delete Account"
       subtitle="Permanently remove your PSL One account"
       back={{ href: '/account', label: 'Account' }}
+      hideFantasyTabs
     >
       <DeleteAccountDialog />
     </FantasyShell>

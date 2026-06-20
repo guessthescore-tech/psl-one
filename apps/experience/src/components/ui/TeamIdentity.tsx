@@ -25,12 +25,19 @@ export function TeamIdentity({
 
   return (
     <div className={clsx('flex flex-col items-center', s.gap)}>
+      {/* Shield-shaped badge — more football-authentic than a circle */}
       <div
         className={clsx(
-          'rounded-full flex items-center justify-center font-black shadow-card flex-shrink-0',
+          'relative flex items-center justify-center font-black shadow-card flex-shrink-0',
+          'rounded-[28%_28%_50%_50%/20%_20%_40%_40%]',
           s.badge,
         )}
-        style={{ backgroundColor: club.primaryColor, color: club.textColor }}
+        style={{
+          backgroundColor: club.primaryColor,
+          color: club.textColor,
+          boxShadow: `0 2px 8px ${club.primaryColor}55`,
+          borderBottom: `2px solid ${club.secondaryColor}66`,
+        }}
         aria-hidden
       >
         {club.abbr}

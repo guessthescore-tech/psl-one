@@ -71,7 +71,7 @@ export default function PlayersPage() {
 
       {/* Page header */}
       <div className="bg-exp-navy border-b border-exp-border-dk px-4 pt-6 pb-5">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <h1 className="text-display-lg text-white font-black mb-1">Players</h1>
           <p className="text-body-sm text-exp-muted mb-4">FIFA World Cup 2026</p>
 
@@ -111,7 +111,7 @@ export default function PlayersPage() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Sort */}
         <div className="flex items-center gap-2 mb-4" role="group" aria-label="Sort players">
           <span className="text-label-sm text-exp-muted">Sort:</span>
@@ -134,7 +134,7 @@ export default function PlayersPage() {
           ))}
         </div>
 
-        {/* Player list */}
+        {/* Player list — 2-column grid on desktop */}
         {filtered.length === 0 ? (
           <div className="py-16 text-center">
             <div className="text-4xl mb-4" aria-hidden>🔍</div>
@@ -142,7 +142,11 @@ export default function PlayersPage() {
             <p className="text-body-md text-exp-muted">Try adjusting your search or filters.</p>
           </div>
         ) : (
-          <div className="space-y-2" role="list" aria-label={`${filtered.length} players`}>
+          <div
+            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"
+            role="list"
+            aria-label={`${filtered.length} players`}
+          >
             {filtered.map((player: ExpPlayer) => (
               <Link
                 key={player.id}
@@ -151,7 +155,7 @@ export default function PlayersPage() {
                 className="block focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2 rounded-card"
                 aria-label={`${player.name}, ${player.position}, ${player.club.name}`}
               >
-                <div className="bg-exp-card border border-exp-border rounded-card-sm px-4 py-3 flex items-center gap-3 hover:border-exp-gold/40 hover:shadow-card transition-all min-h-[44px]">
+                <div className="bg-exp-card border border-exp-border rounded-card-sm px-4 py-3 flex items-center gap-3 hover:border-exp-gold/40 hover:shadow-card transition-all min-h-[44px] h-full">
                   <PlayerProfileHero player={player} compact />
                   {/* Key stat */}
                   <div className="ml-auto flex-shrink-0 text-right">

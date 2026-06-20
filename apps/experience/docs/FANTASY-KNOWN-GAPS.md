@@ -37,7 +37,7 @@ See `docs/FANTASY-MISSING-BACKEND-CONTRACTS.md` for full API contract gap list.
 
 | Placeholder | Location | Resolution |
 |-------------|----------|------------|
-| `picsum.photos` images | `src/lib/data.ts:expImg()` | Replace with licensed football photography before public launch |
+| Football-themed SVG data URIs | `src/lib/data.ts:expImg()` | Replace with licensed football photography before public launch (picsum.photos removed in STORY-FE-EXPERIENCE-CORRECTIONS-01) |
 | WC 2026 mock data | `src/lib/data.ts` | Replace with real PSL provider data after licensing gate |
 | `LIVE_BETA_DATA` returns mock | `src/lib/data.ts` (TODO comment) | Wire real API calls in provider integration story |
 | `fantasyTeam.captain` is always `ExpPlayer` not null | `src/lib/data.ts` | No-captain state needed for new users |

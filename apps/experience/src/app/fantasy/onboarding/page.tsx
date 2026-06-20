@@ -177,6 +177,7 @@ export default function OnboardingPage() {
     <FantasyShell
       title={step < 4 ? `Step ${step}: ${STEP_LABELS[step - 1]}` : 'Review & Submit'}
       back={step > 1 ? { href: '#', label: 'Back' } : { href: '/fantasy', label: 'Back to Fantasy' }}
+      hideFantasyTabs
     >
       <div className="pb-32">
         <OnboardingStep currentStep={step} totalSteps={4} stepLabels={STEP_LABELS} />
@@ -202,6 +203,28 @@ export default function OnboardingPage() {
                   {nameError && <p className="text-body-sm text-exp-live">{nameError}</p>}
                   <p id="name-hint" className="text-label-sm text-exp-muted">
                     {teamName.length}/20 characters · Keep it clean and appropriate
+                  </p>
+                </div>
+
+                {/* Coaching panel — fills empty space and communicates value */}
+                <div className="mt-6 space-y-3">
+                  <p className="text-label-md text-exp-muted uppercase tracking-wider">What you get</p>
+                  {[
+                    { icon: '⚽', title: 'Pick 15 players', body: 'Build your squad from the WC 2026 field' },
+                    { icon: '🏆', title: 'Earn fantasy points', body: 'Score when your players perform on the pitch' },
+                    { icon: '🤝', title: 'Compete with friends', body: 'Join private or public leagues and climb the table' },
+                    { icon: '📊', title: 'Manage transfers', body: 'One free transfer per matchday — choose wisely' },
+                  ].map(item => (
+                    <div key={item.title} className="flex items-start gap-3 bg-exp-navy/60 border border-exp-border-dk rounded-card-sm px-4 py-3">
+                      <span className="text-xl mt-0.5 flex-shrink-0" aria-hidden>{item.icon}</span>
+                      <div>
+                        <p className="text-label-md font-bold text-white">{item.title}</p>
+                        <p className="text-body-sm text-exp-muted mt-0.5">{item.body}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-label-sm text-exp-muted text-center pt-1">
+                    Points only · no real money · no financial value
                   </p>
                 </div>
               </div>

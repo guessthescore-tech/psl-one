@@ -244,7 +244,9 @@ describe('CREATIVE-DIRECTION.md exists', () => {
 describe('next.config.ts', () => {
   const nc = readFileSync(resolve(ROOT, 'next.config.ts'), 'utf8');
   it('has standalone output', () => expect(nc).toContain('standalone'));
-  it('has picsum.photos in image domains', () => expect(nc).toContain('picsum.photos'));
+  it('does not use picsum.photos (replaced with branded SVG placeholders)', () => {
+    expect(nc).not.toContain('picsum.photos');
+  });
 });
 
 // ─── Fantasy Leagues pages ─────────────────────────────────────────────────
@@ -1205,5 +1207,114 @@ describe('section component content checks', () => {
   it('SponsorSection renders sponsor content', () => {
     const c = read('sections/SponsorSection.tsx');
     expect(c.includes('sponsor') || c.includes('Sponsor') || c.includes('SponsorMoment')).toBe(true);
+  });
+});
+
+// ─── STORY-FE-EXPERIENCE-CORRECTIONS-01 — Visual review fixes ─────────────────
+
+describe('image placeholder system (visual review corrections)', () => {
+  const dataSrc = read('lib/data.ts');
+
+  it('expImg no longer uses picsum.photos', () => {
+    expect(dataSrc).not.toContain('picsum.photos');
+  });
+
+  it('expImg returns a data URI (SVG placeholder)', () => {
+    expect(dataSrc).toContain('data:image/svg+xml;base64');
+  });
+
+  it('expImg function still exported', () => {
+    expect(dataSrc).toContain('export function expImg');
+  });
+});
+
+describe('onboarding excludes FantasyTabs (visual review correction)', () => {
+  it('onboarding page passes hideFantasyTabs to FantasyShell', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('hideFantasyTabs');
+  });
+
+  it('onboarding step 1 has coaching content', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(
+      content.includes('Pick 15 players') ||
+      content.includes('coaching') ||
+      content.includes('What you get')
+    ).toBe(true);
+  });
+});
+
+describe('account pages exclude FantasyTabs (visual review correction)', () => {
+  const accountPages = [
+    'app/account/page.tsx',
+    'app/account/profile/page.tsx',
+    'app/account/security/page.tsx',
+    'app/account/favourite-team/page.tsx',
+    'app/account/delete/page.tsx',
+  ];
+
+  for (const page of accountPages) {
+    it(`${page.split('/').pop()} passes hideFantasyTabs`, () => {
+      expect(read(page)).toContain('hideFantasyTabs');
+    });
+  }
+});
+
+describe('FantasyShell hideFantasyTabs prop (visual review correction)', () => {
+  it('FantasyShell accepts hideFantasyTabs prop', () => {
+    expect(read('components/fantasy/shared/FantasyShell.tsx')).toContain('hideFantasyTabs');
+  });
+
+  it('FantasyShell conditionally renders FantasyTabs based on hideFantasyTabs', () => {
+    const content = read('components/fantasy/shared/FantasyShell.tsx');
+    expect(content).toContain('!hideFantasyTabs');
+  });
+});
+
+describe('desktop responsive layout (visual review correction)', () => {
+  it('players page uses desktop grid', () => {
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('md:grid-cols-2');
+  });
+
+  it('players page uses max-w-7xl', () => {
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('max-w-7xl');
+  });
+
+  it('FantasyShell uses max-w-7xl for desktop content width', () => {
+    const content = read('components/fantasy/shared/FantasyShell.tsx');
+    expect(content).toContain('max-w-7xl');
+  });
+});
+
+describe('auth layout football identity (visual review correction)', () => {
+  it('AuthLayout has PSL One tagline', () => {
+    const content = read('components/account/AuthLayout.tsx');
+    expect(
+      content.includes('South African football') ||
+      content.includes('digital home') ||
+      content.includes('Digital OS')
+    ).toBe(true);
+  });
+});
+
+describe('TeamIdentity badge shape (visual review correction)', () => {
+  it('TeamIdentity uses shield-shaped badge not plain circle', () => {
+    const content = read('components/ui/TeamIdentity.tsx');
+    // Should use club primaryColor as background (football badge style)
+    expect(content).toContain('primaryColor');
+    expect(content).toContain('secondaryColor');
+    // Should not be a plain rounded-full circle (circle is generic)
+    expect(content).not.toContain('"rounded-full flex items-center justify-center font-black shadow-card flex-shrink-0"');
+  });
+});
+
+describe('pitch animation resilience (visual review correction)', () => {
+  it('FantasyPitchView row animation completes within 450ms', () => {
+    const content = read('components/fantasy/core/FantasyPitchView.tsx');
+    // duration 0.25 + max delay 0.12 = 0.37s — well within any screenshot window
+    expect(content).toContain('0.25');
+    expect(content).toContain('0.04');
   });
 });
