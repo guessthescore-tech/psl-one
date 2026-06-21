@@ -50,4 +50,15 @@ describe('DataProviderService', () => {
     // no URL with API token
     expect(health.message).not.toMatch(/api_token=/i);
   });
+
+  // Sprint 10 amendment — Sportmonks removed from active strategy
+  it('uses NoOpAdapter even when SPORTMONKS_API_KEY is set (primary provider UNDECIDED)', async () => {
+    process.env['SPORTMONKS_API_KEY'] = 'test-key-should-not-activate-sportmonks';
+    const { DataProviderService: Svc } = await import('./data-provider.service');
+    const svc = new Svc();
+    const health = await svc.health();
+    // NoOpAdapter returns available:false with no provider-specific message
+    expect(health.available).toBe(false);
+    expect(JSON.stringify(health)).not.toMatch(/sportmonks/i);
+  });
 });

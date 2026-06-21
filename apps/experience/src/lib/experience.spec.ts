@@ -2414,6 +2414,68 @@ describe('Sprint 10 — Provider Coverage Validation & Staging Smoke Readiness',
     expect(content).toContain('/account/onboarding');
     expect(content).not.toContain('/onboarding/status');
   });
+
+  // Sprint 10 Amendment — Sportmonks rejection tests
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md records Sportmonks as REJECTED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/Sportmonks.*REJECTED|REJECTED.*Sportmonks/i);
+  });
+
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md records primary provider as UNDECIDED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('UNDECIDED');
+  });
+
+  it('SPRINT-10-NEW-PROVIDER-SHORTLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-NEW-PROVIDER-SHORTLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-NEW-PROVIDER-SHORTLIST.md lists at least three candidates', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-NEW-PROVIDER-SHORTLIST.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const candidates = (content.match(/^### \d+\./gm) || []).length;
+    expect(candidates).toBeGreaterThanOrEqual(3);
+  });
+
+  it('DataProviderService does not auto-select SportmonksAdapter when key is present', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // The constructor must NOT contain the old key-based selection branch
+    expect(content).not.toMatch(/if\s*\(key\)\s*\{[\s\S]*?new SportmonksAdapter/);
+  });
+
+  it('DataProviderService uses NoOpAdapter as unconditional default', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('new NoOpAdapter()');
+    expect(content).toContain('UNDECIDED');
+  });
+
+  it('SportmonksAdapter is marked deprecated', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'sportmonks.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/@deprecated/i);
+  });
+
+  it('provider-compare.mjs does not claim Sportmonks as primary provider', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/Preliminary.*Sportmonks.*primary|Sportmonks.*primary.*provider/i);
+  });
+
+  it('provider-compare.mjs reflects Sportmonks REJECTED status', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/REJECTED|removed.*active|active.*removed/i);
+  });
 });
 
 function getAllFiles(dir: string): string[] {

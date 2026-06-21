@@ -2,11 +2,13 @@
 
 ## Summary
 
-**Preliminary recommendation: Sportmonks as primary provider — PENDING key fix.**
+> **SUPERSEDED** — Sprint 10 amendment (2026-06-22): Sportmonks has been **REJECTED** and removed from the active provider strategy. The preliminary recommendation in this document is no longer valid.
+> See `docs/data/SPRINT-10-PROVIDER-DECISION.md` and `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
 
-The replacement Sportmonks key (length 60) was added by the owner but returns HTTP 401. The key must be verified or regenerated before Sportmonks can be confirmed. SportsDataIO trial partially validates (competitions + teams). Recommendation unchanged pending Sportmonks key resolution.
+**Historical record (as of Sprint 9):** Preliminary recommendation was Sportmonks as primary provider — PENDING key fix.
 
-*Updated: 2026-06-21 — live validation run; Sportmonks 401, SportsDataIO partial.*
+*Updated: 2026-06-21 — live validation run; Sportmonks 401, SportsDataIO partial.*  
+*Superseded: 2026-06-22 — Sportmonks REJECTED.*
 
 ---
 

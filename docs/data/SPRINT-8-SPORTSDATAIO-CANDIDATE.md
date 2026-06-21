@@ -1,7 +1,7 @@
 # SportsDataIO — Provider Candidate Assessment
 
-**Status:** CANDIDATE — adapter skeleton complete, not wired into DataProviderService  
-**Sprint:** 8 (amendment)  
+**Status:** SECONDARY CANDIDATE — PSL NOT in competition list on trial; paid plan + PSL confirmation required  
+**Sprint:** 8 (amendment) | Superseded context: 2026-06-22 — Sportmonks REJECTED; primary provider UNDECIDED  
 **Date:** 2026-06-21
 
 ---

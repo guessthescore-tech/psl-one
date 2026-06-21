@@ -2,7 +2,7 @@
 
 ## Overall Decision: CONDITIONAL_GO
 
-*Updated: 2026-06-21*
+*Updated: 2026-06-21 | Amended: 2026-06-22 — Sportmonks REJECTED*
 
 Progress since Sprint 9 CONDITIONAL_GO:
 - ✅ Live staging smoke now passes: 6/6 PASS (was FAIL in Sprint 9 — no server)
@@ -11,14 +11,14 @@ Progress since Sprint 9 CONDITIONAL_GO:
 - ✅ Onboarding path bug fixed (`/onboarding/status` → `/account/onboarding`)
 - ✅ SportsDataIO discovery: WC2026 found in competition list (CompetitionId=21)
 - ✅ SportsDataIO: PSL NOT in competition list — important for provider decision
-- ⚠️ Sportmonks: HTTP 401 persists — key must be regenerated
+- ❌ Sportmonks: **REJECTED** — removed from active strategy (Sprint 10 amendment 2026-06-22)
 - ⚠️ EC2 staging migration: still not applied (no EC2 DATABASE_URL)
 
 **Conditions for full GO:**
-1. Sportmonks key regenerated and validates cleanly
+1. Replacement provider selected with confirmed PSL coverage (see `SPRINT-10-NEW-PROVIDER-SHORTLIST.md`)
 2. EC2 staging migration applied
-3. EC2 live smoke passes
-4. Commercial terms reviewed by owner
+3. EC2 live smoke passes with chosen provider
+4. Commercial terms reviewed for chosen provider
 
 ---
 
@@ -43,7 +43,7 @@ Progress since Sprint 9 CONDITIONAL_GO:
 | Settlement smoke | ✅ PASS 8/8 | Includes 3 live checks |
 | EC2 staging migration | ❌ PENDING_EC2_DB_URL | No EC2 DATABASE_URL configured |
 | EC2 live smoke | ❌ PENDING_EC2_MIGRATION | Cannot run until EC2 migration applied |
-| Sportmonks validation | ❌ HTTP_401 | Key present (len 60) but API rejects it |
+| Sportmonks validation | ❌ REJECTED | Removed from active strategy (Sprint 10 amendment 2026-06-22) |
 | SportsDataIO full coverage | ⚠️ PARTIAL_TRIAL | Competitions + teams OK; PSL NOT in list |
 | WC2026 in SportsDataIO | ⚠️ FOUND_NOT_VERIFIED | CompetitionId=21 in list; fixture data on trial unverified |
 | PSL in SportsDataIO | ❌ NOT_FOUND | PSL not in SportsDataIO competition list — significant |
@@ -75,11 +75,11 @@ This changes the provider decision landscape:
 
 | Gate | Action |
 |------|--------|
-| Sportmonks 401 | Regenerate key at https://app.sportmonks.com/api-tokens; verify v3 plan |
+| Primary provider | Select replacement from `SPRINT-10-NEW-PROVIDER-SHORTLIST.md`; confirm PSL coverage |
 | EC2 staging migration | Configure EC2 DATABASE_URL + explicit owner authorization |
-| EC2 live smoke | After EC2 migration; run smoke with EC2 BASE_URL |
-| SportsDataIO full coverage | Purchase paid plan (PSL not available even on paid; see discovery) |
-| Commercial terms | Owner reviews Sportmonks pricing for PSL data rights |
+| EC2 live smoke | After EC2 migration + provider wired; run smoke with EC2 BASE_URL |
+| SportsDataIO full coverage | Purchase paid plan + confirm PSL in competition list |
+| Commercial terms | Owner reviews pricing for chosen replacement provider |
 
 ---
 

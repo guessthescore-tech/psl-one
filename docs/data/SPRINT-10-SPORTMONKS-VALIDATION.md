@@ -1,8 +1,19 @@
 # Sprint 10 — Sportmonks Validation
 
-## Status: SPORTMONKS_HTTP_401_PROVIDER_KEY_INVALID_OR_PLAN_BLOCKED
+## Status: REJECTED — REMOVED FROM ACTIVE PROVIDER STRATEGY
 
-Date: 2026-06-21
+Date: 2026-06-21  
+Amended: 2026-06-22
+
+**Sprint 10 amendment (2026-06-22):** Sportmonks has been rejected as a provider.  
+Owner determination: Sportmonks does not provide the required data points for the PSL One platform.
+
+The HTTP 401 issue was a contributing factor but the rejection is based on capability fit, not solely the key status.  
+`SPORTMONKS_API_KEY` is no longer an owner action item. Do not regenerate or set this key.
+
+---
+
+## Previous HTTP Status (now historical record)
 
 ---
 
@@ -56,13 +67,11 @@ Possible causes (in order of likelihood):
 
 ## Owner Actions Required
 
-1. Go to https://app.sportmonks.com/api-tokens
-2. Verify the key is active (not expired, not revoked)
-3. Check the plan tier — confirm it includes `GET /v3/football/seasons`
-4. If needed, generate a new replacement key
-5. Update `apps/api/.env`: `SPORTMONKS_API_KEY=<new_value>` (never commit)
-6. Re-run: `node --env-file=apps/api/.env tools/discovery/provider-health-check.mjs`
-7. If healthy: run full coverage check and update this doc
+**None** — Sportmonks has been rejected and removed from the active provider strategy.
+
+Do NOT regenerate or set `SPORTMONKS_API_KEY`. No further Sportmonks validation is needed.
+
+See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md` for the path forward.
 
 ## PSL/WC2026 Coverage
 

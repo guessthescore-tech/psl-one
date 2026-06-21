@@ -1,6 +1,7 @@
 # Sprint 10 — Provider Comparison
 
-Date: 2026-06-21
+Date: 2026-06-21  
+Amended: 2026-06-22 — Sportmonks REJECTED; removed from active strategy
 
 ## Head-to-Head
 
@@ -10,8 +11,8 @@ Date: 2026-06-21
 | Health check | ❌ HTTP 401 | ✅ HTTP 200 | SportsDataIO wins trial |
 | Auth method | `Authorization: Bearer` | `Ocp-Apim-Subscription-Key` | Both server-side only |
 | Frontend exposure | NEVER ✅ | NEVER ✅ | PSL One rule enforced |
-| Adapter status | Fully implemented ✅ | Skeleton / not wired ⚠️ | Sportmonks ahead |
-| DataProviderService | Wired ✅ | Not wired ⚠️ | Sportmonks production-ready path |
+| Adapter status | DEPRECATED (retained) ⚠️ | Skeleton / not wired ⚠️ | Both out of active wiring |
+| DataProviderService | NOT WIRED (removed) ❌ | Not wired ⚠️ | Primary provider UNDECIDED |
 | Competitions | BLOCKED (401) | ✅ 93 competitions | SportsDataIO wins |
 | Teams | BLOCKED (401) | ✅ 258 teams (UCL) | SportsDataIO wins |
 | Schedules/Fixtures | BLOCKED (401) | ❌ 401 (trial) | Both blocked |
@@ -26,12 +27,11 @@ Date: 2026-06-21
 | Betting/odds | PROHIBITED ✅ | PROHIBITED ✅ | Both safe |
 | PSL One adapter tests | 20 tests ✅ | 0 tests ⚠️ | Sportmonks ahead |
 
-## Situation Summary
+## Situation Summary (Amended 2026-06-22)
 
-**Neither provider can be fully validated in Sprint 10:**
-- Sportmonks: key must be regenerated/verified
-- SportsDataIO: trial scope too narrow for PSL/WC2026
+**Sportmonks has been REJECTED** — removed from the active provider strategy (Sprint 10 amendment).  
+Owner determination: Sportmonks does not provide the required data points for the platform.
 
-**On adapter maturity and integration, Sportmonks remains the stronger candidate** once the key issue is resolved.
+**SportsDataIO is a secondary candidate** but PSL Premier Soccer League is NOT in its competition list on the current trial. A paid plan and explicit PSL coverage confirmation are required before SportsDataIO can be considered.
 
-**SportsDataIO trial demonstrates auth model works**, but full validation requires a paid subscription.
+**Primary provider: UNDECIDED.** See `SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md` and `SPRINT-10-NEW-PROVIDER-SHORTLIST.md`.

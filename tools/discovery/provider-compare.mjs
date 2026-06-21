@@ -63,8 +63,8 @@ async function main() {
     ['Auth method', 'Authorization: Bearer', 'Ocp-Apim-Subscription-Key'],
     ['Key env var', 'SPORTMONKS_API_KEY', 'SPORTSDATAIO_SOCCER_API_KEY'],
     ['Frontend exposure', 'NEVER — server-side only ✅', 'NEVER — server-side only ✅'],
-    ['Adapter status', 'Fully implemented ✅', 'Skeleton/candidate only ⚠️'],
-    ['DataProviderService', 'Wired in ✅', 'Not yet wired ⚠️'],
+    ['Adapter status', 'DEPRECATED (retained) ⚠️', 'Skeleton/candidate only ⚠️'],
+    ['DataProviderService', 'NOT WIRED (removed) ❌', 'Not yet wired ⚠️'],
     ['Trial scope', 'Unknown (key needed)', 'UCL only (comp ID 3)'],
     ['PSL coverage', 'Pending trial validation', 'Pending trial validation'],
     ['WC2026 coverage', 'Pending trial validation', 'Trial: UCL only (not WC2026)'],
@@ -78,24 +78,26 @@ async function main() {
     ['getTeams()', 'Implemented ✅', 'Implemented ✅'],
     ['getPlayers()', 'Implemented ✅', 'Implemented ✅'],
     ['─'.repeat(28), '─'.repeat(30), '─'.repeat(30)],
-    ['Preliminary winner', 'Sportmonks (more mature) ★', 'SportsDataIO (candidate)'],
+    ['Active strategy status', 'REJECTED — removed ❌', 'Candidate — UNDECIDED ⚠️'],
   ];
 
   for (const [feature, sportmonks, sportsdata] of rows) {
     console.log(`  ${col(feature, 28)} | ${col(sportmonks, 30)} | ${col(sportsdata, 30)}`);
   }
 
-  console.log('\n── Recommendation ───────────────────────────────────────────────');
-  console.log('Preliminary: Sportmonks as primary provider.');
-  console.log('Reasons: adapter is fully implemented, wired to DataProviderService,');
-  console.log('         uses standard Bearer header auth, prior discovery favored it.');
-  console.log('\nDecision PENDING live trial validation with replacement key.');
-  console.log('Owner must also validate: PSL/WC2026 fixture coverage, commercial terms,');
-  console.log('                          rate limits, and data freshness.');
-  console.log('\nTo unblock:');
-  if (!SPORTMONKS_KEY) console.log('  1. Set SPORTMONKS_API_KEY=<replacement> in apps/api/.env');
-  if (!SPORTSDATAIO_KEY) console.log('  2. Set SPORTSDATAIO_SOCCER_API_KEY=<trial_key> in apps/api/.env');
-  console.log('  3. Re-run: node tools/discovery/provider-compare.mjs');
+  console.log('\n── Provider Strategy Status ─────────────────────────────────────');
+  console.log('Sportmonks: REJECTED — removed from active provider strategy (Sprint 10 amendment).');
+  console.log('Reason: does not provide the required data points for the PSL One platform.');
+  console.log('        Adapter retained for reference; NOT wired to DataProviderService.');
+  console.log('');
+  console.log('Primary provider: UNDECIDED');
+  console.log('See: docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+  console.log('See: docs/data/SPRINT-10-NEW-PROVIDER-SHORTLIST.md');
+  console.log('');
+  console.log('SportsDataIO: secondary candidate — PSL NOT in competition list on trial;');
+  console.log('              paid plan + PSL coverage validation required before wiring.');
+  if (!SPORTSDATAIO_KEY) console.log('\n  Set SPORTSDATAIO_SOCCER_API_KEY=<trial_key> in apps/api/.env to test SportsDataIO.');
+  console.log('\n  Re-run: node tools/discovery/provider-compare.mjs');
 }
 
 main().catch(err => {

@@ -36,7 +36,11 @@
 6. Commercial pricing and licensing for both providers
 7. Data freshness (how quickly fixtures update after kick-off)
 
-## Preliminary Assessment
+## Amendment Notice (2026-06-22)
+
+> This document is superseded by the Sprint 10 amendment. Sportmonks has been **REJECTED** and removed from the active provider strategy. See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
+
+## Historical Preliminary Assessment (SUPERSEDED)
 
 **Sportmonks is the preferred primary candidate** because:
 - Adapter is fully implemented and wired to `DataProviderService`

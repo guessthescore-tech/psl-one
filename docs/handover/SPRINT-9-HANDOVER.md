@@ -50,9 +50,9 @@ Docs:
 
 | Provider | Status | Adapter |
 |----------|--------|---------|
-| Sportmonks | BLOCKED_BY_REPLACEMENT_TOKEN | Fully implemented |
-| SportsDataIO | BLOCKED_BY_REPLACEMENT_TOKEN | Skeleton (candidate, not wired) |
-| NoOp | Active default | Used when no key configured |
+| Sportmonks | **REJECTED** (Sprint 10 amendment 2026-06-22) | Deprecated (retained for reference) |
+| SportsDataIO | Secondary candidate — PSL not in competition list | Skeleton (candidate, not wired) |
+| NoOp | **Active default** | Always used until primary provider decided |
 
 ## Product State
 - PSL: INACTIVE ✅

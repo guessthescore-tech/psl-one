@@ -1,6 +1,7 @@
 # Sprint 10 — Provider Coverage Results
 
-Date: 2026-06-21
+Date: 2026-06-21  
+Amended: 2026-06-22 — Sportmonks REJECTED; see SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md
 
 ## Summary
 

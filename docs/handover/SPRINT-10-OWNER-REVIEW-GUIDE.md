@@ -10,16 +10,14 @@ node tools/discovery/provider-readonly-pipeline-check.mjs
 
 Expected: PASS 11/11. Confirms no scheduled ingestion, no betting endpoints, no PSL activation.
 
-### 2. Sportmonks Key Fix
+### 2. Provider Strategy — Sportmonks REJECTED (Sprint 10 Amendment)
 
-The replacement key (length 60) returns HTTP 401 on all endpoints.
+**Sportmonks has been removed from the active provider strategy.**
 
-**Action:**
-1. Go to https://app.sportmonks.com/api-tokens
-2. Verify key is active and plan includes v3 football API
-3. Update `SPORTMONKS_API_KEY` in `apps/api/.env` (never commit)
-4. Run: `node --env-file=apps/api/.env tools/discovery/provider-health-check.mjs`
-5. If OK: `PROVIDER=sportmonks node --env-file=apps/api/.env tools/discovery/provider-coverage-check.mjs`
+- Do NOT regenerate or set `SPORTMONKS_API_KEY`. No Sportmonks actions are required.
+- Review the replacement shortlist: `docs/data/SPRINT-10-NEW-PROVIDER-SHORTLIST.md`
+- Review the active strategy doc: `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`
+- Primary provider is UNDECIDED — a replacement with PSL coverage must be selected.
 
 ### 3. SportsDataIO Finding — PSL Not in Competition List
 
@@ -35,10 +33,9 @@ This confirmed:
 
 ### 4. Commercial Terms
 
-Review Sportmonks pricing before enabling any production ingestion:
-- https://sportmonks.com/pricing
+Review pricing and licensing for the **chosen replacement provider** (see `SPRINT-10-NEW-PROVIDER-SHORTLIST.md`) before enabling any production ingestion.
 
-Confirm:
+Confirm for whichever provider is selected:
 - [ ] PSL Premier League fixture data is licensed under chosen plan
 - [ ] Rate limits are sufficient for 2M fans
 - [ ] Data rights allow downstream display

@@ -4,6 +4,8 @@
 
 Sprint 10 validated provider coverage, created a read-only staging pipeline, fixed the onboarding smoke path, ran live local-dev smoke tests (all passing), and gated the EC2 staging migration pending EC2 DATABASE_URL configuration.
 
+**Sprint 10 Amendment (2026-06-22):** Sportmonks rejected and removed from active provider strategy. Primary provider is now UNDECIDED. See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
+
 ## Key Outcomes
 
 | Outcome | Status |
@@ -36,10 +38,10 @@ Sprint 10 validated provider coverage, created a read-only staging pipeline, fix
 
 ## Owner Actions Required
 
-1. **Sportmonks key** — Go to https://app.sportmonks.com/api-tokens, generate a fresh replacement, update `apps/api/.env`
-2. **Commercial terms** — Review Sportmonks pricing for PSL data rights
-3. **EC2 DATABASE_URL** — Configure in `apps/api/.env`, then authorize EC2 migration apply
-4. **PSL provider gap** — SportsDataIO does not have PSL in competition list; owner must confirm if Sportmonks covers PSL or if a different approach is needed
+1. **Provider strategy** — Sportmonks REJECTED. Review `docs/data/SPRINT-10-NEW-PROVIDER-SHORTLIST.md` and select a replacement provider that has PSL fixture data.
+2. **EC2 DATABASE_URL** — Configure in `apps/api/.env`, then authorize EC2 migration apply.
+3. ~~Sportmonks key~~ — **NO ACTION NEEDED.** Key should remain empty or be removed from `.env`.
+4. ~~Sportmonks commercial terms~~ — **NO ACTION NEEDED.** Sportmonks rejected.
 
 ## Product State (UNCHANGED)
 

@@ -1,3 +1,8 @@
+/**
+ * @deprecated Sportmonks was removed from the active provider strategy (Sprint 10 amendment).
+ * This adapter is retained for reference only. Primary provider is UNDECIDED.
+ * See docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md before re-wiring.
+ */
 import { Injectable, Logger } from '@nestjs/common';
 import type {
   ProviderAdapter,

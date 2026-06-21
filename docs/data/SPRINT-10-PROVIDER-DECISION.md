@@ -1,49 +1,54 @@
 # Sprint 10 — Provider Decision
 
-Date: 2026-06-21
+Date: 2026-06-21  
+Amended: 2026-06-22
 
-## Current Recommendation: Sportmonks (PENDING key fix)
+## Current Status: PRIMARY PROVIDER UNDECIDED
 
-The recommendation from Sprint 9 is unchanged: **Sportmonks as primary provider**.
+**Sportmonks has been rejected and removed from the active provider strategy.**
 
-This is an operational recommendation, not a final binding decision. The owner must confirm after resolving the Sportmonks key issue.
+The Sprint 10 amendment decision (2026-06-22): Sportmonks does not provide the required data points for the PSL One platform and must be removed from active provider consideration.
+
+- `DataProviderService` no longer auto-selects `SportmonksAdapter` when a key is present.
+- `SportmonksAdapter` is retained for reference only; it is marked `@deprecated`.
+- `SPORTMONKS_API_KEY` is no longer an action item for the owner.
+
+See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md` for the replacement strategy.  
+See `docs/data/SPRINT-10-NEW-PROVIDER-SHORTLIST.md` for provider candidates.
 
 ---
 
-## Decision Rationale
+## What Was Decided
 
-| Factor | Weight | Sportmonks | SportsDataIO |
-|--------|--------|-----------|--------------|
-| Adapter maturity | HIGH | Fully implemented, 20 tests ✅ | Skeleton only ⚠️ |
-| DataProviderService integration | HIGH | Wired ✅ | Not wired ⚠️ |
-| Trial key validates | MEDIUM | ❌ HTTP 401 (fixable) | ✅ HTTP 200 |
-| PSL coverage | HIGH | UNKNOWN | UNKNOWN |
-| WC2026 coverage | HIGH | UNKNOWN | UNKNOWN |
-| Field mapping (teams) | MEDIUM | UNKNOWN | Partial ✅ |
-| Time-to-production | HIGH | Ready after key fix | Needs wiring + paid plan |
+| Provider | Status |
+|----------|--------|
+| Sportmonks | **REJECTED** — removed from active strategy |
+| SportsDataIO | Secondary candidate — PSL NOT in competition list; UNDECIDED |
+| Primary provider | **UNDECIDED** — new shortlist in progress |
 
-## What Unblocks Sportmonks
+## Why Sportmonks Was Rejected
 
-1. Owner regenerates key at https://app.sportmonks.com/api-tokens
-2. Owner verifies plan tier includes `/v3/football/*` endpoints
-3. Owner updates `apps/api/.env`: `SPORTMONKS_API_KEY=<new_value>`
-4. Run: `node --env-file=apps/api/.env tools/discovery/provider-health-check.mjs`
-5. If healthy: run coverage + field mapping checks
-6. Record PSL/WC2026 fixture availability
-7. Review commercial terms at https://sportmonks.com/pricing
+- Owner determination: Sportmonks does not provide the required data points for this platform.
+- Validation was further complicated by HTTP 401 on all endpoints (key invalid/plan blocked).
+- PSL Premier Soccer League coverage could not be confirmed.
 
-## What Would Change to SportsDataIO
+## Required Data Points (for any replacement provider)
 
-Only if both of these are true:
-1. Sportmonks cannot be fixed or lacks PSL coverage even with valid key
-2. SportsDataIO paid plan confirms PSL/WC2026 fixture coverage + commercial terms acceptable
+Any replacement provider must supply:
+1. **PSL Premier Soccer League** fixtures, teams, squads, lineups, live scores
+2. **World Cup 2026** fixtures, teams, lineups, live scores
+3. `externalId`, `homeTeamName`, `awayTeamName`, `kickoffAt`, `status` fields on every fixture
+4. Player-level data: name, position, squad number, team
+5. Live match events (goals, cards, substitutions) within acceptable latency
+6. Rate limits sufficient for 2 million concurrent fans
+7. Commercial licensing that permits downstream display of PSL data
 
-## Owner Decision Gates (UNCHANGED)
+## Owner Decision Gates (UPDATED)
 
 Before activating any provider in production:
-- [ ] PSL fixture availability confirmed
+- [ ] PSL fixture availability confirmed on chosen provider
 - [ ] WC2026 fixture availability confirmed
-- [ ] Field mapping verified (all required fields: externalId, homeTeamName, awayTeamName, kickoffAt, status)
+- [ ] Field mapping verified (all required fields above)
 - [ ] Commercial terms reviewed by owner
 - [ ] Rate limits understood for 2M fan load
 - [ ] EC2 staging migration applied

@@ -43,6 +43,9 @@ If EC2 staging migration is applied in a future sprint and needs rollback:
 ## Provider Key Rollback
 
 If a provider key causes issues:
-- Set `SPORTMONKS_API_KEY=` (empty) in `apps/api/.env`
-- API automatically falls back to `NoOpAdapter` (safe empty returns)
-- No code change needed
+- Remove or empty the provider key in `apps/api/.env`
+- API uses `NoOpAdapter` by default (safe empty returns) — no code change needed
+- `SPORTMONKS_API_KEY` is deprecated; leaving it empty is correct
+
+Note: `DataProviderService` now always uses `NoOpAdapter` regardless of key presence.
+To wire a new provider, a code change to `DataProviderService` constructor is required.
