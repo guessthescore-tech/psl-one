@@ -2109,6 +2109,147 @@ describe('STORY-S8-02: provider key isolation', () => {
   });
 });
 
+// ── Sprint 9 — Provider Validation & Staging Beta Readiness ─────────────────
+
+describe('Sprint 9 — Provider Validation & Staging Beta Readiness', () => {
+  const ROOT = require('path').resolve(__dirname, '..', '..', '..', '..');
+  const REPO = ROOT;
+
+  // Provider discovery tooling
+  it('provider-health-check.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-health-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider-coverage-check.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-coverage-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider-field-mapping-check.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-field-mapping-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider-compare.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('discovery tools contain no NEXT_PUBLIC_ provider keys', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.resolve(REPO, 'tools', 'discovery');
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.mjs'));
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(dir, file), 'utf8');
+      expect(content).not.toMatch(/NEXT_PUBLIC_.*(?:SPORT|KEY)/i);
+    }
+  });
+
+  it('discovery tools reference provider keys via process.env only', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.resolve(REPO, 'tools', 'discovery');
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.mjs'));
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(dir, file), 'utf8');
+      expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+    }
+  });
+
+  it('discovery tools contain no betting/odds endpoint paths', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.resolve(REPO, 'tools', 'discovery');
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.mjs'));
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(dir, file), 'utf8');
+      expect(content).not.toMatch(/\/odds\/|\/betting\/|\/wager\/|BettingMarket|OddsLine/i);
+    }
+  });
+
+  // Smoke scripts
+  it('sprint-9-staging-smoke.mjs exists in tools/smoke', () => {
+    const p = require('path').resolve(REPO, 'tools', 'smoke', 'sprint-9-staging-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-9-challenge-settlement-smoke.mjs exists in tools/smoke', () => {
+    const p = require('path').resolve(REPO, 'tools', 'smoke', 'sprint-9-challenge-settlement-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('staging smoke script has a default BASE_URL fallback', () => {
+    const p = require('path').resolve(REPO, 'tools', 'smoke', 'sprint-9-staging-smoke.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain("'http://localhost:4000'");
+  });
+
+  it('settlement smoke script checks settleAllAcceptedForFixture in source', () => {
+    const p = require('path').resolve(REPO, 'tools', 'smoke', 'sprint-9-challenge-settlement-smoke.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('settleAllAcceptedForFixture');
+  });
+
+  // Migration gate docs
+  it('SPRINT-9-STAGING-MIGRATION-APPLY-LOG.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-STAGING-MIGRATION-APPLY-LOG.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-9-STAGING-MIGRATION-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-STAGING-MIGRATION-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('migration apply log contains a recognized migration status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-STAGING-MIGRATION-APPLY-LOG.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Accepts initial pending state or post-apply states
+    const hasStatus =
+      content.includes('STAGING_APPLY_PENDING_OWNER_AUTHORIZATION') ||
+      content.includes('LOCAL_DEV_APPLIED') ||
+      content.includes('STAGING_EC2_PENDING_DB_URL') ||
+      content.includes('APPLIED');
+    expect(hasStatus).toBe(true);
+  });
+
+  // Provider docs
+  it('SPRINT-9-PROVIDER-VALIDATION-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-9-PROVIDER-VALIDATION-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-9-PROVIDER-DECISION-RECOMMENDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-9-PROVIDER-DECISION-RECOMMENDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Beta readiness docs
+  it('SPRINT-9-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-9-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider validation results doc contains a provider status entry', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-9-PROVIDER-VALIDATION-RESULTS.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Accepts initial blocked state or post-validation states (401, partial, ok)
+    const hasStatus =
+      content.includes('BLOCKED_BY_REPLACEMENT_TOKEN') ||
+      content.includes('HTTP_401') ||
+      content.includes('PARTIAL_UCL_TRIAL') ||
+      content.includes('NOT_VALIDATED');
+    expect(hasStatus).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
