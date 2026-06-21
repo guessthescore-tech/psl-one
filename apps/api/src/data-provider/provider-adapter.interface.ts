@@ -36,6 +36,19 @@ export interface ProviderAdapterHealth {
   message: string;
 }
 
+export interface ProviderStandings {
+  externalId: string;
+  teamName: string;
+  position: number;
+  points: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+}
+
 export interface ProviderAdapter {
   readonly name: string;
   health(): Promise<ProviderAdapterHealth>;
@@ -43,4 +56,5 @@ export interface ProviderAdapter {
   getFixtures(seasonExternalId: string): Promise<ProviderFixture[]>;
   getTeams(seasonExternalId: string): Promise<ProviderTeam[]>;
   getPlayers(teamExternalId: string): Promise<ProviderPlayer[]>;
+  getStandings(seasonExternalId: string): Promise<ProviderStandings[]>;
 }
