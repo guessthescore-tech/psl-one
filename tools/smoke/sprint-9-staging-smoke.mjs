@@ -96,7 +96,7 @@ async function settlementGateCheck() {
 // 5. Onboarding endpoint exists and is gated (expect 401)
 async function onboardingCheck() {
   try {
-    const res = await get('/onboarding/status');
+    const res = await get('/account/onboarding');
     if (res.status === 401) pass('Onboarding endpoint gated (401)', 'endpoint exists and requires auth');
     else if (res.status === 200) pass('Onboarding endpoint (200)', 'endpoint accessible (may be public)');
     else fail('Onboarding endpoint', `HTTP ${res.status}`);
