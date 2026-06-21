@@ -13,6 +13,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthThrottleGuard } from './guards/auth-throttle.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -81,5 +82,17 @@ export class AuthController {
   ) {
     await this.authService.confirmPasswordReset(dto, ua);
     return { message: 'Password reset successfully.' };
+  }
+
+  @Post('password/change')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async changePassword(
+    @CurrentUser() user: TokenPayload,
+    @Body() dto: ChangePasswordDto,
+    @Headers('user-agent') ua: string,
+  ) {
+    await this.authService.changePassword(user.sub, dto, ua);
+    return { message: 'Password changed successfully.' };
   }
 }

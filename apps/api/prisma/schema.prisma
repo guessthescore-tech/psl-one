@@ -29,6 +29,17 @@ enum AuditEvent {
   PASSWORD_RESET_REQUEST
   PASSWORD_RESET_CONFIRM
   ME_ACCESS
+  PASSWORD_CHANGED
+  PASSWORD_CHANGE_FAILED
+  ACCOUNT_DELETION_REQUESTED
+  ACCOUNT_DELETION_CANCELLED
+}
+
+enum DeletionRequestStatus {
+  PENDING
+  CANCELLED
+  COMPLETED
+  REJECTED
 }
 
 model User {
@@ -47,6 +58,7 @@ model User {
   consentRecords         ConsentRecord[]
   auditLogs              AuthAuditLog[]
   passwordResets         PasswordResetToken[]
+  deletionRequests       AccountDeletionRequest[]
   fanProfile             FanProfile?
   predictions            ScorePrediction[]
   challengesIssued       PeerChallenge[]               @relation("ChallengerChallenges")
@@ -117,6 +129,22 @@ model PasswordResetToken {
   user User @relation(fields: [userId], references: [id])
 
   @@map("password_reset_tokens")
+}
+
+model AccountDeletionRequest {
+  id          String                @id @default(uuid())
+  userId      String                @map("user_id")
+  status      DeletionRequestStatus @default(PENDING)
+  reason      String?
+  requestedAt DateTime              @default(now()) @map("requested_at")
+  cancelledAt DateTime?             @map("cancelled_at")
+  completedAt DateTime?             @map("completed_at")
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("account_deletion_requests")
 }
 
 // ── Season Status ─────────────────────────────────────────────────────────────

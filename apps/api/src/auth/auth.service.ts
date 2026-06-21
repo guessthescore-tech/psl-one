@@ -8,6 +8,7 @@ import { PasswordResetNotifier } from './providers/password-reset-notifier';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 const BCRYPT_ROUNDS = 12;
 const CONSENT_VERSION = '1.0';
@@ -228,6 +229,29 @@ export class AuthService {
     ]);
 
     await this.writeAuditLog(resetToken.userId, AuditEvent.PASSWORD_RESET_CONFIRM, true, userAgent);
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto, userAgent?: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, passwordHash: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) throw new UnauthorizedException();
+
+    const currentValid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+    if (!currentValid) {
+      await this.writeAuditLog(userId, AuditEvent.PASSWORD_CHANGE_FAILED, false, userAgent);
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    const newPasswordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newPasswordHash },
+    });
+
+    await this.writeAuditLog(userId, AuditEvent.PASSWORD_CHANGED, true, userAgent);
   }
 
   private calculateAge(dob: Date): number {

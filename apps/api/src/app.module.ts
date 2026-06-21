@@ -40,6 +40,7 @@ import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics
 import { SocialPredictionModule } from './social-prediction/social-prediction.module';
 import { MatchCentreModule } from './match-centre/match-centre.module';
 import { BetaLaunchModule } from './beta-launch/beta-launch.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { BetaLaunchModule } from './beta-launch/beta-launch.module';
     SocialPredictionModule,
     MatchCentreModule,
     BetaLaunchModule,
+    AccountModule,
     HealthModule,
   ],
   controllers: [VersionController],
