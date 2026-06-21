@@ -9,6 +9,6 @@ import { ChallengeSettlementService } from './challenge-settlement.service';
   imports: [PrismaModule, AuthModule],
   controllers: [PredictionChallengesController],
   providers: [PredictionChallengesService, ChallengeSettlementService],
-  exports: [PredictionChallengesService],
+  exports: [PredictionChallengesService, ChallengeSettlementService],
 })
 export class PredictionChallengesModule {}

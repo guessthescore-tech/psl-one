@@ -23,6 +23,12 @@ const makePublisherMock = () => ({
   publishMatchEventCreated: vi.fn(),
 });
 
+const makeSettlementMock = () => ({
+  settleAllAcceptedForFixture: vi.fn().mockResolvedValue({ settled: 0, skipped: 0, errors: 0 }),
+  settle: vi.fn(),
+  getResult: vi.fn(),
+});
+
 const MOCK_COMPETITION = {
   id: 'comp-1', name: 'FIFA World Cup', slug: 'fifa-world-cup', logoUrl: null,
   format: 'HYBRID', teamCount: 48, hasGroups: true, hasKnockouts: true,
@@ -64,14 +70,17 @@ describe('FootballService', () => {
   let service: FootballService;
   let prisma: ReturnType<typeof makePrismaMock>;
   let publisher: ReturnType<typeof makePublisherMock>;
+  let settlement: ReturnType<typeof makeSettlementMock>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
     publisher = makePublisherMock();
+    settlement = makeSettlementMock();
     service = new FootballService(
       prisma as unknown as PrismaService,
       publisher as unknown as FixtureEventPublisher,
+      settlement as unknown as import('../prediction-challenges/challenge-settlement.service').ChallengeSettlementService,
     );
   });
 
