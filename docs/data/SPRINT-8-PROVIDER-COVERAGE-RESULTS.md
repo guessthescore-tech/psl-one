@@ -1,8 +1,15 @@
 # Sprint 8 — Provider Coverage Results
 
-## Status: PENDING — BLOCKED_BY_REPLACEMENT_TOKEN
+## Status
 
-This document is a template. Fill in results after owner provides replacement Sportmonks API token.
+| Provider | Status |
+|----------|--------|
+| Sportmonks | PENDING — BLOCKED_BY_REPLACEMENT_TOKEN |
+| SportsDataIO | PENDING — trial not yet run (self-service at sportsdata.io) |
+
+This document covers both provider candidates. Fill in results after trial keys are placed server-side.
+See `SPRINT-8-PROVIDER-COMPARISON-ADDENDUM.md` for the comparison matrix.
+See `SPRINT-8-SPORTSDATAIO-CANDIDATE.md` for SportsDataIO endpoint details.
 
 ## Test Date
 _To be completed after token available_

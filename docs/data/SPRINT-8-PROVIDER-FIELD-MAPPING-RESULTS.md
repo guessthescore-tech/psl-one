@@ -1,8 +1,34 @@
 # Sprint 8 — Provider Field Mapping Results
 
-## Status: PENDING — BLOCKED_BY_REPLACEMENT_TOKEN
+## Status
 
-This document is a template. Fill in results after owner provides replacement Sportmonks API token.
+| Provider | Status |
+|----------|--------|
+| Sportmonks | PENDING — BLOCKED_BY_REPLACEMENT_TOKEN |
+| SportsDataIO | PENDING — trial not yet run |
+
+This document covers field mapping for both provider candidates.
+The Sportmonks section is pre-filled based on adapter implementation. SportsDataIO section is pre-filled from v4 API docs.
+
+## SportsDataIO Field Mapping (pre-filled from adapter, unvalidated)
+
+| PSL One Field | SportsDataIO Field | Type | Confirmed | Notes |
+|--------------|-------------------|------|-----------|-------|
+| fixture.id | GameId | number→string | - | |
+| fixture.kickoffAt | Day | ISO8601 | - | |
+| fixture.status | Status | string | - | Map: Final→FINISHED, InProgress→LIVE, Scheduled→SCHEDULED |
+| fixture.homeScore | HomeTeamScore | number\|null | - | |
+| fixture.awayScore | AwayTeamScore | number\|null | - | |
+| fixture.homeTeam.name | HomeTeamName | string | - | |
+| fixture.awayTeam.name | AwayTeamName | string | - | |
+| team.externalId | TeamId | number→string | - | |
+| team.name | Name | string | - | |
+| team.shortName | ShortName | string | - | |
+| player.externalId | PlayerId | number→string | - | |
+| player.name | CommonName \| Name | string | - | CommonName preferred |
+| player.position | Position | string | - | Raw string, not mapped |
+| standings.position | Order | number | - | |
+| standings.points | Points | number | - | |
 
 ## Fixture Field Mapping
 

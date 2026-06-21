@@ -47,8 +47,14 @@ Staging Activation, Sportmonks Trial Validation & Settlement Automation
 - Staging: runbook ready, apply pending owner authorization
 
 ## Provider Status
-- Sportmonks: BLOCKED_BY_REPLACEMENT_TOKEN
-- No-key state: all adapter methods return safe empty arrays — confirmed
+
+| Provider | Status | Adapter |
+|----------|--------|---------|
+| Sportmonks | BLOCKED_BY_REPLACEMENT_TOKEN | `SportmonksAdapter` — fully implemented |
+| SportsDataIO | CANDIDATE — trial not yet run | `SportsDataIoSoccerAdapter` — skeleton added, NOT wired to DataProviderService |
+| NoOp | Active default | `NoOpAdapter` — used when no key configured |
+
+SportsDataIO added as Sprint 8 amendment. See `docs/data/SPRINT-8-SPORTSDATAIO-CANDIDATE.md` and `docs/data/SPRINT-8-PROVIDER-COMPARISON-ADDENDUM.md` for details.
 
 ## Product State
 - PSL: INACTIVE
@@ -59,6 +65,9 @@ Staging Activation, Sportmonks Trial Validation & Settlement Automation
 
 ## Owner Actions Required
 1. Revoke exposed Sportmonks token at https://app.sportmonks.com/api-tokens
-2. Generate replacement token and place in `.env` or staging SSM
-3. Authorize staging migration apply (see runbook)
-4. Review challenge settlement automation code changes
+2. Generate replacement Sportmonks token and place in `.env` as `SPORTMONKS_API_KEY`
+3. Register at sportsdata.io and place trial key in `.env` as `SPORTSDATAIO_SOCCER_API_KEY`
+4. Run discovery scripts for both providers; record results in SPRINT-8-PROVIDER-COVERAGE-RESULTS.md
+5. Authorize staging migration apply (see runbook)
+6. Review challenge settlement automation code changes
+7. Decide on primary provider based on PSL/WC2026 coverage comparison

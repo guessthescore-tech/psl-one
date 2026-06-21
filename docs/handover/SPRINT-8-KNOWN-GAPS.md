@@ -10,6 +10,8 @@
 | G6 | challenge/result page redirects to accept (JS redirect) | No server-side redirect; requires JS enabled | Acceptable for beta; production can use Next.js redirect config |
 | G7 | PSL season: INACTIVE | PSL features not testable by fans | Not a gap — deliberate; PSL activation requires owner instruction |
 | G8 | AuditEvent.CHALLENGE_SETTLED and PredictionChallengeStatus.SETTLED cannot be removed from PG enum | Schema constraint | Accepted risk — additive enum values are benign |
+| G9 | SportsDataIO trial not yet run | Cannot confirm PSL/WC2026 coverage for SportsDataIO | Register at sportsdata.io, place `SPORTSDATAIO_SOCCER_API_KEY` in `.env`, run discovery |
+| G10 | Provider head-to-head comparison incomplete | Cannot choose between Sportmonks and SportsDataIO yet | Both trial validations must complete before provider decision |
 
 ## Gaps Intentionally Out of Scope (Sprint 8)
 - Production Sportmonks ingestion scheduler
