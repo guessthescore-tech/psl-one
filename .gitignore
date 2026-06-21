@@ -10,10 +10,20 @@ build/
 
 # Environment files — NEVER commit secrets
 .env
-.env.local
-.env.*.local
-.env.compose
-.env.beta
+.env.*
+!.env.example
+!.env.beta.example
+!.env.compose.example
+apps/*/.env
+apps/*/.env.*
+!apps/*/.env.example
+
+# Secrets and key files
+*.secret
+*.secrets
+
+# Screenshots (may contain sensitive info)
+screenshots/
 
 # Terraform state and planning artefacts — never commit
 **/.terraform/
