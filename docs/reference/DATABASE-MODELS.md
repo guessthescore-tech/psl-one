@@ -4,7 +4,7 @@
 **Audience:** Backend engineers  
 **Status:** Current as of STORY-39 (commit `08e3852`)  
 **Last verified:** 2026-06-14  
-**Total models:** 99  
+**Total models:** 100
 **Source:** `apps/api/prisma/schema.prisma`  
 **Authority:** Schema is the single source of truth — this document is a navigational aid only  
 
@@ -14,7 +14,7 @@
 
 | Domain | Models |
 |--------|--------|
-| Auth & Identity | 5 |
+| Auth & Identity | 6 |
 | Football Core | 8 |
 | Competition Management | 4 |
 | Fixtures | 5 |
@@ -35,7 +35,7 @@
 | Rewards | 3 |
 | Admin & Audit | 3 |
 | Beta Launch | 2 |
-| **Total** | **99** |
+| **Total** | **100** |
 
 ---
 
@@ -48,6 +48,7 @@
 | `PasswordResetToken` | `id`, `userId`, `token`, `expiresAt`, `usedAt` | Single-use token |
 | `AuthAuditLog` | `id`, `userId`, `action`, `ipAddress`, `createdAt` | Append-only |
 | `ConsentRecord` | `id`, `userId`, `consentType`, `accepted`, `createdAt` | GDPR consent |
+| `AccountDeletionRequest` | `id`, `userId`, `status`, `reason`, `requestedAt`, `cancelledAt` | POPIA deletion request workflow; status is PENDING, CANCELLED, COMPLETED, or REJECTED |
 
 ---
 
@@ -322,4 +323,4 @@ ChallengeMatch ──1:1──> ChallengeScore
 
 ## Schema File
 
-`apps/api/prisma/schema.prisma` — 99 models, 38 migrations applied
+`apps/api/prisma/schema.prisma` — 100 models, 40 migrations applied

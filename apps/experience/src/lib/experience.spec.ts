@@ -1609,3 +1609,163 @@ describe('STORY-S4-01: deploy documentation', () => {
     expect(content).toContain('NEXT_PUBLIC_DATA_MODE');
   });
 });
+
+// ── STORY-S5-01: Account Security ─────────────────────────────────────────────
+
+describe('STORY-S5-01: /account/security page', () => {
+  it('PasswordForm component exists', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('PasswordForm has accessible labels', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('htmlFor');
+    expect(content).toContain('aria-label');
+  });
+
+  it('PasswordForm calls password change endpoint', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/auth/password/change');
+  });
+
+  it('PasswordForm shows loading state', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('loading');
+  });
+
+  it('PasswordForm shows success state', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('success');
+  });
+
+  it('PasswordForm shows error state', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('error');
+  });
+
+  it('PasswordForm submit button has min-h-[44px]', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('min-h-[44px]');
+  });
+
+  it('PasswordForm does not contain real-money language', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(deposit|withdrawal|wager|stake|bet)\b/i);
+  });
+});
+
+// ── STORY-S5-02: POPIA Account Deletion ───────────────────────────────────────
+
+describe('STORY-S5-02: /account/delete page', () => {
+  it('DeleteAccountDialog component exists', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('DeleteAccountDialog references deletion request endpoint', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/account/deletion-request');
+  });
+
+  it('DeleteAccountDialog shows POPIA language', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('POPIA');
+  });
+
+  it('DeleteAccountDialog does not claim immediate deletion', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\bimmediately deleted\b|\bdeleted immediately\b/i);
+  });
+
+  it('DeleteAccountDialog allows cancellation of pending request', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('cancel');
+  });
+
+  it('DeleteAccountDialog has accessible button with min-h-[44px]', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('min-h-[44px]');
+  });
+
+  it('DeleteAccountDialog does not contain real-money language', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(deposit|withdrawal|wager|stake|bet)\b/i);
+  });
+
+  it('/account/delete page exists', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'delete', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
+// ── STORY-S5-03: Security audit trail references ───────────────────────────────
+
+describe('STORY-S5-03: account security audit contract', () => {
+  it('account security page references /auth/password/change', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/auth/password/change');
+  });
+
+  it('deletion dialog references /account/deletion-request', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'DeleteAccountDialog.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/account/deletion-request');
+  });
+
+  it('PasswordForm uses apiPost not direct fetch for password change', () => {
+    const p = require('path').resolve(
+      ROOT, 'src', 'components', 'account', 'PasswordForm.tsx'
+    );
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('apiPost');
+  });
+});

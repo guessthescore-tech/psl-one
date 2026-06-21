@@ -1,15 +1,15 @@
 # PSL One — Migration Reference
 
-**Purpose:** Ordered list of all 39 database migrations  
-**Audience:** Backend engineers  
-**Status:** Current as of S3-INFRA-00 (Sprint 3 Security & Performance Hardening Gate)  
-**Last verified:** 2026-06-14  
+**Purpose:** Ordered list of all 40 database migrations
+**Audience:** Backend engineers
+**Status:** Current as of Sprint 5 (Account Security & POPIA Deletion)
+**Last verified:** 2026-06-21
 
 ---
 
 ## Migration Count
 
-**Total migrations:** 39 (as of S3-INFRA-00)
+**Total migrations:** 40 (as of Sprint 5)
 
 ---
 
@@ -62,6 +62,7 @@ These early migrations establish the core schema. Exact timestamps vary; see `ap
 | `20260613000002_direct_challenges_campaign_triggers` | STORY-38 | DirectChallenge, MarketplaceListing, ChallengeIdempotency, CampaignTriggerLog extensions |
 | `20260614000001_beta_launch_readiness` | STORY-39 | BetaCohort, BetaCohortMember, SeasonActivationApproval |
 | `20260615000001_security_performance_hardening` | S3-INFRA-00 | Additive indexes for confirmed high-volume query paths: match_events(fixture_id, minute), fantasy_points_ledger(fantasy_team_id, fixture_id), prediction_points_ledger(fixture_id) |
+| `20260621000001_account_security_trust` | Sprint 5 | AuditEvent enum extensions (PASSWORD_CHANGED, PASSWORD_CHANGE_FAILED, ACCOUNT_DELETION_REQUESTED, ACCOUNT_DELETION_CANCELLED); DeletionRequestStatus enum; AccountDeletionRequest table |
 
 ---
 
