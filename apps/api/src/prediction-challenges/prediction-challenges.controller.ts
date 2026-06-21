@@ -16,6 +16,16 @@ export class PredictionChallengesController {
     private settlementService: ChallengeSettlementService,
   ) {}
 
+  // ── Non-token routes (must come BEFORE :token routes to avoid NestJS prefix conflicts) ──
+
+  @Post('settle-fixture/:fixtureId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  @HttpCode(HttpStatus.OK)
+  settleFixture(@Param('fixtureId') fixtureId: string) {
+    return this.settlementService.settleAllAcceptedForFixture(fixtureId);
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -32,6 +42,8 @@ export class PredictionChallengesController {
   getMyChallenges(@CurrentUser() user: TokenPayload) {
     return this.service.getMyCreatedChallenges(user.sub);
   }
+
+  // ── :token routes ──
 
   @Get(':token')
   getByToken(@Param('token') token: string) {

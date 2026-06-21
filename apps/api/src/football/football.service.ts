@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { FixtureStatus, MatchEventType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FixtureEventPublisher } from './fixture-event.publisher';
+import { ChallengeSettlementService } from '../prediction-challenges/challenge-settlement.service';
 import { UpdateFixtureStatusDto } from './dto/update-fixture-status.dto';
 import { UpdateFixtureScoreDto } from './dto/update-fixture-score.dto';
 import { CreateMatchEventDto } from './dto/create-match-event.dto';
@@ -22,6 +23,7 @@ export class FootballService {
   constructor(
     private prisma: PrismaService,
     private publisher: FixtureEventPublisher,
+    private settlementService: ChallengeSettlementService,
   ) {}
 
   listCompetitions() {
@@ -317,6 +319,14 @@ export class FootballService {
     });
 
     this.publisher.publishFixtureStatusChanged(id, dto.status);
+
+    // Fire-and-forget: settle all accepted challenges when fixture finishes
+    if (dto.status === FixtureStatus.FINISHED) {
+      this.settlementService.settleAllAcceptedForFixture(id).catch(() => {
+        // Settlement failure must not affect fixture update response
+      });
+    }
+
     return updated;
   }
 

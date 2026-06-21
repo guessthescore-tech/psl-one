@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AuditEvent, FixtureStatus, PredictionChallengeStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -32,6 +32,8 @@ function calculatePoints(
 
 @Injectable()
 export class ChallengeSettlementService {
+  private readonly logger = new Logger(ChallengeSettlementService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async settle(token: string): Promise<{
@@ -175,6 +177,44 @@ export class ChallengeSettlementService {
       settledAt: challenge.settledAt,
       fixture: challenge.fixture,
     };
+  }
+
+  async settleAllAcceptedForFixture(fixtureId: string): Promise<{
+    settled: number;
+    skipped: number;
+    errors: number;
+  }> {
+    // Find all ACCEPTED challenges for this fixture
+    const challenges = await this.prisma.predictionChallenge.findMany({
+      where: {
+        fixtureId,
+        status: PredictionChallengeStatus.ACCEPTED,
+      },
+      select: { token: true },
+    });
+
+    let settled = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const { token } of challenges) {
+      try {
+        const result = await this.settle(token);
+        if (result.status === 'SETTLED') settled++;
+        else skipped++;
+      } catch (err: unknown) {
+        // One challenge failure must not block others
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`Settlement skipped for token challenge: ${msg}`);
+        errors++;
+      }
+    }
+
+    this.logger.log(
+      `[settle-fixture] fixtureId=${fixtureId} settled=${settled} skipped=${skipped} errors=${errors}`,
+    );
+
+    return { settled, skipped, errors };
   }
 
   private async writeAuditLog(userId: string, event: AuditEvent) {
