@@ -2011,3 +2011,112 @@ describe('STORY-S7-03: staging migration runbook', () => {
     expect(content).not.toMatch(/activatePSL|PSL.*ACTIVATED|activate.*psl/i);
   });
 });
+
+// ── STORY-S8-03: Settlement automation ────────────────────────────────────────
+
+describe('STORY-S8-03: settlement automation wiring', () => {
+  it('football service references settleAllAcceptedForFixture', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'football', 'football.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('settleAllAcceptedForFixture');
+  });
+
+  it('football module imports PredictionChallengesModule', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'football', 'football.module.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('PredictionChallengesModule');
+  });
+
+  it('settlement trigger is fire-and-forget with error catching', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'football', 'football.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('.catch(');
+  });
+
+  it('settle-fixture admin endpoint exists in controller', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'prediction-challenges', 'prediction-challenges.controller.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('settle-fixture');
+  });
+
+  it('settle-fixture endpoint is admin-only', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'prediction-challenges', 'prediction-challenges.controller.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/Roles.*ADMIN|ADMIN.*settle-fixture/s);
+  });
+});
+
+// ── STORY-S8-04: Challenge Result UX ─────────────────────────────────────────
+
+describe('STORY-S8-04: challenge result UX', () => {
+  it('challenge result page exists at /predict/challenge/result', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'result', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('challenge result page has points-only disclaimer', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'result', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/points only|Points only|no real money/i);
+  });
+
+  it('challenge result page has no financial/betting language', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'result', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(payout|deposit|withdraw|stake|wager|cash prize|bookmaker)\b/i);
+  });
+
+  it('accept page SETTLED state shows points breakdown', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('SETTLED');
+    expect(content).toMatch(/points|Points/i);
+    expect(content).toMatch(/winner|draw|Winner|Draw/i);
+  });
+});
+
+// ── STORY-S8-02: Provider key isolation ──────────────────────────────────────
+
+describe('STORY-S8-02: provider key isolation', () => {
+  it('no Sportmonks key reference in experience source', () => {
+    const dirs = ['src/app', 'src/components', 'src/lib', 'src/sections'];
+    for (const dir of dirs) {
+      const base = require('path').resolve(ROOT, dir);
+      if (!require('fs').existsSync(base)) continue;
+      const files = getAllFiles(base).filter((f: string) => (f.endsWith('.ts') || f.endsWith('.tsx')) && !f.endsWith('.spec.ts'));
+      for (const f of files) {
+        const content = require('fs').readFileSync(f, 'utf8');
+        expect(content).not.toContain('SPORTMONKS_API_KEY');
+        expect(content).not.toContain('api_token=');
+      }
+    }
+  });
+
+  it('staging runbook exists', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'handover', 'SPRINT-8-STAGING-MIGRATION-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider trial validation doc exists', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'data', 'SPRINT-8-SPORTMONKS-TRIAL-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider validation doc says BLOCKED_BY_REPLACEMENT_TOKEN', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'data', 'SPRINT-8-SPORTMONKS-TRIAL-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('BLOCKED_BY_REPLACEMENT_TOKEN');
+  });
+});
+
+function getAllFiles(dir: string): string[] {
+  const fs = require('fs');
+  const path = require('path');
+  const results: string[] = [];
+  for (const f of fs.readdirSync(dir)) {
+    const full = path.join(dir, f);
+    if (fs.statSync(full).isDirectory()) results.push(...getAllFiles(full));
+    else results.push(full);
+  }
+  return results;
+}
