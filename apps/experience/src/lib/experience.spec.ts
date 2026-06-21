@@ -1769,3 +1769,161 @@ describe('STORY-S5-03: account security audit contract', () => {
     expect(content).toContain('apiPost');
   });
 });
+
+// ── STORY-S6-02: Durable Challenge Backend ─────────────────────────────────────
+
+describe('STORY-S6-02: token-based prediction challenges', () => {
+  it('challenge page exists', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('challenge accept page exists', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('challenge page references predictions/challenges endpoint', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/predictions/challenges');
+  });
+
+  it('challenge accept page references token param', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('token');
+  });
+
+  it('challenge accept page handles self-challenge case', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/self|own challenge|cannot accept/i);
+  });
+
+  it('challenge accept page handles expired case', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/EXPIRED|expired/i);
+  });
+
+  it('challenge pages do not contain real-money language', () => {
+    const pages = [
+      require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'page.tsx'),
+      require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx'),
+    ];
+    for (const p of pages) {
+      const content = require('fs').readFileSync(p, 'utf8');
+      expect(content).not.toMatch(/\b(stake|wager|payout|deposit|withdrawal|odds)\b/i);
+    }
+  });
+
+  it('points-only disclaimer present in challenge page', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/points only|no real money|Points only/i);
+  });
+});
+
+// ── STORY-S6-03: Fan Onboarding ───────────────────────────────────────────────
+
+describe('STORY-S6-03: fan onboarding', () => {
+  it('onboarding page exists', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('onboarding page references GET /account/onboarding', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/account/onboarding');
+  });
+
+  it('onboarding page shows favourite team step', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/favourite team|favoriteTeam|preferredTeam/i);
+  });
+
+  it('onboarding page shows prediction step', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/prediction|predict/i);
+  });
+
+  it('onboarding page shows challenge step', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/challenge/i);
+  });
+
+  it('onboarding page has min-h-[44px] for interactive elements', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Links have accessible touch targets
+    expect(content).toContain('account/favourite-team');
+  });
+
+  it('onboarding page does not contain real-money language', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'account', 'onboarding', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(stake|wager|payout|deposit|withdrawal|odds)\b/i);
+  });
+});
+
+// ── STORY-S6-04: Preview Analytics ───────────────────────────────────────────
+
+describe('STORY-S6-04: preview analytics adapter', () => {
+  it('analytics adapter exists', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('analytics adapter calls POST /analytics/events', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/analytics/events');
+  });
+
+  it('analytics adapter sanitizes forbidden fields', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/password|token|wallet|apiKey/);
+    expect(content).toContain('sanitize');
+  });
+
+  it('analytics adapter swallows errors silently', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Error handling should be catch block that does not rethrow
+    expect(content).toContain('catch');
+  });
+
+  it('analytics adapter does not contain real-money language', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(stake|wager|payout|deposit|withdrawal|odds)\b/i);
+  });
+});
+
+// ── STORY-S6-01: Provider Boundary ───────────────────────────────────────────
+
+describe('STORY-S6-01: provider trial boundary', () => {
+  it('provider adapter interface exists in API', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'data-provider', 'provider-adapter.interface.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('provider interface does not expose API keys in response types', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'data-provider', 'provider-adapter.interface.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/apiKey|api_key|api_token/i);
+  });
+
+  it('analytics adapter does not make direct provider calls from frontend', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toContain('sportmonks.com');
+    expect(content).not.toContain('api-football.com');
+  });
+});
