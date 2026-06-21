@@ -57,6 +57,9 @@ logs/
 # Turbo cache
 .turbo/
 
+# Vercel project linking (created by vercel CLI at repo root)
+.vercel/
+
 # Local AI design skills
 .agents/skills/
 .claude/skills/

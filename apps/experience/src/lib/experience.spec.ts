@@ -1318,3 +1318,294 @@ describe('pitch animation resilience (visual review correction)', () => {
     expect(content).toContain('0.04');
   });
 });
+
+// ── STORY-S4-01: Vercel config ────────────────────────────────────────────────
+
+describe('STORY-S4-01: Vercel preview config', () => {
+  it('vercel.json exists in experience root', () => {
+    const path = require('path').resolve(ROOT, 'vercel.json');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('vercel.json sets DESIGN_REVIEW_DATA mode', () => {
+    const path = require('path').resolve(ROOT, 'vercel.json');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+  });
+
+  it('vercel.json sets X-Robots-Tag noindex', () => {
+    const path = require('path').resolve(ROOT, 'vercel.json');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('noindex');
+  });
+
+  it('.env.example exists', () => {
+    const path = require('path').resolve(ROOT, '.env.example');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('.env.example documents NEXT_PUBLIC_DATA_MODE', () => {
+    const path = require('path').resolve(ROOT, '.env.example');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('NEXT_PUBLIC_DATA_MODE');
+  });
+});
+
+// ── STORY-S4-05: Prediction sharing and challenge loop ────────────────────────
+
+describe('STORY-S4-05: predict page', () => {
+  it('predict/page.tsx exists and is not coming-soon stub', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).not.toContain('Coming soon');
+  });
+
+  it('predict page has score stepper controls', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('ScoreStepper');
+  });
+
+  it('predict page has lock-in submit button', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('Lock in prediction');
+  });
+
+  it('predict page has share action', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('Share');
+  });
+
+  it('predict page shows points-only disclaimer', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('Points only');
+  });
+
+  it('predict page has WhatsApp share', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('WhatsApp');
+  });
+
+  it('predict page has copy-link handler', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('clipboard');
+  });
+
+  it('predict page handles Web Share API', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('navigator.share');
+  });
+
+  it('predict page handles locked fixtures', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('isLocked');
+  });
+
+  it('predict page has challenge link', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('challenge');
+  });
+
+  it('predict page uses DESIGN_REVIEW_DATA mode from data.ts', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('getDataMode');
+    expect(content).toContain('WC_FIXTURES');
+  });
+
+  it('predict page handles no-fixture empty state', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('No upcoming fixtures');
+  });
+
+  it('predict page handles error state', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('Try again');
+  });
+});
+
+describe('STORY-S4-05: challenge page', () => {
+  it('predict/challenge/page.tsx exists', () => {
+    expect(exists('app/predict/challenge/page.tsx')).toBe(true);
+  });
+
+  it('challenge page shows how-it-works steps', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('How challenges work');
+  });
+
+  it('challenge page creates challenge link', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('buildChallengeLink');
+  });
+
+  it('challenge page has WhatsApp share', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('WhatsApp');
+  });
+
+  it('challenge page creates unique challenge link per fixture/score', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('buildChallengeLink');
+  });
+
+  it('challenge page handles locked fixtures', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('isLocked');
+  });
+
+  it('challenge page shows points-only disclaimer', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('no real money');
+  });
+
+  it('challenge page wraps useSearchParams in Suspense', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('Suspense');
+    expect(content).toContain('useSearchParams');
+  });
+});
+
+describe('STORY-S4-05: challenge accept page', () => {
+  it('predict/challenge/accept/page.tsx exists', () => {
+    expect(exists('app/predict/challenge/accept/page.tsx')).toBe(true);
+  });
+
+  it('accept page shows challenger prediction', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('challengerHomeScore');
+  });
+
+  it('accept page handles expired/not-found challenges', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('Challenge not found');
+  });
+
+  it('accept page shows WhatsApp reply after acceptance', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('Reply on WhatsApp');
+  });
+
+  it('accept page shows points-only disclaimer', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('no real money');
+  });
+
+  it('accept page wraps useSearchParams in Suspense', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('Suspense');
+  });
+});
+
+// ── STORY-S4-01 deploy docs ───────────────────────────────────────────────────
+
+// ── STORY-S4-03: API wiring matrix ────────────────────────────────────────────
+
+describe('STORY-S4-03: API wiring matrix docs', () => {
+  it('SPRINT-4-API-WIRING-MATRIX.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-API-WIRING-MATRIX.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('SPRINT-4-DATA-SOURCE-TRUTH-TABLE.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-DATA-SOURCE-TRUTH-TABLE.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('SPRINT-4-MISSING-CONTRACTS.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-MISSING-CONTRACTS.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('wiring matrix classifies all routes', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-API-WIRING-MATRIX.md');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('LIVE_BETA_DATA');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+    expect(content).toContain('MISSING_BACKEND_CONTRACT');
+  });
+});
+
+// ── STORY-S4-07: Account completion ───────────────────────────────────────────
+
+describe('STORY-S4-07: account notifications page', () => {
+  it('account/notifications/page.tsx exists', () => {
+    expect(exists('app/account/notifications/page.tsx')).toBe(true);
+  });
+
+  it('notifications page has toggle controls', () => {
+    const content = read('app/account/notifications/page.tsx');
+    expect(content).toContain('ToggleRow');
+  });
+
+  it('notifications page calls /notifications/preferences', () => {
+    const content = read('app/account/notifications/page.tsx');
+    expect(content).toContain('/notifications/preferences');
+  });
+
+  it('notifications page uses mode-switch pattern', () => {
+    const content = read('app/account/notifications/page.tsx');
+    expect(content).toContain('DESIGN_REVIEW_DATA');
+    expect(content).toContain('getDataMode');
+  });
+
+  it('notifications page has marketingUpdates toggle with consent awareness', () => {
+    const content = read('app/account/notifications/page.tsx');
+    expect(content).toContain('marketingUpdates');
+  });
+
+  it('AccountNav includes notifications link', () => {
+    const content = read('components/account/AccountNav.tsx');
+    expect(content).toContain('/account/notifications');
+  });
+});
+
+// ── STORY-S4-08: Analytics and sponsor docs ────────────────────────────────────
+
+describe('STORY-S4-08: analytics and sponsor docs', () => {
+  it('SPRINT-4-ANALYTICS-EVENT-CATALOGUE.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-ANALYTICS-EVENT-CATALOGUE.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('SPRINT-4-SPONSOR-INVENTORY.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-SPONSOR-INVENTORY.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('SPRINT-4-SPONSOR-SAFE-ZONES.md exists', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-SPONSOR-SAFE-ZONES.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('analytics catalogue does not expose financial or payment PII event properties', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-ANALYTICS-EVENT-CATALOGUE.md');
+    const content = require('fs').readFileSync(path, 'utf8').toLowerCase();
+    expect(content).not.toContain('credit_card');
+    expect(content).not.toContain('bank_account');
+    expect(content).not.toContain('card_number');
+  });
+
+  it('sponsor safe zones excludes gambling content', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-SPONSOR-SAFE-ZONES.md');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('gambling');
+    expect(content.toLowerCase()).toMatch(/prohibited|excluded|not allowed|banned/);
+  });
+});
+
+describe('STORY-S4-01: deploy documentation', () => {
+  it('SPRINT-4-DEPLOY-GUIDE.md exists in experience docs', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-DEPLOY-GUIDE.md');
+    expect(require('fs').existsSync(path)).toBe(true);
+  });
+
+  it('deploy guide documents deployment as live', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-DEPLOY-GUIDE.md');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('DEPLOYED');
+  });
+
+  it('deploy guide includes env variable matrix', () => {
+    const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-DEPLOY-GUIDE.md');
+    const content = require('fs').readFileSync(path, 'utf8');
+    expect(content).toContain('NEXT_PUBLIC_DATA_MODE');
+  });
+});

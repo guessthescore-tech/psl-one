@@ -1,0 +1,170 @@
+# Sprint 4 — Known Gaps
+
+**Date:** 2026-06-20
+**Branch:** `feature/sprint-4-premium-activation`
+
+---
+
+## Gap 1: Vercel Preview — RESOLVED
+
+**Type:** Credential blocker — now resolved
+**Story:** STORY-S4-01
+**Status:** FIXED — preview deployed 2026-06-20
+
+Preview URL: https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app
+Deployment ID: `dpl_W1mvR8gYtbeUhza1ZJAC6s8UoRtJ`
+Protection: none (SSO disabled; accessible without login)
+Smoke checks: 9/9 routes HTTP 200
+Screenshots: 34 PNG at `~/Desktop/psl-one-sprint4-preview-review/`
+
+**Impact:** Resolved. Stakeholder can access the preview at the URL above.
+
+---
+
+## Gap 2: Real Team Crests / Logos Not Available
+
+**Type:** Asset gap
+**Story:** STORY-S4-02
+**Status:** DEFERRED
+
+All team crests use colored shield shapes with initials (TeamIdentity component). Real team logos require:
+1. Licensing from the clubs or PSL
+2. Asset delivery
+3. CDN/image serving setup
+
+**Impact:** Visual experience looks designed but not authentic for PSL clubs.
+**Mitigation:** Acceptable for design review; must be resolved before public launch.
+
+---
+
+## Gap 3: Player Images Are Placeholder
+
+**Type:** Asset gap
+**Story:** STORY-S4-02
+**Status:** DEFERRED
+
+Player profile images use picsum.photos placeholder images. Real player headshots require:
+1. Photography or official club assets
+2. Image rights
+3. CDN hosting
+
+**Impact:** Players/stats pages look generic.
+**Mitigation:** Acceptable for design review; must be resolved before public launch.
+
+---
+
+## Gap 4: Sports Data Provider Not Contracted
+
+**Type:** Commercial gap
+**Story:** STORY-S4-06
+**Status:** BLOCKED — requires owner action
+
+Provider recommendation is Sportmonks. Architecture is designed (NestJS adapter interface in `tools/data-provider-spike/`). The platform currently uses WC 2026 design review data.
+
+**Impact:** Live fixture data, standings, and player stats cannot be served until a provider is licensed.
+**Next step:** Owner to review `SPRINT-4-PROVIDER-LICENSING-GATE.md` and begin commercial discussion with Sportmonks.
+
+---
+
+## Gap 5: Missing Backend Contracts (7)
+
+**Type:** Backend gap
+**Story:** STORY-S4-04
+**Status:** Documented; implementation deferred to Sprint 5
+
+The following frontend pages fall back to design review data because their backend APIs don't exist yet:
+- `/account/security` — password change
+- `/account/delete` — POPIA deletion request
+- `/stats/awards` — awards endpoint
+- `/stats/hall-of-fame` — hall of fame endpoint
+- `/stats/compare` — player comparison
+- `/fantasy/stats` — fantasy stats summary
+- `/fantasy/fixture-difficulty` — FDR algorithm
+
+See: `apps/experience/docs/SPRINT-4-MISSING-CONTRACTS.md`
+
+---
+
+## Gap 6: Challenge Backend Integration (Design Review Only)
+
+**Type:** Feature gap
+**Story:** STORY-S4-05
+**Status:** Partially implemented
+
+The challenge pages use a URL-based approach (query params) for design review. The backend `ChallengesController` exists (`POST /challenges`, `POST /challenges/:id/accept`). Wiring the frontend challenge pages to the backend requires authentication state management (currently challenges are unauthenticated in the frontend).
+
+**Impact:** Challenges work in design review mode (URL share). Persistent challenges with backend persistence require LIVE_BETA_DATA mode + authenticated user.
+
+---
+
+## Gap 7: Analytics Not Yet Instrumentated
+
+**Type:** Implementation gap
+**Story:** STORY-S4-08
+**Status:** Documented only
+
+The analytics event catalogue is complete (`SPRINT-4-ANALYTICS-EVENT-CATALOGUE.md`) but no analytics adapter is implemented in the frontend code. Events are documented but not fired.
+
+**Impact:** No tracking data from the preview.
+**Next step:** Sprint 5 — implement a consent-aware analytics adapter (PostHog or similar).
+
+---
+
+## Gap 8: Quiz and Badge Scan (Design Only)
+
+**Type:** Feature gap
+**Status:** DEFERRED — requires physical/content infrastructure
+
+- `/quiz/[quizId]` — quiz pages render but need a quiz engine backend
+- `/scan` — badge scanner UI exists but requires physical NFC/QR event integration
+
+These are intentionally deferred.
+
+---
+
+## Gap 9: vercel.json outputDirectory Corrected
+
+**Type:** Configuration defect — fixed during reconciliation
+**Story:** STORY-S4-01
+**Status:** FIXED — committed in reconciliation pass
+
+The original `vercel.json` had `"outputDirectory": "apps/experience/.next"`. When Vercel links the project with rootDirectory `apps/experience`, outputDirectory is resolved relative to rootDirectory. The correct value is `".next"`. Fixed in the reconciliation commit.
+
+---
+
+## Gap 10: /fantasy/fixtures Reclassified
+
+**Type:** Documentation inaccuracy — corrected during reconciliation
+**Story:** STORY-S4-03
+**Status:** FIXED — wiring matrix updated
+
+The API wiring matrix incorrectly classified `/fantasy/fixtures` as `LIVE_BETA_DATA`. The actual page shows `FantasyEmptyState` with no API call. Reclassified to `DESIGN_REVIEW_DATA`. Backend endpoint exists when wiring is completed in a later sprint.
+
+---
+
+## Gap 11: /account/notifications Missing from Wiring Matrix
+
+**Type:** Documentation gap — corrected during reconciliation
+**Story:** STORY-S4-03
+**Status:** FIXED — added to wiring matrix as `PARTIAL`
+
+The new notifications page was not listed in the API wiring matrix. Added with classification `PARTIAL` (LIVE when authenticated, design defaults when not).
+
+---
+
+## Summary
+
+| Gap | Blocker Type | Sprint 5 Priority |
+|-----|-------------|-------------------|
+| Vercel preview URL | RESOLVED — live at preview URL | — |
+| Team crests | Asset/licensing | HIGH for launch |
+| Player images | Asset/licensing | HIGH for launch |
+| Sports data provider | Commercial | HIGH — begin discussions |
+| 7 missing backend contracts | Development | HIGH (password change, POPIA) / MEDIUM (awards, HOF) |
+| Challenge backend wiring | Development | MEDIUM |
+| Analytics implementation | Development | MEDIUM |
+| Quiz engine | Infrastructure | LOW |
+| Badge scan | Physical infrastructure | LOW |
+| vercel.json outputDirectory | Fixed in reconciliation | — |
+| /fantasy/fixtures reclassification | Fixed in reconciliation | — |
+| /account/notifications wiring matrix | Fixed in reconciliation | — |

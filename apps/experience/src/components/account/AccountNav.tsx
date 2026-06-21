@@ -8,6 +8,7 @@ import {
   Lock,
   Heart,
   Trash,
+  Bell,
   CaretRight,
 } from '@phosphor-icons/react/dist/ssr';
 
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { label: 'Edit Profile',    href: '/account/profile',       Icon: User  },
   { label: 'Security',        href: '/account/security',      Icon: Lock  },
   { label: 'Favourite Team',  href: '/account/favourite-team', Icon: Heart },
+  { label: 'Notifications',   href: '/account/notifications', Icon: Bell  },
   { label: 'Delete Account',  href: '/account/delete',        Icon: Trash },
 ];
 
