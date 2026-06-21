@@ -1,8 +1,14 @@
 # Sprint 9 — Staging Migration Apply Log
 
-## Status: STAGING_APPLY_PENDING_OWNER_AUTHORIZATION
+## Status: LOCAL_DEV_APPLIED — STAGING_EC2_PENDING_DB_URL
 
-Staging migration apply has NOT been performed. This document will record the result once authorized.
+Local dev migration apply was performed 2026-06-21 with explicit owner authorization.
+Target: `localhost:5432/psl_identity_dev` (local dev DB, NOT staging EC2).
+
+Staging EC2 migration apply still requires:
+1. Update `DATABASE_URL` in `apps/api/.env` to point to the EC2 instance
+2. Explicit owner authorization in a new session
+3. Pre-migration backup of staging DB
 
 ---
 
@@ -83,14 +89,27 @@ curl -X POST http://localhost:4000/predictions/challenges/settle-fixture/test
 BASE_URL=http://<staging-host>:4000 node tools/smoke/sprint-9-staging-smoke.mjs
 ```
 
-## Apply Result (fill in after apply)
+## Local Dev Apply Result
 
 ```
-Date applied: ___
-Applied by: ___
-Output: ___
-Post-smoke result: ___
+Date applied: 2026-06-21
+Target DB:    localhost:5432/psl_identity_dev (local dev — NOT staging EC2)
+Authorized by: owner (explicit approval in session)
+Migrations applied:
+  - 20260621000001_account_security_trust    ← Sprint 5 (was pending on local dev)
+  - 20260621000002_prediction_challenge_token ← migration 41
+  - 20260621000003_challenge_settlement       ← migration 42
+Output: "All migrations have been successfully applied."
+Post-smoke result: Challenge settlement smoke — 5/5 file-level PASS; live checks SKIP (no server)
 ```
+
+## Pre-Migration Checklist (actual)
+
+- [x] Owner explicitly authorized in session (all 3 migrations, local dev DB)
+- [ ] DB backup — local dev, not required for dev environment
+- [ ] Staging API pre-migration health — local dev only, not applicable
+- [x] prisma migrate status confirmed: 3 pending migrations
+- [x] No other migration in progress
 
 ## Rollback Notes
 

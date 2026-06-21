@@ -6,23 +6,26 @@ A provider is ready for production activation when ALL of the following are conf
 
 | Criterion | Sportmonks | SportsDataIO | Required |
 |-----------|-----------|--------------|---------|
-| Replacement key generated and stored server-side | ❌ PENDING | ❌ PENDING | Both |
-| Health check passes (HTTP 200) | ❌ BLOCKED | ❌ BLOCKED | Both |
-| Fixtures endpoint returns PSL fixtures | ❌ PENDING | ❌ PENDING | Primary |
-| Fixtures endpoint returns WC2026 fixtures | ❌ PENDING | ❌ PENDING | Primary |
-| Standings endpoint returns data | ❌ PENDING | ❌ PENDING | Primary |
-| Field mapping verified (all required fields present) | ❌ PENDING | ❌ PENDING | Primary |
+| Replacement key generated and stored server-side | ✅ PRESENT (length 60) | ✅ PRESENT (length 32) | Both |
+| Health check passes (HTTP 200) | ❌ HTTP 401 (key invalid) | ✅ HTTP 200 (93 competitions) | Both |
+| Fixtures endpoint returns PSL fixtures | ❌ BLOCKED by 401 | ❌ UCL trial only | Primary |
+| Fixtures endpoint returns WC2026 fixtures | ❌ BLOCKED by 401 | ❌ UCL trial only | Primary |
+| Standings endpoint returns data | ❌ BLOCKED by 401 | ❌ HTTP 401 (trial tier) | Primary |
+| Field mapping verified (all required fields present) | ❌ BLOCKED by 401 | ❌ Trial insufficient | Primary |
 | Rate limits understood | ❌ PENDING | ❌ PENDING | Both |
 | Commercial terms reviewed by owner | ❌ PENDING | ❌ PENDING | Before activation |
-| Staging migration applied (provides settlement fields) | ❌ PENDING | ❌ PENDING | Both |
+| Local dev migration applied (migrations 40-42) | ✅ APPLIED 2026-06-21 | ✅ APPLIED 2026-06-21 | Both |
+| Staging EC2 migration applied | ❌ PENDING_EC2_DB_URL | ❌ PENDING_EC2_DB_URL | Before staging live |
 | Betting/odds endpoints confirmed not used | ✅ CONFIRMED | ✅ CONFIRMED | Both |
 | No frontend key exposure | ✅ CONFIRMED | ✅ CONFIRMED | Both |
 
-## Current Status
+## Current Status (2026-06-21)
 
-**Both providers: BLOCKED_BY_REPLACEMENT_TOKEN**
+**Sportmonks: HTTP_401 — key present but API rejects it.** Adapter is fully implemented and wired. Key must be regenerated or verified at https://app.sportmonks.com/api-tokens before coverage can be validated.
 
-Neither provider can be validated until replacement keys are available.
+**SportsDataIO: PARTIAL — trial key valid but UCL-only scope.** Competitions (93) and teams (258) confirmed OK. Schedules, players, and standings require a paid plan. PSL/WC2026 coverage cannot be validated on trial.
+
+**Local dev DB:** Migrations 40, 41, and 42 applied successfully (2026-06-21). Staging EC2 DB still requires separate DB URL and explicit authorization.
 
 ## What Unblocks Each Gate
 

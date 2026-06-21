@@ -14,42 +14,44 @@ The following checks run without a running server (static analysis):
 | Discovery tools: no NEXT_PUBLIC_* keys | `experience.spec.ts` S9 tests | PASS |
 | Discovery tools: no betting/odds paths | `experience.spec.ts` S9 tests | PASS |
 
-## Live Checks: PENDING (require running API)
+## Live Checks: FAIL (API not running on localhost:4000)
 
-These checks require a running API server (`BASE_URL=http://localhost:4000` or staging URL):
+Run date: 2026-06-21 — `node tools/smoke/sprint-9-staging-smoke.mjs`
 
-| Check | Command | Expected Result |
-|-------|---------|----------------|
-| API health | `GET /health` | HTTP 200 |
-| Fixture list | `GET /football/fixtures?limit=3` | HTTP 200 |
-| Challenge result 404 | `GET /predictions/challenges/nonexistent/result` | HTTP 404 |
-| Settlement gate (no auth) | `POST /predictions/challenges/settle-fixture/test` | HTTP 401 |
-| Onboarding gate | `GET /onboarding/status` | HTTP 401 |
-| Provider health gate | `GET /admin/data-provider/health` | HTTP 401 |
+| Check | Result | Notes |
+|-------|--------|-------|
+| API health | FAIL | Network error: fetch failed (no server running) |
+| Fixture list (public) | FAIL | Network error |
+| Challenge result 404 | FAIL | Network error |
+| Settlement gate (no auth) | FAIL | Network error |
+| Onboarding endpoint | FAIL | Network error |
+| Provider health admin gate | FAIL | Network error |
+| Admin provider health (authed) | SKIP | No SMOKE_ADMIN_TOKEN |
+| Admin settle-fixture (authed) | SKIP | No SMOKE_ADMIN_TOKEN |
 
-To run live checks:
+**Overall: FAIL — 0 PASS / 6 FAIL / 2 SKIP**
+
+Root cause: API server not running locally. Live checks require `pnpm --filter @psl-one/api run start:dev` first.
+
+To re-run with running API:
 ```bash
-# Local dev server
+# Start API in another terminal:
+# pnpm --filter @psl-one/api run start:dev
 BASE_URL=http://localhost:4000 node tools/smoke/sprint-9-staging-smoke.mjs
 BASE_URL=http://localhost:4000 node tools/smoke/sprint-9-challenge-settlement-smoke.mjs
 ```
 
-## Staging Smoke: PENDING_AUTHORIZATION
+## Staging EC2 Smoke: PENDING_DB_URL
 
-Staging smoke requires:
-1. Owner authorization for staging migration apply
-2. Staging API server running post-migration
-3. Optionally: `SMOKE_ADMIN_TOKEN` with ADMIN role for authed checks
-
-To run against staging:
-```bash
-BASE_URL=http://<staging-ip>:4000 \
-SMOKE_ADMIN_TOKEN=<admin-jwt-from-staging-login> \
-node tools/smoke/sprint-9-staging-smoke.mjs
-```
+Staging EC2 smoke requires:
+1. `DATABASE_URL` updated to EC2 instance in `apps/api/.env`
+2. Owner authorization for EC2 migration apply
+3. API deployed to EC2 or tunneled
+4. `SMOKE_ADMIN_TOKEN` with ADMIN role
 
 ## Settlement Smoke Run History
 
 | Date | Environment | Result | Notes |
 |------|-------------|--------|-------|
-| — | File-level only | PASS | Live checks pending server |
+| 2026-06-21 | File-level (local) | PASS 5/5 | No server needed for file checks |
+| 2026-06-21 | Live (localhost:4000) | FAIL 0/6 | API not running |

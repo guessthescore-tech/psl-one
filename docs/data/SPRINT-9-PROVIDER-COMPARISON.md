@@ -9,9 +9,10 @@
 | **NEXT_PUBLIC_*** | NEVER | NEVER | PSL One rule |
 | **Adapter status** | Fully implemented ✅ | Skeleton/candidate only ⚠️ | Sportmonks advantage |
 | **DataProviderService** | Wired in ✅ | Not yet wired ⚠️ | Sportmonks advantage |
-| **Trial scope** | Full API (key needed) | UCL only (comp ID 3) free | SportsDataIO limitation |
-| **PSL Premier League coverage** | Pending trial validation | Pending — likely paid plan | Unknown for both |
-| **WC2026 coverage** | Pending trial validation | Pending — UCL trial ≠ WC2026 | Unknown for both |
+| **Trial scope** | Full API (key 401 — see validation results) | UCL only (comp ID 3) free | Sportmonks key invalid; SportsDataIO trial limited |
+| **PSL Premier League coverage** | UNKNOWN — key returns 401 | UNKNOWN — trial UCL only | Unknown for both |
+| **WC2026 coverage** | UNKNOWN — key returns 401 | UNKNOWN — trial UCL only | Unknown for both |
+| **Live health check result** | ❌ HTTP 401 (key invalid) | ✅ HTTP 200 (93 competitions) | As of 2026-06-21 |
 | **fixtures endpoint** | `GET /v3/football/fixtures` | `GET /v4/soccer/scores/json/SchedulesBasic` | Both implemented |
 | **standings endpoint** | `GET /v3/football/standings/seasons/:id` | `GET /v4/soccer/scores/json/Standings/:comp/:season` | Both implemented |
 | **teams endpoint** | `GET /v3/football/teams/seasons/:id` | `GET /v4/soccer/scores/json/Teams/:comp` | Both implemented |

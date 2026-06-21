@@ -2,9 +2,11 @@
 
 ## Summary
 
-**Preliminary recommendation: Sportmonks as primary provider.**
+**Preliminary recommendation: Sportmonks as primary provider — PENDING key fix.**
 
-This recommendation is based on adapter maturity and prior investigation only. It is explicitly pending live trial validation with a replacement key.
+The replacement Sportmonks key (length 60) was added by the owner but returns HTTP 401. The key must be verified or regenerated before Sportmonks can be confirmed. SportsDataIO trial partially validates (competitions + teams). Recommendation unchanged pending Sportmonks key resolution.
+
+*Updated: 2026-06-21 — live validation run; Sportmonks 401, SportsDataIO partial.*
 
 ---
 
@@ -24,7 +26,7 @@ This recommendation is based on adapter maturity and prior investigation only. I
 | Frontend key exposure | NEVER ✅ | NEVER ✅ | Both server-side only |
 | Commercial terms | **Unknown** | **Unknown** | Owner must review before activation |
 | Prior investigation | Favored Sportmonks | Secondary candidate | See tools/data-provider-spike/ |
-| Current validation status | BLOCKED_BY_REPLACEMENT_TOKEN | BLOCKED_BY_REPLACEMENT_TOKEN | Both blocked |
+| Current validation status | HTTP_401 (key present but rejected) | PARTIAL (competitions+teams OK; trial limited) | As of 2026-06-21 |
 
 ---
 

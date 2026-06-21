@@ -1,34 +1,37 @@
 # Sprint 9 — Staging Migration Go/No-Go
 
-## Current Decision: NO-GO
+## Current Decision: LOCAL_DEV_GO — STAGING_EC2_PENDING_DB_URL
 
-Staging migration apply is not authorized. The apply log (`SPRINT-9-STAGING-MIGRATION-APPLY-LOG.md`) will be updated once authorized.
+Local dev migration apply was authorized and completed 2026-06-21. All 3 pending migrations applied successfully to `localhost:5432/psl_identity_dev`.
+
+Staging EC2 migration apply is still NO-GO until the EC2 `DATABASE_URL` is configured and separately authorized.
 
 ---
 
-## Go Criteria
-
-All of the following must be true before apply:
+## Go Criteria — Local Dev (COMPLETE 2026-06-21)
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
-| Explicit owner authorization received in session | ❌ NOT RECEIVED | Required |
-| Staging DB backup confirmed | ❌ UNKNOWN | Owner must confirm |
-| Staging API pre-migration health check passes | ❌ NOT RUN | Requires staging server |
-| `prisma migrate status` shows expected pending migrations | ❌ NOT RUN | Run before apply |
+| Explicit owner authorization received in session | ✅ RECEIVED | Owner chose "Apply all 3 to local dev DB" |
+| `prisma migrate status` shows expected pending migrations | ✅ CONFIRMED | 3 pending: account_security_trust, prediction_challenge_token, challenge_settlement |
+| No other migration in progress | ✅ CONFIRMED | Clean status |
+| DB backup | N/A | Local dev — no backup required |
+| API health pre-migration | N/A | Local dev only |
+
+## Go Criteria — Staging EC2 (PENDING)
+
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| Explicit owner authorization for EC2 staging | ❌ NOT RECEIVED | Required |
+| DATABASE_URL updated to EC2 instance | ❌ NOT CONFIGURED | apps/api/.env still points to localhost |
+| Staging DB backup confirmed | ❌ UNKNOWN | Owner must confirm before EC2 apply |
+| Staging API pre-migration health check passes | ❌ NOT RUN | Requires EC2 server + correct DB URL |
 | No other migration in progress | ❌ UNKNOWN | Confirm before apply |
 
-## No-Go Criteria
+## No-Go Conditions (unchanged)
 
-Do NOT apply if any of these are true:
-
-| Condition | Status |
-|-----------|--------|
-| No explicit owner authorization | ACTIVE — blocking |
-| No DB backup | UNKNOWN — must be resolved |
-| Staging server is unhealthy | UNKNOWN |
-| Migration would be applied to production (not staging) | NEVER permitted without separate authorization |
-| PSL would be activated as part of migration | PSL activation is a separate gate, not part of this migration |
+- Do NOT apply to production database without separate written authorization
+- PSL season activation is NOT part of this migration gate
 
 ## What Changes After Authorization
 

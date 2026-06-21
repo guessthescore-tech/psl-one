@@ -2203,10 +2203,16 @@ describe('Sprint 9 — Provider Validation & Staging Beta Readiness', () => {
     expect(require('fs').existsSync(p)).toBe(true);
   });
 
-  it('migration apply log contains STAGING_APPLY_PENDING_OWNER_AUTHORIZATION status', () => {
+  it('migration apply log contains a recognized migration status', () => {
     const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-9-STAGING-MIGRATION-APPLY-LOG.md');
     const content = require('fs').readFileSync(p, 'utf8');
-    expect(content).toContain('STAGING_APPLY_PENDING_OWNER_AUTHORIZATION');
+    // Accepts initial pending state or post-apply states
+    const hasStatus =
+      content.includes('STAGING_APPLY_PENDING_OWNER_AUTHORIZATION') ||
+      content.includes('LOCAL_DEV_APPLIED') ||
+      content.includes('STAGING_EC2_PENDING_DB_URL') ||
+      content.includes('APPLIED');
+    expect(hasStatus).toBe(true);
   });
 
   // Provider docs
@@ -2231,10 +2237,16 @@ describe('Sprint 9 — Provider Validation & Staging Beta Readiness', () => {
     expect(require('fs').existsSync(p)).toBe(true);
   });
 
-  it('provider validation results doc contains BLOCKED_BY_REPLACEMENT_TOKEN', () => {
+  it('provider validation results doc contains a provider status entry', () => {
     const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-9-PROVIDER-VALIDATION-RESULTS.md');
     const content = require('fs').readFileSync(p, 'utf8');
-    expect(content).toContain('BLOCKED_BY_REPLACEMENT_TOKEN');
+    // Accepts initial blocked state or post-validation states (401, partial, ok)
+    const hasStatus =
+      content.includes('BLOCKED_BY_REPLACEMENT_TOKEN') ||
+      content.includes('HTTP_401') ||
+      content.includes('PARTIAL_UCL_TRIAL') ||
+      content.includes('NOT_VALIDATED');
+    expect(hasStatus).toBe(true);
   });
 });
 
