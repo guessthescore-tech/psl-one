@@ -1597,10 +1597,10 @@ describe('STORY-S4-01: deploy documentation', () => {
     expect(require('fs').existsSync(path)).toBe(true);
   });
 
-  it('deploy guide documents the credential blocker clearly', () => {
+  it('deploy guide documents deployment as live', () => {
     const path = require('path').resolve(ROOT, 'docs', 'SPRINT-4-DEPLOY-GUIDE.md');
     const content = require('fs').readFileSync(path, 'utf8');
-    expect(content).toContain('Hard blocker');
+    expect(content).toContain('DEPLOYED');
   });
 
   it('deploy guide includes env variable matrix', () => {
