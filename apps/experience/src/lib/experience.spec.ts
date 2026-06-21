@@ -1927,3 +1927,87 @@ describe('STORY-S6-01: provider trial boundary', () => {
     expect(content).not.toContain('api-football.com');
   });
 });
+
+// ── STORY-S7-02: Challenge Settlement ─────────────────────────────────────────
+
+describe('STORY-S7-02: challenge settlement frontend', () => {
+  it('challenge accept page handles SETTLED status', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('SETTLED');
+  });
+
+  it('challenge result shows points-only language', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/points only|Points only|no real money/i);
+  });
+
+  it('challenge result calls result endpoint', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/result');
+  });
+
+  it('challenge result does not contain financial language', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\b(payout|deposit|withdraw|stake|wager|cash prize)\b/i);
+  });
+
+  it('challenge result shows winner/draw state', () => {
+    const p = require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/winner|draw|Draw|Winner/i);
+  });
+});
+
+// ── STORY-S7-01: Provider Boundary Security ───────────────────────────────────
+
+describe('STORY-S7-01: provider key security in frontend', () => {
+  it('analytics adapter does not reference SPORTMONKS_API_KEY', () => {
+    const p = require('path').resolve(ROOT, 'src', 'lib', 'analytics.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toContain('SPORTMONKS');
+    expect(content).not.toContain('api_token');
+  });
+
+  it('challenge pages do not reference provider API key', () => {
+    const pages = [
+      require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'page.tsx'),
+      require('path').resolve(ROOT, 'src', 'app', 'predict', 'challenge', 'accept', 'page.tsx'),
+    ];
+    for (const p of pages) {
+      const content = require('fs').readFileSync(p, 'utf8');
+      expect(content).not.toContain('SPORTMONKS_API_KEY');
+      expect(content).not.toContain('api_token=');
+      expect(content).not.toMatch(/NEXT_PUBLIC_.*KEY/i);
+    }
+  });
+
+  it('provider adapter interface does not expose API key type', () => {
+    const p = require('path').resolve(ROOT, '..', 'api', 'src', 'data-provider', 'provider-adapter.interface.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/apiKey|api_key|api_token/i);
+  });
+});
+
+// ── STORY-S7-03: Staging readiness ───────────────────────────────────────────
+
+describe('STORY-S7-03: staging migration runbook', () => {
+  it('sprint 7 migration runbook exists', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'handover', 'SPRINT-7-STAGING-MIGRATION-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('staging runbook documents rollback plan', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'handover', 'SPRINT-7-STAGING-MIGRATION-ROLLBACK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('staging runbook does not activate PSL', () => {
+    const p = require('path').resolve(ROOT, '..', '..', 'docs', 'handover', 'SPRINT-7-STAGING-MIGRATION-RUNBOOK.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/activatePSL|PSL.*ACTIVATED|activate.*psl/i);
+  });
+});

@@ -15,7 +15,7 @@ import { isAuthenticated } from '@/lib/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type TokenChallengeStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED' | 'LOCKED';
+type TokenChallengeStatus = 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'CANCELLED' | 'LOCKED' | 'SETTLED';
 
 type TokenChallenge = {
   id: string;
@@ -25,12 +25,40 @@ type TokenChallenge = {
   creatorAwayScore: number;
   acceptorHomeScore?: number | null;
   acceptorAwayScore?: number | null;
+  creatorPoints?: number | null;
+  acceptorPoints?: number | null;
+  winnerUserId?: string | null;
+  settlementReason?: string | null;
   expiresAt: string;
   acceptedAt?: string | null;
   fixture: {
     id: string;
     kickoffAt: string;
     status: string;
+    homeScore?: number | null;
+    awayScore?: number | null;
+    homeTeam: { id: string; name: string; shortName: string; slug: string };
+    awayTeam: { id: string; name: string; shortName: string; slug: string };
+  };
+};
+
+type ChallengeResult = {
+  id: string;
+  status: TokenChallengeStatus;
+  creatorHomeScore: number;
+  creatorAwayScore: number;
+  acceptorHomeScore?: number | null;
+  acceptorAwayScore?: number | null;
+  creatorPoints?: number | null;
+  acceptorPoints?: number | null;
+  winnerUserId?: string | null;
+  settlementReason?: string | null;
+  settledAt?: string | null;
+  fixture: {
+    id: string;
+    status: string;
+    homeScore?: number | null;
+    awayScore?: number | null;
     homeTeam: { id: string; name: string; shortName: string; slug: string };
     awayTeam: { id: string; name: string; shortName: string; slug: string };
   };
@@ -96,6 +124,7 @@ function TokenChallengeInner({ token }: { token: string }) {
   const reduce = useReducedMotion();
 
   const [challenge, setChallenge] = useState<TokenChallenge | null>(null);
+  const [result, setResult] = useState<ChallengeResult | null>(null);
   const [myHomeScore, setMyHomeScore] = useState(2);
   const [myAwayScore, setMyAwayScore] = useState(0);
   const [accepted, setAccepted] = useState(false);
@@ -108,6 +137,15 @@ function TokenChallengeInner({ token }: { token: string }) {
     try {
       const data = await apiFetch<TokenChallenge>(`/predictions/challenges/${token}`);
       setChallenge(data);
+      // If already SETTLED, fetch the result
+      if (data.status === 'SETTLED') {
+        try {
+          const resultData = await apiFetch<ChallengeResult>(`/predictions/challenges/${token}/result`);
+          setResult(resultData);
+        } catch {
+          // Result fetch failure is non-blocking
+        }
+      }
       setLoading(false);
     } catch {
       setErrorState('not_found');
@@ -287,6 +325,99 @@ function TokenChallengeInner({ token }: { token: string }) {
           <Link href="/predict" className="inline-flex items-center gap-2 bg-exp-gold text-exp-void font-black px-6 py-3 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]">
             Find upcoming fixtures
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (challenge?.status === 'SETTLED') {
+    const settled = result ?? challenge;
+    const creatorPts = settled.creatorPoints ?? 0;
+    const acceptorPts = settled.acceptorPoints ?? 0;
+    const winnerUserId = settled.winnerUserId ?? null;
+    const isCreatorWinner = winnerUserId === null ? false : true;
+    const isDraw = winnerUserId === null && settled.status === 'SETTLED';
+    const winnerLabel = isDraw ? 'Draw!' : isCreatorWinner ? (settled.winnerUserId === (challenge as TokenChallenge).fixture?.homeTeam?.id ? 'Winner' : 'Winner decided!') : 'Winner decided!';
+
+    return (
+      <div className="min-h-screen bg-exp-void">
+        <DesignReviewBanner />
+        <div className="bg-exp-navy border-b border-white/8">
+          <div className="max-w-lg mx-auto px-4 py-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-exp-gold/20 border border-exp-gold/30 flex items-center justify-center">
+                <Trophy size={20} weight="fill" className="text-exp-gold" aria-hidden />
+              </div>
+              <div>
+                <h1 className="text-display-sm font-black text-white">Challenge settled!</h1>
+                <p className="text-label-sm text-white/50">Points only · no real money</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-lg mx-auto px-4 py-8 space-y-5">
+          {/* Final score */}
+          {settled.fixture?.homeScore != null && (
+            <div className="bg-white/5 border border-white/10 rounded-card p-5 text-center">
+              <p className="text-label-xs text-white/40 mb-3">Final score</p>
+              <div className="flex items-center justify-center gap-4">
+                <p className="text-label-md font-bold text-white">{settled.fixture.homeTeam?.shortName ?? '—'}</p>
+                <p className="text-display-md font-black text-exp-gold tabular-nums">
+                  {settled.fixture.homeScore} - {settled.fixture.awayScore}
+                </p>
+                <p className="text-label-md font-bold text-white">{settled.fixture.awayTeam?.shortName ?? '—'}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Points result */}
+          <div className="bg-white/5 border border-white/10 rounded-card p-6">
+            <div className="flex items-center justify-around gap-4">
+              <div className="text-center flex-1">
+                <p className="text-label-xs text-white/40 mb-1">Creator predicted</p>
+                <p className="text-display-sm font-black text-white tabular-nums">
+                  {settled.creatorHomeScore} - {settled.creatorAwayScore}
+                </p>
+                <p className="text-display-md font-black text-exp-gold mt-2 tabular-nums">{creatorPts} pts</p>
+              </div>
+              <div className="text-center">
+                <Sword size={24} className="text-white/20" aria-hidden />
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-label-xs text-white/40 mb-1">Acceptor predicted</p>
+                <p className="text-display-sm font-black text-white tabular-nums">
+                  {settled.acceptorHomeScore ?? '?'} - {settled.acceptorAwayScore ?? '?'}
+                </p>
+                <p className="text-display-md font-black text-exp-gold mt-2 tabular-nums">{acceptorPts} pts</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Winner / Draw */}
+          <div className={`rounded-card p-5 text-center border ${isDraw ? 'bg-white/5 border-white/10' : 'bg-exp-gold/10 border-exp-gold/20'}`}>
+            <Trophy size={32} weight={isDraw ? 'regular' : 'fill'} className={`mx-auto mb-2 ${isDraw ? 'text-white/30' : 'text-exp-gold'}`} aria-hidden />
+            <p className="text-display-sm font-black text-white">
+              {isDraw ? 'It\'s a draw!' : 'Winner!'}
+            </p>
+            {settled.settlementReason && (
+              <p className="text-label-sm text-white/50 mt-1">{settled.settlementReason}</p>
+            )}
+          </div>
+
+          {/* Disclaimer */}
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 text-label-xs text-white/20">
+              <Trophy size={12} aria-hidden />
+              <span>Points only · no real money · no financial value</span>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link href="/predict" className="inline-flex items-center gap-1.5 text-label-sm text-white/40 hover:text-white/70 transition-colors duration-150 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm">
+              <ArrowLeft size={14} aria-hidden />
+              All predictions
+            </Link>
+          </div>
         </div>
       </div>
     );

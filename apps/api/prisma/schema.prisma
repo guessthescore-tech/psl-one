@@ -35,6 +35,7 @@ enum AuditEvent {
   ACCOUNT_DELETION_CANCELLED
   CHALLENGE_TOKEN_CREATED
   CHALLENGE_TOKEN_ACCEPTED
+  CHALLENGE_SETTLED
 }
 
 enum DeletionRequestStatus {
@@ -68,6 +69,7 @@ model User {
   wonChallenges          PeerChallenge[]               @relation("WonChallenges")
   createdPredictionChallenges   PredictionChallenge[] @relation("CreatedPredictionChallenges")
   acceptedPredictionChallenges  PredictionChallenge[] @relation("AcceptedPredictionChallenges")
+  wonPredictionChallenges       PredictionChallenge[] @relation("WonPredictionChallenges")
   ledgerEntries          PredictionPointsLedger[]
   fantasyTeams           FantasyTeam[]
   leagueMemberships      FantasyLeagueMember[]
@@ -638,6 +640,7 @@ enum PredictionChallengeStatus {
   EXPIRED
   CANCELLED
   LOCKED
+  SETTLED
 }
 
 model ScorePrediction {
@@ -705,12 +708,18 @@ model PredictionChallenge {
   status              PredictionChallengeStatus @default(PENDING)
   expiresAt           DateTime                  @map("expires_at")
   acceptedAt          DateTime?                 @map("accepted_at")
+  settledAt           DateTime?                 @map("settled_at")
+  creatorPoints       Int?                      @map("creator_points")
+  acceptorPoints      Int?                      @map("acceptor_points")
+  winnerUserId        String?                   @map("winner_user_id")
+  settlementReason    String?                   @map("settlement_reason")
   createdAt           DateTime                  @default(now()) @map("created_at")
   updatedAt           DateTime                  @updatedAt @map("updated_at")
 
   fixture     Fixture @relation(fields: [fixtureId], references: [id])
   creator     User    @relation("CreatedPredictionChallenges", fields: [creatorUserId], references: [id])
   acceptor    User?   @relation("AcceptedPredictionChallenges", fields: [acceptorUserId], references: [id])
+  winner      User?   @relation("WonPredictionChallenges", fields: [winnerUserId], references: [id])
 
   @@map("prediction_challenges")
 }

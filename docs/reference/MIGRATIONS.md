@@ -1,15 +1,15 @@
 # PSL One — Migration Reference
 
-**Purpose:** Ordered list of all 41 database migrations
+**Purpose:** Ordered list of all 42 database migrations
 **Audience:** Backend engineers
-**Status:** Current as of Sprint 6 (Durable Challenges & Provider Boundary)
+**Status:** Current as of Sprint 7 (Provider Trial Activation & Challenge Settlement)
 **Last verified:** 2026-06-21
 
 ---
 
 ## Migration Count
 
-**Total migrations:** 41 (as of Sprint 6)
+**Total migrations:** 42 (as of Sprint 7)
 
 ---
 
@@ -64,6 +64,7 @@ These early migrations establish the core schema. Exact timestamps vary; see `ap
 | `20260615000001_security_performance_hardening` | S3-INFRA-00 | Additive indexes for confirmed high-volume query paths: match_events(fixture_id, minute), fantasy_points_ledger(fantasy_team_id, fixture_id), prediction_points_ledger(fixture_id) |
 | `20260621000001_account_security_trust` | Sprint 5 | AuditEvent enum extensions (PASSWORD_CHANGED, PASSWORD_CHANGE_FAILED, ACCOUNT_DELETION_REQUESTED, ACCOUNT_DELETION_CANCELLED); DeletionRequestStatus enum; AccountDeletionRequest table |
 | `20260621000002_prediction_challenge_token` | Sprint 6 | PredictionChallengeStatus enum; AuditEvent extensions (CHALLENGE_TOKEN_CREATED, CHALLENGE_TOKEN_ACCEPTED); prediction_challenges table |
+| `20260621000003_challenge_settlement` | Sprint 7 | PredictionChallengeStatus.SETTLED; AuditEvent.CHALLENGE_SETTLED; settlement columns on prediction_challenges (settled_at, creator_points, acceptor_points, winner_user_id, settlement_reason) |
 
 ---
 

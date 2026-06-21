@@ -24,4 +24,5 @@ export class DataProviderService {
   getFixtures(seasonId: string) { return this.adapter.getFixtures(seasonId); }
   getTeams(seasonId: string) { return this.adapter.getTeams(seasonId); }
   getPlayers(teamId: string) { return this.adapter.getPlayers(teamId); }
+  getStandings(seasonId: string) { return this.adapter.getStandings(seasonId); }
 }

@@ -21,4 +21,7 @@ export class DataProviderController {
 
   @Get('discovery/teams/:seasonId')
   teams(@Param('seasonId') seasonId: string) { return this.service.getTeams(seasonId); }
+
+  @Get('discovery/standings/:seasonId')
+  standings(@Param('seasonId') seasonId: string) { return this.service.getStandings(seasonId); }
 }
