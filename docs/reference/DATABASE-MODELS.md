@@ -4,7 +4,7 @@
 **Audience:** Backend engineers  
 **Status:** Current as of STORY-39 (commit `08e3852`)  
 **Last verified:** 2026-06-14  
-**Total models:** 100
+**Total models:** 101
 **Source:** `apps/api/prisma/schema.prisma`  
 **Authority:** Schema is the single source of truth — this document is a navigational aid only  
 
@@ -147,6 +147,7 @@
 | `ChallengeMatch` | `id`, `listingId`, `acceptorId`, `status`, `matchedAt` | Atomic match between two fans — see ADR-020 |
 | `ChallengeScore` | `id`, `matchId`, `winnerId`, `payoutAmount`, `settledAt` | Settlement record |
 | `PeerChallenge` | `id`, `listingId`, `challengerId`, `recipientId`, `status` | Direct P2P challenge — see ADR-021 |
+| `PredictionChallenge` | `id`, `token`, `fixtureId`, `creatorUserId`, `acceptorUserId`, `status`, `expiresAt` | Token-based shareable challenge — Sprint 6 |
 | `SocialPredictionPointsEntry` | `id`, `userId`, `matchId`, `amount`, `type`, `createdAt` | Immutable gameplay ledger |
 | `ComplianceDomainConfig` | `id`, `domain`, `rules`, `updatedAt` | Compliance configuration |
 

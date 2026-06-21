@@ -41,6 +41,9 @@ import { SocialPredictionModule } from './social-prediction/social-prediction.mo
 import { MatchCentreModule } from './match-centre/match-centre.module';
 import { BetaLaunchModule } from './beta-launch/beta-launch.module';
 import { AccountModule } from './account/account.module';
+import { PredictionChallengesModule } from './prediction-challenges/prediction-challenges.module';
+import { DataProviderModule } from './data-provider/data-provider.module';
+import { PreviewAnalyticsModule } from './preview-analytics/preview-analytics.module';
 
 @Module({
   imports: [
@@ -83,6 +86,9 @@ import { AccountModule } from './account/account.module';
     MatchCentreModule,
     BetaLaunchModule,
     AccountModule,
+    PredictionChallengesModule,
+    DataProviderModule,
+    PreviewAnalyticsModule,
     HealthModule,
   ],
   controllers: [VersionController],

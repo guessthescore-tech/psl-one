@@ -11,19 +11,39 @@ import { useSearchParams } from 'next/navigation';
 import { getDataMode, WC_FIXTURES, type ExpFixture } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
+import { apiPost } from '@/lib/api';
+import { isAuthenticated } from '@/lib/auth';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type ChallengeState = 'IDLE' | 'CREATED' | 'COPIED';
+type ChallengeState = 'IDLE' | 'CREATING' | 'CREATED' | 'ERROR';
+
+type ChallengeResponse = {
+  id: string;
+  token: string;
+  status: string;
+  creatorHomeScore: number;
+  creatorAwayScore: number;
+  expiresAt: string;
+};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function buildTokenLink(token: string): string {
+  if (typeof window === 'undefined') return '';
+  return `${window.location.origin}/predict/challenge/accept?token=${token}`;
+}
+
+/** @deprecated Use buildTokenLink when authenticated. Kept for design-review fallback and backward compat. */
 function buildChallengeLink(fixtureId: string, homeScore: number, awayScore: number): string {
   if (typeof window === 'undefined') return '';
   const base = window.location.origin;
   const params = new URLSearchParams({ fixture: fixtureId, h: String(homeScore), a: String(awayScore) });
   return `${base}/predict/challenge/accept?${params.toString()}`;
 }
+
+// Alias for clarity in new code paths
+const buildLegacyLink = buildChallengeLink;
 
 function formatKickoff(iso: string): string {
   const d = new Date(iso);
@@ -235,6 +255,8 @@ function ChallengePageInner() {
   const [challengeLink, setChallengeLink] = useState('');
   const [showShare, setShowShare] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const loadFixture = useCallback(() => {
     if (!fixtureId) {
@@ -258,12 +280,51 @@ function ChallengePageInner() {
     ? fixture.status === 'LIVE' || fixture.status === 'HALF_TIME' || fixture.status === 'FINISHED'
     : false;
 
-  function handleCreateChallenge() {
+  async function handleCreateChallenge() {
     if (!fixture) return;
-    const link = buildChallengeLink(fixture.id, homeScore, awayScore);
-    setChallengeLink(link);
-    setChallengeState('CREATED');
-    setShowShare(true);
+
+    // Design review fallback — use legacy URL-param approach
+    if (mode === 'DESIGN_REVIEW_DATA') {
+      const link = buildLegacyLink(fixture.id, homeScore, awayScore);
+      setChallengeLink(link);
+      setChallengeState('CREATED');
+      setShowShare(true);
+      return;
+    }
+
+    // Check auth
+    if (!isAuthenticated()) {
+      setNeedsAuth(true);
+      return;
+    }
+
+    setChallengeState('CREATING');
+    setErrorMsg('');
+
+    try {
+      const data = await apiPost<ChallengeResponse>('/predictions/challenges', {
+        fixtureId: fixture.id,
+        homeScore,
+        awayScore,
+      });
+      const link = buildTokenLink(data.token);
+      setChallengeLink(link);
+      setChallengeState('CREATED');
+      setShowShare(true);
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+        setNeedsAuth(true);
+        setChallengeState('IDLE');
+      } else {
+        // Fallback: use legacy link so UX does not break
+        const link = buildLegacyLink(fixture.id, homeScore, awayScore);
+        setChallengeLink(link);
+        setChallengeState('CREATED');
+        setShowShare(true);
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setErrorMsg(msg);
+      }
+    }
   }
 
   if (loadError || (!fixture && !fixtureId)) {
@@ -292,6 +353,35 @@ function ChallengePageInner() {
     return (
       <div className="min-h-screen bg-exp-void flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-exp-gold border-t-transparent rounded-full animate-spin" aria-label="Loading" />
+      </div>
+    );
+  }
+
+  // Auth prompt
+  if (needsAuth) {
+    const returnUrl = encodeURIComponent(`/predict/challenge?fixture=${fixtureId}&h=${homeScore}&a=${awayScore}`);
+    return (
+      <div className="min-h-screen bg-exp-void">
+        <DesignReviewBanner />
+        <div className="max-w-lg mx-auto px-4 py-20 text-center">
+          <Sword size={40} className="text-exp-gold mx-auto mb-4" aria-hidden />
+          <h1 className="text-display-sm font-black text-white mb-2">Sign in to challenge</h1>
+          <p className="text-body-sm text-white/50 mb-6">
+            You need to be signed in to create a durable challenge link.
+          </p>
+          <Link
+            href={`/auth/login?return=${returnUrl}`}
+            className="inline-flex items-center gap-2 bg-exp-gold text-exp-void font-black px-6 py-3 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
+          >
+            Sign in
+          </Link>
+          <button
+            onClick={() => setNeedsAuth(false)}
+            className="block mt-4 text-label-sm text-white/40 hover:text-white/70 mx-auto"
+          >
+            Back
+          </button>
+        </div>
       </div>
     );
   }
@@ -365,6 +455,13 @@ function ChallengePageInner() {
           </p>
         </div>
 
+        {/* Error message (soft — still shows link) */}
+        {errorMsg && (
+          <div className="bg-white/5 border border-white/10 rounded-card-sm px-4 py-2 text-label-xs text-white/40">
+            Note: challenge saved locally (backend unavailable)
+          </div>
+        )}
+
         {/* Score entry */}
         {isLocked ? (
           <div className="bg-white/5 border border-white/10 rounded-card p-6 text-center">
@@ -423,20 +520,32 @@ function ChallengePageInner() {
                     value={homeScore}
                     onChange={setHomeScore}
                     label={fixture.homeClub.shortName}
+                    disabled={challengeState === 'CREATING'}
                   />
                   <div className="text-display-xl font-black text-white/15 select-none">-</div>
                   <ScoreStepper
                     value={awayScore}
                     onChange={setAwayScore}
                     label={fixture.awayClub.shortName}
+                    disabled={challengeState === 'CREATING'}
                   />
                 </div>
                 <button
-                  onClick={handleCreateChallenge}
-                  className="w-full flex items-center justify-center gap-2 bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
+                  onClick={() => { void handleCreateChallenge(); }}
+                  disabled={challengeState === 'CREATING'}
+                  className="w-full flex items-center justify-center gap-2 bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Sword size={18} weight="bold" aria-hidden />
-                  Create challenge link
+                  {challengeState === 'CREATING' ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-exp-void border-t-transparent rounded-full animate-spin" aria-hidden />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Sword size={18} weight="bold" aria-hidden />
+                      Create challenge link
+                    </>
+                  )}
                 </button>
                 <p className="text-label-xs text-white/30 text-center mt-3">
                   Points only · no real money · no financial value

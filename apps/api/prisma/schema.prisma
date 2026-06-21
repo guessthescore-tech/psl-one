@@ -33,6 +33,8 @@ enum AuditEvent {
   PASSWORD_CHANGE_FAILED
   ACCOUNT_DELETION_REQUESTED
   ACCOUNT_DELETION_CANCELLED
+  CHALLENGE_TOKEN_CREATED
+  CHALLENGE_TOKEN_ACCEPTED
 }
 
 enum DeletionRequestStatus {
@@ -64,6 +66,8 @@ model User {
   challengesIssued       PeerChallenge[]               @relation("ChallengerChallenges")
   challengesReceived     PeerChallenge[]               @relation("OpponentChallenges")
   wonChallenges          PeerChallenge[]               @relation("WonChallenges")
+  createdPredictionChallenges   PredictionChallenge[] @relation("CreatedPredictionChallenges")
+  acceptedPredictionChallenges  PredictionChallenge[] @relation("AcceptedPredictionChallenges")
   ledgerEntries          PredictionPointsLedger[]
   fantasyTeams           FantasyTeam[]
   leagueMemberships      FantasyLeagueMember[]
@@ -496,6 +500,7 @@ model Fixture {
   lineups           FixtureLineup[]
   predictions       ScorePrediction[]
   challenges        PeerChallenge[]
+  predictionChallenges PredictionChallenge[]
   ledgerEntries     PredictionPointsLedger[]
   fantasyLedger     FantasyPointsLedger[]
   fantasyMatchStats FantasyPlayerMatchStat[]
@@ -627,6 +632,14 @@ enum ChallengeStatus {
   SETTLED
 }
 
+enum PredictionChallengeStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+  LOCKED
+}
+
 model ScorePrediction {
   id                 String           @id @default(uuid())
   userId             String           @map("user_id")
@@ -677,6 +690,29 @@ model PeerChallenge {
   ledgerEntries        PredictionPointsLedger[]
 
   @@map("peer_challenges")
+}
+
+model PredictionChallenge {
+  id                  String                    @id @default(uuid())
+  token               String                    @unique
+  fixtureId           String                    @map("fixture_id")
+  creatorUserId       String                    @map("creator_user_id")
+  creatorHomeScore    Int                       @map("creator_home_score")
+  creatorAwayScore    Int                       @map("creator_away_score")
+  acceptorUserId      String?                   @map("acceptor_user_id")
+  acceptorHomeScore   Int?                      @map("acceptor_home_score")
+  acceptorAwayScore   Int?                      @map("acceptor_away_score")
+  status              PredictionChallengeStatus @default(PENDING)
+  expiresAt           DateTime                  @map("expires_at")
+  acceptedAt          DateTime?                 @map("accepted_at")
+  createdAt           DateTime                  @default(now()) @map("created_at")
+  updatedAt           DateTime                  @updatedAt @map("updated_at")
+
+  fixture     Fixture @relation(fields: [fixtureId], references: [id])
+  creator     User    @relation("CreatedPredictionChallenges", fields: [creatorUserId], references: [id])
+  acceptor    User?   @relation("AcceptedPredictionChallenges", fields: [acceptorUserId], references: [id])
+
+  @@map("prediction_challenges")
 }
 
 model PredictionPointsLedger {
