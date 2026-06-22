@@ -245,12 +245,14 @@ describe('FootballDataOrgAdapter', () => {
   // ── Security ──────────────────────────────────────────────────────────────
 
   describe('security', () => {
-    it('adapter does not use NEXT_PUBLIC_ env vars', () => {
+    it('adapter does not read NEXT_PUBLIC_ env vars', () => {
       const src = require('fs').readFileSync(
         require('path').resolve(__dirname, 'football-data-org.adapter.ts'),
         'utf8',
       );
-      expect(src).not.toContain('NEXT_PUBLIC_');
+      // Must not access process.env['NEXT_PUBLIC_*'] — comments mentioning NEXT_PUBLIC_ as a prohibition are OK
+      expect(src).not.toMatch(/process\.env\[['"]NEXT_PUBLIC_/);
+      expect(src).not.toMatch(/process\.env\.NEXT_PUBLIC_/);
     });
 
     it('adapter uses X-Auth-Token header', () => {
