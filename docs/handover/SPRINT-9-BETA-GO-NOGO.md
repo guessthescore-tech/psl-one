@@ -12,10 +12,10 @@ Progress since initial NO-GO:
 - ⚠️ Staging EC2 migration still requires EC2 DATABASE_URL + separate authorization
 - ⚠️ Live smoke FAIL — API server not running during test
 
-**Conditional GO — blocked on:**
-1. Sportmonks key fix (regenerate at https://app.sportmonks.com/api-tokens)
+**Conditional GO — blocked on (amended 2026-06-22):**
+1. ~~Sportmonks key fix~~ — **SUPERSEDED**: Sportmonks REJECTED; select replacement provider
 2. Staging EC2 migration apply (requires EC2 DATABASE_URL in .env + authorization)
-3. Commercial terms review (Sportmonks pricing)
+3. Commercial terms review (for chosen replacement provider)
 
 ---
 

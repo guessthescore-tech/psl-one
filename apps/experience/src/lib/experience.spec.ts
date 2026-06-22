@@ -2250,6 +2250,234 @@ describe('Sprint 9 — Provider Validation & Staging Beta Readiness', () => {
   });
 });
 
+// ── Sprint 10 — Provider Coverage, Read-Only Pipeline & Live Smoke ────────────
+
+describe('Sprint 10 — Provider Coverage Validation & Staging Smoke Readiness', () => {
+  const ROOT = require('path').resolve(__dirname, '..', '..', '..', '..');
+  const REPO = ROOT;
+
+  // Sprint 10 sprint docs
+  it('SPRINT-10-DELIVERY-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-10-DELIVERY-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-10-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Provider validation docs
+  it('SPRINT-10-SPORTMONKS-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-SPORTMONKS-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sportmonks validation doc records HTTP 401 or OK result', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-SPORTMONKS-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const hasResult = content.includes('HTTP 401') || content.includes('HTTP_401') ||
+      content.includes('SPORTMONKS_HTTP_401') || content.includes('HTTP 200');
+    expect(hasResult).toBe(true);
+  });
+
+  it('SPRINT-10-SPORTSDATAIO-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-SPORTSDATAIO-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-PROVIDER-COVERAGE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-PROVIDER-COVERAGE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-PROVIDER-FIELD-MAPPING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-PROVIDER-FIELD-MAPPING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-PROVIDER-DECISION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-PROVIDER-DECISION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Read-only pipeline tools
+  it('staging-provider-discovery.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'staging-provider-discovery.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('staging-provider-discovery.mjs declares read-only mode', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'staging-provider-discovery.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/READ-ONLY|Read-Only|no DB writes/i);
+  });
+
+  it('provider-readonly-pipeline-check.mjs exists in tools/discovery', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-readonly-pipeline-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('staging-provider-discovery.mjs contains no NEXT_PUBLIC_ provider keys', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'staging-provider-discovery.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/NEXT_PUBLIC_.*(?:SPORT|KEY)/i);
+  });
+
+  it('staging-provider-discovery.mjs contains no PSL activation calls', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'staging-provider-discovery.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/activateSeason|PSL_ACTIVE/i);
+  });
+
+  it('staging-provider-discovery.mjs contains no betting/odds URL paths', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'staging-provider-discovery.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Check for URL paths only (not comments that describe the prohibition)
+    expect(content).not.toMatch(/\/odds\/|\/betting\/|\/wager\/|BettingMarket|OddsLine/i);
+  });
+
+  // EC2 migration gate docs
+  it('SPRINT-10-EC2-STAGING-MIGRATION-LOG.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-EC2-STAGING-MIGRATION-LOG.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('EC2 migration log records pending or applied status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-EC2-STAGING-MIGRATION-LOG.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const hasStatus = content.includes('STAGING_EC2_MIGRATION_PENDING_OWNER_AUTH') ||
+      content.includes('APPLIED') || content.includes('LOCAL_DEV_APPLIED');
+    expect(hasStatus).toBe(true);
+  });
+
+  it('SPRINT-10-EC2-STAGING-MIGRATION-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-EC2-STAGING-MIGRATION-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Smoke and settlement docs
+  it('SPRINT-10-LIVE-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-LIVE-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Live smoke results doc records a PASS or FAIL result', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-LIVE-SMOKE-RESULTS.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const hasResult = content.includes('PASS') || content.includes('FAIL');
+    expect(hasResult).toBe(true);
+  });
+
+  it('SPRINT-10-SETTLEMENT-READINESS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-SETTLEMENT-READINESS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Beta go/no-go docs
+  it('SPRINT-10-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Beta go/no-go doc contains a recognized status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const hasStatus = content.includes('CONDITIONAL_GO') || content.includes('GO') || content.includes('NO-GO');
+    expect(hasStatus).toBe(true);
+  });
+
+  it('SPRINT-10-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-10-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Smoke path fix verification
+  it('sprint-9-staging-smoke.mjs uses correct onboarding path /account/onboarding', () => {
+    const p = require('path').resolve(REPO, 'tools', 'smoke', 'sprint-9-staging-smoke.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('/account/onboarding');
+    expect(content).not.toContain('/onboarding/status');
+  });
+
+  // Sprint 10 Amendment — Sportmonks rejection tests
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md records Sportmonks as REJECTED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/Sportmonks.*REJECTED|REJECTED.*Sportmonks/i);
+  });
+
+  it('SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md records primary provider as UNDECIDED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('UNDECIDED');
+  });
+
+  it('SPRINT-10-NEW-PROVIDER-SHORTLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-NEW-PROVIDER-SHORTLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-10-NEW-PROVIDER-SHORTLIST.md lists at least three candidates', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-10-NEW-PROVIDER-SHORTLIST.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    const candidates = (content.match(/^### \d+\./gm) || []).length;
+    expect(candidates).toBeGreaterThanOrEqual(3);
+  });
+
+  it('DataProviderService does not auto-select SportmonksAdapter when key is present', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // The constructor must NOT contain the old key-based selection branch
+    expect(content).not.toMatch(/if\s*\(key\)\s*\{[\s\S]*?new SportmonksAdapter/);
+  });
+
+  it('DataProviderService uses NoOpAdapter as unconditional default', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('new NoOpAdapter()');
+    expect(content).toContain('UNDECIDED');
+  });
+
+  it('SportmonksAdapter is marked deprecated', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'sportmonks.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/@deprecated/i);
+  });
+
+  it('provider-compare.mjs does not claim Sportmonks as primary provider', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/Preliminary.*Sportmonks.*primary|Sportmonks.*primary.*provider/i);
+  });
+
+  it('provider-compare.mjs reflects Sportmonks REJECTED status', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/REJECTED|removed.*active|active.*removed/i);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');

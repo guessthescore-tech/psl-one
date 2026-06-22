@@ -2,7 +2,7 @@
 
 **Sprint:** 8 (amendment)  
 **Date:** 2026-06-21  
-**Status:** Pre-trial — all coverage fields are estimates pending actual trial validation
+**Status:** SUPERSEDED — Sprint 10 amendment (2026-06-22): Sportmonks REJECTED. See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
 
 ---
 
@@ -42,13 +42,12 @@
 
 ---
 
-## Recommendation
+## Recommendation (SUPERSEDED — see Sprint 10 amendment)
 
-**Primary:** Sportmonks  
-Sportmonks is retained as the primary candidate. The adapter is fully implemented and tested. The exposed trial token must be revoked and replaced. Once a replacement token is placed in `.env`, full discovery can run.
+> **Sportmonks has been REJECTED** (Sprint 10 amendment 2026-06-22). The recommendation below is historical record only.
 
-**Secondary:** SportsDataIO  
-SportsDataIO provides a useful comparison point. The trial is limited to UEFA Champions League. PSL and World Cup 2026 coverage requires a paid plan. Use SportsDataIO as a fallback if Sportmonks PSL coverage is absent or pricing is prohibitive.
+**Historical Primary:** Sportmonks (now REJECTED)  
+**Historical Secondary:** SportsDataIO (still a candidate — PSL coverage unconfirmed)
 
 **Decision gate:**  
 A provider decision should NOT be made until both trial validations are complete. The criteria should be:

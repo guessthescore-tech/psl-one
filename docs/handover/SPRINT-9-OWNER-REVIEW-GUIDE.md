@@ -21,13 +21,12 @@ node tools/discovery/provider-compare.mjs
 
 Expected: all output shows `BLOCKED_BY_REPLACEMENT_TOKEN`, no crash, exit code 0.
 
-### 2. Unblocking Provider Validation (if you have a replacement key)
+### 2. Provider Strategy — SUPERSEDED (Sprint 10 amendment 2026-06-22)
 
-**Sportmonks:**
-1. Go to https://app.sportmonks.com/api-tokens
-2. Revoke any old/exposed token
-3. Create a new token
-4. In `apps/api/.env` (never commit): `SPORTMONKS_API_KEY=<new_value>`
+> **Sportmonks has been REJECTED** and removed from the active provider strategy.
+> Do NOT regenerate or set `SPORTMONKS_API_KEY`. See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
+
+Historical note — previous Sportmonks instructions:
 5. Run: `node tools/discovery/provider-health-check.mjs`
 6. If healthy: `PROVIDER=sportmonks node tools/discovery/provider-coverage-check.mjs`
 7. Record results in `docs/data/SPRINT-9-PROVIDER-VALIDATION-RESULTS.md`

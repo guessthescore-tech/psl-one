@@ -1,7 +1,7 @@
 # SportsDataIO — Provider Candidate Assessment
 
-**Status:** CANDIDATE — adapter skeleton complete, not wired into DataProviderService  
-**Sprint:** 8 (amendment)  
+**Status:** SECONDARY CANDIDATE — PSL NOT in competition list on trial; paid plan + PSL confirmation required  
+**Sprint:** 8 (amendment) | Superseded context: 2026-06-22 — Sportmonks REJECTED; primary provider UNDECIDED  
 **Date:** 2026-06-21
 
 ---
@@ -10,7 +10,7 @@
 
 SportsDataIO offers a soccer v4 API that can serve as a secondary provider candidate alongside Sportmonks. PSL One has added a no-key-safe adapter skeleton (`SportsDataIoSoccerAdapter`) to the provider boundary. It is not yet wired into production ingestion.
 
-**Sportmonks remains the primary candidate.** SportsDataIO is the fallback/comparison candidate.
+**SUPERSEDED (2026-06-22):** Sportmonks has been rejected. SportsDataIO is a secondary candidate — PSL not found in competition list on current trial. Primary provider is UNDECIDED.
 
 ---
 
@@ -92,12 +92,8 @@ PSL One is a points-only platform. No betting or gambling adjacency is permitted
 
 ---
 
-## Recommendation
+## Recommendation (SUPERSEDED — Sprint 10 amendment 2026-06-22)
 
-Sportmonks remains the primary candidate until:
-- Sportmonks replacement token is generated and validated
-- PSL coverage is confirmed on Sportmonks trial
-
-SportsDataIO should be validated in parallel as a fallback if Sportmonks PSL coverage is limited or pricing is prohibitive. A head-to-head comparison should be completed before committing to a production provider contract.
+**Sportmonks has been REJECTED.** SportsDataIO is a secondary candidate only — PSL not found in competition list on current trial. Primary provider is UNDECIDED. See `docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md`.
 
 See `SPRINT-8-PROVIDER-COMPARISON-ADDENDUM.md` for the full comparison matrix.
