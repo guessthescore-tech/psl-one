@@ -4282,6 +4282,122 @@ describe('Sprint 21 — Admin token provisioning and manual staging smoke', () =
   });
 });
 
+describe('Sprint 22 — Authenticated Staging Smoke & Temp Admin Provisioning', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  const STAGING_DOCS = [
+    'SPRINT-22-TEMP-ADMIN-PROVISIONING-RUNBOOK.md',
+    'SPRINT-22-TEMP-ADMIN-EXECUTION-LOG.md',
+    'SPRINT-22-AUTHENTICATED-SMOKE-RESULTS.md',
+    'SPRINT-22-RBAC-AUTHENTICATED-SMOKE.md',
+    'SPRINT-22-PARSE-INGESTION-AUTHENTICATED-SMOKE.md',
+    'SPRINT-22-FIXTURE-PUBLICATION-AUTHENTICATED-SMOKE.md',
+    'SPRINT-22-PSL-PREFLIGHT-AUTHENTICATED-SMOKE.md',
+    'SPRINT-22-TEMP-ADMIN-CLEANUP-EVIDENCE.md',
+  ];
+
+  const HANDOVER_DOCS = [
+    'SPRINT-22-BETA-GO-NOGO.md',
+    'SPRINT-22-HANDOVER.md',
+    'SPRINT-22-KNOWN-GAPS.md',
+    'SPRINT-22-OWNER-REVIEW-GUIDE.md',
+    'SPRINT-22-ROLLBACK-PLAN.md',
+  ];
+
+  for (const doc of STAGING_DOCS) {
+    it(`staging doc exists: ${doc}`, () => {
+      const p = require('path').resolve(REPO, 'docs', 'staging', doc);
+      expect(require('fs').existsSync(p)).toBe(true);
+    });
+  }
+
+  for (const doc of HANDOVER_DOCS) {
+    it(`handover doc exists: ${doc}`, () => {
+      const p = require('path').resolve(REPO, 'docs', 'handover', doc);
+      expect(require('fs').existsSync(p)).toBe(true);
+    });
+  }
+
+  it('story matrix exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-22-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('execution log does not contain a real JWT value', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-TEMP-ADMIN-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+  });
+
+  it('execution log confirms token was PRESENT_REDACTED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-TEMP-ADMIN-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('PRESENT_REDACTED');
+  });
+
+  it('cleanup evidence confirms temp admin was disabled', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('TEMP_ADMIN_DISABLED_VERIFIED');
+  });
+
+  it('cleanup evidence confirms secrets were deleted', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('SECRETS_DELETED');
+  });
+
+  it('smoke results confirm 0 FAILs', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-AUTHENTICATED-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/FAIL: [1-9]/);
+  });
+
+  it('smoke results confirm ALLOW_WRITE_SMOKE=false', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-AUTHENTICATED-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('ALLOW_WRITE_SMOKE=false');
+  });
+
+  it('smoke results confirm PSL remains inactive', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-22-AUTHENTICATED-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/PSL.*INACTIVE|PSL NOT activated|PSL remains inactive/i);
+  });
+
+  it('beta go/no-go is CONDITIONAL_GO', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-22-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('CONDITIONAL_GO');
+    expect(src).not.toContain('NO_GO\n');
+  });
+
+  it('story matrix records 0 new migrations', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-22-STORY-MATRIX.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('42');
+    expect(src).toMatch(/Sprint 22 migrations added: 0/);
+  });
+
+  it('Sprint 22 handover docs contain no real-money mechanics', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of HANDOVER_DOCS) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'handover', doc), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  it('Sprint 22 staging docs contain no real-money mechanics', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of STAGING_DOCS) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'staging', doc), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
