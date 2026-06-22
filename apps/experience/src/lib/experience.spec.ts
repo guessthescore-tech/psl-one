@@ -3955,6 +3955,174 @@ describe('Sprint 19 — Staging Environment Stabilisation & Admin Smoke', () => 
   });
 });
 
+// ── Sprint 20: Owner-Authorised Beta EC2 Deployment & Staging Smoke ──────────
+describe('Sprint 20 — EC2 staging deployment readiness', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // ── Staging docs exist ────────────────────────────────────────────────────
+  it('SPRINT-20-EC2-DEPLOYMENT-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-EC2-EXECUTION-LOG.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-EXECUTION-LOG.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-STAGING-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-STAGING-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-STAGING-ENV-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-STAGING-ENV-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-ROLLBACK-CHECKLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-ROLLBACK-CHECKLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-20-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-20-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-20-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-20-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-20-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-20-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-20-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // ── Deployment plan safety ────────────────────────────────────────────────
+  it('deployment plan records beta EC2 instance ID', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('i-0a5f16539c9626f90');
+  });
+
+  it('deployment plan states no PSL activation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('PSL');
+    expect(src).toMatch(/INACTIVE|remains inactive|not activated|NOT activate/i);
+  });
+
+  it('deployment plan states no Terraform apply', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/No Terraform/i);
+  });
+
+  it('deployment plan states wallet sandbox-only', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/sandbox/i);
+  });
+
+  it('deployment plan states fixture publishing is separate from PSL activation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-DEPLOYMENT-PLAN.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/SEPARATE|separate/);
+  });
+
+  // ── Execution log safety ──────────────────────────────────────────────────
+  it('execution log records owner authorisation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/Owner authoris/i);
+  });
+
+  it('execution log states no PSL activation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/PSL.*INACTIVE|no PSL activation/i);
+  });
+
+  it('execution log does not contain Terraform apply', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-EC2-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/terraform apply/i);
+  });
+
+  // ── Smoke results doc safety ──────────────────────────────────────────────
+  it('smoke results doc states write smoke disabled by default', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-STAGING-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('ALLOW_WRITE_SMOKE=false');
+  });
+
+  it('smoke results doc states no PSL activation from pre-flight', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-20-STAGING-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/read.only|never activates/i);
+  });
+
+  // ── No real-money content in Sprint 20 docs ───────────────────────────────
+  it('Sprint 20 staging docs contain no real-money mechanics', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.resolve(REPO, 'docs', 'staging');
+    const files = fs.readdirSync(dir).filter((f: string) => f.startsWith('SPRINT-20'));
+    for (const file of files) {
+      const src = fs.readFileSync(path.join(dir, file), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  it('Sprint 20 handover docs contain no real-money mechanics', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const dir = path.resolve(REPO, 'docs', 'handover');
+    const files = fs.readdirSync(dir).filter((f: string) => f.startsWith('SPRINT-20'));
+    for (const file of files) {
+      const src = fs.readFileSync(path.join(dir, file), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  // ── deploy-beta-ec2.yml safety ────────────────────────────────────────────
+  it('deploy-beta-ec2.yml does not contain Terraform apply', () => {
+    const p = require('path').resolve(REPO, '.github', 'workflows', 'deploy-beta-ec2.yml');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/terraform apply/i);
+  });
+
+  it('deploy-beta-ec2.yml does not activate PSL', () => {
+    const p = require('path').resolve(REPO, '.github', 'workflows', 'deploy-beta-ec2.yml');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/activatePsl|pslActive\s*=\s*true|PSL_ACTIVATED/);
+  });
+
+  it('deploy-beta-ec2.yml targets beta environment', () => {
+    const p = require('path').resolve(REPO, '.github', 'workflows', 'deploy-beta-ec2.yml');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('environment: beta');
+    expect(src).not.toContain('environment: production');
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
