@@ -2,26 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ParsePslAdapter } from './parse-psl.adapter';
 import type { ProviderFixture } from './provider-adapter.interface';
+import type {
+  ParsePslFixtureCandidateDto,
+  ParsePslIngestionPreviewResponseDto,
+} from './dto/parse-psl-fixture-ingestion.dto';
 
-export type FixtureIngestionResult = {
-  provider: 'parse-psl';
-  competitionCode: string;
-  dryRun: boolean;
-  sourceStatus:
-    | 'SOURCE_EMPTY'
-    | 'SOURCE_AVAILABLE'
-    | 'AUTH_FAILED'
-    | 'RATE_LIMITED'
-    | 'PROVIDER_ERROR'
-    | 'SCHEMA_CHANGED';
-  discovered: number;
-  normalized: number;
-  created: number;
-  updated: number;
-  skipped: number;
-  errors: string[];
-  warnings: string[];
-};
+export type { ParsePslIngestionPreviewResponseDto as FixtureIngestionResult };
+
+const PROVIDER_SOURCE_URL =
+  'https://api.parse.bot/scraper/0c2008df-2286-497a-a5cb-55dd56ec9a4e/get_fixtures';
 
 type NormalizedFixture = {
   externalId: string;
@@ -29,19 +18,25 @@ type NormalizedFixture = {
   awayTeamName: string;
   kickoffAt: string;
   status: string;
-  round: string | null;
+};
+
+type IngestOpts = {
+  competitionCode?: string;
+  dryRun?: boolean;
+  seasonId?: string;
+  includeCandidates?: boolean;
 };
 
 /**
  * Manual, idempotent, dry-run-first fixture ingestion service for Parse PSL.
  *
  * Default mode is dryRun=true — no DB writes occur unless the caller explicitly
- * passes dryRun=false AND provides a seasonId for write operations.
+ * passes dryRun=false AND provides a seasonId.
  *
  * Source-empty (psl.co.za has not published fixtures) is treated as a successful
  * no-op, not a failure. No PSL activation occurs. No scheduler is wired.
  *
- * Key is never logged.
+ * PARSE_API_KEY is never logged.
  */
 @Injectable()
 export class ParsePslFixtureIngestionService {
@@ -49,15 +44,12 @@ export class ParsePslFixtureIngestionService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async ingest(opts: {
-    competitionCode?: string;
-    dryRun?: boolean;
-    seasonId?: string;
-  }): Promise<FixtureIngestionResult> {
+  async ingest(opts: IngestOpts): Promise<ParsePslIngestionPreviewResponseDto> {
     const competitionCode = opts.competitionCode ?? 'BETWAY_PREMIERSHIP';
     const dryRun = opts.dryRun !== false; // default true
+    const includeCandidates = opts.includeCandidates !== false || dryRun; // always true for dry-run
 
-    const result: FixtureIngestionResult = {
+    const result: ParsePslIngestionPreviewResponseDto = {
       provider: 'parse-psl',
       competitionCode,
       dryRun,
@@ -67,6 +59,7 @@ export class ParsePslFixtureIngestionService {
       created: 0,
       updated: 0,
       skipped: 0,
+      candidates: [],
       errors: [],
       warnings: [],
     };
@@ -77,10 +70,10 @@ export class ParsePslFixtureIngestionService {
       result.sourceStatus = 'AUTH_FAILED';
       result.errors.push('PARSE_API_KEY not set — cannot fetch fixtures');
       this.logger.warn('ParsePslFixtureIngestionService: PARSE_API_KEY not set');
+      await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_FAILED', { reason: 'AUTH_FAILED' });
       return result;
     }
 
-    // Fetch from provider
     let providerFixtures: ProviderFixture[] = [];
     try {
       providerFixtures = await adapter.getFixtures(competitionCode);
@@ -97,23 +90,22 @@ export class ParsePslFixtureIngestionService {
         result.errors.push('INGESTION_PROVIDER_ERROR: ' + msg);
       }
       this.logger.error(`ParsePslFixtureIngestionService: fetch error — ${msg}`);
+      await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_FAILED', { reason: result.sourceStatus });
       return result;
     }
 
     result.discovered = providerFixtures.length;
 
-    // Source-empty: valid seasonal no-op
     if (providerFixtures.length === 0) {
       result.sourceStatus = 'SOURCE_EMPTY';
-      result.skipped = 0;
       this.logger.log(
         'ParsePslFixtureIngestionService: INGESTION_SOURCE_EMPTY_NOOP — ' +
         'psl.co.za has not published new-season fixtures (expected seasonal state)',
       );
+      await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_SOURCE_EMPTY', { competitionCode });
       return result;
     }
 
-    // Normalize
     const normalized = this.normalizeFixtures(providerFixtures);
     result.normalized = normalized.length;
     result.sourceStatus = 'SOURCE_AVAILABLE';
@@ -128,13 +120,24 @@ export class ParsePslFixtureIngestionService {
       }
     }
 
+    // Build candidate DTOs (always include on dry-run; optional on write)
+    if (includeCandidates) {
+      result.candidates = await this.buildCandidates(normalized);
+      for (const c of result.candidates) {
+        result.warnings.push(...c.teamResolution.warnings);
+      }
+    }
+
     if (dryRun) {
-      // Dry run: count what would happen without touching DB
       result.skipped = normalized.length;
       this.logger.log(
-        `ParsePslFixtureIngestionService: DRY_RUN — ` +
-        `${normalized.length} fixture(s) normalized; 0 DB writes`,
+        `ParsePslFixtureIngestionService: DRY_RUN — ${normalized.length} fixture(s) normalized; 0 DB writes`,
       );
+      await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_DRY_RUN', {
+        competitionCode,
+        normalized: normalized.length,
+        candidates: result.candidates.length,
+      });
       return result;
     }
 
@@ -144,6 +147,12 @@ export class ParsePslFixtureIngestionService {
       result.sourceStatus = 'PROVIDER_ERROR';
       return result;
     }
+
+    await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_WRITE_ATTEMPTED', {
+      competitionCode,
+      seasonId: opts.seasonId,
+      normalized: normalized.length,
+    });
 
     const { created, updated, skipped, errors, warnings } = await this.upsertFixtures(
       normalized,
@@ -160,6 +169,14 @@ export class ParsePslFixtureIngestionService {
       `created=${created} updated=${updated} skipped=${skipped} errors=${errors.length}`,
     );
 
+    await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_WRITE_COMPLETED', {
+      competitionCode,
+      seasonId: opts.seasonId,
+      created,
+      updated,
+      skipped,
+    });
+
     return result;
   }
 
@@ -175,10 +192,55 @@ export class ParsePslFixtureIngestionService {
         awayTeamName: f.awayTeamName,
         kickoffAt: f.kickoffAt ?? new Date().toISOString(),
         status: f.status ?? 'SCHEDULED',
-        round: null,
       });
     }
     return results;
+  }
+
+  private async buildCandidates(fixtures: NormalizedFixture[]): Promise<ParsePslFixtureCandidateDto[]> {
+    const candidates: ParsePslFixtureCandidateDto[] = [];
+    for (const f of fixtures) {
+      const homeTeam = await this.resolveTeam(f.homeTeamName);
+      const awayTeam = await this.resolveTeam(f.awayTeamName);
+
+      const warnings: string[] = [];
+      if (!homeTeam) warnings.push(`Home team not matched: "${f.homeTeamName}"`);
+      if (!awayTeam) warnings.push(`Away team not matched: "${f.awayTeamName}"`);
+
+      const candidate: ParsePslFixtureCandidateDto = {
+        externalId: f.externalId,
+        homeTeamName: f.homeTeamName,
+        awayTeamName: f.awayTeamName,
+        kickoffAt: f.kickoffAt,
+        status: f.status,
+        providerSource: 'parse-psl',
+        providerFixtureId: f.externalId,
+        sourceUrl: PROVIDER_SOURCE_URL,
+        teamResolution: {
+          homeTeamMatched: !!homeTeam,
+          awayTeamMatched: !!awayTeam,
+          ...(homeTeam ? { homeTeamId: homeTeam.id } : {}),
+          ...(awayTeam ? { awayTeamId: awayTeam.id } : {}),
+          warnings,
+        },
+      };
+      candidates.push(candidate);
+    }
+    return candidates;
+  }
+
+  private async resolveTeam(name: string): Promise<{ id: string } | null> {
+    // Exact match first, then case-insensitive contains
+    const exact = await this.prisma.team.findFirst({
+      where: { name },
+      select: { id: true },
+    });
+    if (exact) return exact;
+
+    return this.prisma.team.findFirst({
+      where: { name: { contains: name, mode: 'insensitive' } },
+      select: { id: true },
+    });
   }
 
   private async upsertFixtures(
@@ -194,30 +256,17 @@ export class ParsePslFixtureIngestionService {
 
     for (const f of fixtures) {
       try {
-        // Resolve teams by name
-        const homeTeam = await this.prisma.team.findFirst({
-          where: { name: { contains: f.homeTeamName, mode: 'insensitive' } },
-          select: { id: true },
-        });
-        const awayTeam = await this.prisma.team.findFirst({
-          where: { name: { contains: f.awayTeamName, mode: 'insensitive' } },
-          select: { id: true },
-        });
+        const homeTeam = await this.resolveTeam(f.homeTeamName);
+        const awayTeam = await this.resolveTeam(f.awayTeamName);
 
         if (!homeTeam || !awayTeam) {
-          warnings.push(
-            `Team not matched: "${f.homeTeamName}" vs "${f.awayTeamName}" (externalId=${f.externalId})`,
-          );
+          warnings.push(`Team not matched: "${f.homeTeamName}" vs "${f.awayTeamName}" (externalId=${f.externalId})`);
           skipped++;
           continue;
         }
 
-        // Check for existing fixture by providerFixtureId + providerSource
         const existing = await this.prisma.fixture.findFirst({
-          where: {
-            providerFixtureId: f.externalId,
-            providerSource: 'parse-psl',
-          },
+          where: { providerFixtureId: f.externalId, providerSource: 'parse-psl' },
           select: { id: true },
         });
 
@@ -229,13 +278,9 @@ export class ParsePslFixtureIngestionService {
         }
 
         if (existing) {
-          // Idempotent update — only advance-safe fields
           await this.prisma.fixture.update({
             where: { id: existing.id },
-            data: {
-              kickoffAt,
-              lastSyncedAt: now,
-            },
+            data: { kickoffAt, lastSyncedAt: now },
           });
           updated++;
         } else {
@@ -249,7 +294,7 @@ export class ParsePslFixtureIngestionService {
               providerSource: 'parse-psl',
               providerFixtureId: f.externalId,
               externalId: f.externalId,
-              sourceUrl: 'https://api.parse.bot/scraper/0c2008df-2286-497a-a5cb-55dd56ec9a4e/get_fixtures',
+              sourceUrl: PROVIDER_SOURCE_URL,
               importedAt: now,
               lastSyncedAt: now,
               isPublished: false, // admin must publish explicitly
@@ -264,5 +309,21 @@ export class ParsePslFixtureIngestionService {
     }
 
     return { created, updated, skipped, errors, warnings };
+  }
+
+  private async writeAuditLog(action: string, metadata: Record<string, unknown>): Promise<void> {
+    try {
+      await this.prisma.adminAuditLog.create({
+        data: {
+          action,
+          entityType: 'fixture_ingestion',
+          route: '/admin/data-provider/parse-psl/fixtures/ingest',
+          metadata: metadata as never,
+        },
+      });
+    } catch {
+      // Audit log failure must never block ingestion
+      this.logger.warn(`ParsePslFixtureIngestionService: audit log write failed for action=${action}`);
+    }
   }
 }

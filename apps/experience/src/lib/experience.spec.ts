@@ -3523,6 +3523,146 @@ describe('Sprint 16 — ParsePslFixtureIngestionService', () => {
   });
 });
 
+describe('Sprint 17 — Parse PSL Ingestion Beta Workflow', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  it('admin-ingestion-api.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'admin-ingestion-api.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('admin ingestion page exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'data-provider', 'parse-psl', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('ingestion DTO file exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'dto', 'parse-psl-fixture-ingestion.dto.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('admin-ingestion-api.ts exports runDryRun', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'admin-ingestion-api.ts'),
+      'utf8',
+    );
+    expect(src).toContain('export function runDryRun');
+  });
+
+  it('admin-ingestion-api.ts exports runWriteRun', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'admin-ingestion-api.ts'),
+      'utf8',
+    );
+    expect(src).toContain('export function runWriteRun');
+  });
+
+  it('admin-ingestion-api.ts does not contain PARSE_API_KEY', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'admin-ingestion-api.ts'),
+      'utf8',
+    );
+    expect(src).not.toContain('PARSE_API_KEY');
+  });
+
+  it('admin ingestion page does not contain PARSE_API_KEY', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'data-provider', 'parse-psl', 'page.tsx'),
+      'utf8',
+    );
+    expect(src).not.toContain('PARSE_API_KEY');
+  });
+
+  it('admin ingestion page does not contain NEXT_PUBLIC_PARSE_API_KEY', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'data-provider', 'parse-psl', 'page.tsx'),
+      'utf8',
+    );
+    expect(src).not.toContain('NEXT_PUBLIC_PARSE_API_KEY');
+  });
+
+  it('admin ingestion page references dry-run workflow', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'data-provider', 'parse-psl', 'page.tsx'),
+      'utf8',
+    );
+    expect(src).toContain('runDryRun');
+  });
+
+  it('admin ingestion page shows SOURCE_EMPTY handling', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'data-provider', 'parse-psl', 'page.tsx'),
+      'utf8',
+    );
+    expect(src).toContain('SOURCE_EMPTY');
+  });
+
+  it('discovery tool sprint-17-parse-ingestion-preview.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-17-parse-ingestion-preview.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('discovery tool sprint-17-team-resolution-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-17-team-resolution-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-INGESTION-BETA-WORKFLOW.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-17-INGESTION-BETA-WORKFLOW.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-TEAM-RESOLUTION-RULES.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-17-TEAM-RESOLUTION-RULES.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-ADMIN-INGESTION-ENDPOINT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-17-ADMIN-INGESTION-ENDPOINT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-PROVENANCE-AND-AUDIT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-17-PROVENANCE-AND-AUDIT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-SOURCE-EMPTY-OPERATOR-MESSAGING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-17-SOURCE-EMPTY-OPERATOR-MESSAGING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-17-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-17-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-17-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-17-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-17-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-17-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-17-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
