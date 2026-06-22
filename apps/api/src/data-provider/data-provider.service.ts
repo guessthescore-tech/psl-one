@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NoOpAdapter } from './no-op.adapter';
 import { ApiFootballAdapter } from './api-football.adapter';
+import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import type { ProviderAdapter } from './provider-adapter.interface';
 
 @Injectable()
@@ -11,7 +12,7 @@ export class DataProviderService {
   constructor() {
     // Provider selection is explicit via DATA_PROVIDER env var.
     // A key alone never activates a provider — both must be set.
-    // See docs/data/SPRINT-11-PROVIDER-DECISION.md.
+    // See docs/data/SPRINT-12-PROVIDER-STRATEGY.md.
     const provider = process.env['DATA_PROVIDER'];
     if (provider === 'api-football') {
       const key = process.env['API_FOOTBALL_KEY'];
@@ -21,6 +22,15 @@ export class DataProviderService {
       } else {
         this.adapter = new NoOpAdapter();
         this.logger.warn('DataProviderService: DATA_PROVIDER=api-football but API_FOOTBALL_KEY not set — NoOpAdapter fallback');
+      }
+    } else if (provider === 'football-data-org') {
+      const key = process.env['FOOTBALL_DATA_API_KEY'];
+      if (key) {
+        this.adapter = new FootballDataOrgAdapter();
+        this.logger.log('DataProviderService: using FootballDataOrgAdapter (DATA_PROVIDER=football-data-org)');
+      } else {
+        this.adapter = new NoOpAdapter();
+        this.logger.warn('DataProviderService: DATA_PROVIDER=football-data-org but FOOTBALL_DATA_API_KEY not set — NoOpAdapter fallback');
       }
     } else {
       this.adapter = new NoOpAdapter();

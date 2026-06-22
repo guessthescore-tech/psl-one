@@ -2647,6 +2647,182 @@ describe('Sprint 11 — Provider Selection & API-Football Wiring', () => {
   });
 });
 
+// ── Sprint 12 — Multi-Provider Boundary (football-data.org + API-Football) ───
+
+describe('Sprint 12 — Multi-Provider Boundary', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // Provider strategy docs
+  it('SPRINT-12-PROVIDER-STRATEGY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-PROVIDER-STRATEGY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-PROVIDER-STRATEGY.md names football-data-org as World Cup beta candidate', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-PROVIDER-STRATEGY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/football.data.org|football-data-org/i);
+  });
+
+  it('SPRINT-12-FOOTBALL-DATA-ORG-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-FOOTBALL-DATA-ORG-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-FOOTBALL-DATA-ORG-VALIDATION.md states PSL is not available', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-FOOTBALL-DATA-ORG-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/PSL.*not.*available|not.*available.*PSL|PSL.*NOT/i);
+  });
+
+  it('SPRINT-12-API-FOOTBALL-PSL-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-API-FOOTBALL-PSL-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-ESPN-RESEARCH-ONLY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-ESPN-RESEARCH-ONLY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-ESPN-RESEARCH-ONLY.md classifies ESPN as research-only', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-ESPN-RESEARCH-ONLY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/RESEARCH.ONLY|research.only/i);
+  });
+
+  it('SPRINT-12-PROVIDER-CAPABILITY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-PROVIDER-CAPABILITY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-PROVIDER-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-12-PROVIDER-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Adapter
+  it('football-data-org.adapter.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'football-data-org.adapter.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('football-data-org.adapter.ts uses X-Auth-Token (server-side auth)', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'football-data-org.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('X-Auth-Token');
+  });
+
+  it('football-data-org.adapter.ts does not access NEXT_PUBLIC_ env vars', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'football-data-org.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/process\.env\[['"]NEXT_PUBLIC_/);
+    expect(content).not.toMatch(/process\.env\.NEXT_PUBLIC_/);
+  });
+
+  it('football-data-org.adapter.ts does not call betting/odds endpoints', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'football-data-org.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\/odds\/|Odds-Add-On|odds-add-on/i);
+  });
+
+  // DataProviderService wiring
+  it('DataProviderService supports football-data-org via DATA_PROVIDER flag', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('FootballDataOrgAdapter');
+    expect(content).toContain("provider === 'football-data-org'");
+  });
+
+  it('DataProviderService still uses NoOpAdapter as default (football-data-org path added safely)', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('new NoOpAdapter()');
+    expect(content).toContain('DATA_PROVIDER not set');
+  });
+
+  it('DataProviderService does not import SportmonksAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/import.*SportmonksAdapter/);
+  });
+
+  // Discovery tools
+  it('sprint-12-football-data-health.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-12-football-data-health.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-12-football-data-worldcup.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-12-football-data-worldcup.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-12-provider-capability-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-12-provider-capability-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-12-provider-decision.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-12-provider-decision.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('all sprint-12 discovery tools reference process.env SPORTMONKS_API_KEY for spec compatibility', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-12-football-data-health.mjs',
+      'sprint-12-football-data-worldcup.mjs',
+      'sprint-12-provider-capability-check.mjs',
+      'sprint-12-provider-decision.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+    }
+  });
+
+  it('all sprint-12 discovery tools declare READ-ONLY mode', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-12-football-data-health.mjs',
+      'sprint-12-football-data-worldcup.mjs',
+      'sprint-12-provider-capability-check.mjs',
+      'sprint-12-provider-decision.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toMatch(/READ-ONLY|Read-Only|no DB writes/i);
+    }
+  });
+
+  // Handover
+  it('SPRINT-12-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-12-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 12 beta go/no-go contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-12-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  it('SPRINT-12-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-12-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-12-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-12-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');

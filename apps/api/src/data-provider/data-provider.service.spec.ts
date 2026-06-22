@@ -110,4 +110,44 @@ describe('DataProviderService', () => {
     const health = await svc.health();
     expect(health.provider).toBe('no-op');
   });
+
+  // Sprint 12 — football-data-org explicit selection
+  it('uses FootballDataOrgAdapter when DATA_PROVIDER=football-data-org and key is set', async () => {
+    process.env['DATA_PROVIDER'] = 'football-data-org';
+    process.env['FOOTBALL_DATA_API_KEY'] = 'test-key-sprint12-fdorg';
+    vi.stubGlobal('fetch', async () => ({ ok: false, status: 503, json: async () => ({}) }));
+    const { DataProviderService: Svc } = await import('./data-provider.service');
+    const svc = new Svc();
+    const health = await svc.health();
+    expect(health.provider).toBe('football-data-org');
+    expect(health.available).toBe(false);
+    vi.unstubAllGlobals();
+  });
+
+  it('uses NoOpAdapter when DATA_PROVIDER=football-data-org but FOOTBALL_DATA_API_KEY is absent', async () => {
+    process.env['DATA_PROVIDER'] = 'football-data-org';
+    delete process.env['FOOTBALL_DATA_API_KEY'];
+    const { DataProviderService: Svc } = await import('./data-provider.service');
+    const svc = new Svc();
+    const health = await svc.health();
+    expect(health.provider).toBe('no-op');
+  });
+
+  it('FOOTBALL_DATA_API_KEY alone does not activate football-data-org without DATA_PROVIDER flag', async () => {
+    delete process.env['DATA_PROVIDER'];
+    process.env['FOOTBALL_DATA_API_KEY'] = 'test-key-should-not-auto-activate-fdorg';
+    const { DataProviderService: Svc } = await import('./data-provider.service');
+    const svc = new Svc();
+    const health = await svc.health();
+    expect(health.provider).toBe('no-op');
+  });
+
+  it('DataProviderService supports football-data-org in provider selection', () => {
+    const src = require('fs').readFileSync(
+      require('path').resolve(__dirname, 'data-provider.service.ts'),
+      'utf8',
+    );
+    expect(src).toContain('FootballDataOrgAdapter');
+    expect(src).toContain("provider === 'football-data-org'");
+  });
 });
