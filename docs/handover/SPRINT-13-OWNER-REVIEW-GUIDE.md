@@ -12,61 +12,35 @@ This guide walks through the steps required to clear the Sprint 13 CONDITIONAL_G
 
 ## Steps
 
-### Step 1 — Set football-data.org key
+### Step 1 — football-data.org key — DONE ✅
 
-Add to `apps/api/.env` — **never commit this file**:
+`FOOTBALL_DATA_API_KEY` is set and validated. No further action needed for this provider.
+
+### Step 2 — football-data.org WC validation — DONE ✅
+
+`WC_BETA_VALIDATED` — 104 WC 2026 matches returned, score data available on free tier (2026-06-22).
+
+### Step 3 — API-Football account status — ACTION REQUIRED
+
+The API-Football account is suspended. Key is present (length=32) but all endpoints return HTTP 200 with:
 ```
-FOOTBALL_DATA_API_KEY=<token>
-```
-
-### Step 2 — Verify key status
-
-```bash
-node --env-file=apps/api/.env tools/discovery/sprint-13-provider-key-status.mjs
-```
-
-Expected output: `FOOTBALL_DATA_KEY_PRESENT | API_FOOTBALL_KEY_MISSING`
-
-### Step 3 — Run football-data.org World Cup validation
-
-```bash
-node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-worldcup.mjs
+errors.access: "Your account is suspended, check on https://dashboard.api-football.com."
 ```
 
-Expected result: `FOOTBALL_DATA_WORLD_CUP_BETA_VALIDATED`
+**Action:** Log in to https://dashboard.api-football.com and reactivate or upgrade the account.
 
-### Step 4 — Run football-data.org World Cup sample
-
-```bash
-node --env-file=apps/api/.env tools/discovery/sprint-13-worldcup-sample.mjs
-```
-
-Expected output: a sample WC 2026 fixture printed to stdout.
-
-### Step 5 — Set API-Football key
-
-Add to `apps/api/.env`:
-```
-API_FOOTBALL_KEY=<key>
-```
-
-### Step 6 — Run API-Football PSL coverage check
-
-```bash
-node --env-file=apps/api/.env tools/discovery/sprint-11-provider-coverage.mjs
-```
-
-Expected result: `API_FOOTBALL_PSL_VALIDATED` or `API_FOOTBALL_PSL_PARTIAL`
-
-### Step 7 — Run API-Football PSL sample
+### Step 4 — Re-run API-Football PSL validation after reactivation
 
 ```bash
 node --env-file=apps/api/.env tools/discovery/sprint-13-psl-sample.mjs
+node --env-file=apps/api/.env tools/discovery/sprint-11-provider-coverage.mjs
 ```
 
-Expected output: PSL league 288 fixture data printed to stdout.
+Expected result: `PSL_FOUND` + `PSL_SAMPLE_OK` if PSL league 288 is on the active plan tier.
 
-### Step 8 — Run routing check
+If PSL is not on the free tier, you may need to upgrade to a paid plan. The league ID 288 (South Africa Premier Soccer League) is confirmed correct from Sprint 11 research.
+
+### Step 5 — Run routing check
 
 ```bash
 node --env-file=apps/api/.env tools/discovery/sprint-13-routing-check.mjs
@@ -74,14 +48,16 @@ node --env-file=apps/api/.env tools/discovery/sprint-13-routing-check.mjs
 
 This validates that the routing decisions for known competition codes (`WC`, `PSL`, `288`, unknown) resolve correctly.
 
-### Step 9 — Review commercial terms
+### Step 6 — Review commercial terms
+
+### Step 7 — Review commercial terms
 
 - football-data.org: https://www.football-data.org/client/register — review free/paid tier limits and attribution requirements.
 - API-Football: https://rapidapi.com/api-sports/api/api-football — review request quotas and commercial use terms.
 
 Accept terms before wiring either provider into a production ingestion pipeline.
 
-### Step 10 — What NOT to do
+### Step 8 — What NOT to do
 
 | Do NOT | Reason |
 |---|---|
@@ -95,7 +71,7 @@ Accept terms before wiring either provider into a production ingestion pipeline.
 
 ## After All Steps Pass
 
-Update `docs/data/SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md` with actual result codes and change overall status from `ALL_BLOCKED_PENDING_KEYS` to reflect actual outcomes.
+football-data.org WC validation is already CLEARED. After API-Football PSL validation passes, update `docs/data/SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md` status from `PARTIAL_VALIDATED` to `FULLY_VALIDATED`.
 
 Update `docs/data/SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md` and `docs/handover/SPRINT-13-BETA-GO-NOGO.md` from `CONDITIONAL_GO` to `GO` when all six conditions are met.
 

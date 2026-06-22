@@ -8,8 +8,8 @@ Per-competition routing (`ProviderRouterService`) is code-ready. Full GO require
 
 | # | Condition | Status |
 |---|---|---|
-| 1 | football-data.org WC validation passes with live key | BLOCKED — key not set |
-| 2 | API-Football PSL league 288 validation passes with live key | BLOCKED — key empty |
+| 1 | football-data.org WC validation passes with live key | **CLEARED** — `WC_BETA_VALIDATED` (104 matches, 2026-06-22) |
+| 2 | API-Football PSL league 288 validation passes with live key | BLOCKED — account suspended |
 | 3 | Commercial terms accepted for both providers | PENDING — owner review |
 | 4 | EC2 staging migration applied | PENDING — apply not authorised |
 | 5 | Staging live smoke passing | PENDING — depends on condition 4 |
@@ -17,25 +17,20 @@ Per-competition routing (`ProviderRouterService`) is code-ready. Full GO require
 
 ## Current Blocking Gates
 
-### G1 — FOOTBALL_DATA_API_KEY not set locally
+### G2 — API-Football account suspended
 
-`FOOTBALL_DATA_API_KEY` is absent from `apps/api/.env`. No HTTP call has been made to football-data.org. Owner must set the key and re-run validation before this gate clears.
+`API_FOOTBALL_KEY` is present (length=32) but the account is suspended. All API-Football endpoints return HTTP 200 with `errors.access = "Your account is suspended"` and an empty `response` array.
 
-**Owner action:** Add `FOOTBALL_DATA_API_KEY=<token>` to `apps/api/.env` (never commit), then run:
+**Owner action:** Log in to https://dashboard.api-football.com, reactivate or upgrade, then run:
 ```bash
-node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-worldcup.mjs
-```
-Expected clear code: `FOOTBALL_DATA_WORLD_CUP_BETA_VALIDATED`
-
-### G2 — API_FOOTBALL_KEY not set locally
-
-`API_FOOTBALL_KEY` is empty in `apps/api/.env`. No HTTP call has been made to API-Football. Owner must set the key and re-run validation before this gate clears.
-
-**Owner action:** Add `API_FOOTBALL_KEY=<key>` to `apps/api/.env` (never commit), then run:
-```bash
+node --env-file=apps/api/.env tools/discovery/sprint-13-psl-sample.mjs
 node --env-file=apps/api/.env tools/discovery/sprint-11-provider-coverage.mjs
 ```
-Expected clear code: `API_FOOTBALL_PSL_VALIDATED`
+Expected clear code: `PSL_FOUND` + `PSL_SAMPLE_OK`
+
+### G1 — CLEARED
+
+football-data.org WC validation passed on 2026-06-22. 104 World Cup 2026 matches returned. Score data available on free tier.
 
 ## What Is Active Right Now
 

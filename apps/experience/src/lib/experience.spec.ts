@@ -2873,10 +2873,10 @@ describe('Sprint 13 — Live Key Validation & Per-Competition Routing', () => {
     expect(require('fs').existsSync(p)).toBe(true);
   });
 
-  it('football-data.org live validation doc records BLOCKED status', () => {
+  it('football-data.org live validation doc records a recognisable validation status', () => {
     const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-FOOTBALL-DATA-LIVE-VALIDATION.md');
     const content = require('fs').readFileSync(p, 'utf8');
-    expect(content).toMatch(/BLOCKED/);
+    expect(content).toMatch(/VALIDATED|BLOCKED|WC_BETA/);
   });
 
   it('SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md exists', () => {
@@ -2884,10 +2884,10 @@ describe('Sprint 13 — Live Key Validation & Per-Competition Routing', () => {
     expect(require('fs').existsSync(p)).toBe(true);
   });
 
-  it('API-Football live validation doc records BLOCKED status', () => {
+  it('API-Football live validation doc records a recognisable validation status', () => {
     const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md');
     const content = require('fs').readFileSync(p, 'utf8');
-    expect(content).toMatch(/BLOCKED/);
+    expect(content).toMatch(/BLOCKED|SUSPENDED|VALIDATED|NOT_FOUND/);
   });
 
   it('SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md exists', () => {

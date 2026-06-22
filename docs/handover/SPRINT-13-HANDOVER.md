@@ -16,16 +16,14 @@ Sprint 13 delivers per-competition provider routing and live validation tooling.
 - Opt-in only — not wired into any active request path
 - `DataProviderService` global behaviour is **unchanged**
 
-### Live Validation Attempt
+### Live Validation Results
 
-Both providers blocked pending keys:
-
-| Provider | Result | Blocker |
+| Provider | Result | Detail |
 |---|---|---|
-| football-data.org | `BLOCKED_BY_FOOTBALL_DATA_KEY` | `FOOTBALL_DATA_API_KEY` not set |
-| API-Football | `BLOCKED_NO_KEY` | `API_FOOTBALL_KEY` empty |
+| football-data.org | `WC_BETA_VALIDATED` | 104 WC 2026 matches, score data on free tier, 2026-06-22 |
+| API-Football | `API_FOOTBALL_ACCOUNT_SUSPENDED` | HTTP 200 but `errors.access` in body; adapter fixed to detect this |
 
-No HTTP calls were made to any external provider during Sprint 13.
+football-data.org WC path is fully validated. API-Football PSL path is blocked by account suspension — owner must reactivate at dashboard.api-football.com.
 
 ### Documentation
 
@@ -63,11 +61,11 @@ Located in `tools/discovery/`:
 
 ## Test Counts
 
-Tests are unchanged from Sprint 12 baseline. Sprint 13 adds no new API or experience tests (routing service is infrastructure, not a testable HTTP endpoint in this sprint).
+Sprint 13 API tests: **1,845** (76 files) — includes 21 ProviderRouterService tests and 2 new suspended-account adapter tests. Experience tests: **634**.
 
 ## Next Steps (Sprint 14)
 
-1. Owner sets API keys and clears G1 and G2 gates.
+1. Owner reactivates API-Football account at dashboard.api-football.com and re-runs PSL validation (G1 already cleared).
 2. Owner reviews commercial terms for football-data.org and API-Football.
 3. After full GO: wire `ProviderRouterService` into safe read-only ingestion job (no DB writes initially).
 4. Apply EC2 staging migration.
