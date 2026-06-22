@@ -4123,6 +4123,165 @@ describe('Sprint 20 — EC2 staging deployment readiness', () => {
   });
 });
 
+// ── Sprint 21: Admin Token Provisioning & Manual Staging Smoke ────────────
+describe('Sprint 21 — Admin token provisioning and manual staging smoke', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  it('SPRINT-21-ADMIN-TOKEN-RUNBOOK.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-ADMIN-TOKEN-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-MANUAL-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-MANUAL-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-RBAC-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-RBAC-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-PSL-PREFLIGHT-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-PSL-PREFLIGHT-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-PARSE-INGESTION-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-PARSE-INGESTION-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-FIXTURE-PUBLICATION-SMOKE-RESULTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-FIXTURE-PUBLICATION-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-21-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-21-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('admin token runbook does not contain a real JWT value', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-ADMIN-TOKEN-RUNBOOK.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    // JWT pattern: three base64url segments separated by dots
+    expect(src).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+  });
+
+  it('smoke results confirm RBAC guards return 401', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('401');
+    expect(src).toContain('PASS');
+    // "FAIL: 0" appears in summary — check no non-zero fail count
+    expect(src).not.toMatch(/FAIL: [1-9]/);
+  });
+
+  it('smoke results confirm no PSL activation', () => {
+    const files = [
+      'SPRINT-21-MANUAL-SMOKE-RESULTS.md',
+      'SPRINT-21-RBAC-SMOKE-RESULTS.md',
+      'SPRINT-21-PSL-PREFLIGHT-SMOKE-RESULTS.md',
+    ];
+    for (const f of files) {
+      const src = require('fs').readFileSync(
+        require('path').resolve(REPO, 'docs', 'staging', f),
+        'utf8'
+      );
+      expect(src).toMatch(/PSL.*INACTIVE|NOT activated|not activate PSL/i);
+    }
+  });
+
+  it('smoke results confirm write smoke was disabled by default', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-MANUAL-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('ALLOW_WRITE_SMOKE=false');
+  });
+
+  // ── No real-money content in Sprint 21 docs ───────────────────────────────
+  it('Sprint 21 staging docs contain no real-money mechanics', () => {
+    const stagingFiles = [
+      'SPRINT-21-ADMIN-TOKEN-RUNBOOK.md',
+      'SPRINT-21-MANUAL-SMOKE-RESULTS.md',
+      'SPRINT-21-RBAC-SMOKE-RESULTS.md',
+    ];
+    for (const f of stagingFiles) {
+      const src = require('fs').readFileSync(
+        require('path').resolve(REPO, 'docs', 'staging', f),
+        'utf8'
+      );
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  it('Sprint 21 handover docs contain no real-money mechanics', () => {
+    const handoverFiles = [
+      'SPRINT-21-BETA-GO-NOGO.md',
+      'SPRINT-21-HANDOVER.md',
+      'SPRINT-21-OWNER-REVIEW-GUIDE.md',
+    ];
+    for (const f of handoverFiles) {
+      const src = require('fs').readFileSync(
+        require('path').resolve(REPO, 'docs', 'handover', f),
+        'utf8'
+      );
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  it('admin token runbook contains safe token presence check pattern', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-ADMIN-TOKEN-RUNBOOK.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('PRESENT_REDACTED');
+  });
+
+  it('admin token runbook documents token cleanup procedure', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-21-ADMIN-TOKEN-RUNBOOK.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/delete.*smoke.*user|cleanup/i);
+  });
+
+  it('Beta Go/No-Go is CONDITIONAL_GO', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-21-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('CONDITIONAL_GO');
+    expect(src).not.toContain('NO_GO\n');
+  });
+
+  it('story matrix records 0 new migrations', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-21-STORY-MATRIX.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('42');
+    expect(src).toMatch(/Sprint 21 migrations added: 0/);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
