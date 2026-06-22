@@ -64,10 +64,11 @@ Running `staging-provider-discovery.mjs` revealed:
 - **WC2026 IS in SportsDataIO competition list** (CompetitionId=21)
 - **PSL is NOT in SportsDataIO competition list**
 
-This changes the provider decision landscape:
-- If Sportmonks key is fixed and has both PSL and WC2026 → Sportmonks is the clear primary
-- If Sportmonks cannot cover PSL → a different provider or manual data import may be needed for PSL fixtures
-- SportsDataIO may be useful for WC2026 (CompetitionId=21) but cannot cover PSL at all
+This finding contributed to the Sprint 10 amendment decision (2026-06-22):
+- **Sportmonks REJECTED** — removed from active strategy regardless of key status
+- SportsDataIO cannot cover PSL at any plan tier confirmed so far
+- Primary provider is **UNDECIDED** — see `SPRINT-10-NEW-PROVIDER-SHORTLIST.md`
+- SportsDataIO may be useful for WC2026 (CompetitionId=21) as a secondary feed
 
 ---
 
