@@ -3350,6 +3350,179 @@ describe('Sprint 15 — Parse Live Validation & Ingestion Design', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SPRINT 16 — Fixture Ingestion Job Implementation
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Sprint 16 — ParsePslFixtureIngestionService', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // Service file
+  it('parse-psl-fixture-ingestion.service.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('service is @Injectable', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/@Injectable/);
+  });
+
+  it('service has ingest() method', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/async ingest\s*\(/);
+  });
+
+  it('FixtureIngestionResult type is defined', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/FixtureIngestionResult/);
+  });
+
+  it('sourceStatus includes SOURCE_EMPTY', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/SOURCE_EMPTY/);
+  });
+
+  it('service has no @Cron decorator', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/@Cron\s*\(/);
+  });
+
+  it('service sets isPublished=false on created fixtures', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/isPublished.*false/);
+  });
+
+  it('service sets providerSource=parse-psl', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/providerSource.*parse-psl/);
+  });
+
+  it('service spec file exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.spec.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Admin endpoint
+  it('ingest endpoint exists in data-provider controller', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.controller.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/parse-psl\/fixtures\/ingest/);
+  });
+
+  it('ingest endpoint defaults dryRun to true', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.controller.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/dryRun.*!==.*false/);
+  });
+
+  it('ParsePslFixtureIngestionService is in module providers', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.module.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/ParsePslFixtureIngestionService/);
+  });
+
+  // CLI dry-run script
+  it('sprint-16-parse-fixture-ingestion-dry-run.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-16-parse-fixture-ingestion-dry-run.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('CLI script contains SPORTMONKS reference for spec compliance', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-16-parse-fixture-ingestion-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/SPORTMONKS_API_KEY/);
+  });
+
+  it('CLI script has INGESTION_SOURCE_EMPTY_NOOP output', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-16-parse-fixture-ingestion-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/INGESTION_SOURCE_EMPTY_NOOP/);
+  });
+
+  it('CLI script has no DB write calls', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-16-parse-fixture-ingestion-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/prisma\.(fixture|team)\.create|prisma\.(fixture|team)\.update/);
+  });
+
+  // Safety constraints
+  it('no NEXT_PUBLIC_PARSE_API_KEY in service', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/NEXT_PUBLIC_PARSE/);
+  });
+
+  it('no betting/odds/stakes in ingestion service', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl-fixture-ingestion.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/odds|bets|stakes|wager|payout/i);
+  });
+
+  it('no betting/odds in CLI dry-run script', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-16-parse-fixture-ingestion-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\/odds\/|\/bets\/|\/betting\//i);
+  });
+
+  // Documentation
+  it('SPRINT-16-FIXTURE-INGESTION-RUNBOOK.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-16-FIXTURE-INGESTION-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-PROVENANCE-MAPPING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-16-PROVENANCE-MAPPING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-SOURCE-EMPTY-HANDLING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-16-SOURCE-EMPTY-HANDLING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-RATE-LIMIT-AND-RETRY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-16-RATE-LIMIT-AND-RETRY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-16-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-16-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-16-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-16-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-16-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-16-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-16-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
