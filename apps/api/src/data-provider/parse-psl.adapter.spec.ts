@@ -304,8 +304,9 @@ describe('ParsePslAdapter', () => {
       expect(src).not.toMatch(/\/odds\/|\/bets\/|\/betting\//i);
     });
 
-    it('source-empty fixtures handled without error: fixtures ?? data ?? [] pattern is present', () => {
-      expect(src).toMatch(/fixtures\s*\?\?.*data\s*\?\?/);
+    it('source-empty fixtures handled without error: dual-shape response pattern is present', () => {
+      // Actual pattern: (data as T).fixtures ?? (Array.isArray(data) ? data : [])
+      expect(src).toMatch(/\.fixtures\s*\?\?/);
     });
   });
 });

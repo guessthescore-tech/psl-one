@@ -2997,6 +2997,190 @@ describe('Sprint 13 — Live Key Validation & Per-Competition Routing', () => {
   });
 });
 
+// ── Sprint 14 — Parse PSL Provider Path & Source-Empty Handling ───────────────
+
+describe('Sprint 14 — Parse PSL Provider Path', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // ParsePslAdapter
+  it('parse-psl.adapter.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('ParsePslAdapter uses X-API-Key header', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('X-API-Key');
+  });
+
+  it('ParsePslAdapter uses PARSE_API_KEY env var', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain("PARSE_API_KEY");
+  });
+
+  it('ParsePslAdapter does not use NEXT_PUBLIC_ env vars', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/process\.env\[['"]NEXT_PUBLIC_/);
+    expect(content).not.toMatch(/process\.env\.NEXT_PUBLIC_/);
+  });
+
+  it('ParsePslAdapter does not call betting/odds endpoints', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\/odds\/|\/bets\/|\/betting\/|\/bookmakers\//i);
+  });
+
+  it('ParsePslAdapter handles source-empty fixtures (empty array is valid)', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/fixtures.*\?\?|\?\?.*fixtures|\[\]/);
+  });
+
+  it('ParsePslAdapter does not import SportmonksAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'parse-psl.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/import.*Sportmonks/);
+  });
+
+  // Router update
+  it('ProviderRouterService routes PSL to ParsePslAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('ParsePslAdapter');
+    expect(content).toContain('PARSE_API_KEY');
+  });
+
+  it('ProviderRouterService PSL codes include BETWAY_PREMIERSHIP', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('BETWAY_PREMIERSHIP');
+  });
+
+  it('DataProviderService supports DATA_PROVIDER=parse-psl', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain("'parse-psl'");
+    expect(content).toContain('ParsePslAdapter');
+  });
+
+  // Docs
+  it('SPRINT-14-PARSE-PSL-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-14-PARSE-PSL-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-PROVIDER-STRATEGY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-14-PROVIDER-STRATEGY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-PER-COMPETITION-ROUTING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-14-PER-COMPETITION-ROUTING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-PROVIDER-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-14-PROVIDER-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-PROVIDER-GO-NOGO.md contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-14-PROVIDER-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  // Discovery tools
+  it('sprint-14-parse-psl-health.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-14-parse-psl-health.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-14-parse-psl-fixtures.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-14-parse-psl-fixtures.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-14-parse-psl-results.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-14-parse-psl-results.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-14-parse-psl-standings.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-14-parse-psl-standings.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('all sprint-14 discovery tools reference process.env SPORTMONKS_API_KEY for spec compatibility', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-14-parse-psl-health.mjs',
+      'sprint-14-parse-psl-fixtures.mjs',
+      'sprint-14-parse-psl-results.mjs',
+      'sprint-14-parse-psl-standings.mjs',
+      'sprint-14-parse-psl-match-details.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+    }
+  });
+
+  it('all sprint-14 discovery tools declare READ-ONLY mode', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-14-parse-psl-health.mjs',
+      'sprint-14-parse-psl-fixtures.mjs',
+      'sprint-14-parse-psl-results.mjs',
+      'sprint-14-parse-psl-standings.mjs',
+      'sprint-14-parse-psl-match-details.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toMatch(/READ-ONLY|Read-Only|no DB writes/i);
+    }
+  });
+
+  // Handover
+  it('SPRINT-14-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 14 beta go/no-go contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  it('SPRINT-14-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-14-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-14-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
