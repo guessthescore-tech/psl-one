@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { NoOpAdapter } from './no-op.adapter';
 import { ApiFootballAdapter } from './api-football.adapter';
 import { FootballDataOrgAdapter } from './football-data-org.adapter';
+import { ParsePslAdapter } from './parse-psl.adapter';
 import type { ProviderAdapter } from './provider-adapter.interface';
 
 @Injectable()
@@ -31,6 +32,15 @@ export class DataProviderService {
       } else {
         this.adapter = new NoOpAdapter();
         this.logger.warn('DataProviderService: DATA_PROVIDER=football-data-org but FOOTBALL_DATA_API_KEY not set — NoOpAdapter fallback');
+      }
+    } else if (provider === 'parse-psl') {
+      const key = process.env['PARSE_API_KEY'];
+      if (key) {
+        this.adapter = new ParsePslAdapter();
+        this.logger.log('DataProviderService: using ParsePslAdapter (DATA_PROVIDER=parse-psl)');
+      } else {
+        this.adapter = new NoOpAdapter();
+        this.logger.warn('DataProviderService: DATA_PROVIDER=parse-psl but PARSE_API_KEY not set — NoOpAdapter fallback');
       }
     } else {
       this.adapter = new NoOpAdapter();
