@@ -2452,11 +2452,12 @@ describe('Sprint 10 — Provider Coverage Validation & Staging Smoke Readiness',
     expect(content).not.toMatch(/if\s*\(key\)\s*\{[\s\S]*?new SportmonksAdapter/);
   });
 
-  it('DataProviderService uses NoOpAdapter as unconditional default', () => {
+  it('DataProviderService uses NoOpAdapter as default (Sprint 11: wired with DATA_PROVIDER flag)', () => {
     const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
     const content = require('fs').readFileSync(p, 'utf8');
     expect(content).toContain('new NoOpAdapter()');
-    expect(content).toContain('UNDECIDED');
+    // Sprint 11 wired explicit flag — DATA_PROVIDER must be present for provider activation
+    expect(content).toContain('DATA_PROVIDER');
   });
 
   it('SportmonksAdapter is marked deprecated', () => {
@@ -2475,6 +2476,174 @@ describe('Sprint 10 — Provider Coverage Validation & Staging Smoke Readiness',
     const p = require('path').resolve(REPO, 'tools', 'discovery', 'provider-compare.mjs');
     const content = require('fs').readFileSync(p, 'utf8');
     expect(content).toMatch(/REJECTED|removed.*active|active.*removed/i);
+  });
+});
+
+// ── Sprint 11 — Provider Selection & API-Football Wiring ─────────────────────
+
+describe('Sprint 11 — Provider Selection & API-Football Wiring', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // Provider docs
+  it('SPRINT-11-PROVIDER-DECISION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-DECISION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-PROVIDER-DECISION.md names API-Football as primary candidate', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-DECISION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/api.football|api-football/i);
+  });
+
+  it('SPRINT-11-PROVIDER-SHORTLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-SHORTLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-PROVIDER-VALIDATION-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-VALIDATION-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-PROVIDER-DATA-POINTS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-DATA-POINTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-PROVIDER-RISK-REGISTER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-RISK-REGISTER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-PROVIDER-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-11-PROVIDER-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Handover docs
+  it('SPRINT-11-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 11 beta go/no-go doc contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  it('SPRINT-11-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-11-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-11-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Adapter
+  it('api-football.adapter.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'api-football.adapter.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('api-football.adapter.ts has no NEXT_PUBLIC_ env vars', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'api-football.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/NEXT_PUBLIC_/i);
+  });
+
+  it('api-football.adapter.ts has no betting/odds endpoints', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'api-football.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\/odds\/|\/bets\/|\/betting\/|\/bookmakers\/|\/predictions\//i);
+  });
+
+  it('api-football.adapter.ts uses x-apisports-key header (server-side auth)', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'api-football.adapter.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('x-apisports-key');
+  });
+
+  // DataProviderService wiring
+  it('DataProviderService uses DATA_PROVIDER explicit flag', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('DATA_PROVIDER');
+    expect(content).toContain("provider === 'api-football'");
+  });
+
+  it('DataProviderService requires both DATA_PROVIDER and key (no auto-select by key alone)', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    // Must check DATA_PROVIDER first before checking any key
+    const dpIdx = content.indexOf('DATA_PROVIDER');
+    const keyIdx = content.indexOf('API_FOOTBALL_KEY');
+    expect(dpIdx).toBeGreaterThan(-1);
+    expect(keyIdx).toBeGreaterThan(dpIdx);
+  });
+
+  it('DataProviderService does not import SportmonksAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'data-provider.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/import.*SportmonksAdapter/);
+  });
+
+  // Discovery tools
+  it('sprint-11-provider-health.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-11-provider-health.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-11-provider-coverage.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-11-provider-coverage.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-11-provider-field-map.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-11-provider-field-map.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-11-provider-decision.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-11-provider-decision.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('all sprint-11 discovery tools reference process.env SPORTMONKS_API_KEY for spec compatibility', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = ['sprint-11-provider-health.mjs', 'sprint-11-provider-coverage.mjs',
+      'sprint-11-provider-field-map.mjs', 'sprint-11-provider-decision.mjs'];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+    }
+  });
+
+  it('all sprint-11 discovery tools declare READ-ONLY mode', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = ['sprint-11-provider-health.mjs', 'sprint-11-provider-coverage.mjs',
+      'sprint-11-provider-field-map.mjs', 'sprint-11-provider-decision.mjs'];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toMatch(/READ-ONLY|Read-Only|no DB writes/i);
+    }
   });
 });
 
