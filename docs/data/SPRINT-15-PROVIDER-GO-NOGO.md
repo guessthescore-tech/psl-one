@@ -8,10 +8,10 @@ Full GO requires all conditions below to be cleared.
 
 | # | Condition | Status | Notes |
 |---|-----------|--------|-------|
-| C1 | `PARSE_API_KEY` provisioned and validated | PENDING | Key not in local `.env` |
-| C2 | Parse health returns `PARSE_PSL_HEALTH_OK` | PENDING | Blocked by C1 |
-| C3 | Parse fixtures source state confirmed (available or source-empty) | PENDING | Blocked by C1 |
-| C4 | Parse results, standings reachable | PENDING | Blocked by C1 |
+| C1 | `PARSE_API_KEY` provisioned and validated | ✅ CLEARED | Key set 2026-06-22; HTTP 200 confirmed |
+| C2 | Parse health returns `PARSE_PSL_HEALTH_OK` | ✅ CLEARED | Validated 2026-06-22 |
+| C3 | Parse fixtures source state confirmed (available or source-empty) | ✅ CLEARED | `PARSE_PSL_FIXTURES_SOURCE_EMPTY` — expected seasonal state |
+| C4 | Parse results, standings reachable | ✅ CLEARED | Endpoints reachable; empty is expected pre-season |
 | C5 | Parse.bot commercial terms reviewed by owner | PENDING | Unofficial scraper — G7 risk |
 | C6 | API-Football account reactivated (fallback) | PENDING | Account suspended; low priority until C1 cleared |
 | C7 | EC2 staging migration applied | PENDING | Separate authorisation required |

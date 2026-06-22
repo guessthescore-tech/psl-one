@@ -1,38 +1,40 @@
 # Sprint 15 — Parse PSL Live Validation
 
-## Status: PARSE_PSL_KEY_MISSING
+## Status: PARSE_PSL_HEALTH_OK — Source-Empty (Expected Seasonal)
 
-Live validation cannot proceed until `PARSE_API_KEY` is set in `apps/api/.env`.
+Live validation run 2026-06-22. Key present and valid. All endpoints reachable. No fixtures or
+standings available yet because psl.co.za has not published the 2026/27 Betway Premiership season.
 
 ## Tool Results (2026-06-22)
 
 | Tool | Status | Notes |
 |------|--------|-------|
-| sprint-14-parse-psl-health.mjs | PARSE_PSL_KEY_MISSING | Key not in local `.env` |
-| sprint-14-parse-psl-fixtures.mjs | PARSE_PSL_KEY_MISSING | Key not in local `.env` |
-| sprint-14-parse-psl-results.mjs | PARSE_PSL_KEY_MISSING | Key not in local `.env` |
-| sprint-14-parse-psl-standings.mjs | PARSE_PSL_KEY_MISSING | Key not in local `.env` |
-| sprint-14-parse-psl-match-details.mjs | PARSE_PSL_KEY_MISSING | Key not in local `.env` |
+| sprint-14-parse-psl-health.mjs | PARSE_PSL_HEALTH_OK + PARSE_PSL_FIXTURES_SOURCE_EMPTY | Endpoint reachable; 0 fixtures |
+| sprint-14-parse-psl-fixtures.mjs | PARSE_PSL_FIXTURES_SOURCE_EMPTY | 0 fixtures — season not yet published |
+| sprint-14-parse-psl-results.mjs | PARSE_PSL_RESULTS_EMPTY | 0 results — season not yet started |
+| sprint-14-parse-psl-standings.mjs | PARSE_PSL_STANDINGS_EMPTY | 0 standings — season not yet started |
+| sprint-15-parse-fixture-dry-run.mjs | DRY_RUN_SOURCE_EMPTY | HTTP 200; empty array; 0 DB writes; exits clean |
 
-## How to Unblock
+## Interpretation
 
-1. Obtain the Parse API key from parse.bot (marketplace listing for psl-co-za-api).
-2. Place it server-side only:
-   ```
-   PARSE_API_KEY=<your-key-here>
-   ```
-   in `apps/api/.env` (gitignored — never commit).
-3. Do NOT set `NEXT_PUBLIC_PARSE_API_KEY`. The key must never reach the browser.
-4. Re-run all discovery tools:
-   ```bash
-   node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-health.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-fixtures.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-results.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-standings.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-match-details.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-15-parse-fixture-dry-run.mjs
-   ```
-5. Update this file with actual results.
+The Parse PSL API is working correctly. The key authenticates successfully (HTTP 200 on all endpoints).
+All data is empty because psl.co.za has not published the 2026/27 Betway Premiership season yet.
+
+**This is the expected seasonal state for June/July.** Fixtures are typically published in July ahead
+of the August season start.
+
+## Next Action
+
+No action required until psl.co.za publishes new-season fixtures (~July/August 2026).
+
+When fixtures appear, re-run:
+```bash
+node --env-file=apps/api/.env tools/discovery/sprint-14-parse-psl-fixtures.mjs
+node --env-file=apps/api/.env tools/discovery/sprint-15-parse-fixture-dry-run.mjs
+```
+
+Expected status change: `PARSE_PSL_FIXTURES_SOURCE_EMPTY` → `PARSE_PSL_FIXTURES_AVAILABLE`
+and `DRY_RUN_SOURCE_EMPTY` → `DRY_RUN_FIXTURES_NORMALIZED`.
 
 ## Expected Post-Key Results
 
