@@ -1,48 +1,45 @@
-# Sprint 13 — football-data.org Live Validation Attempt
+# Sprint 13 — football-data.org Live Validation
 
 ## Summary
 
 | Field | Value |
 |---|---|
 | Date | 2026-06-22 |
-| Tools | `sprint-12-football-data-health.mjs`, `sprint-12-football-data-worldcup.mjs` |
-| Result | `BLOCKED_BY_FOOTBALL_DATA_KEY` |
-| Endpoint attempted | None — key check failed before any HTTP call |
-| PSL support | NOT SUPPORTED on football-data.org regardless of key |
+| Tools | `sprint-13-worldcup-sample.mjs`, `sprint-12-football-data-health.mjs` |
+| Result | `FOOTBALL_DATA_WC_BETA_VALIDATED` |
+| HTTP status | 200 |
+| Matches returned | 104 |
+| Score data | AVAILABLE on free tier |
+| PSL support | NOT SUPPORTED on football-data.org |
 
-## Reason
+## Validation log
 
-`FOOTBALL_DATA_API_KEY` is not present in `apps/api/.env`. The validation scripts perform a key presence check before issuing any HTTP request. Because the key is absent the scripts exit immediately with status `BLOCKED_BY_FOOTBALL_DATA_KEY` and no live network call is made.
+```
+[INFO] Fetching WC matches from football-data.org ...
 
-## Owner Action Required
+--- Sample matches (up to 5 of 104) ---
+  Mexico vs South Africa | 2026-06-11T19:00:00Z | FINISHED
+  South Korea vs Czechia | 2026-06-12T02:00:00Z | FINISHED
+  Canada vs Bosnia-Herzegovina | 2026-06-12T19:00:00Z | FINISHED
+  United States vs Paraguay | 2026-06-13T01:00:00Z | FINISHED
+  Qatar vs Switzerland | 2026-06-13T19:00:00Z | FINISHED
 
-1. Obtain a football-data.org API token (free tier covers World Cup fixtures).
-2. Add to `apps/api/.env` — **never commit this file**:
-   ```
-   FOOTBALL_DATA_API_KEY=<token>
-   ```
-3. Re-run both tools:
-   ```bash
-   node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-health.mjs
-   node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-worldcup.mjs
-   ```
+[INFO] Score data in free tier: AVAILABLE
 
-## Expected Outcome When Key Is Set
+[WC_SAMPLE_OK] 104 matches returned
+[INFO] PSL (Premier Soccer League) is NOT supported on football-data.org
+```
 
-| Tool | Expected result code | Meaning |
-|---|---|---|
-| `sprint-12-football-data-health.mjs` | `FOOTBALL_DATA_HEALTH_OK` | API reachable and token valid |
-| `sprint-12-football-data-worldcup.mjs` | `FOOTBALL_DATA_WORLD_CUP_BETA_VALIDATED` | WC 2026 fixtures available |
+## Result: VALIDATED
+
+football-data.org is confirmed as the World Cup 2026 data provider. 104 matches accessible on the free tier. Score data (fullTime goals) is available. Authentication via `X-Auth-Token` header works correctly.
 
 ## PSL Availability Note
 
-PSL (South African Premier Division) is **not listed** in the football-data.org competition catalogue. This is a known permanent gap — it is not a key issue. The PSL data path uses API-Football (league 288). See `SPRINT-13-PER-COMPETITION-ROUTING.md` for the routing design.
-
-Expected result code when WC is confirmed but PSL is requested: `WC_BETA_VALIDATED_PSL_NOT_SUPPORTED`.
+PSL is **not listed** in the football-data.org competition catalogue — this is a permanent, known gap, not a tier issue. PSL data routes to API-Football (league 288) via `ProviderRouterService`. See `SPRINT-13-PER-COMPETITION-ROUTING.md`.
 
 ## Related Documents
 
 - `docs/data/SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md` — API-Football (PSL path) validation
 - `docs/data/SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md` — combined status table
 - `docs/data/SPRINT-13-PER-COMPETITION-ROUTING.md` — ProviderRouterService design
-- `docs/data/SPRINT-12-FOOTBALL-DATA-ORG-VALIDATION.md` — prior Sprint 12 findings

@@ -100,6 +100,35 @@ describe('ApiFootballAdapter', () => {
       const result = await new ApiFootballAdapter().health();
       expect(result.available).toBe(false);
     });
+
+    it('getFixtures returns [] when body contains errors.access (suspended account)', async () => {
+      process.env['API_FOOTBALL_KEY'] = 'suspended-key';
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          errors: { access: 'Your account is suspended, check on https://dashboard.api-football.com.' },
+          response: [],
+        }),
+      }));
+      const { ApiFootballAdapter } = await import('./api-football.adapter');
+      expect(await new ApiFootballAdapter().getFixtures('2025')).toEqual([]);
+    });
+
+    it('health returns available:false when body contains errors object', async () => {
+      process.env['API_FOOTBALL_KEY'] = 'suspended-key';
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          errors: { access: 'Your account is suspended.' },
+          response: [],
+        }),
+      }));
+      const { ApiFootballAdapter } = await import('./api-football.adapter');
+      const result = await new ApiFootballAdapter().health();
+      expect(result.available).toBe(false);
+    });
   });
 
   // ── Response mapping (mocked) ─────────────────────────────────────────────

@@ -1,73 +1,50 @@
 # Sprint 13 — Provider Live Validation Summary
 
-## Overall Status: ALL_BLOCKED_PENDING_KEYS
+## Overall Status: PARTIAL_VALIDATED
 
-All live validation attempts were blocked by missing or empty API keys. No HTTP calls were made to any external provider during Sprint 13.
+| Provider | Tool | Date | Result | Detail |
+|---|---|---|---|---|
+| football-data.org | sprint-13-worldcup-sample.mjs | 2026-06-22 | `WC_BETA_VALIDATED` | 104 WC matches, score data available |
+| API-Football | sprint-13-psl-sample.mjs | 2026-06-22 | `API_FOOTBALL_ACCOUNT_SUSPENDED` | HTTP 200 but `errors.access` in body |
+| API-Football | sprint-11-provider-health.mjs | 2026-06-22 | `available=false` | 0 leagues returned (account suspended) |
 
-## Validation Results Table
+## football-data.org — VALIDATED
 
-| Provider | Tool | Date | Result | Reason | Owner Action |
-|---|---|---|---|---|---|
-| football-data.org | sprint-12-football-data-health.mjs | 2026-06-22 | BLOCKED_BY_FOOTBALL_DATA_KEY | Key not set | Set FOOTBALL_DATA_API_KEY |
-| football-data.org | sprint-12-football-data-worldcup.mjs | 2026-06-22 | BLOCKED_BY_FOOTBALL_DATA_KEY | Key not set | Set FOOTBALL_DATA_API_KEY |
-| API-Football | sprint-11-provider-health.mjs | 2026-06-22 | BLOCKED_NO_KEY | Key empty | Set API_FOOTBALL_KEY |
-| API-Football | sprint-11-provider-coverage.mjs | 2026-06-22 | BLOCKED_NO_KEY | Key empty | Set API_FOOTBALL_KEY |
+- 104 World Cup 2026 matches returned on free tier
+- Score data (fullTime goals) available
+- `X-Auth-Token` header authentication working
+- PSL NOT available on football-data.org (permanent — not a key issue)
 
-## Provider Routing Intent (unvalidated)
+## API-Football — BLOCKED (account suspended)
 
-| Competition | Target provider | Status |
-|---|---|---|
-| World Cup 2026 (WC, WORLD_CUP_2026) | football-data.org | Pending key validation |
-| PSL (PSL, SOUTH_AFRICA_PSL, 288) | API-Football | Pending key validation |
-| All others | NoOpAdapter | Active (default) |
+- HTTP 200 returned but response body contains `errors.access`
+- Error message: `"Your account is suspended, check on https://dashboard.api-football.com."`
+- `response` array is always `[]` when account is suspended
+- **Adapter fix applied**: `api-football.adapter.ts` now checks `data.errors` before returning `data.response`
 
-## Instructions for Owner to Re-Run Validation
+## Owner Action Required (API-Football)
 
-### Step 1 — Set keys in `apps/api/.env` (never commit this file)
+1. Log in to https://dashboard.api-football.com
+2. Reactivate or upgrade the account
+3. Re-run:
+   ```bash
+   node --env-file=apps/api/.env tools/discovery/sprint-13-psl-sample.mjs
+   ```
+4. Expected: `[PSL_FOUND]` + `[PSL_SAMPLE_OK]` if PSL league 288 is on the active tier
 
-```
-FOOTBALL_DATA_API_KEY=<token>
-API_FOOTBALL_KEY=<key>
-```
+## Re-run Instructions
 
-### Step 2 — Run football-data.org validation
-
+After account reactivation:
 ```bash
-node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-health.mjs
-node --env-file=apps/api/.env tools/discovery/sprint-12-football-data-worldcup.mjs
-```
-
-Expected result: `FOOTBALL_DATA_WORLD_CUP_BETA_VALIDATED`
-
-### Step 3 — Run API-Football validation
-
-```bash
-node --env-file=apps/api/.env tools/discovery/sprint-11-provider-health.mjs
-node --env-file=apps/api/.env tools/discovery/sprint-11-provider-coverage.mjs
-```
-
-Expected result: `API_FOOTBALL_PSL_VALIDATED` or `API_FOOTBALL_PSL_PARTIAL`
-
-### Step 4 — Run Sprint 13 routing check
-
-```bash
+node --env-file=apps/api/.env tools/discovery/sprint-13-provider-key-status.mjs
 node --env-file=apps/api/.env tools/discovery/sprint-13-routing-check.mjs
+node --env-file=apps/api/.env tools/discovery/sprint-13-psl-sample.mjs
+node --env-file=apps/api/.env tools/discovery/sprint-13-worldcup-sample.mjs
 ```
-
-### Step 5 — Report results
-
-Update this document with actual result codes once live keys are in place.
-
-## What Remains Blocked Until Keys Are Set
-
-- Full GO status for `SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md` (currently CONDITIONAL_GO)
-- Full GO status for `SPRINT-13-BETA-GO-NOGO.md` (currently CONDITIONAL_GO)
-- Resolution of known gaps G1, G2, and G3 in `SPRINT-13-KNOWN-GAPS.md`
 
 ## Related Documents
 
 - `docs/data/SPRINT-13-FOOTBALL-DATA-LIVE-VALIDATION.md`
 - `docs/data/SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md`
 - `docs/data/SPRINT-13-PER-COMPETITION-ROUTING.md`
-- `docs/handover/SPRINT-13-KNOWN-GAPS.md`
-- `docs/handover/SPRINT-13-OWNER-REVIEW-GUIDE.md`
+- `docs/data/SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md`

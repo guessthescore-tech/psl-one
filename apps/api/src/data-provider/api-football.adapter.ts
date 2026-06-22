@@ -51,7 +51,11 @@ export class ApiFootballAdapter implements ProviderAdapter {
         this.logger.warn(`API-Football returned ${res.status}`);
         return null;
       }
-      const data = (await res.json()) as { response: T };
+      const data = (await res.json()) as { response: T; errors?: Record<string, string> };
+      if (data.errors && Object.keys(data.errors).length > 0) {
+        this.logger.warn(`API-Football body error: ${JSON.stringify(data.errors)}`);
+        return null;
+      }
       return data.response ?? null;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
