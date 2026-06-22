@@ -3663,6 +3663,159 @@ describe('Sprint 17 — Parse PSL Ingestion Beta Workflow', () => {
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprint 18 — Fixture Publishing Admin Workflow & PSL Activation Pre-Flight
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Sprint 18 — Fixture Publishing Admin Workflow & PSL Activation Pre-Flight', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // ── API: fixture publication service ──────────────────────────────────────
+  it('fixture-publication.service.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'fixture-publication.service.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('fixture-publication.service.ts does not contain PARSE_API_KEY', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'fixture-publication.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/PARSE_API_KEY/);
+  });
+
+  it('fixture-publication.service.ts does not activate PSL', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'fixture-publication.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/season\.update|isActive.*true/);
+  });
+
+  it('fixture-publication.service.ts has no scheduler', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'fixture-publication.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/@Cron|SchedulerRegistry|setInterval/);
+  });
+
+  // ── API: PSL pre-flight service ────────────────────────────────────────────
+  it('psl-activation-preflight.service.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'psl-activation-preflight.service.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('psl-activation-preflight.service.ts does not activate PSL', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'psl-activation-preflight.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/season\.update|isActive.*true/);
+  });
+
+  it('psl-activation-preflight.service.ts contains wallet_sandbox_only check', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'psl-activation-preflight.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('wallet_sandbox_only');
+  });
+
+  it('psl-activation-preflight.service.ts has no scheduler', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'fixture-import', 'psl-activation-preflight.service.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/@Cron|SchedulerRegistry|setInterval/);
+  });
+
+  // ── Frontend: fixture-publication-api.ts ──────────────────────────────────
+  it('fixture-publication-api.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'fixture-publication-api.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('fixture-publication-api.ts does not expose PARSE_API_KEY', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'lib', 'fixture-publication-api.ts');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/PARSE_API_KEY/);
+    expect(src).not.toMatch(/NEXT_PUBLIC_PARSE/);
+  });
+
+  // ── Frontend: admin pages ──────────────────────────────────────────────────
+  it('admin/fixtures/imported/page.tsx exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'fixtures', 'imported', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('admin/fixtures/imported/page.tsx warns publishing is separate from PSL activation', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'fixtures', 'imported', 'page.tsx');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/separate.*PSL activation|PSL activation.*separate/i);
+  });
+
+  it('admin/psl/preflight/page.tsx exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'psl', 'preflight', 'page.tsx');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('admin/psl/preflight/page.tsx does not activate PSL', () => {
+    const p = require('path').resolve(REPO, 'apps', 'experience', 'src', 'app', 'admin', 'psl', 'preflight', 'page.tsx');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/activatePsl|activateSeason|isActive.*true/);
+  });
+
+  // ── Discovery tools ────────────────────────────────────────────────────────
+  it('discovery tool sprint-18-fixture-publication-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-18-fixture-publication-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('discovery tool sprint-18-psl-preflight-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-18-psl-preflight-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // ── Documentation files ────────────────────────────────────────────────────
+  it('SPRINT-18-FIXTURE-PUBLISHING-WORKFLOW.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-18-FIXTURE-PUBLISHING-WORKFLOW.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-PSL-ACTIVATION-PREFLIGHT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-18-PSL-ACTIVATION-PREFLIGHT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-FIXTURE-PUBLICATION-AUDIT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-18-FIXTURE-PUBLICATION-AUDIT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-ADMIN-SMOKE-RUNBOOK.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-18-ADMIN-SMOKE-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-18-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-18-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-18-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-18-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-18-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-18-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-18-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
