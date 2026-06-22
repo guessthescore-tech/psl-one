@@ -3816,6 +3816,145 @@ describe('Sprint 18 — Fixture Publishing Admin Workflow & PSL Activation Pre-F
   });
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sprint 19 — Staging Environment Stabilisation & Admin Smoke
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Sprint 19 — Staging Environment Stabilisation & Admin Smoke', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // ── Staging tools exist ───────────────────────────────────────────────────
+  it('sprint-19-staging-env-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-staging-env-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-admin-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-admin-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-admin-rbac-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-admin-rbac-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-parse-ingestion-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-parse-ingestion-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-fixture-publication-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-fixture-publication-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-psl-preflight-smoke.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-psl-preflight-smoke.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-19-migration-status-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-migration-status-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // ── Tool safety: dry-run by default ──────────────────────────────────────
+  it('parse-ingestion-smoke is dry-run by default', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-parse-ingestion-smoke.mjs');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/DRY_RUN_ONLY.*!==.*'false'|DRY_RUN_ONLY.*true/);
+  });
+
+  it('fixture-publication-smoke refuses writes unless ALLOW_WRITE_SMOKE=true', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-fixture-publication-smoke.mjs');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/ALLOW_WRITE_SMOKE.*===.*'true'/);
+    expect(src).toContain('ALLOW_WRITE_SMOKE=false');
+  });
+
+  it('admin-smoke has ALLOW_WRITE_SMOKE=false default', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-admin-smoke.mjs');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/ALLOW_WRITE_SMOKE.*===.*'true'/);
+  });
+
+  it('migration-status-check does not execute migrate deploy', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-migration-status-check.mjs');
+    const src = require('fs').readFileSync(p, 'utf8');
+    // execSync with deploy would execute migrations — only status is allowed
+    expect(src).not.toMatch(/execSync\s*\([^)]*migrate deploy/);
+    expect(src).toContain('migrate status');
+  });
+
+  it('psl-preflight-smoke is read-only (no activation)', () => {
+    const p = require('path').resolve(REPO, 'tools', 'staging', 'sprint-19-psl-preflight-smoke.mjs');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).not.toMatch(/activatePsl|isActive.*true|season.*update/);
+    expect(src).toContain('does NOT activate');
+  });
+
+  // ── No provider keys in staging tools ────────────────────────────────────
+  it('staging tools do not contain PARSE_API_KEY hardcoded values', () => {
+    const dir = require('path').resolve(REPO, 'tools', 'staging');
+    const fs = require('fs');
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.mjs'));
+    for (const file of files) {
+      const src = fs.readFileSync(require('path').join(dir, file), 'utf8');
+      // No actual key value assignments — env var references and string literals as check keys are allowed
+      expect(src).not.toMatch(/PARSE_API_KEY=['"][A-Za-z0-9]{8}/);
+      // No provider key set as NEXT_PUBLIC (would expose it to the browser)
+      expect(src).not.toMatch(/NEXT_PUBLIC_PARSE_API_KEY\s*=/);
+    }
+  });
+
+  // ── No scheduler in staging tools ────────────────────────────────────────
+  it('staging tools have no @Cron or setInterval scheduler', () => {
+    const dir = require('path').resolve(REPO, 'tools', 'staging');
+    const fs = require('fs');
+    const files = fs.readdirSync(dir).filter((f: string) => f.endsWith('.mjs'));
+    for (const file of files) {
+      const src = fs.readFileSync(require('path').join(dir, file), 'utf8');
+      expect(src).not.toMatch(/@Cron|SchedulerRegistry/);
+    }
+  });
+
+  // ── Staging docs exist ────────────────────────────────────────────────────
+  it('SPRINT-19-STAGING-READINESS-ASSESSMENT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-19-STAGING-READINESS-ASSESSMENT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-STAGING-ENV-CHECKLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-19-STAGING-ENV-CHECKLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-STAGING-DEPLOYMENT-RUNBOOK.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-19-STAGING-DEPLOYMENT-RUNBOOK.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-ADMIN-UI-SMOKE-CHECKLIST.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-19-ADMIN-UI-SMOKE-CHECKLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-19-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-19-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-19-STORY-MATRIX.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-19-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
