@@ -3181,6 +3181,175 @@ describe('Sprint 14 — Parse PSL Provider Path', () => {
   });
 });
 
+// ── Sprint 15 — Parse Live Validation & Ingestion Design ─────────────────────
+
+describe('Sprint 15 — Parse Live Validation & Ingestion Design', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // Live validation docs
+  it('SPRINT-15-PARSE-PSL-LIVE-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PARSE-PSL-LIVE-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-PARSE-PSL-LIVE-VALIDATION.md contains a recognised validation status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PARSE-PSL-LIVE-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/PARSE_PSL_KEY_MISSING|PARSE_PSL_HEALTH_OK|PARSE_PSL_AUTH_FAILED|PARSE_PSL_FIXTURES/);
+  });
+
+  it('SPRINT-15-PARSE-PSL-SOURCE-EMPTY-ASSESSMENT.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PARSE-PSL-SOURCE-EMPTY-ASSESSMENT.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Source-empty assessment documents that empty fixtures array is valid', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PARSE-PSL-SOURCE-EMPTY-ASSESSMENT.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/source.empty|ACCEPTABLE|valid/i);
+  });
+
+  it('SPRINT-15-PROVIDER-ROUTING-STATUS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PROVIDER-ROUTING-STATUS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-PROVIDER-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PROVIDER-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-PROVIDER-GO-NOGO.md contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PROVIDER-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  // Ingestion design docs
+  it('SPRINT-15-FIXTURE-INGESTION-DESIGN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-FIXTURE-INGESTION-DESIGN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Fixture ingestion design documents idempotency requirement', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-FIXTURE-INGESTION-DESIGN.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/[Ii]dempotent/);
+  });
+
+  it('Fixture ingestion design states no production ingestion enabled', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-FIXTURE-INGESTION-DESIGN.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/No.*scheduled.*job|no.*production.*ingestion|manual.*only|manual run/i);
+  });
+
+  it('SPRINT-15-IDEMPOTENT-INGESTION-RULES.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-IDEMPOTENT-INGESTION-RULES.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-PARSE-RATE-LIMIT-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-PARSE-RATE-LIMIT-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-CANONICAL-DATA-BOUNDARY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-CANONICAL-DATA-BOUNDARY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Canonical data boundary doc exists and covers locked data', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-15-CANONICAL-DATA-BOUNDARY.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/[Ll]ocked|canonical|provenance/i);
+  });
+
+  // Dry-run script
+  it('sprint-15-parse-fixture-dry-run.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('dry-run script does not write to DB', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/READ-ONLY|no DB writes/i);
+    expect(content).not.toMatch(/prisma\.(fixture|team|player)\.(create|update|upsert|delete)/i);
+  });
+
+  it('dry-run script redacts PARSE_API_KEY', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/redact|REDACTED/i);
+    expect(content).not.toMatch(/console\.log.*process\.env\['PARSE_API_KEY'\]/);
+  });
+
+  it('dry-run script handles source-empty as success (exit 0)', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('DRY_RUN_SOURCE_EMPTY');
+    expect(content).toMatch(/exit\(0\)/);
+  });
+
+  it('dry-run script references SPORTMONKS_API_KEY for spec compliance', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+  });
+
+  it('dry-run script declares READ-ONLY mode', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/READ-ONLY/);
+  });
+
+  // Handover docs
+  it('SPRINT-15-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 15 beta go/no-go contains recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  it('SPRINT-15-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-15-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-15-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  // Safety constraints
+  it('no NEXT_PUBLIC_ provider key in dry-run script', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/NEXT_PUBLIC_PARSE/);
+    expect(content).not.toMatch(/NEXT_PUBLIC_FOOTBALL/);
+  });
+
+  it('no betting/odds endpoints in dry-run script', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-15-parse-fixture-dry-run.mjs');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/\/odds\/|\/bets\/|\/betting\//i);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
