@@ -254,11 +254,14 @@ describe('ApiFootballAdapter', () => {
       expect(adapterSource).not.toMatch(/\/odds\/|\/bets\/|\/betting\/|\/bookmakers\/|\/predictions\//i);
     });
 
-    it('adapter not yet wired into DataProviderService (candidate only)', async () => {
+    it('ApiFootballAdapter is wired into DataProviderService via DATA_PROVIDER flag', async () => {
       const serviceSource = require('fs').readFileSync(
         require('path').resolve(__dirname, 'data-provider.service.ts'), 'utf8',
       );
-      expect(serviceSource).not.toContain('ApiFootball');
+      // Sprint 11: wired via explicit DATA_PROVIDER=api-football flag, not auto-selected
+      expect(serviceSource).toContain('ApiFootballAdapter');
+      expect(serviceSource).toContain('DATA_PROVIDER');
+      expect(serviceSource).toContain("provider === 'api-football'");
     });
   });
 });

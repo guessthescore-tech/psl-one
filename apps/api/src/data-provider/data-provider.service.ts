@@ -1,9 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NoOpAdapter } from './no-op.adapter';
-// SportmonksAdapter is retained for reference but is NOT wired — Sportmonks was removed from
-// the active provider strategy (Sprint 10 amendment). Primary provider is UNDECIDED.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { SportmonksAdapter } from './sportmonks.adapter';
+import { ApiFootballAdapter } from './api-football.adapter';
 import type { ProviderAdapter } from './provider-adapter.interface';
 
 @Injectable()
@@ -12,10 +9,27 @@ export class DataProviderService {
   private readonly adapter: ProviderAdapter;
 
   constructor() {
-    // Primary provider is UNDECIDED — always use NoOpAdapter until a new provider is chosen
-    // and explicitly wired here. See docs/data/SPRINT-10-ACTIVE-PROVIDER-STRATEGY.md.
-    this.adapter = new NoOpAdapter();
-    this.logger.log('DataProviderService: using NoOpAdapter (primary provider UNDECIDED)');
+    // Provider selection is explicit via DATA_PROVIDER env var.
+    // A key alone never activates a provider — both must be set.
+    // See docs/data/SPRINT-11-PROVIDER-DECISION.md.
+    const provider = process.env['DATA_PROVIDER'];
+    if (provider === 'api-football') {
+      const key = process.env['API_FOOTBALL_KEY'];
+      if (key) {
+        this.adapter = new ApiFootballAdapter();
+        this.logger.log('DataProviderService: using ApiFootballAdapter (DATA_PROVIDER=api-football)');
+      } else {
+        this.adapter = new NoOpAdapter();
+        this.logger.warn('DataProviderService: DATA_PROVIDER=api-football but API_FOOTBALL_KEY not set — NoOpAdapter fallback');
+      }
+    } else {
+      this.adapter = new NoOpAdapter();
+      if (provider) {
+        this.logger.warn(`DataProviderService: unknown DATA_PROVIDER="${provider}" — NoOpAdapter fallback`);
+      } else {
+        this.logger.log('DataProviderService: DATA_PROVIDER not set — NoOpAdapter default');
+      }
+    }
   }
 
   health() { return this.adapter.health(); }
