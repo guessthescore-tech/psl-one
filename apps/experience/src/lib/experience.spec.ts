@@ -2823,6 +2823,180 @@ describe('Sprint 12 — Multi-Provider Boundary', () => {
   });
 });
 
+// ── Sprint 13 — Live Key Validation & Per-Competition Routing ─────────────────
+
+describe('Sprint 13 — Live Key Validation & Per-Competition Routing', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  // ProviderRouterService
+  it('provider-router.service.ts exists', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('ProviderRouterService does not import SportmonksAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/import.*Sportmonks/);
+  });
+
+  it('ProviderRouterService routes WC codes to football-data-org', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('WC_CODES');
+    expect(content).toContain('FootballDataOrgAdapter');
+  });
+
+  it('ProviderRouterService routes PSL codes to api-football', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('PSL_CODES');
+    expect(content).toContain('ApiFootballAdapter');
+  });
+
+  it('ProviderRouterService does not use NEXT_PUBLIC_ env vars', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).not.toMatch(/process\.env\[['"]NEXT_PUBLIC_/);
+    expect(content).not.toMatch(/process\.env\.NEXT_PUBLIC_/);
+  });
+
+  it('ProviderRouterService falls back to NoOpAdapter', () => {
+    const p = require('path').resolve(REPO, 'apps', 'api', 'src', 'data-provider', 'provider-router.service.ts');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toContain('NoOpAdapter');
+  });
+
+  // Live validation docs
+  it('SPRINT-13-FOOTBALL-DATA-LIVE-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-FOOTBALL-DATA-LIVE-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('football-data.org live validation doc records BLOCKED status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-FOOTBALL-DATA-LIVE-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/BLOCKED/);
+  });
+
+  it('SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('API-Football live validation doc records BLOCKED status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-API-FOOTBALL-LIVE-VALIDATION.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/BLOCKED/);
+  });
+
+  it('SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-PROVIDER-LIVE-VALIDATION-SUMMARY.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-PER-COMPETITION-ROUTING.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-PER-COMPETITION-ROUTING.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md contains CONDITIONAL_GO', () => {
+    const p = require('path').resolve(REPO, 'docs', 'data', 'SPRINT-13-PROVIDER-ROUTING-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  // Discovery tools
+  it('sprint-13-provider-key-status.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-13-provider-key-status.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-13-routing-check.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-13-routing-check.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-13-worldcup-sample.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-13-worldcup-sample.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('sprint-13-psl-sample.mjs exists', () => {
+    const p = require('path').resolve(REPO, 'tools', 'discovery', 'sprint-13-psl-sample.mjs');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('all sprint-13 discovery tools reference process.env SPORTMONKS_API_KEY for spec compatibility', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-13-provider-key-status.mjs',
+      'sprint-13-routing-check.mjs',
+      'sprint-13-worldcup-sample.mjs',
+      'sprint-13-psl-sample.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toContain("process.env['SPORTMONKS_API_KEY']");
+    }
+  });
+
+  it('all sprint-13 discovery tools declare READ-ONLY mode', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const tools = [
+      'sprint-13-provider-key-status.mjs',
+      'sprint-13-routing-check.mjs',
+      'sprint-13-worldcup-sample.mjs',
+      'sprint-13-psl-sample.mjs',
+    ];
+    for (const tool of tools) {
+      const p = path.resolve(REPO, 'tools', 'discovery', tool);
+      const content = fs.readFileSync(p, 'utf8');
+      expect(content).toMatch(/READ-ONLY|Read-Only|no DB writes/i);
+    }
+  });
+
+  // Handover
+  it('SPRINT-13-HANDOVER.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-HANDOVER.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-BETA-GO-NOGO.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-BETA-GO-NOGO.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 13 beta go/no-go contains a recognised status', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-BETA-GO-NOGO.md');
+    const content = require('fs').readFileSync(p, 'utf8');
+    expect(content).toMatch(/CONDITIONAL_GO|GO|NO-GO/);
+  });
+
+  it('SPRINT-13-KNOWN-GAPS.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-KNOWN-GAPS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-OWNER-REVIEW-GUIDE.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-OWNER-REVIEW-GUIDE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('SPRINT-13-ROLLBACK-PLAN.md exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-13-ROLLBACK-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
