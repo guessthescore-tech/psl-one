@@ -4,21 +4,24 @@ import { ClubPortalController } from './club-portal.controller';
 import type { ClubPortalService } from './club-portal.service';
 
 const makeService = () => ({
-  getClubOverview: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubProfile: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubSquad: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubFixtures: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubFans: vi.fn().mockReturnValue({ fanCount: 0, fans: [], note: 'pending' }),
-  getClubAnalytics: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubCampaigns: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubSponsors: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getClubContent: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
+  getClubOverview: vi.fn().mockResolvedValue({ playerCount: 0, recentFixtures: [] }),
+  getClubProfile: vi.fn().mockResolvedValue({ id: 'club-1', name: 'Test FC' }),
+  getClubSquad: vi.fn().mockResolvedValue([]),
+  getClubFixtures: vi.fn().mockResolvedValue([]),
+  getClubFans: vi.fn().mockReturnValue({ fanCount: 0, fans: [], note: 'future feature' }),
+  getClubAnalytics: vi.fn().mockResolvedValue({ playerCount: 0, fixtureCount: 0, contentCount: 0 }),
+  getClubCampaigns: vi.fn().mockResolvedValue([]),
+  getClubSponsors: vi.fn().mockResolvedValue([]),
+  getClubContent: vi.fn().mockResolvedValue([]),
   submitContent: vi.fn().mockResolvedValue({ id: 'ct-new', status: 'DRAFT' }),
 });
 
-describe('ClubPortalController', () => {
+describe('ClubPortalController (Sprint 28 — req.user scoping)', () => {
   let controller: ClubPortalController;
   let service: ReturnType<typeof makeService>;
+
+  const mockReq = { user: { sub: 'user-1', role: 'CLUB_ADMIN' } };
+  const mockAdminReq = { user: { sub: 'admin-1', role: 'PSL_ADMIN' } };
 
   beforeEach(() => {
     service = makeService();
@@ -29,24 +32,24 @@ describe('ClubPortalController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('getClubOverview calls service with clubId', async () => {
-    await controller.getClubOverview('club-1');
-    expect(service.getClubOverview).toHaveBeenCalledWith('club-1');
+  it('getClubOverview passes req.user.sub and role to service', async () => {
+    await controller.getClubOverview(mockReq, 'club-1');
+    expect(service.getClubOverview).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('getClubProfile calls service with clubId', async () => {
-    await controller.getClubProfile('club-1');
-    expect(service.getClubProfile).toHaveBeenCalledWith('club-1');
+  it('getClubProfile passes req.user.sub and role to service', async () => {
+    await controller.getClubProfile(mockReq, 'club-1');
+    expect(service.getClubProfile).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('getClubSquad calls service with clubId', async () => {
-    await controller.getClubSquad('club-1');
-    expect(service.getClubSquad).toHaveBeenCalledWith('club-1');
+  it('getClubSquad passes req.user.sub and role to service', async () => {
+    await controller.getClubSquad(mockReq, 'club-1');
+    expect(service.getClubSquad).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('getClubFixtures calls service with clubId', async () => {
-    await controller.getClubFixtures('club-1');
-    expect(service.getClubFixtures).toHaveBeenCalledWith('club-1');
+  it('getClubFixtures passes req.user.sub and role to service', async () => {
+    await controller.getClubFixtures(mockReq, 'club-1');
+    expect(service.getClubFixtures).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
   it('getClubFans returns fans placeholder', () => {
@@ -54,26 +57,30 @@ describe('ClubPortalController', () => {
     expect(result).toMatchObject({ fanCount: 0, fans: [] });
   });
 
-  it('getClubAnalytics calls service with clubId', async () => {
-    await controller.getClubAnalytics('club-1');
-    expect(service.getClubAnalytics).toHaveBeenCalledWith('club-1');
+  it('getClubAnalytics passes req.user.sub and role to service', async () => {
+    await controller.getClubAnalytics(mockReq, 'club-1');
+    expect(service.getClubAnalytics).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('getClubCampaigns calls service with clubId', async () => {
-    await controller.getClubCampaigns('club-1');
-    expect(service.getClubCampaigns).toHaveBeenCalledWith('club-1');
+  it('getClubCampaigns passes req.user.sub and role to service', async () => {
+    await controller.getClubCampaigns(mockReq, 'club-1');
+    expect(service.getClubCampaigns).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('getClubContent calls service with clubId', async () => {
-    await controller.getClubContent('club-1');
-    expect(service.getClubContent).toHaveBeenCalledWith('club-1');
+  it('getClubContent passes req.user.sub and role to service', async () => {
+    await controller.getClubContent(mockReq, 'club-1');
+    expect(service.getClubContent).toHaveBeenCalledWith('user-1', 'CLUB_ADMIN', 'club-1');
   });
 
-  it('submitContent calls service with dto, clubId, userId', async () => {
+  it('submitContent passes dto, req.user.sub, role to service', async () => {
     const dto = { title: 'Test', contentType: 'news' };
-    const req = { user: { userId: 'user-1' } };
-    await controller.submitContent(dto, 'club-1', req);
-    expect(service.submitContent).toHaveBeenCalledWith(dto, 'club-1', 'user-1');
+    await controller.submitContent(dto, mockReq, 'club-1');
+    expect(service.submitContent).toHaveBeenCalledWith(dto, 'user-1', 'CLUB_ADMIN', 'club-1');
+  });
+
+  it('PSL_ADMIN can pass explicit teamId', async () => {
+    await controller.getClubOverview(mockAdminReq, 'explicit-team-id');
+    expect(service.getClubOverview).toHaveBeenCalledWith('admin-1', 'PSL_ADMIN', 'explicit-team-id');
   });
 
   it('controller has CLUB_ADMIN and PSL_ADMIN roles metadata', () => {
