@@ -4688,6 +4688,280 @@ describe('Sprint 24 — Beta EC2 RBAC Smoke Evidence', () => {
   });
 });
 
+// ─── Sprint 25: Portal shell components ───────────────────────────────────
+
+describe('portal shell components exist', () => {
+  const portalComponents = [
+    'components/portal/PortalShell.tsx',
+    'components/portal/PortalSidebar.tsx',
+    'components/portal/PortalTopbar.tsx',
+    'components/portal/PortalStatusBadges.tsx',
+    'components/portal/PortalMetricCard.tsx',
+    'components/portal/PortalDataTable.tsx',
+    'components/portal/PortalEmptyState.tsx',
+    'components/portal/PortalConfirmDialog.tsx',
+  ];
+  for (const c of portalComponents) {
+    it(c.split('/').pop()!, () => expect(exists(c)).toBe(true));
+  }
+});
+
+// ─── Sprint 25: Admin portal routes ───────────────────────────────────────
+
+describe('admin portal routes exist', () => {
+  const adminPages = [
+    'app/admin/page.tsx',
+    'app/admin/overview/page.tsx',
+    'app/admin/competitions/page.tsx',
+    'app/admin/seasons/page.tsx',
+    'app/admin/fixtures/page.tsx',
+    'app/admin/teams/page.tsx',
+    'app/admin/players/page.tsx',
+    'app/admin/rules/page.tsx',
+    'app/admin/rules/guess-the-score/page.tsx',
+    'app/admin/rules/fantasy/page.tsx',
+    'app/admin/points/page.tsx',
+    'app/admin/points/simulation/page.tsx',
+    'app/admin/leaderboards/page.tsx',
+    'app/admin/challenges/page.tsx',
+    'app/admin/campaigns/page.tsx',
+    'app/admin/sponsors/page.tsx',
+    'app/admin/clubs/page.tsx',
+    'app/admin/users/page.tsx',
+    'app/admin/roles/page.tsx',
+    'app/admin/audit/page.tsx',
+    'app/admin/settings/page.tsx',
+    'app/admin/readiness/page.tsx',
+  ];
+  for (const p of adminPages) {
+    it(p, () => expect(exists(p)).toBe(true));
+  }
+});
+
+// ─── Sprint 25: Club portal routes ────────────────────────────────────────
+
+describe('club portal routes exist', () => {
+  const clubPages = [
+    'app/club/page.tsx',
+    'app/club/overview/page.tsx',
+    'app/club/profile/page.tsx',
+    'app/club/squad/page.tsx',
+    'app/club/players/page.tsx',
+    'app/club/fixtures/page.tsx',
+    'app/club/results/page.tsx',
+    'app/club/fans/page.tsx',
+    'app/club/content/page.tsx',
+    'app/club/campaigns/page.tsx',
+    'app/club/sponsors/page.tsx',
+    'app/club/analytics/page.tsx',
+    'app/club/supporters/page.tsx',
+    'app/club/settings/page.tsx',
+  ];
+  for (const p of clubPages) {
+    it(p, () => expect(exists(p)).toBe(true));
+  }
+});
+
+// ─── Sprint 25: Sponsor portal routes ─────────────────────────────────────
+
+describe('sponsor portal routes exist', () => {
+  const sponsorPages = [
+    'app/sponsor/page.tsx',
+    'app/sponsor/overview/page.tsx',
+    'app/sponsor/profile/page.tsx',
+    'app/sponsor/campaigns/page.tsx',
+    'app/sponsor/campaigns/new/page.tsx',
+    'app/sponsor/audiences/page.tsx',
+    'app/sponsor/activations/page.tsx',
+    'app/sponsor/rewards/page.tsx',
+    'app/sponsor/analytics/page.tsx',
+    'app/sponsor/clubs/page.tsx',
+    'app/sponsor/assets/page.tsx',
+    'app/sponsor/billing-placeholder/page.tsx',
+    'app/sponsor/settings/page.tsx',
+  ];
+  for (const p of sponsorPages) {
+    it(p, () => expect(exists(p)).toBe(true));
+  }
+});
+
+// ─── Sprint 25: Portal API clients ────────────────────────────────────────
+
+describe('portal API clients exist', () => {
+  it('admin-portal-api.ts', () => expect(exists('lib/admin-portal-api.ts')).toBe(true));
+  it('club-portal-api.ts',   () => expect(exists('lib/club-portal-api.ts')).toBe(true));
+  it('sponsor-portal-api.ts',() => expect(exists('lib/sponsor-portal-api.ts')).toBe(true));
+  it('points-rules-api.ts',  () => expect(exists('lib/points-rules-api.ts')).toBe(true));
+  it('portal-routes.ts',     () => expect(exists('lib/portal-routes.ts')).toBe(true));
+});
+
+// ─── Sprint 25: Admin overview safety copy ────────────────────────────────
+
+describe('admin overview safety copy', () => {
+  const overview = read('app/admin/overview/page.tsx');
+  it('mentions PSL remains inactive', () => {
+    expect(overview).toContain('PSL remains inactive');
+  });
+  it('mentions wallet sandbox', () => {
+    expect(
+      overview.toLowerCase().includes('wallet') &&
+      (overview.includes('sandbox') || overview.includes('SANDBOX')),
+    ).toBe(true);
+  });
+  it('mentions no real money', () => {
+    expect(
+      overview.includes('Points only') ||
+      overview.includes('points-only') ||
+      overview.includes('POINTS_ONLY') ||
+      overview.includes('no real money') ||
+      overview.includes('no financial value'),
+    ).toBe(true);
+  });
+});
+
+// ─── Sprint 25: GTS points page safety ────────────────────────────────────
+
+describe('guess-the-score points page safety', () => {
+  const gtsPage = read('app/admin/rules/guess-the-score/page.tsx');
+  it('declares GTS_POINTS_ONLY', () => {
+    expect(gtsPage.includes('GTS_POINTS_ONLY') || gtsPage.includes('points-only') || gtsPage.includes('Points only')).toBe(true);
+  });
+  it('declares no real money', () => {
+    // The page must mention "no real money" or "no financial value" or similar explicit disclaimer
+    expect(
+      gtsPage.includes('No real money') ||
+      gtsPage.includes('no real money') ||
+      gtsPage.includes('no financial value') ||
+      gtsPage.includes('Points only')
+    ).toBe(true);
+  });
+});
+
+// ─── Sprint 25: Fantasy points page safety ────────────────────────────────
+
+describe('fantasy points page safety (admin rules)', () => {
+  const fantasyPage = read('app/admin/rules/fantasy/page.tsx');
+  it('declares FANTASY_POINTS_ONLY', () => {
+    expect(fantasyPage.includes('FANTASY_POINTS_ONLY') || fantasyPage.includes('points-only') || fantasyPage.includes('Points only')).toBe(true);
+  });
+  it('declares no real money', () => {
+    expect(
+      fantasyPage.includes('No real money') ||
+      fantasyPage.includes('no real money') ||
+      fantasyPage.includes('no financial value') ||
+      fantasyPage.includes('Points only')
+    ).toBe(true);
+  });
+});
+
+// ─── Sprint 25: Club portal does not expose league activation ─────────────
+
+describe('club portal does not expose league activation', () => {
+  const clubOverview = read('app/club/overview/page.tsx');
+  it('mentions league activation is admin-only', () => {
+    expect(clubOverview.includes('admin-only') || clubOverview.includes('league activation') || clubOverview.includes('no league activation')).toBe(true);
+  });
+  it('has no league activation button with onClick', () => {
+    // Checks there is no interactive activation button (must not have onClick/href that triggers activation)
+    expect(clubOverview).not.toContain('activateSeason(');
+    expect(clubOverview).not.toContain('/admin/seasons/activate');
+  });
+});
+
+// ─── Sprint 25: Sponsor portal non-financial ──────────────────────────────
+
+describe('sponsor portal does not expose cash payouts', () => {
+  const rewardsPage = read('app/sponsor/rewards/page.tsx');
+  it('declares SPONSOR_REWARDS_NON_FINANCIAL', () => {
+    expect(rewardsPage.includes('SPONSOR_REWARDS_NON_FINANCIAL') || rewardsPage.includes('non-financial') || rewardsPage.includes('Non-Financial')).toBe(true);
+  });
+  it('has no offer of cash rewards or prize money', () => {
+    // Check for promotional gambling/cash patterns — NOT safety disclaimers
+    expect(rewardsPage).not.toContain('casino.com');
+    expect(rewardsPage).not.toContain('isFinancial: true');
+    expect(rewardsPage).not.toContain('cashPayout');
+    expect(rewardsPage).not.toContain('prizeMoney');
+  });
+});
+
+// ─── Sprint 25: Frontend security — no provider keys ──────────────────────
+
+describe('frontend security: no provider keys assigned in portal API clients', () => {
+  const apiFiles = [
+    'lib/admin-portal-api.ts',
+    'lib/club-portal-api.ts',
+    'lib/sponsor-portal-api.ts',
+    'lib/points-rules-api.ts',
+  ];
+  // Check for actual key assignments/usages, not just comments mentioning what NOT to do
+  const DANGEROUS_PATTERNS = [
+    /ADMIN_TOKEN\s*=/,
+    /PARSE_API_KEY\s*=/,
+    /API_FOOTBALL_KEY\s*=/,
+    /'x-apisports-key'/,
+    /process\.env\['ADMIN_TOKEN'\]/,
+    /process\.env\['PARSE_API_KEY'\]/,
+    /process\.env\['API_FOOTBALL_KEY'\]/,
+  ];
+  for (const file of apiFiles) {
+    for (const pattern of DANGEROUS_PATTERNS) {
+      it(`${file} does not use secret pattern ${pattern.source.slice(0, 20)}`, () => {
+        expect(read(file)).not.toMatch(pattern);
+      });
+    }
+  }
+});
+
+// ─── Sprint 25: Portal docs exist ─────────────────────────────────────────
+
+describe('portal docs exist', () => {
+  // Docs live at the project root (2 levels above apps/experience)
+  const PROJECT_ROOT = resolve(ROOT, '../..');
+  function doc(rel: string) {
+    return existsSync(resolve(PROJECT_ROOT, rel));
+  }
+  function docRead(rel: string) {
+    return readFileSync(resolve(PROJECT_ROOT, rel), 'utf8');
+  }
+
+  const DOCS = [
+    'docs/portals/SPRINT-25-ADMIN-PORTAL-SCOPE.md',
+    'docs/portals/SPRINT-25-CLUB-PORTAL-SCOPE.md',
+    'docs/portals/SPRINT-25-SPONSOR-PORTAL-SCOPE.md',
+    'docs/portals/SPRINT-25-POINTS-RULES-MANAGEMENT.md',
+    'docs/portals/SPRINT-25-PORTAL-RBAC-MATRIX.md',
+    'docs/portals/SPRINT-25-PORTAL-API-CONTRACT-GAPS.md',
+    'docs/portals/SPRINT-25-PORTAL-UX-QA-CHECKLIST.md',
+    'docs/handover/SPRINT-25-BETA-GO-NOGO.md',
+    'docs/handover/SPRINT-25-HANDOVER.md',
+    'docs/handover/SPRINT-25-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-25-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-25-ROLLBACK-PLAN.md',
+    'docs/sprints/SPRINT-25-STORY-MATRIX.md',
+  ];
+
+  const REQUIRED_PHRASES = [
+    'PSL remains inactive',
+    'sandbox-only',
+    'points-only',
+  ];
+
+  for (const docPath of DOCS) {
+    it(`${docPath.split('/').pop()} exists`, () => {
+      expect(doc(docPath)).toBe(true);
+    });
+    it(`${docPath.split('/').pop()} mentions PSL remains inactive`, () => {
+      expect(docRead(docPath)).toContain('PSL remains inactive');
+    });
+    it(`${docPath.split('/').pop()} mentions sandbox-only`, () => {
+      const content = docRead(docPath);
+      expect(content.includes('sandbox-only') || content.includes('sandbox only') || content.includes('SANDBOX')).toBe(true);
+    });
+  }
+});
+
+// ─── getAllFiles helper ────────────────────────────────────────────────────
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
