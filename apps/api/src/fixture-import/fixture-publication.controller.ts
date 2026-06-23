@@ -23,7 +23,7 @@ import { PslActivationPreflightService } from './psl-activation-preflight.servic
  */
 @Controller('admin/fixtures')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('PSL_ADMIN')
 export class FixturePublicationController {
   constructor(private readonly publication: FixturePublicationService) {}
 
@@ -78,7 +78,7 @@ export class FixturePublicationController {
 
 @Controller('admin/psl')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('PSL_ADMIN')
 export class PslPreflightController {
   constructor(private readonly preflight: PslActivationPreflightService) {}
 

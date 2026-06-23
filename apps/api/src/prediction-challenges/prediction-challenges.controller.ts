@@ -20,7 +20,7 @@ export class PredictionChallengesController {
 
   @Post('settle-fixture/:fixtureId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('PSL_ADMIN')
   @HttpCode(HttpStatus.OK)
   settleFixture(@Param('fixtureId') fixtureId: string) {
     return this.settlementService.settleAllAcceptedForFixture(fixtureId);
@@ -69,7 +69,7 @@ export class PredictionChallengesController {
 
   @Post(':token/settle')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
+  @Roles('PSL_ADMIN')
   @HttpCode(HttpStatus.OK)
   settle(@Param('token') token: string) {
     return this.settlementService.settle(token);

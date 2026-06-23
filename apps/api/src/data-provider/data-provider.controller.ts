@@ -8,7 +8,7 @@ import type { ParsePslIngestionRequestDto } from './dto/parse-psl-fixture-ingest
 
 @Controller('admin/data-provider')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('ADMIN')
+@Roles('PSL_ADMIN')
 export class DataProviderController {
   constructor(
     private service: DataProviderService,
