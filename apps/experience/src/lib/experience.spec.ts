@@ -5193,6 +5193,132 @@ describe('Sprint 25 — PSL Fixture Readiness Monitoring', () => {
   });
 });
 
+// ─── Sprint 26: QA and UAT docs ───────────────────────────────────────────
+
+describe('Sprint 26 — QA documentation exists', () => {
+  const qaRoot = resolve(__dirname, '../../../../docs/qa');
+  function qaExists(rel: string) { return existsSync(resolve(qaRoot, rel)); }
+  function qaRead(rel: string) { return readFileSync(resolve(qaRoot, rel), 'utf8'); }
+
+  const QA_DOCS = [
+    'SPRINT-26-LOCAL-IDE-TYPECHECK-STATUS.md',
+    'SPRINT-26-UAT-PERSONAS.md',
+    'SPRINT-26-ADMIN-PORTAL-UAT.md',
+    'SPRINT-26-CLUB-PORTAL-UAT.md',
+    'SPRINT-26-SPONSOR-PORTAL-UAT.md',
+    'SPRINT-26-FAN-EXPERIENCE-UAT.md',
+    'SPRINT-26-RBAC-SMOKE-RESULTS.md',
+    'SPRINT-26-PORTAL-ROUTE-SMOKE.md',
+    'SPRINT-26-UAT-ISSUE-LOG.md',
+    'SPRINT-26-QA-DECISION-REGISTER.md',
+    'SPRINT-26-API-CONTRACT-CLOSURE-PLAN.md',
+  ];
+
+  for (const doc of QA_DOCS) {
+    it(`${doc} exists`, () => expect(qaExists(doc)).toBe(true));
+  }
+
+  it('admin UAT doc mentions PSL remains inactive', () => {
+    expect(qaRead('SPRINT-26-ADMIN-PORTAL-UAT.md')).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL: INACTIVE/i);
+  });
+
+  it('admin UAT doc mentions sandbox', () => {
+    const content = qaRead('SPRINT-26-ADMIN-PORTAL-UAT.md');
+    expect(content.includes('SANDBOX') || content.includes('sandbox')).toBe(true);
+  });
+
+  it('admin UAT doc mentions points-only', () => {
+    expect(qaRead('SPRINT-26-ADMIN-PORTAL-UAT.md')).toMatch(/points.only/i);
+  });
+
+  it('sponsor UAT doc states non-financial rewards', () => {
+    expect(qaRead('SPRINT-26-SPONSOR-PORTAL-UAT.md')).toMatch(/non.financial/i);
+  });
+
+  it('sponsor UAT doc has no cash payout language', () => {
+    expect(qaRead('SPRINT-26-SPONSOR-PORTAL-UAT.md')).not.toMatch(/cash payout|betting|wager/i);
+  });
+
+  it('fan experience UAT doc mentions points-only', () => {
+    expect(qaRead('SPRINT-26-FAN-EXPERIENCE-UAT.md')).toMatch(/points.only/i);
+  });
+
+  it('fan experience UAT doc has no betting language', () => {
+    expect(qaRead('SPRINT-26-FAN-EXPERIENCE-UAT.md')).not.toMatch(/\bbetting\b|\bodds\b|\bwager\b|\bstake\b/i);
+  });
+
+  it('UAT issue log has no JWT tokens', () => {
+    expect(qaRead('SPRINT-26-UAT-ISSUE-LOG.md')).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+  });
+});
+
+describe('Sprint 26 — handover docs exist', () => {
+  const handoverRoot = resolve(__dirname, '../../../../docs/handover');
+  function hExists(rel: string) { return existsSync(resolve(handoverRoot, rel)); }
+  function hRead(rel: string) { return readFileSync(resolve(handoverRoot, rel), 'utf8'); }
+
+  const HANDOVER_DOCS = [
+    'SPRINT-26-BETA-GO-NOGO.md',
+    'SPRINT-26-HANDOVER.md',
+    'SPRINT-26-KNOWN-GAPS.md',
+    'SPRINT-26-OWNER-REVIEW-GUIDE.md',
+    'SPRINT-26-ROLLBACK-PLAN.md',
+  ];
+
+  for (const doc of HANDOVER_DOCS) {
+    it(`${doc} exists`, () => expect(hExists(doc)).toBe(true));
+    it(`${doc} mentions PSL remains inactive`, () => {
+      expect(hRead(doc)).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL: INACTIVE|PSL remains inactive/i);
+    });
+    it(`${doc} mentions sandbox-only or SANDBOX`, () => {
+      const content = hRead(doc);
+      expect(content.includes('sandbox-only') || content.includes('SANDBOX') || content.includes('sandbox')).toBe(true);
+    });
+    it(`${doc} has no JWT tokens`, () => {
+      expect(hRead(doc)).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+    });
+    it(`${doc} has no real-money language`, () => {
+      expect(hRead(doc)).not.toMatch(/\bcash prize\b|\bwager\b|\bbetting odds\b|\bbookmaker\b/i);
+    });
+  }
+
+  it('SPRINT-26-STORY-MATRIX.md exists', () => {
+    expect(existsSync(resolve(__dirname, '../../../../docs/sprints/SPRINT-26-STORY-MATRIX.md'))).toBe(true);
+  });
+
+  it('SPRINT-26-BETA-GO-NOGO.md is CONDITIONAL_GO', () => {
+    expect(hRead('SPRINT-26-BETA-GO-NOGO.md')).toMatch(/CONDITIONAL_GO/);
+  });
+
+  it('SPRINT-26-KNOWN-GAPS.md mentions no production ingestion', () => {
+    expect(hRead('SPRINT-26-KNOWN-GAPS.md')).toMatch(/no production ingestion|no.*ingestion|PSL.*inactive/i);
+  });
+});
+
+describe('Sprint 26 — smoke tools exist', () => {
+  const toolsRoot = resolve(__dirname, '../../../../tools/staging');
+  it('sprint-26-portal-route-smoke.mjs exists', () => {
+    expect(existsSync(resolve(toolsRoot, 'sprint-26-portal-route-smoke.mjs'))).toBe(true);
+  });
+  it('sprint-26-role-route-smoke.mjs exists', () => {
+    expect(existsSync(resolve(toolsRoot, 'sprint-26-role-route-smoke.mjs'))).toBe(true);
+  });
+  it('portal route smoke tool does not contain token values', () => {
+    const src = readFileSync(resolve(toolsRoot, 'sprint-26-portal-route-smoke.mjs'), 'utf8');
+    expect(src).not.toMatch(/PARSE_API_KEY=['"][A-Za-z0-9]{8}/);
+    expect(src).not.toMatch(/API_FOOTBALL_KEY=['"][A-Za-z0-9]{8}/);
+  });
+  it('role route smoke tool never prints tokens', () => {
+    const src = readFileSync(resolve(toolsRoot, 'sprint-26-role-route-smoke.mjs'), 'utf8');
+    expect(src).not.toMatch(/console\.log.*TOKEN/);
+    expect(src).toMatch(/PENDING_TOKEN|never print|token.*not.*printed/i);
+  });
+  it('portal route smoke tool does not activate PSL', () => {
+    const src = readFileSync(resolve(toolsRoot, 'sprint-26-portal-route-smoke.mjs'), 'utf8');
+    expect(src).not.toMatch(/\/admin\/psl\/activate|activate.*psl/i);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
