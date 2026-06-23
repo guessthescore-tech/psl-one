@@ -4534,6 +4534,160 @@ describe('Sprint 23 — RBAC Fix & Env Hygiene', () => {
   });
 });
 
+// ── Sprint 24: Beta EC2 RBAC Smoke Evidence ──────────────────────────────────
+
+const STAGING_DOCS_24 = [
+  'SPRINT-24-EC2-RBAC-REDEPLOYMENT-PLAN.md',
+  'SPRINT-24-EC2-RBAC-SMOKE-EXECUTION-LOG.md',
+  'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md',
+  'SPRINT-24-TEMP-ADMIN-CLEANUP-EVIDENCE.md',
+  'SPRINT-24-STAGING-ROLLBACK-CHECKLIST.md',
+];
+
+const HANDOVER_DOCS_24 = [
+  'SPRINT-24-BETA-GO-NOGO.md',
+  'SPRINT-24-HANDOVER.md',
+  'SPRINT-24-KNOWN-GAPS.md',
+  'SPRINT-24-OWNER-REVIEW-GUIDE.md',
+  'SPRINT-24-ROLLBACK-PLAN.md',
+];
+
+describe('Sprint 24 — Beta EC2 RBAC Smoke Evidence', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  it('redeployment plan doc exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-EC2-RBAC-REDEPLOYMENT-PLAN.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('smoke execution log exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-EC2-RBAC-SMOKE-EXECUTION-LOG.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('authenticated smoke results doc exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('temp admin cleanup evidence exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('rollback checklist exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-STAGING-ROLLBACK-CHECKLIST.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('Sprint 24 story matrix exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-24-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('all 5 handover docs exist', () => {
+    const path = require('path');
+    const fs = require('fs');
+    for (const doc of HANDOVER_DOCS_24) {
+      expect(fs.existsSync(path.resolve(REPO, 'docs', 'handover', doc))).toBe(true);
+    }
+  });
+
+  it('smoke results confirm ADMIN_TOKEN must not be printed', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-EC2-RBAC-SMOKE-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/PRESENT_REDACTED|never printed/i);
+  });
+
+  it('smoke results confirm temporary password must not be printed', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/never printed|unknown post-run/i);
+  });
+
+  it('smoke execution log confirms ALLOW_WRITE_SMOKE is false', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-EC2-RBAC-SMOKE-EXECUTION-LOG.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/ALLOW_WRITE_SMOKE.*false/i);
+  });
+
+  it('smoke results confirm no PSL activation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/PSL.*NOT activated|no PSL activation/i);
+  });
+
+  it('smoke results confirm no scheduled ingestion', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/no scheduled ingestion/i);
+  });
+
+  it('smoke results confirm no production ingestion', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/no production ingestion/i);
+  });
+
+  it('smoke results confirm wallet sandbox-only', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/SANDBOX|wallet.*sandbox/i);
+  });
+
+  it('smoke results confirm no real-money functionality', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-AUTHENTICATED-RBAC-SMOKE-RESULTS.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/no real-money|points-only/i);
+  });
+
+  it('cleanup evidence confirms TEMP_ADMIN_DISABLED_VERIFIED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('TEMP_ADMIN_DISABLED_VERIFIED');
+  });
+
+  it('cleanup evidence confirms SECRETS_DELETED', () => {
+    const p = require('path').resolve(REPO, 'docs', 'staging', 'SPRINT-24-TEMP-ADMIN-CLEANUP-EVIDENCE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('SECRETS_DELETED');
+  });
+
+  it('staging docs contain no JWT-shaped values', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of STAGING_DOCS_24) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'staging', doc), 'utf8');
+      expect(src).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+    }
+  });
+
+  it('staging docs contain no provider key values', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of STAGING_DOCS_24) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'staging', doc), 'utf8');
+      expect(src).not.toMatch(/PARSE_API_KEY=['"][A-Za-z0-9]{8}/);
+      expect(src).not.toMatch(/API_FOOTBALL_KEY=['"][A-Za-z0-9]{8}/);
+    }
+  });
+
+  it('handover docs confirm CONDITIONAL_GO', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-24-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/CONDITIONAL_GO/);
+  });
+
+  it('handover docs confirm no real-money functionality', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of HANDOVER_DOCS_24) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'handover', doc), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
