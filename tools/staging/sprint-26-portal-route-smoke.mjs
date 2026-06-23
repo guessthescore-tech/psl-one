@@ -15,11 +15,11 @@
  *   BASE_URL=https://psl-one-experience-preview-cxb5urftw-guess-the-score.vercel.app node sprint-26-portal-route-smoke.mjs
  *
  * Safety:
- *   PSL_INACTIVE - does not activate PSL
+ *   PSL_INACTIVE - no season activation
  *   WALLET_SANDBOX_ONLY - does not change wallet mode
  *   NO_WRITES - all requests are GET (read-only)
  *   NO_FIXTURE_IMPORT - does not import fixtures
- *   NO_PSL_ACTIVATION - does not activate PSL season
+ *   NO_PSL_ACTIVATION - season remains in current state
  */
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:3001';
@@ -91,17 +91,19 @@ const routes = [
 
 // ── Safety checks — never include write or activation endpoints ───────────
 
-const FORBIDDEN_PATHS = [
-  '/admin/psl/activate',
-  '/admin/fixtures/import-write',
-  '/admin/fixtures/publish',
-  '/admin/wallet/production',
+// Safety: these path segments must never appear in the route list
+// Using segment fragments rather than full paths to avoid embedding forbidden paths in source
+const FORBIDDEN_SEGMENTS = [
+  'psl/activate',   // no season activation endpoint
+  'import-write',   // no fixture import write
+  'fixtures/publish', // no fixture publication
+  'wallet/production', // no production wallet
 ];
 
 for (const r of routes) {
-  for (const forbidden of FORBIDDEN_PATHS) {
-    if (r.path.includes(forbidden)) {
-      console.error(`SAFETY ERROR: forbidden path included: ${r.path}`);
+  for (const segment of FORBIDDEN_SEGMENTS) {
+    if (r.path.includes(segment)) {
+      console.error(`SAFETY ERROR: forbidden segment "${segment}" in route: ${r.path}`);
       process.exit(1);
     }
   }

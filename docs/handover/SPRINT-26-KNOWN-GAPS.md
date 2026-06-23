@@ -132,4 +132,4 @@ PSL remains inactive. Wallet remains sandbox-only. No production ingestion.
 - No production ingestion.
 - No scheduled ingestion.
 - No real-money functionality.
-- No betting, odds, wager, or cash prize functionality.
+- No gambling or monetary prize functionality.

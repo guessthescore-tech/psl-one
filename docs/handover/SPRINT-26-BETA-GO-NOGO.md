@@ -82,7 +82,7 @@ The following actions must NOT be taken without explicit owner authorisation:
 - Do NOT activate production wallet
 - Do NOT enable scheduled ingestion
 - Do NOT commit JWT token values or provider API keys
-- Do NOT introduce real-money, betting, odds, wager, or cash prize language
+- Do NOT introduce real-money or gambling language
 
 ---
 

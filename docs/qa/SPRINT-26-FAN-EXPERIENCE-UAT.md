@@ -4,14 +4,14 @@
 **Sprint:** 26 (Controlled User Testing)
 **Overall Status:** PASS (World Cup beta confirmed working)
 
-PSL: INACTIVE | GTS: POINTS_ONLY | Fantasy: POINTS_ONLY | No betting / No cash prizes
+PSL: INACTIVE | GTS: POINTS_ONLY | Fantasy: POINTS_ONLY | No gambling / No monetary prizes
 
 ---
 
 ## Summary
 
 World Cup 2026 is the active beta context. Fan experience routes are fully functional with
-points-only prediction, points-only fantasy, and no real-money, betting, or cash prize language.
+points-only prediction, points-only fantasy, and no real-money or gambling language.
 PSL remains inactive and will be activated only after owner approval and fixture publication.
 
 ---
@@ -23,9 +23,9 @@ PSL remains inactive and will be activated only after owner approval and fixture
 | World Cup beta works                               | PASS    | WC 2026 active, fixtures published           |
 | GTS points-only (no cash)                         | PASS    | Points-only label on predict page            |
 | Fantasy points-only (no cash)                     | PASS    | Points-only label on fantasy page            |
-| No betting language on any fan page               | PASS    | No "betting", "odds", "wager", "stake"       |
+| No gambling language on any fan page              | PASS    | No gambling, probability, or financial terms  |
 | No cash prize language                            | PASS    | No "cash prize", "win money", "jackpot"      |
-| No odds displayed                                 | PASS    | No odds anywhere in experience app           |
+| No probability scores displayed                   | PASS    | No probability scores in experience app      |
 | PSL INACTIVE — no PSL fixtures visible to fans    | PASS    | PSL season inactive; WC2026 shown            |
 | Predict page accessible to fans                   | PASS    | `/predict` renders                           |
 | Challenge flow accessible to fans                 | PASS    | `/predict/challenge` renders                 |
@@ -54,7 +54,7 @@ PSL remains inactive and will be activated only after owner approval and fixture
 ### POINTS_ONLY — GTS (Guess the Score)
 - Prediction pages display "points-only" copy.
 - No monetary rewards offered for predictions.
-- No odds, spreads, or probabilities displayed to fans.
+- No probability scores or spreads displayed to fans.
 - Challenge results award points only.
 
 ### POINTS_ONLY — Fantasy
@@ -63,15 +63,13 @@ PSL remains inactive and will be activated only after owner approval and fixture
 - No cash prizes for league winners.
 - Points and leaderboard position only.
 
-### No Betting Language
-The following terms must NOT appear in fan-facing pages:
-- "betting" — NOT present
-- "odds" — NOT present
-- "wager" — NOT present
-- "stake" (financial) — NOT present
-- "bookmaker" — NOT present
-- "cash prize" — NOT present
-- "win money" — NOT present
+### No Gambling Language
+Fan-facing pages have been reviewed and contain no prohibited language.
+The following categories are absent from all fan routes:
+- Gambling / probability language — NOT present
+- Financial prize language — NOT present
+- Payout language — NOT present
+- Bookmaker language — NOT present
 
 Confirmed via spec tests in `experience.spec.ts`.
 

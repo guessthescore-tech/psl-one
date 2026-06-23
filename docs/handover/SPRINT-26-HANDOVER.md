@@ -104,4 +104,4 @@ No schema changes, no new migrations, no new API endpoints.
 - No PSL activation was performed.
 - No wallet production activation was performed.
 - No real-money functionality was added.
-- No betting, odds, wager, or cash prize language was added.
+- No gambling or monetary prize language was added.

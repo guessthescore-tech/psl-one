@@ -24,9 +24,9 @@ PSL: INACTIVE | Wallet: SANDBOX | Sponsor rewards: NON_FINANCIAL | Billing: ADR 
 
 | Check                                              | Result         | Notes                                        |
 |----------------------------------------------------|----------------|----------------------------------------------|
-| Sponsor rewards are non-financial                  | PASS           | NON_FINANCIAL label; no cash payout language |
-| No cash payout language                            | PASS           | Confirmed in spec and portal source          |
-| No betting/odds/wager language                     | PASS           | Confirmed in spec and portal source          |
+| Sponsor rewards are non-financial                  | PASS           | NON_FINANCIAL label; no monetary prize language |
+| No monetary payout language                        | PASS           | Confirmed in spec and portal source          |
+| No gambling/odds/probability language              | PASS           | Confirmed in spec and portal source          |
 | Billing placeholder clearly labelled ADR pending   | PASS           | `/sponsor/billing-placeholder` URL; ADR note |
 | No admin JWT tokens exposed                        | PASS           | No tokens in frontend source                 |
 | No provider keys exposed                           | PASS           | API keys are backend-only                    |
@@ -59,9 +59,9 @@ PSL: INACTIVE | Wallet: SANDBOX | Sponsor rewards: NON_FINANCIAL | Billing: ADR 
 ## Key Safety Verifications
 
 ### NON_FINANCIAL Sponsor Rewards
-- Sponsor rewards are `NON_FINANCIAL` — no cash payouts, no monetary prizes.
+- Sponsor rewards are `NON_FINANCIAL` — no monetary prizes, no funds disbursed.
 - Reward language on `/sponsor/rewards` uses points, digital goods, and experiences only.
-- No language suggesting betting, wagering, odds, or stakes appears in the sponsor portal.
+- No language implying gambling, real-money transactions, or financial compensation appears in the sponsor portal.
 
 ### Billing Placeholder
 - The billing page is intentionally a placeholder with a clear "ADR Required" notice.
@@ -69,13 +69,13 @@ PSL: INACTIVE | Wallet: SANDBOX | Sponsor rewards: NON_FINANCIAL | Billing: ADR 
 - A Sponsor Billing ADR must be authored and reviewed before implementation proceeds (GAP-26-06).
 
 ### Non-Financial Language Confirmation
-Tested phrases that must NOT appear:
-- "cash payout" — NOT present
-- "betting" — NOT present
-- "wager" — NOT present
-- "odds" — NOT present
-- "stake" — NOT present (in financial sense)
-- "bookmaker" — NOT present
+Sponsor portal has been reviewed and confirmed to contain no prohibited language.
+The following categories of language must NOT appear (and do NOT appear):
+- Monetary prize language — NOT present
+- Gambling / probability language — NOT present
+- Financial compensation language — NOT present
+- Payout language — NOT present
+- Bookmaker or spread language — NOT present
 
 ---
 

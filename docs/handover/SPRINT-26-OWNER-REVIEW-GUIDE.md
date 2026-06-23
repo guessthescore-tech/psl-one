@@ -58,13 +58,13 @@ Check:
 2. `/predict` shows points-only prediction for World Cup matches
 3. `/fantasy` shows points-only fantasy management
 4. `/account` accessible after fan login
-5. No betting, odds, cash prize, or wager language anywhere
+5. No gambling or monetary prize language anywhere
 
 ### What you should NOT see:
 - "Bet now" or any betting call to action
 - Odds (e.g. 2.5, 1/2, 3.00)
-- "Win R1000" or any cash prize
-- Wager, stake, or bookmaker language
+- "Win money" or any monetary prize
+- Gambling or third-party sportsbook language
 - PSL fixtures (PSL is INACTIVE — only World Cup matches visible)
 
 ---

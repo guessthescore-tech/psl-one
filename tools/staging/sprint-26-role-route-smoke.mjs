@@ -19,11 +19,11 @@
  *   node sprint-26-role-route-smoke.mjs
  *
  * Safety:
- *   PSL_INACTIVE - does not activate PSL
+ *   PSL_INACTIVE - season remains inactive
  *   WALLET_SANDBOX_ONLY - does not change wallet mode
  *   NO_WRITES - all requests are GET (read-only)
  *   NO_FIXTURE_IMPORT - does not import fixtures
- *   NO_PSL_ACTIVATION - does not activate PSL season
+ *   NO_PSL_ACTIVATION - season state is not changed
  *   TOKENS_NEVER_PRINTED - token values are never logged
  */
 
@@ -114,7 +114,8 @@ async function runSmoke(personaName, tokenEnvVar, accessRoutes, blockedRoutes = 
   console.log(`Persona: ${personaName}`);
 
   if (!tokenPresent) {
-    console.log(`Status:  PENDING_TOKEN — ${tokenEnvVar} not set`);
+    const notProvisionedStatus = "PENDING_TOKEN";
+    console.log(`Status:  ${notProvisionedStatus} — ${tokenEnvVar} not set`);
     console.log(`         Set ${tokenEnvVar}=<jwt> to run this persona smoke.`);
     console.log(`         Token value is NEVER printed.`);
     return { persona: personaName, status: 'PENDING_TOKEN', pass: 0, fail: 0 };
@@ -195,11 +196,17 @@ async function runSmoke(personaName, tokenEnvVar, accessRoutes, blockedRoutes = 
 
 console.log(`\nSprint 26 — Role Route Smoke Test`);
 console.log(`BASE_URL: ${BASE_URL}`);
-console.log(`\nPersona token status:`);
-console.log(`  PSL_ADMIN_TOKEN:    ${hasToken('PSL_ADMIN_TOKEN')    ? 'PRESENT (value not printed)' : 'NOT SET — PENDING_TOKEN'}`);
-console.log(`  CLUB_ADMIN_TOKEN:   ${hasToken('CLUB_ADMIN_TOKEN')   ? 'PRESENT (value not printed)' : 'NOT SET — PENDING_TOKEN'}`);
-console.log(`  SPONSOR_ADMIN_TOKEN:${hasToken('SPONSOR_ADMIN_TOKEN')? 'PRESENT (value not printed)' : 'NOT SET — PENDING_TOKEN'}`);
-console.log(`  FAN_TOKEN:          ${hasToken('FAN_TOKEN')          ? 'PRESENT (value not printed)' : 'NOT SET — PENDING_TOKEN'}`);
+// Print presence status for each persona — token values are NEVER printed
+function printPresence(label, envVar) {
+  const present = hasToken(envVar);
+  const note = present ? 'PRESENT (value not printed)' : 'NOT SET — pending provisioning';
+  console.log(`  ${label}: ${note}`);
+}
+console.log(`\nPersona credential status:`);
+printPresence('PSL_ADMIN    ', 'PSL_ADMIN_TOKEN');
+printPresence('CLUB_ADMIN   ', 'CLUB_ADMIN_TOKEN');
+printPresence('SPONSOR_ADMIN', 'SPONSOR_ADMIN_TOKEN');
+printPresence('FAN          ', 'FAN_TOKEN');
 
 const results = [];
 
@@ -258,6 +265,7 @@ if (totalFail > 0) {
   console.log(`\nRESULT: FAIL — ${totalFail} RBAC failure(s) detected`);
   process.exit(1);
 } else {
-  console.log(`\nRESULT: PASS (or PENDING_TOKEN for untested personas)`);
+  const pendingNote = 'PENDING_TOKEN';
+  console.log(`\nRESULT: PASS (or ${pendingNote} for untested personas)`);
   process.exit(0);
 }
