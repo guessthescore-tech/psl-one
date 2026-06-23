@@ -5319,6 +5319,155 @@ describe('Sprint 26 — smoke tools exist', () => {
   });
 });
 
+// ─── Sprint 27: Club & Sponsor Portal API Contracts ──────────────────────────
+
+describe('Sprint 27: ClubPortalModule backend', () => {
+  const cpFiles = [
+    'apps/api/src/club-portal/club-portal.module.ts',
+    'apps/api/src/club-portal/club-portal.controller.ts',
+    'apps/api/src/club-portal/club-portal.service.ts',
+    'apps/api/src/club-portal/club-portal.dto.ts',
+    'apps/api/src/club-portal/club-portal.service.spec.ts',
+    'apps/api/src/club-portal/club-portal.controller.spec.ts',
+  ];
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it.each(cpFiles)('file exists: %s', (f) => {
+    expect(existsSync(resolve(ROOT2, f))).toBe(true);
+  });
+  it('controller uses CLUB_ADMIN role', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.controller.ts'), 'utf-8');
+    expect(src).toContain("'CLUB_ADMIN'");
+  });
+  it('controller uses PSL_ADMIN role', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.controller.ts'), 'utf-8');
+    expect(src).toContain("'PSL_ADMIN'");
+  });
+  it('controller does not grant FAN access', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.controller.ts'), 'utf-8');
+    expect(src).not.toContain("@Roles('FAN')");
+  });
+  it('service does not activate PSL', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.service.ts'), 'utf-8');
+    expect(src).not.toMatch(/activatePsl|activateSeason/);
+  });
+  it('club-portal-api.ts has no API_PENDING', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/lib/club-portal-api.ts'), 'utf-8');
+    expect(src).not.toContain('API_PENDING: true');
+  });
+});
+
+describe('Sprint 27: SponsorPortalModule backend', () => {
+  const spFiles = [
+    'apps/api/src/sponsor-portal/sponsor-portal.module.ts',
+    'apps/api/src/sponsor-portal/sponsor-portal.controller.ts',
+    'apps/api/src/sponsor-portal/sponsor-portal.service.ts',
+    'apps/api/src/sponsor-portal/sponsor-portal.dto.ts',
+    'apps/api/src/sponsor-portal/sponsor-portal.service.spec.ts',
+    'apps/api/src/sponsor-portal/sponsor-portal.controller.spec.ts',
+  ];
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it.each(spFiles)('file exists: %s', (f) => {
+    expect(existsSync(resolve(ROOT2, f))).toBe(true);
+  });
+  it('controller uses SPONSOR role', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(src).toContain("'SPONSOR'");
+  });
+  it('controller uses PSL_ADMIN role', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(src).toContain("'PSL_ADMIN'");
+  });
+  it('billing placeholder is INVOICE_ONLY', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('INVOICE_ONLY');
+  });
+  it('billing does not process payments', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).not.toMatch(/chargeCard|processPayment|walletProduction:\s*true|createPayment/);
+  });
+  it('rewards enforce isFinancial false', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('isFinancial');
+  });
+  it('sponsor-portal-api.ts has no API_PENDING', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/lib/sponsor-portal-api.ts'), 'utf-8');
+    expect(src).not.toContain('API_PENDING: true');
+  });
+  it('createCampaignDraft uses DRAFT status', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('DRAFT');
+    expect(src).not.toMatch(/status:\s*['"]ACTIVE['"]/);
+  });
+});
+
+describe('Sprint 27: ADR-031', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const adr = resolve(ROOT2, 'docs/adr/ADR-031-SPONSOR-BILLING-BOUNDARY.md');
+  it('ADR-031 exists', () => { expect(existsSync(adr)).toBe(true); });
+  it('states invoice billing', () => { expect(readFileSync(adr, 'utf-8').toLowerCase()).toContain('invoice'); });
+  it('states no payment processing', () => { expect(readFileSync(adr, 'utf-8')).toMatch(/no payment|no.*payment processing/i); });
+  it('states no wallet production', () => { expect(readFileSync(adr, 'utf-8')).toMatch(/no wallet production|wallet.*sandbox|WALLET.*SANDBOX/i); });
+  it('states no real-money', () => { expect(readFileSync(adr, 'utf-8')).toMatch(/no real.money|non-financial/i); });
+});
+
+describe('Sprint 27: App module registration', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('app.module imports ClubPortalModule', () => {
+    expect(readFileSync(resolve(ROOT2, 'apps/api/src/app.module.ts'), 'utf-8')).toContain('ClubPortalModule');
+  });
+  it('app.module imports SponsorPortalModule', () => {
+    expect(readFileSync(resolve(ROOT2, 'apps/api/src/app.module.ts'), 'utf-8')).toContain('SponsorPortalModule');
+  });
+});
+
+describe('Sprint 27: Documentation and tools', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const items = [
+    'docs/portals/SPRINT-27-API-CONTRACT-IMPLEMENTATION-PLAN.md',
+    'docs/portals/SPRINT-27-CLUB-PORTAL-API.md',
+    'docs/portals/SPRINT-27-SPONSOR-PORTAL-API.md',
+    'docs/portals/SPRINT-27-PORTAL-RBAC-SMOKE.md',
+    'docs/portals/SPRINT-27-API-CONTRACT-CLOSURE.md',
+    'docs/portals/SPRINT-27-NON-FINANCIAL-SPONSOR-REWARD-BOUNDARY.md',
+    'docs/handover/SPRINT-27-BETA-GO-NOGO.md',
+    'docs/handover/SPRINT-27-HANDOVER.md',
+    'docs/handover/SPRINT-27-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-27-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-27-ROLLBACK-PLAN.md',
+    'docs/sprints/SPRINT-27-STORY-MATRIX.md',
+    'tools/staging/sprint-27-club-portal-api-smoke.mjs',
+    'tools/staging/sprint-27-sponsor-portal-api-smoke.mjs',
+    'tools/staging/sprint-27-club-sponsor-rbac-smoke.mjs',
+  ];
+  it.each(items)('exists: %s', (f) => { expect(existsSync(resolve(ROOT2, f))).toBe(true); });
+
+  const handoverDocs = [
+    'docs/handover/SPRINT-27-HANDOVER.md',
+    'docs/handover/SPRINT-27-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-27-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-27-BETA-GO-NOGO.md',
+  ];
+  it.each(handoverDocs)('%s: mentions PSL inactive', (d) => {
+    expect(readFileSync(resolve(ROOT2, d), 'utf-8')).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL remains inactive|PSL not activated/i);
+  });
+  it.each(handoverDocs)('%s: mentions wallet or sandbox', (d) => {
+    const c = readFileSync(resolve(ROOT2, d), 'utf-8');
+    expect(c.includes('sandbox') || c.includes('SANDBOX') || c.includes('wallet production')).toBe(true);
+  });
+  it.each(handoverDocs)('%s: mentions non-financial', (d) => {
+    expect(readFileSync(resolve(ROOT2, d), 'utf-8')).toMatch(/non-financial|no real.money|NON_FINANCIAL/i);
+  });
+  it('API contract closure maps API_PENDING items', () => {
+    expect(readFileSync(resolve(ROOT2, 'docs/portals/SPRINT-27-API-CONTRACT-CLOSURE.md'), 'utf-8')).toContain('API_PENDING');
+  });
+  it('smoke tools do not log token values', () => {
+    for (const t of ['sprint-27-club-portal-api-smoke.mjs', 'sprint-27-sponsor-portal-api-smoke.mjs', 'sprint-27-club-sponsor-rbac-smoke.mjs']) {
+      const src = readFileSync(resolve(ROOT2, 'tools/staging', t), 'utf-8');
+      expect(src).not.toMatch(/console\.log.*TOKEN|console\.log.*password/i);
+    }
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
