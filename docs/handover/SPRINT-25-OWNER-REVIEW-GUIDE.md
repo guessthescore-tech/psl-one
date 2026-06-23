@@ -72,3 +72,7 @@ Once the PR is pushed, confirm 7/7 CI checks pass:
 If satisfied, the PR may be merged. No EC2 deployment is needed for Sprint 25 (docs/tooling only).
 
 If any issue is found, file it as a Gap in `SPRINT-25-KNOWN-GAPS.md` and determine if it is a blocker.
+
+## Platform Safety Status
+
+PSL remains inactive. Wallet remains sandbox-only. No real-money functionality. No production ingestion.

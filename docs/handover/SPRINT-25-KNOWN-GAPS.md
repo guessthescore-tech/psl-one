@@ -63,3 +63,7 @@ No gameweeks have been created for PSL 2026/27. Gameweek creation requires the f
 ## Resolved Gaps This Sprint
 
 None — Sprint 25 is monitoring/tooling only, not fixing gaps.
+
+## Platform Safety Status
+
+PSL remains inactive. Wallet remains sandbox-only. No real-money functionality. No production ingestion.
