@@ -75,45 +75,54 @@ export interface ClubContent {
 
 // ── API functions ──────────────────────────────────────────────────────────
 
-/** GET /club/:clubId/profile — Club profile */
+/** GET /club-portal/profile?clubId=... — Club profile */
 export async function getClubProfile(clubId: string): Promise<ClubProfile> {
-  // API_PENDING: true — endpoint GET /club/:clubId/profile
-  return apiFetch<ClubProfile>(`/clubs/${clubId}`);
+  return apiFetch<ClubProfile>(`/club-portal/profile?clubId=${clubId}`);
 }
 
-/** GET /club/:clubId/squad — Club squad */
+/** GET /club-portal/squad?clubId=... — Club squad */
 export async function getClubSquad(clubId: string): Promise<ClubPlayer[]> {
-  // API_PENDING: true — endpoint GET /club/:clubId/squad
-  return apiFetch<ClubPlayer[]>(`/clubs/${clubId}/players`);
+  return apiFetch<ClubPlayer[]>(`/club-portal/squad?clubId=${clubId}`);
 }
 
-/** GET /club/:clubId/fixtures — Club fixtures */
+/** GET /club-portal/fixtures?clubId=... — Club fixtures */
 export async function getClubFixtures(clubId: string): Promise<ClubFixture[]> {
-  // API_PENDING: true — endpoint GET /club/:clubId/fixtures
-  return apiFetch<ClubFixture[]>(`/clubs/${clubId}/fixtures`);
+  return apiFetch<ClubFixture[]>(`/club-portal/fixtures?clubId=${clubId}`);
 }
 
-/** GET /club/:clubId/fans — Club fans */
+/** GET /club-portal/fans?clubId=... — Club fans */
 export async function getClubFans(clubId: string, params?: {
   limit?: number;
   offset?: number;
 }): Promise<ClubFan[]> {
-  // API_PENDING: true — endpoint GET /club/:clubId/fans
   const qs = new URLSearchParams();
   if (params?.limit) qs.set('limit', String(params.limit));
   if (params?.offset) qs.set('offset', String(params.offset));
-  const query = qs.toString() ? `?${qs.toString()}` : '';
-  return apiFetch<ClubFan[]>(`/clubs/${clubId}/fans${query}`);
+  const query = qs.toString() ? `&${qs.toString()}` : '';
+  return apiFetch<ClubFan[]>(`/club-portal/fans?clubId=${clubId}${query}`);
 }
 
-/** GET /club/:clubId/analytics — Club analytics */
+/** GET /club-portal/analytics?clubId=... — Club analytics */
 export async function getClubAnalytics(clubId: string): Promise<ClubAnalytics> {
-  // API_PENDING: true — endpoint GET /club/:clubId/analytics
-  return apiFetch<ClubAnalytics>(`/clubs/${clubId}/analytics`);
+  return apiFetch<ClubAnalytics>(`/club-portal/analytics?clubId=${clubId}`);
 }
 
-/** GET /club/:clubId/content — Club content */
+/** GET /club-portal/content?clubId=... — Club content */
 export async function getClubContent(clubId: string): Promise<ClubContent[]> {
-  // API_PENDING: true — endpoint GET /club/:clubId/content
-  return apiFetch<ClubContent[]>(`/clubs/${clubId}/content`);
+  return apiFetch<ClubContent[]>(`/club-portal/content?clubId=${clubId}`);
+}
+
+/** GET /club-portal/overview?clubId=... — Club overview */
+export async function getClubOverview(clubId: string) {
+  return apiFetch(`/club-portal/overview?clubId=` + clubId);
+}
+
+/** GET /club-portal/campaigns?clubId=... — Club campaigns */
+export async function getClubCampaigns(clubId: string) {
+  return apiFetch(`/club-portal/campaigns?clubId=` + clubId);
+}
+
+/** GET /club-portal/sponsors?clubId=... — Club sponsors */
+export async function getClubSponsors(clubId: string) {
+  return apiFetch(`/club-portal/sponsors?clubId=` + clubId);
 }

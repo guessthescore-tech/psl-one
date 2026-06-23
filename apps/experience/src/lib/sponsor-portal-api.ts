@@ -84,48 +84,61 @@ export interface CreateCampaignInput {
 
 // ── API functions ──────────────────────────────────────────────────────────
 
-/** GET /sponsors/:sponsorId — Sponsor profile */
+/** GET /sponsor-portal/profile?sponsorId=... — Sponsor profile */
 export async function getSponsorProfile(sponsorId: string): Promise<SponsorProfile> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId
-  return apiFetch<SponsorProfile>(`/sponsors/${sponsorId}`);
+  return apiFetch<SponsorProfile>(`/sponsor-portal/profile?sponsorId=${sponsorId}`);
 }
 
-/** GET /sponsors/:sponsorId/campaigns — Sponsor campaigns */
+/** GET /sponsor-portal/campaigns?sponsorId=... — Sponsor campaigns */
 export async function getSponsorCampaigns(sponsorId: string): Promise<SponsorCampaign[]> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId/campaigns
-  return apiFetch<SponsorCampaign[]>(`/sponsors/${sponsorId}/campaigns`);
+  return apiFetch<SponsorCampaign[]>(`/sponsor-portal/campaigns?sponsorId=${sponsorId}`);
 }
 
-/** POST /sponsors/:sponsorId/campaigns — Create campaign */
+/** POST /sponsor-portal/campaigns/drafts?sponsorId=... — Create campaign draft (DRAFT only, never ACTIVE) */
 export async function createSponsorCampaign(
   sponsorId: string,
   input: CreateCampaignInput,
 ): Promise<SponsorCampaign> {
-  // API_PENDING: true — endpoint POST /sponsors/:sponsorId/campaigns
-  return apiPost<SponsorCampaign>(`/sponsors/${sponsorId}/campaigns`, input);
+  return apiPost<SponsorCampaign>(`/sponsor-portal/campaigns/drafts?sponsorId=${sponsorId}`, input);
 }
 
-/** GET /sponsors/:sponsorId/rewards — Sponsor rewards (NON-FINANCIAL only) */
+/** GET /sponsor-portal/rewards?sponsorId=... — Sponsor rewards (NON-FINANCIAL only) */
 export async function getSponsorRewards(sponsorId: string): Promise<SponsorReward[]> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId/rewards
   // SPONSOR_REWARDS_NON_FINANCIAL: Only points, badges, digital experiences
-  return apiFetch<SponsorReward[]>(`/sponsors/${sponsorId}/rewards`);
+  return apiFetch<SponsorReward[]>(`/sponsor-portal/rewards?sponsorId=${sponsorId}`);
 }
 
-/** GET /sponsors/:sponsorId/audiences — Sponsor audiences */
+/** GET /sponsor-portal/audiences?sponsorId=... — Sponsor audiences */
 export async function getSponsorAudiences(sponsorId: string): Promise<SponsorAudience[]> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId/audiences
-  return apiFetch<SponsorAudience[]>(`/sponsors/${sponsorId}/audiences`);
+  return apiFetch<SponsorAudience[]>(`/sponsor-portal/audiences?sponsorId=${sponsorId}`);
 }
 
-/** GET /sponsors/:sponsorId/activations — Campaign activations */
+/** GET /sponsor-portal/activations?sponsorId=... — Campaign activations */
 export async function getSponsorActivations(sponsorId: string): Promise<SponsorActivation[]> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId/activations
-  return apiFetch<SponsorActivation[]>(`/sponsors/${sponsorId}/activations`);
+  return apiFetch<SponsorActivation[]>(`/sponsor-portal/activations?sponsorId=${sponsorId}`);
 }
 
-/** GET /sponsors/:sponsorId/analytics — Sponsor analytics */
+/** GET /sponsor-portal/analytics?sponsorId=... — Sponsor analytics */
 export async function getSponsorAnalytics(sponsorId: string): Promise<SponsorAnalytics> {
-  // API_PENDING: true — endpoint GET /sponsors/:sponsorId/analytics
-  return apiFetch<SponsorAnalytics>(`/sponsors/${sponsorId}/analytics`);
+  return apiFetch<SponsorAnalytics>(`/sponsor-portal/analytics?sponsorId=${sponsorId}`);
+}
+
+/** GET /sponsor-portal/overview?sponsorId=... — Sponsor overview */
+export async function getSponsorOverview(sponsorId: string) {
+  return apiFetch(`/sponsor-portal/overview?sponsorId=` + sponsorId);
+}
+
+/** GET /sponsor-portal/clubs?sponsorId=... — Clubs associated with sponsor */
+export async function getSponsorClubs(sponsorId: string) {
+  return apiFetch(`/sponsor-portal/clubs?sponsorId=` + sponsorId);
+}
+
+/** GET /sponsor-portal/assets?sponsorId=... — Sponsor assets (PLANNED Sprint 28) */
+export async function getSponsorAssets(sponsorId: string) {
+  return apiFetch(`/sponsor-portal/assets?sponsorId=` + sponsorId);
+}
+
+/** GET /sponsor-portal/billing-placeholder — Billing info (INVOICE_ONLY per ADR-031, no payment processing) */
+export async function getSponsorBillingPlaceholder() {
+  return apiFetch(`/sponsor-portal/billing-placeholder`);
 }
