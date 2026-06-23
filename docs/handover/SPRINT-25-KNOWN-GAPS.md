@@ -1,52 +1,65 @@
 # Sprint 25 — Known Gaps
 
-**Status:** Documented
-**Date:** 2026-06-23
+## GAP-25-01: PSL Fixtures Not Yet Available
 
-## Platform Safety Constraints
+**Severity:** INFO — expected behaviour
+**Status:** OPEN — monitoring
 
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
+The Parse PSL adapter returns `INGESTION_SOURCE_EMPTY_NOOP` because psl.co.za has not published the 2026/27 fixture schedule yet.
 
-## Known Gaps
+**Expected resolution:** ~July/August 2026 when psl.co.za publishes the schedule.
 
-### API Gaps (Frontend shows mock/empty data)
+**Action:** Run `sprint-25-psl-fixture-availability-check.mjs` weekly. When `PSL_FIXTURE_CANDIDATES_FOUND`, proceed to Sprint 26 fixture import.
 
-1. `GET /admin/overview` — Not yet implemented. Shows hardcoded platform status.
-2. `GET /admin/competitions` — May need to map to existing `/competitions` endpoint.
-3. `GET /admin/seasons` — May need to map to existing `/seasons` endpoint.
-4. `GET /admin/users` — Endpoint needed for user management.
-5. `GET /clubs/:id/fans` — New endpoint needed.
-6. `GET /clubs/:id/analytics` — New endpoint needed.
-7. `GET /clubs/:id/content` — New endpoint needed.
-8. `GET /sponsors/:id/audiences` — New endpoint needed.
-9. `GET /sponsors/:id/analytics` — New endpoint needed.
-10. `GET /admin/rules/prediction/simulation` — Simulation endpoint needed.
-11. `GET /admin/fantasy/rules/simulation` — Simulation endpoint needed.
-12. `GET /admin/points` — Aggregated overview endpoint needed.
+---
 
-### Data Gaps
+## GAP-25-02: API-Football PSL Account Suspended
 
-1. PSL clubs show fan count 0 — PSL inactive, no fans registered to PSL clubs.
-2. Player stats not available — pending PSL activation and live provider.
-3. WC 2026 data is limited to fixtures, standings, and basic player data.
+**Severity:** LOW — backup provider unavailable
+**Status:** OPEN — ongoing from Sprint 13
 
-### UX Gaps
+The API-Football adapter for PSL (competition ID 288) returns HTTP 200 but account is SUSPENDED. The primary provider chain falls through to ParsePslAdapter (psl.co.za).
 
-1. Portal sidebar is not collapsible (mobile optimization needed).
-2. PortalDataTable pagination not implemented (shows all rows).
-3. Search in PortalTopbar is a placeholder (not wired to API).
-4. User menu in PortalTopbar is a placeholder (no dropdown).
+**Impact:** If ParsePslAdapter fails, there is no active fallback with PSL fixtures. NoOpAdapter returns empty results.
 
-### Owner Gates (Blocking Production)
+**Action:** Owner to decide whether to renew API-Football account or proceed with Parse-only. Tracked since Sprint 13.
 
-1. PSL season activation — PENDING owner authorisation.
-2. Wallet production mode — PENDING owner authorisation.
-3. Live provider key (API-Football PSL) — PENDING owner supply.
-4. Parse.bot key — PENDING owner supply.
-5. EC2 re-deployment after Sprint 25 changes — PENDING.
+---
+
+## GAP-25-03: No PSL 2026/27 Season Record
+
+**Severity:** MEDIUM — blocks PSL activation
+**Status:** OPEN — by design
+
+No `Season` record exists for PSL 2026/27. The WC2026 season is active. PSL activation requires:
+1. PSL 2026/27 season record created
+2. Gameweeks defined
+3. Fixtures imported and published
+
+**Action:** Create PSL 2026/27 season record as first step of future PSL activation sprint.
+
+---
+
+## GAP-25-04: No Gameweeks for PSL 2026/27
+
+**Severity:** MEDIUM — blocks PSL activation
+**Status:** OPEN — by design
+
+No gameweeks have been created for PSL 2026/27. Gameweek creation requires the fixture schedule to be known first.
+
+**Action:** Create gameweeks once PSL 2026/27 fixtures are imported.
+
+---
+
+## Previously Open Gaps (Carried Forward)
+
+| Gap | Description | Status |
+|-----|-------------|--------|
+| GAP-23-03 | PSL fixture data ~July/August | OPEN (now GAP-25-01) |
+| GAP-23-04 | Provider key rotation runbook | OPEN |
+
+---
+
+## Resolved Gaps This Sprint
+
+None — Sprint 25 is monitoring/tooling only, not fixing gaps.

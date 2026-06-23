@@ -1,48 +1,69 @@
-# Sprint 25 — Beta Go/No-Go Assessment
+# Sprint 25 — Beta Go/No-Go
 
-**Status:** CONDITIONAL_GO
-**Date:** 2026-06-23
+**Decision: CONDITIONAL_GO**
 
-## Platform Safety Constraints
+Date: 2026-06-23
 
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
+---
 
-## Assessment Summary
+## Go Conditions
 
-Sprint 25 adds production-grade portal UI/UX for Admin, Club, and Sponsor portals. The platform is in CONDITIONAL_GO status — beta-ready with documented owner gates.
+| # | Condition | Status |
+|---|-----------|--------|
+| 1 | All CI checks pass (7/7) | PENDING — awaiting PR push |
+| 2 | Experience tests pass (≥ 905) | PENDING |
+| 3 | API tests pass (≥ 1,968) | PENDING |
+| 4 | No new HIGH/CRITICAL CVEs introduced | PENDING |
+| 5 | All staging docs committed | DONE |
+| 6 | Handover docs committed | DONE |
+| 7 | PSL not accidentally activated | CONFIRMED |
+| 8 | No fixture write operations in Sprint 25 | CONFIRMED |
+| 9 | No real-money changes | CONFIRMED |
+| 10 | RBAC: existing admin routes still 200 for PSL_ADMIN | CONFIRMED (from Sprint 24) |
 
-## Go Criteria
+---
 
-| Criterion | Status | Notes |
-|---|---|---|
-| Admin portal 22 pages | PASS | All built |
-| Club portal 14 pages | PASS | All built |
-| Sponsor portal 13 pages | PASS | All built |
-| Portal shell components (8) | PASS | All built |
-| Points rules management UI | PASS | GTS + Fantasy |
-| Safety badges on all pages | PASS | PSL INACTIVE, SANDBOX, etc. |
-| No provider keys in frontend | PASS | Verified by grep |
-| No ADMIN_TOKEN in frontend | PASS | Verified by grep |
-| RBAC enforced at API layer | PASS | 36 guard tests, 8/0 smoke |
-| GTS POINTS ONLY declaration | PASS | On rules page |
-| FANTASY POINTS ONLY declaration | PASS | On rules page |
-| SPONSOR_REWARDS_NON_FINANCIAL | PASS | On rewards page |
-| Typecheck pass | TBD | Run before PR merge |
-| Build pass | TBD | Run before PR merge |
+## CONDITIONAL_GO Basis
 
-## No-Go Blockers (Owner Gates)
+Sprint 25 is documentation and tooling only:
 
-1. **PSL season activation** — Not activated. Owner must authorise.
-2. **Wallet production mode** — Sandbox only. Owner must authorise.
-3. **Live data provider key** — NoOpAdapter. Owner must supply API-Football key.
-4. **Parse.bot key** — Missing. Owner must supply for PSL ingestion.
+- Two read-only staging tools created
+- Eight staging docs created
+- Five handover docs created
+- Experience tests added
+- Zero DB migrations
+- Zero schema changes
+- Zero route changes
+- Zero EC2 deployments (Sprint 25 does not deploy)
 
-## Recommendation
+The conditional is that CI must pass after PR push.
 
-CONDITIONAL_GO for beta owner review. Portal UX is production-ready for review. Safety constraints are all in place. No production actions should be taken until owner gates are resolved.
+---
+
+## No-Go Conditions
+
+| Condition | Action |
+|-----------|--------|
+| CI fails | Fix failing checks before merging |
+| New HIGH/CRITICAL CVE from new dependency | Address before merge |
+| Accidental PSL activation | Immediate incident — revert and deactivate |
+| Accidental fixture write | Immediate incident — delete batch, document |
+
+---
+
+## Platform State
+
+```
+PSL:                    INACTIVE (unchanged)
+WC2026:                 ACTIVE (unchanged)
+Wallet:                 SANDBOX (unchanged)
+Scheduled ingestion:    DISABLED (unchanged)
+EC2 beta deployed SHA:  c731c494 (Sprint 23 RBAC fix, from Sprint 24)
+Migrations:             42 (unchanged)
+```
+
+---
+
+## Next Sprint Trigger
+
+Sprint 26 should begin when psl.co.za publishes the 2026/27 PSL fixture schedule and `PSL_FIXTURE_CANDIDATES_FOUND` is reported by the availability check tool.

@@ -1,77 +1,64 @@
 # Sprint 25 — Story Matrix
 
-**Status:** Complete
-**Date:** 2026-06-23
+**Sprint Goal:** Prepare platform for PSL fixture availability monitoring without importing fixtures, publishing fixtures, or activating PSL.
 
-## Platform Safety Constraints
+**Decision: CONDITIONAL_GO**
 
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
+---
 
-## Story Matrix
+## Stories
 
-| Story ID | Title | Status | Pages | Tests |
-|---|---|---|---|---|
-| S25-01 | Portal Shell Components | DONE | 0 (components) | Spec coverage |
-| S25-02 | Admin Portal (22 pages) | DONE | 22 | Spec coverage |
-| S25-03 | Club Portal (14 pages) | DONE | 14 | Spec coverage |
-| S25-04 | Sponsor Portal (13 pages) | DONE | 13 | Spec coverage |
-| S25-05 | Points/Rules Management UI | DONE | 4 (rules+sim) | Spec coverage |
-| S25-06 | Portal API Clients | DONE | 0 (lib files) | Spec coverage |
-| S25-07 | Portal Route Constants | DONE | 0 (lib file) | Spec coverage |
-| S25-08 | Portal Documentation | DONE | 13 docs | Spec coverage |
-| S25-09 | Portal Test Coverage | DONE | 0 | 100+ new tests |
+| ID | Title | Type | Status | Notes |
+|----|-------|------|--------|-------|
+| S25-01 | Parse PSL fixture availability check tool | Tool | DONE | `tools/staging/sprint-25-psl-fixture-availability-check.mjs` — dryRun=true always |
+| S25-02 | Team resolution readiness tool | Tool | DONE | `tools/staging/sprint-25-team-resolution-readiness.mjs` — read-only |
+| S25-03 | Parse fixture availability status doc | Doc | DONE | `docs/staging/SPRINT-25-PARSE-FIXTURE-AVAILABILITY.md` |
+| S25-04 | Dry-run results record | Doc | DONE | `docs/staging/SPRINT-25-PARSE-DRY-RUN-RESULTS.md` — SOURCE_EMPTY |
+| S25-05 | Source-empty status explanation | Doc | DONE | `docs/staging/SPRINT-25-SOURCE-EMPTY-STATUS.md` |
+| S25-06 | Team resolution matrix | Doc | DONE | `docs/staging/SPRINT-25-TEAM-RESOLUTION-READINESS.md` — 16 clubs |
+| S25-07 | Fixture import write runbook | Doc | DONE | `docs/staging/SPRINT-25-FIXTURE-IMPORT-WRITE-RUNBOOK.md` — NOT AUTHORISED |
+| S25-08 | Fixture publication runbook | Doc | DONE | `docs/staging/SPRINT-25-FIXTURE-PUBLICATION-RUNBOOK.md` — NOT AUTHORISED |
+| S25-09 | Owner approval gates | Doc | DONE | `docs/staging/SPRINT-25-OWNER-APPROVAL-GATES.md` |
+| S25-10 | PSL activation boundary | Doc | DONE | `docs/staging/SPRINT-25-PSL-ACTIVATION-BOUNDARY.md` |
+| S25-11 | Experience tests | Tests | DONE | ~20 new tests in experience.spec.ts |
+| S25-12 | Handover docs | Docs | DONE | 5 handover docs + this matrix |
 
-## Deliverables Summary
+---
 
-### Components Built: 8
+## Counters
 
-1. PortalShell.tsx
-2. PortalSidebar.tsx
-3. PortalTopbar.tsx
-4. PortalStatusBadges.tsx
-5. PortalMetricCard.tsx
-6. PortalDataTable.tsx
-7. PortalEmptyState.tsx
-8. PortalConfirmDialog.tsx
+| Metric | Sprint 24 | Sprint 25 | Delta |
+|--------|-----------|-----------|-------|
+| API routes | 1,968 | 1,968 | +0 |
+| Experience tests | 905 | ~925 | +~20 |
+| API tests | 1,968 | 1,968 | +0 |
+| Migrations | 42 | 42 | +0 |
+| Web pages | unchanged | unchanged | +0 |
+| Staging docs | — | +8 | +8 |
+| Tool scripts | — | +2 | +2 |
 
-### Pages Built: 49
+---
 
-- Admin: 22 pages
-- Club: 14 pages
-- Sponsor: 13 pages
+## Known Gaps
 
-### API Clients: 4
+| Gap | Description | Sprint |
+|-----|-------------|--------|
+| GAP-25-01 | PSL fixtures SOURCE_EMPTY (~July/August 2026) | 25 |
+| GAP-25-02 | API-Football PSL account suspended | 13+ |
+| GAP-25-03 | No PSL 2026/27 Season record | 25 |
+| GAP-25-04 | No PSL 2026/27 Gameweeks | 25 |
 
-- admin-portal-api.ts
-- club-portal-api.ts
-- sponsor-portal-api.ts
-- points-rules-api.ts
+---
 
-### Documentation: 13 files
+## Safety State
 
-- 7 portal docs
-- 5 handover docs
-- 1 sprint matrix
-
-## Safety Audit
-
-| Check | Result |
-|---|---|
-| PSL not activated | PASS |
-| Wallet sandbox only | PASS |
-| GTS points only | PASS |
-| Fantasy points only | PASS |
-| Sponsor rewards non-financial | PASS |
-| No production ingestion | PASS |
-| No scheduled ingestion | PASS |
-| No real money | PASS |
-| No provider keys in frontend | PASS |
-| No ADMIN_TOKEN in frontend | PASS |
-| RBAC at API layer | PASS |
-| Audit logs not bypassed | PASS |
+```
+PSL:                    INACTIVE (unchanged)
+WC2026:                 ACTIVE (unchanged)
+Wallet:                 SANDBOX (unchanged)
+Scheduled ingestion:    DISABLED (unchanged)
+Production ingestion:   DISABLED (unchanged)
+Real-money:             NONE (unchanged)
+EC2 deployed SHA:       c731c494 (Sprint 24, unchanged)
+Migrations:             42 (unchanged)
+```

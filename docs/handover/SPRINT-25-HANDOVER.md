@@ -1,81 +1,77 @@
-# Sprint 25 — Handover Document
+# Sprint 25 — Handover
 
-**Status:** Complete
-**Date:** 2026-06-23
+## Sprint Goal
 
-## Platform Safety Constraints
+Prepare the platform for official PSL fixture availability by adding a safe fixture availability monitoring and readiness workflow, without importing fixtures, publishing fixtures, activating PSL, or enabling scheduled ingestion.
 
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
+## Sprint Status
 
-## What Was Built
+**CONDITIONAL_GO** — Documentation and tooling sprint. All deliverables created. CI pending.
 
-### Portal Shell Components (8 files)
+---
 
-- `PortalShell.tsx` — Left sidebar + topbar wrapper layout
-- `PortalSidebar.tsx` — Role-aware navigation links with groups
-- `PortalTopbar.tsx` — Breadcrumbs, search placeholder, user menu
-- `PortalStatusBadges.tsx` — PSL INACTIVE, SANDBOX, POINTS ONLY badges
-- `PortalMetricCard.tsx` — Metric card with label, value, trend
-- `PortalDataTable.tsx` — Generic sortable table
-- `PortalEmptyState.tsx` — Empty state with action
-- `PortalConfirmDialog.tsx` — Confirmation modal for dangerous actions
+## Deliverables
 
-### Admin Portal (22 pages)
+### Tools (2)
 
-All pages in `apps/experience/src/app/admin/` — see SPRINT-25-ADMIN-PORTAL-SCOPE.md
+| File | Purpose |
+|------|---------|
+| `tools/staging/sprint-25-psl-fixture-availability-check.mjs` | Read-only dry-run fixture availability check (dryRun=true always) |
+| `tools/staging/sprint-25-team-resolution-readiness.mjs` | Read-only team name resolution diagnostic |
 
-### Club Portal (14 pages)
+### Staging Docs (8)
 
-All pages in `apps/experience/src/app/club/` — see SPRINT-25-CLUB-PORTAL-SCOPE.md
+| File | Purpose |
+|------|---------|
+| `docs/staging/SPRINT-25-PARSE-FIXTURE-AVAILABILITY.md` | Current Parse PSL fixture availability status |
+| `docs/staging/SPRINT-25-PARSE-DRY-RUN-RESULTS.md` | Dry-run result record (SOURCE_EMPTY as of 2026-06-23) |
+| `docs/staging/SPRINT-25-SOURCE-EMPTY-STATUS.md` | Why SOURCE_EMPTY is expected behaviour |
+| `docs/staging/SPRINT-25-TEAM-RESOLUTION-READINESS.md` | Team name resolution matrix for 16 PSL clubs |
+| `docs/staging/SPRINT-25-FIXTURE-IMPORT-WRITE-RUNBOOK.md` | 10-gate runbook for future fixture import write |
+| `docs/staging/SPRINT-25-FIXTURE-PUBLICATION-RUNBOOK.md` | 7-gate runbook for future fixture publication |
+| `docs/staging/SPRINT-25-OWNER-APPROVAL-GATES.md` | All owner-approval gates and current status |
+| `docs/staging/SPRINT-25-PSL-ACTIVATION-BOUNDARY.md` | Explicit boundary — what Sprint 25 does vs. PSL activation |
 
-### Sponsor Portal (13 pages)
+### Handover Docs (5 + matrix)
 
-All pages in `apps/experience/src/app/sponsor/` — see SPRINT-25-SPONSOR-PORTAL-SCOPE.md
-
-### API Clients (4 files)
-
-- `admin-portal-api.ts` — Admin portal API client
-- `club-portal-api.ts` — Club portal API client
-- `sponsor-portal-api.ts` — Sponsor portal API client (non-financial)
-- `points-rules-api.ts` — GTS + Fantasy points rules API client
-
-### Route Constants
-
-- `portal-routes.ts` — Typed constants for all portal routes
-
-### Documentation (13 files)
-
-- `docs/portals/SPRINT-25-ADMIN-PORTAL-SCOPE.md`
-- `docs/portals/SPRINT-25-CLUB-PORTAL-SCOPE.md`
-- `docs/portals/SPRINT-25-SPONSOR-PORTAL-SCOPE.md`
-- `docs/portals/SPRINT-25-POINTS-RULES-MANAGEMENT.md`
-- `docs/portals/SPRINT-25-PORTAL-RBAC-MATRIX.md`
-- `docs/portals/SPRINT-25-PORTAL-API-CONTRACT-GAPS.md`
-- `docs/portals/SPRINT-25-PORTAL-UX-QA-CHECKLIST.md`
-- `docs/handover/SPRINT-25-BETA-GO-NOGO.md`
-- `docs/handover/SPRINT-25-HANDOVER.md`
-- `docs/handover/SPRINT-25-KNOWN-GAPS.md`
-- `docs/handover/SPRINT-25-OWNER-REVIEW-GUIDE.md`
-- `docs/handover/SPRINT-25-ROLLBACK-PLAN.md`
+- `SPRINT-25-BETA-GO-NOGO.md`
+- `SPRINT-25-HANDOVER.md` (this file)
+- `SPRINT-25-KNOWN-GAPS.md`
+- `SPRINT-25-OWNER-REVIEW-GUIDE.md`
+- `SPRINT-25-ROLLBACK-PLAN.md`
 - `docs/sprints/SPRINT-25-STORY-MATRIX.md`
 
-## Baseline Metrics
+---
 
-- API tests: 1,968 (unchanged — no backend changes)
-- Experience tests: 905 → increased with portal tests
-- Migrations: 0 (no schema changes)
-- Pages added: 49 (22 admin + 14 club + 13 sponsor)
+## No Changes To
 
-## Next Actions for Owner
+- Schema (0 migrations)
+- API routes (0 new routes)
+- Frontend pages (0 new pages)
+- EC2 deployment (not deployed in Sprint 25)
+- Database seed data
 
-1. Review portal pages visually in browser
-2. Confirm safety badges are visible on all pages
-3. Approve PR #25 once satisfied
-4. Supply live provider keys when ready
-5. Authorise PSL season activation when ready
+---
+
+## Key Status
+
+```
+PSL:                    INACTIVE (unchanged)
+Fixtures:               SOURCE_EMPTY — psl.co.za has not published 2026/27 schedule yet
+Expected fixture date:  ~July/August 2026
+Migrations:             42 (unchanged)
+API tests:              1,968 (unchanged)
+Experience tests:       ~925 (Sprint 25 adds ~20 tests)
+```
+
+---
+
+## Owner Actions Required
+
+None immediately — Sprint 25 is monitoring preparation only.
+
+When psl.co.za publishes the 2026/27 fixture schedule:
+1. Run `sprint-25-psl-fixture-availability-check.mjs` against beta EC2
+2. If `PSL_FIXTURE_CANDIDATES_FOUND`, notify owner
+3. Owner reviews dry-run candidates
+4. Owner opens Gate A03+ to proceed with import write

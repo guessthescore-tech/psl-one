@@ -1,61 +1,59 @@
 # Sprint 25 — Rollback Plan
 
-**Status:** Documented
-**Date:** 2026-06-23
+## Rollback Necessity Assessment
 
-## Platform Safety Constraints
+Sprint 25 contains:
+- 2 new staging tool scripts (read-only, no API changes)
+- 8 staging docs (markdown only)
+- 5 handover docs (markdown only)
+- 1 story matrix doc (markdown only)
+- ~20 experience tests
+- 0 migrations
+- 0 schema changes
+- 0 route changes
+- 0 API changes
+- 0 EC2 deployments
 
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
+**Rollback risk: VERY LOW** — there are no runtime changes to roll back.
 
-## Rollback Scope
+---
 
-Sprint 25 adds only frontend pages, components, API clients, and documentation. There are no:
-- Database migrations
-- Backend code changes
-- Schema changes
-- Environment variable changes
-- Infrastructure changes
+## Code Rollback (If Needed)
 
-This makes rollback straightforward.
-
-## Rollback Steps
-
-### Option 1: Revert PR (Recommended)
-
-If the PR is merged and a rollback is needed:
+To revert Sprint 25 from main:
 
 ```bash
-git revert <merge-commit-sha> --no-commit
-git commit -m "revert: rollback sprint-25-production-portals-ui"
-git push origin main
+git revert <sprint-25-merge-commit>
 ```
 
-### Option 2: Delete Portal Routes
+This removes the tool scripts and docs. No DB changes are made.
 
-If only specific portals need rollback, remove the page files:
+---
 
-```bash
-rm -rf apps/experience/src/app/admin/overview
-rm -rf apps/experience/src/app/admin/competitions
-# ... etc for specific pages
+## EC2 Rollback
+
+Sprint 25 does not deploy to EC2. EC2 remains on the Sprint 24 deploy (run `28015195029`, SHA `c731c494`).
+
+If EC2 needs to roll back independently of Sprint 25, see `docs/staging/SPRINT-24-STAGING-ROLLBACK-CHECKLIST.md`.
+
+---
+
+## DB Rollback
+
+Not applicable — Sprint 25 has 0 migrations and 0 DB writes.
+
+---
+
+## Safety State Post-Rollback
+
+All safety constraints remain unchanged regardless of rollback:
+
 ```
-
-### Option 3: Feature Flag (Future)
-
-For future sprints, consider gating portal pages behind an environment variable:
-```typescript
-if (!process.env.NEXT_PUBLIC_PORTALS_ENABLED) { redirect('/'); }
+PSL:                    INACTIVE
+WC2026:                 ACTIVE
+Wallet:                 SANDBOX
+Scheduled ingestion:    DISABLED
+Production ingestion:   DISABLED
+Real-money:             NONE
+Migrations:             42
 ```
-
-## Risk Assessment
-
-- **Data risk:** None — no migrations, no schema changes
-- **Auth risk:** None — RBAC unchanged at backend
-- **Safety risk:** None — no PSL activation, no wallet changes
-- **Rollback time:** < 15 minutes for any option

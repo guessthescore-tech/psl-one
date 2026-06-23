@@ -1,71 +1,74 @@
 # Sprint 25 — Owner Review Guide
 
-**Status:** Ready for Owner Review
-**Date:** 2026-06-23
-
-## Platform Safety Constraints
-
-- PSL remains inactive. World Cup 2026 remains active beta context.
-- Wallet remains sandbox-only. No production wallet activation.
-- Fantasy remains points-only. No real-money integration.
-- Guess the Score remains points-only. No real-money integration.
-- Sponsor rewards remain non-financial (points, badges, digital experiences only).
-- No production ingestion. No scheduled ingestion.
-- No real-money functionality.
-
 ## What to Review
 
-This sprint adds 49 new portal pages across three portals. The owner should verify:
+Sprint 25 is a documentation and tooling sprint. There is nothing to visually test in the browser. Review the following:
 
-### 1. Admin Portal (visit /admin/overview)
+---
 
-- Confirm "PSL INACTIVE" badge is prominently displayed
-- Confirm "WC 2026 ACTIVE" badge is shown
-- Confirm "WALLET SANDBOX" badge is shown
-- Confirm "GTS POINTS ONLY" and "FANTASY POINTS ONLY" badges are shown
-- Review open owner gates list — these are the pending actions
-- Visit /admin/readiness — review launch checklist
+## 1. Tool Scripts (2 files)
 
-### 2. Rules Management
+**`tools/staging/sprint-25-psl-fixture-availability-check.mjs`**
+- Calls `POST /admin/data-provider/parse-psl/fixtures/ingest` with `dryRun=true` always
+- Reads `ADMIN_TOKEN` from env — never prints the token
+- Interprets `SOURCE_EMPTY` as info, not failure
+- Exits 0 for both SOURCE_EMPTY and candidates-found
+- Exits non-zero only for auth failures or server errors
 
-- Visit /admin/rules/guess-the-score
-- Confirm "GTS_POINTS_ONLY Declaration" section is visible
-- Confirm no cash or wagering language appears
+**`tools/staging/sprint-25-team-resolution-readiness.mjs`**
+- Reads `/clubs` endpoint — no writes
+- Compares seeded club names against expected PSL canonical names
+- Normalised matching handles common suffix variations ("FC", "United", etc.)
+- Reports `TEAM_RESOLUTION_READY` or `TEAM_RESOLUTION_WARNINGS`
 
-- Visit /admin/rules/fantasy
-- Confirm "FANTASY_POINTS_ONLY Declaration" section is visible
-- Confirm no cash or wagering language appears
+---
 
-### 3. Club Portal (visit /club/overview)
+## 2. Confirm Safety Constraints
 
-- Confirm "PSL INACTIVE" notice is shown
-- Confirm NO league activation button is visible (it's admin-only)
-- Review squad, fixtures — both show "pending PSL activation" messages
+Verify the following by reading tool source code:
 
-### 4. Sponsor Portal (visit /sponsor/overview)
+- [ ] Both tools use `dryRun=true` in all API calls — no `dryRun:false` anywhere
+- [ ] Neither tool triggers `confirmWrite:true`
+- [ ] Neither tool activates PSL or creates a season record
+- [ ] Neither tool enables scheduled or production ingestion
+- [ ] Neither tool calls any wallet production endpoint
 
-- Confirm "NON-FINANCIAL REWARDS" badge is shown
-- Confirm SPONSOR_REWARDS_NON_FINANCIAL declaration is visible
+---
 
-- Visit /sponsor/rewards
-- Confirm full non-financial declaration is visible
-- Confirm no cash, prize money, or monetary vouchers are listed
+## 3. Staging Docs
 
-- Visit /sponsor/billing-placeholder
-- Confirm SANDBOX MODE badge is shown
-- Confirm no real payment details are collected
+Read `docs/staging/SPRINT-25-OWNER-APPROVAL-GATES.md` and confirm:
 
-### 5. Safety Scan
+- [ ] All Gate Set A gates are listed as BLOCKED or NOT YET
+- [ ] No gate has been marked as approved without your sign-off
+- [ ] The immutable constraints section is correct
 
-Run the secret scan to confirm no keys are committed:
-```bash
-grep -r "ADMIN_TOKEN\|PARSE_API_KEY\|API_FOOTBALL_KEY\|x-apisports-key" apps/experience/src/lib/
-```
-Expected: CLEAN (no results)
+---
 
-## Actions After Review
+## 4. Activation Boundary
 
-- If satisfied: Approve PR #25
-- If changes needed: Comment on PR with specific feedback
-- When ready to activate PSL: Provide explicit written authorisation to agent
-- When ready to supply provider keys: Provide in secure channel (not in code)
+Read `docs/staging/SPRINT-25-PSL-ACTIVATION-BOUNDARY.md` and confirm:
+
+- [ ] The boundary table correctly shows "NO" for all write operations
+- [ ] PSL activation prerequisites list is accurate
+
+---
+
+## 5. CI Checks
+
+Once the PR is pushed, confirm 7/7 CI checks pass:
+- test-api
+- test-experience
+- security-scan
+- lint (if applicable)
+- typecheck-api
+- typecheck-experience
+- build-experience
+
+---
+
+## Owner Sign-Off
+
+If satisfied, the PR may be merged. No EC2 deployment is needed for Sprint 25 (docs/tooling only).
+
+If any issue is found, file it as a Gap in `SPRINT-25-KNOWN-GAPS.md` and determine if it is a blocker.
