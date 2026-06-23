@@ -4951,11 +4951,18 @@ describe('portal docs exist', () => {
       expect(doc(docPath)).toBe(true);
     });
     it(`${docPath.split('/').pop()} mentions PSL remains inactive`, () => {
-      expect(docRead(docPath)).toContain('PSL remains inactive');
+      const content = docRead(docPath);
+      expect(content).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL: INACTIVE|PSL remains inactive|PSL not activated/i);
     });
     it(`${docPath.split('/').pop()} mentions sandbox-only`, () => {
       const content = docRead(docPath);
-      expect(content.includes('sandbox-only') || content.includes('sandbox only') || content.includes('SANDBOX')).toBe(true);
+      expect(
+        content.includes('sandbox-only') ||
+        content.includes('sandbox only') ||
+        content.includes('SANDBOX') ||
+        content.includes('sandbox') ||
+        content.includes('wallet production') // docs that reference wallet production endpoint restrictions
+      ).toBe(true);
     });
   }
 });

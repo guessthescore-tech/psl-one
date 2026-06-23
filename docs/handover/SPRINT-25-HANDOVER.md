@@ -75,3 +75,7 @@ When psl.co.za publishes the 2026/27 fixture schedule:
 2. If `PSL_FIXTURE_CANDIDATES_FOUND`, notify owner
 3. Owner reviews dry-run candidates
 4. Owner opens Gate A03+ to proceed with import write
+
+## Platform Safety Status
+
+PSL remains inactive. Wallet remains sandbox-only. No real-money functionality. No production ingestion.
