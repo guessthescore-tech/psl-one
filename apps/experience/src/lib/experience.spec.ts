@@ -4780,7 +4780,7 @@ describe('Sprint 25 — PSL Fixture Readiness Monitoring', () => {
       'utf8'
     );
     // Only GET calls — no write methods
-    const methodLines = src.split('\n').filter(l => l.includes("method:") && !l.includes("'GET'"));
+    const methodLines = src.split('\n').filter((l: string) => l.includes("method:") && !l.includes("'GET'"));
     expect(methodLines).toHaveLength(0);
   });
 
