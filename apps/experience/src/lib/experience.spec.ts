@@ -4398,6 +4398,142 @@ describe('Sprint 22 — Authenticated Staging Smoke & Temp Admin Provisioning', 
   });
 });
 
+describe('Sprint 23 — RBAC Fix & Env Hygiene', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  const SECURITY_DOCS = [
+    'SPRINT-23-RBAC-INVESTIGATION.md',
+    'SPRINT-23-RBAC-FIX.md',
+    'SPRINT-23-ENV-HYGIENE.md',
+  ];
+
+  const HANDOVER_DOCS_23 = [
+    'SPRINT-23-BETA-GO-NOGO.md',
+    'SPRINT-23-HANDOVER.md',
+    'SPRINT-23-KNOWN-GAPS.md',
+    'SPRINT-23-OWNER-REVIEW-GUIDE.md',
+    'SPRINT-23-ROLLBACK-PLAN.md',
+  ];
+
+  for (const doc of SECURITY_DOCS) {
+    it(`security doc exists: ${doc}`, () => {
+      const p = require('path').resolve(REPO, 'docs', 'security', doc);
+      expect(require('fs').existsSync(p)).toBe(true);
+    });
+  }
+
+  for (const doc of HANDOVER_DOCS_23) {
+    it(`handover doc exists: ${doc}`, () => {
+      const p = require('path').resolve(REPO, 'docs', 'handover', doc);
+      expect(require('fs').existsSync(p)).toBe(true);
+    });
+  }
+
+  it('story matrix exists', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-23-STORY-MATRIX.md');
+    expect(require('fs').existsSync(p)).toBe(true);
+  });
+
+  it('RBAC investigation doc identifies PSL_ADMIN as the correct role', () => {
+    const p = require('path').resolve(REPO, 'docs', 'security', 'SPRINT-23-RBAC-INVESTIGATION.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('PSL_ADMIN');
+    expect(src).toContain("@Roles('ADMIN')");
+  });
+
+  it('RBAC fix doc confirms @Roles("ADMIN") changed to @Roles("PSL_ADMIN")', () => {
+    const p = require('path').resolve(REPO, 'docs', 'security', 'SPRINT-23-RBAC-FIX.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain("@Roles('PSL_ADMIN')");
+    expect(src).toContain("@Roles('ADMIN')");
+  });
+
+  it('env hygiene doc confirms apps/api/.env is not tracked', () => {
+    const p = require('path').resolve(REPO, 'docs', 'security', 'SPRINT-23-ENV-HYGIENE.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/not tracked|not.*git tracked|gitignored|Not tracked/i);
+  });
+
+  it('beta go/no-go is CONDITIONAL_GO', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('CONDITIONAL_GO');
+    expect(src).not.toContain('NO_GO\n');
+  });
+
+  it('story matrix records 0 new migrations', () => {
+    const p = require('path').resolve(REPO, 'docs', 'sprints', 'SPRINT-23-STORY-MATRIX.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toContain('42');
+    expect(src).toMatch(/Sprint 23 migrations added: 0/);
+  });
+
+  it('Sprint 23 docs confirm PSL remains inactive', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/PSL.*INACTIVE|PSL NOT activated/i);
+  });
+
+  it('Sprint 23 docs confirm wallet sandbox-only', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/sandbox/i);
+  });
+
+  it('Sprint 23 docs confirm no scheduled ingestion', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/No scheduled ingestion|scheduled.*DISABLED/i);
+  });
+
+  it('Sprint 23 docs confirm no production ingestion', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/No production ingestion/i);
+  });
+
+  it('Sprint 23 docs confirm no real-money functionality', () => {
+    const p = require('path').resolve(REPO, 'docs', 'handover', 'SPRINT-23-BETA-GO-NOGO.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/No real-money functionality/i);
+  });
+
+  it('Sprint 23 security docs contain no JWT-shaped token values', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of SECURITY_DOCS) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'security', doc), 'utf8');
+      expect(src).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+    }
+  });
+
+  it('Sprint 23 security docs contain no provider key values', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of SECURITY_DOCS) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'security', doc), 'utf8');
+      expect(src).not.toMatch(/PARSE_API_KEY=['"][A-Za-z0-9]{8}/);
+      expect(src).not.toMatch(/pmx_[A-Za-z0-9]{10,}/);
+      expect(src).not.toMatch(/API_FOOTBALL_KEY=['"][A-Za-z0-9]{8}/);
+    }
+  });
+
+  it('Sprint 23 handover docs confirm fixture publishing is separate from PSL activation', () => {
+    const p = require('path').resolve(REPO, 'docs', 'security', 'SPRINT-23-RBAC-FIX.md');
+    const src = require('fs').readFileSync(p, 'utf8');
+    expect(src).toMatch(/separate from PSL activation|PSL activation|no PSL activation/i);
+  });
+
+  it('Sprint 23 handover docs contain no real-money mechanics', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of HANDOVER_DOCS_23) {
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', 'handover', doc), 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
