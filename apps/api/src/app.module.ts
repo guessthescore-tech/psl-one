@@ -44,6 +44,8 @@ import { AccountModule } from './account/account.module';
 import { PredictionChallengesModule } from './prediction-challenges/prediction-challenges.module';
 import { DataProviderModule } from './data-provider/data-provider.module';
 import { PreviewAnalyticsModule } from './preview-analytics/preview-analytics.module';
+import { ClubPortalModule } from './club-portal/club-portal.module';
+import { SponsorPortalModule } from './sponsor-portal/sponsor-portal.module';
 
 @Module({
   imports: [
@@ -89,6 +91,8 @@ import { PreviewAnalyticsModule } from './preview-analytics/preview-analytics.mo
     PredictionChallengesModule,
     DataProviderModule,
     PreviewAnalyticsModule,
+    ClubPortalModule,
+    SponsorPortalModule,
     HealthModule,
   ],
   controllers: [VersionController],
