@@ -4688,6 +4688,230 @@ describe('Sprint 24 — Beta EC2 RBAC Smoke Evidence', () => {
   });
 });
 
+describe('Sprint 25 — PSL Fixture Readiness Monitoring', () => {
+  const REPO = require('path').resolve(__dirname, '..', '..', '..', '..');
+
+  const STAGING_DOCS_25 = [
+    'SPRINT-25-PARSE-FIXTURE-AVAILABILITY.md',
+    'SPRINT-25-PARSE-DRY-RUN-RESULTS.md',
+    'SPRINT-25-SOURCE-EMPTY-STATUS.md',
+    'SPRINT-25-TEAM-RESOLUTION-READINESS.md',
+    'SPRINT-25-FIXTURE-IMPORT-WRITE-RUNBOOK.md',
+    'SPRINT-25-FIXTURE-PUBLICATION-RUNBOOK.md',
+    'SPRINT-25-OWNER-APPROVAL-GATES.md',
+    'SPRINT-25-PSL-ACTIVATION-BOUNDARY.md',
+  ];
+
+  const HANDOVER_DOCS_25 = [
+    'SPRINT-25-BETA-GO-NOGO.md',
+    'SPRINT-25-HANDOVER.md',
+    'SPRINT-25-KNOWN-GAPS.md',
+    'SPRINT-25-OWNER-REVIEW-GUIDE.md',
+    'SPRINT-25-ROLLBACK-PLAN.md',
+  ];
+
+  const TOOL_SCRIPTS_25 = [
+    'sprint-25-psl-fixture-availability-check.mjs',
+    'sprint-25-team-resolution-readiness.mjs',
+  ];
+
+  it('staging docs all exist', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of STAGING_DOCS_25) {
+      const p = path.resolve(REPO, 'docs', 'staging', doc);
+      expect(fs.existsSync(p), `Missing staging doc: ${doc}`).toBe(true);
+    }
+  });
+
+  it('handover docs all exist', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const doc of HANDOVER_DOCS_25) {
+      const p = path.resolve(REPO, 'docs', 'handover', doc);
+      expect(fs.existsSync(p), `Missing handover doc: ${doc}`).toBe(true);
+    }
+  });
+
+  it('story matrix exists', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const p = path.resolve(REPO, 'docs', 'sprints', 'SPRINT-25-STORY-MATRIX.md');
+    expect(fs.existsSync(p)).toBe(true);
+  });
+
+  it('tool scripts exist', () => {
+    const fs = require('fs');
+    const path = require('path');
+    for (const script of TOOL_SCRIPTS_25) {
+      const p = path.resolve(REPO, 'tools', 'staging', script);
+      expect(fs.existsSync(p), `Missing tool script: ${script}`).toBe(true);
+    }
+  });
+
+  it('fixture availability tool uses dryRun=true only', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'tools', 'staging', 'sprint-25-psl-fixture-availability-check.mjs'),
+      'utf8'
+    );
+    expect(src).toMatch(/dryRun.*true/);
+    expect(src).not.toMatch(/dryRun.*false/);
+    expect(src).not.toMatch(/confirmWrite.*true/);
+  });
+
+  it('fixture availability tool does not print ADMIN_TOKEN', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'tools', 'staging', 'sprint-25-psl-fixture-availability-check.mjs'),
+      'utf8'
+    );
+    expect(src).not.toMatch(/console\.log.*ADMIN_TOKEN.*\$/);
+    expect(src).not.toMatch(/console\.log.*Bearer/);
+  });
+
+  it('team resolution tool is read-only (no POST/PUT/PATCH/DELETE writes)', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'tools', 'staging', 'sprint-25-team-resolution-readiness.mjs'),
+      'utf8'
+    );
+    // Only GET calls — no write methods
+    const methodLines = src.split('\n').filter((l: string) => l.includes("method:") && !l.includes("'GET'"));
+    expect(methodLines).toHaveLength(0);
+  });
+
+  it('import write runbook is gated NOT AUTHORISED', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'staging', 'SPRINT-25-FIXTURE-IMPORT-WRITE-RUNBOOK.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/NOT AUTHORISED/i);
+    expect(src).toMatch(/BLOCKED/);
+  });
+
+  it('publication runbook is gated NOT AUTHORISED', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'staging', 'SPRINT-25-FIXTURE-PUBLICATION-RUNBOOK.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/NOT AUTHORISED/i);
+  });
+
+  it('owner approval gates show all A-gates BLOCKED', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'staging', 'SPRINT-25-OWNER-APPROVAL-GATES.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/A01/);
+    expect(src).toMatch(/A10/);
+    expect(src).toMatch(/BLOCKED|NOT YET/);
+    expect(src).toMatch(/A10.*NOT YET/s);
+  });
+
+  it('PSL activation boundary doc lists PSL as INACTIVE', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'staging', 'SPRINT-25-PSL-ACTIVATION-BOUNDARY.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/PSL.*INACTIVE/);
+    expect(src).toMatch(/Scheduled ingestion.*DISABLED/);
+  });
+
+  it('source-empty doc explains expected behaviour', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'staging', 'SPRINT-25-SOURCE-EMPTY-STATUS.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/INGESTION_SOURCE_EMPTY_NOOP/);
+    expect(src).toMatch(/expected/i);
+    expect(src).not.toMatch(/\bbug\b/i);
+  });
+
+  it('go-nogo doc shows CONDITIONAL_GO', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'handover', 'SPRINT-25-BETA-GO-NOGO.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/CONDITIONAL_GO/);
+  });
+
+  it('story matrix references all 12 stories', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'sprints', 'SPRINT-25-STORY-MATRIX.md'),
+      'utf8'
+    );
+    for (let i = 1; i <= 12; i++) {
+      expect(src).toMatch(new RegExp(`S25-${String(i).padStart(2, '0')}`));
+    }
+  });
+
+  it('no Sprint 25 docs contain admin JWT tokens', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const allDocs = [...STAGING_DOCS_25, ...HANDOVER_DOCS_25];
+    for (const doc of allDocs) {
+      const dir = HANDOVER_DOCS_25.includes(doc) ? 'handover' : 'staging';
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', dir, doc), 'utf8');
+      expect(src).not.toMatch(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/);
+    }
+  });
+
+  it('no Sprint 25 docs contain provider API keys', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const allDocs = [...STAGING_DOCS_25, ...HANDOVER_DOCS_25];
+    for (const doc of allDocs) {
+      const dir = HANDOVER_DOCS_25.includes(doc) ? 'handover' : 'staging';
+      const src = fs.readFileSync(path.resolve(REPO, 'docs', dir, doc), 'utf8');
+      expect(src).not.toMatch(/PARSE_API_KEY=['"][A-Za-z0-9]{8}/);
+      expect(src).not.toMatch(/API_FOOTBALL_KEY=['"][A-Za-z0-9]{8}/);
+    }
+  });
+
+  it('no Sprint 25 tools or docs contain real-money references', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const allFiles = [
+      ...TOOL_SCRIPTS_25.map(t => path.resolve(REPO, 'tools', 'staging', t)),
+      ...STAGING_DOCS_25.map(d => path.resolve(REPO, 'docs', 'staging', d)),
+      ...HANDOVER_DOCS_25.map(d => path.resolve(REPO, 'docs', 'handover', d)),
+    ];
+    for (const p of allFiles) {
+      const src = fs.readFileSync(p, 'utf8');
+      expect(src).not.toMatch(/\bwager\b|\bstake\b|\bbookmaker\b|\bpayout\b|\bcash prize\b/i);
+    }
+  });
+
+  it('known gaps doc lists GAP-25-01 as SOURCE_EMPTY', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.resolve(REPO, 'docs', 'handover', 'SPRINT-25-KNOWN-GAPS.md'),
+      'utf8'
+    );
+    expect(src).toMatch(/GAP-25-01/);
+    expect(src).toMatch(/SOURCE_EMPTY/);
+  });
+});
+
 function getAllFiles(dir: string): string[] {
   const fs = require('fs');
   const path = require('path');
