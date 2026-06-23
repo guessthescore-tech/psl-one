@@ -93,6 +93,8 @@ model User {
   challengeScores        ChallengeScore[]              @relation("FanChallengeScore")
   socialPredictionLedger SocialPredictionPointsEntry[] @relation("SocialPredictionLedger")
   betaCohortMemberships  BetaCohortMember[]
+  clubMemberships        ClubMembership[]
+  sponsorMemberships     SponsorMembership[]
 
   @@map("users")
 }
@@ -412,6 +414,7 @@ model Team {
   squadRegistrations SeasonSquadRegistration[]
   leagueStandings    LeagueStanding[]          @relation("ClubLeagueStanding")
   formRecords        TeamFormRecord[]          @relation("ClubFormRecord")
+  clubMemberships    ClubMembership[]
 
   @@map("teams")
 }
@@ -2595,8 +2598,9 @@ model Sponsor {
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
-  campaigns         SponsorCampaign[]
-  rewardDefinitions RewardDefinition[]
+  campaigns           SponsorCampaign[]
+  rewardDefinitions   RewardDefinition[]
+  sponsorMemberships  SponsorMembership[]
 
   @@index([status])
   @@map("sponsors")
@@ -3634,4 +3638,42 @@ model SeasonActivationApproval {
   @@index([seasonId, approvalStatus])
   @@index([createdAt(sort: Desc)])
   @@map("season_activation_approvals")
+}
+
+// ── Club & Sponsor Memberships (Sprint 28) ────────────────────────────────────
+
+model ClubMembership {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  teamId    String   @map("team_id")
+  role      String   @default("CLUB_ADMIN") @map("role")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@index([teamId])
+  @@index([userId])
+  @@map("club_memberships")
+}
+
+model SponsorMembership {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  sponsorId String   @map("sponsor_id")
+  role      String   @default("SPONSOR") @map("role")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sponsor Sponsor @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sponsorId])
+  @@index([sponsorId])
+  @@index([userId])
+  @@map("sponsor_memberships")
 }
