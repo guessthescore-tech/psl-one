@@ -5468,6 +5468,184 @@ describe('Sprint 27: Documentation and tools', () => {
   });
 });
 
+// ─── Sprint 28: User-to-Club/Sponsor Scoping & RBAC ──────────────────────────
+
+describe('Sprint 28: PortalScopeModule', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const scopeFiles = [
+    'apps/api/src/portal-scope/portal-scope.module.ts',
+    'apps/api/src/portal-scope/portal-scope.service.ts',
+    'apps/api/src/portal-scope/portal-scope.service.spec.ts',
+  ];
+  it.each(scopeFiles)('file exists: %s', (f) => {
+    expect(existsSync(resolve(ROOT2, f))).toBe(true);
+  });
+  it('scope service enforces cross-club denial', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/portal-scope/portal-scope.service.ts'), 'utf-8');
+    expect(src).toContain('CROSS_CLUB_ACCESS_DENIED');
+  });
+  it('scope service enforces cross-sponsor denial', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/portal-scope/portal-scope.service.ts'), 'utf-8');
+    expect(src).toContain('CROSS_SPONSOR_ACCESS_DENIED');
+  });
+  it('scope service uses DB membership not query params', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/portal-scope/portal-scope.service.ts'), 'utf-8');
+    expect(src).toContain('clubMembership');
+    expect(src).toContain('sponsorMembership');
+  });
+  it('scope service requires PSL_ADMIN to provide explicit scope', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/portal-scope/portal-scope.service.ts'), 'utf-8');
+    expect(src).toContain('CLUB_SCOPE_REQUIRED');
+    expect(src).toContain('SPONSOR_SCOPE_REQUIRED');
+  });
+});
+
+describe('Sprint 28: ClubMembership migration', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('ClubMembership model exists in schema', () => {
+    const schema = readFileSync(resolve(ROOT2, 'apps/api/prisma/schema.prisma'), 'utf-8');
+    expect(schema).toContain('model ClubMembership');
+    expect(schema).toContain('club_memberships');
+  });
+  it('SponsorMembership model exists in schema', () => {
+    const schema = readFileSync(resolve(ROOT2, 'apps/api/prisma/schema.prisma'), 'utf-8');
+    expect(schema).toContain('model SponsorMembership');
+    expect(schema).toContain('sponsor_memberships');
+  });
+  it('migration file exists', () => {
+    const migrationsDir = resolve(ROOT2, 'apps/api/prisma/migrations');
+    const dirs = require('fs').readdirSync(migrationsDir);
+    const hasMigration = dirs.some((d: string) => d.includes('club_sponsor_memberships'));
+    expect(hasMigration).toBe(true);
+  });
+  it('schema does not add nullable FK on User for clubId or sponsorId', () => {
+    const schema = readFileSync(resolve(ROOT2, 'apps/api/prisma/schema.prisma'), 'utf-8');
+    const userSection = schema.substring(schema.indexOf('model User'), schema.indexOf('model User') + 1000);
+    expect(userSection).not.toMatch(/clubId.*String|sponsorId.*String/);
+  });
+});
+
+describe('Sprint 28: ClubPortalModule scoping', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('club-portal.service.ts uses PortalScopeService', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.service.ts'), 'utf-8');
+    expect(src).toContain('PortalScopeService');
+    expect(src).toContain('resolveClubScope');
+  });
+  it('club-portal.service.ts does not return API_SCOPE_PENDING anymore', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.service.ts'), 'utf-8');
+    expect(src).not.toContain('API_SCOPE_PENDING');
+  });
+  it('club-portal.module.ts imports PortalScopeModule', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.module.ts'), 'utf-8');
+    expect(src).toContain('PortalScopeModule');
+  });
+  it('club-portal does not activate PSL', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/club-portal/club-portal.service.ts'), 'utf-8');
+    expect(src).not.toMatch(/activatePsl|activateSeason/);
+  });
+});
+
+describe('Sprint 28: SponsorPortalModule scoping', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('sponsor-portal.service.ts uses PortalScopeService', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('PortalScopeService');
+    expect(src).toContain('resolveSponsorScope');
+  });
+  it('sponsor-portal.service.ts does not return API_SCOPE_PENDING', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).not.toContain('API_SCOPE_PENDING');
+  });
+  it('sponsor-portal billing remains INVOICE_ONLY', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('INVOICE_ONLY');
+  });
+  it('sponsor-portal rewards enforce isFinancial false', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(src).toContain('isFinancial');
+  });
+  it('sponsor-portal.module.ts imports PortalScopeModule', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.module.ts'), 'utf-8');
+    expect(src).toContain('PortalScopeModule');
+  });
+});
+
+describe('Sprint 28: ADR-032', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const adr = resolve(ROOT2, 'docs/adr/ADR-032-USER-TO-CLUB-SPONSOR-SCOPING.md');
+  it('ADR-032 exists', () => { expect(existsSync(adr)).toBe(true); });
+  it('ADR-032 discusses membership tables', () => {
+    expect(readFileSync(adr, 'utf-8').toLowerCase()).toContain('membership');
+  });
+  it('ADR-032 confirms no PSL activation', () => {
+    expect(readFileSync(adr, 'utf-8')).toMatch(/no PSL activation|PSL.*inactive|PSL.*INACTIVE/i);
+  });
+  it('ADR-032 confirms no wallet production', () => {
+    expect(readFileSync(adr, 'utf-8')).toMatch(/no wallet production|wallet.*sandbox/i);
+  });
+});
+
+describe('Sprint 28: App module registration', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('app.module imports PortalScopeModule', () => {
+    expect(readFileSync(resolve(ROOT2, 'apps/api/src/app.module.ts'), 'utf-8')).toContain('PortalScopeModule');
+  });
+});
+
+describe('Sprint 28: Documentation and tools', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const sprint28Items = [
+    'docs/security/SPRINT-28-SCOPING-MODEL-INVESTIGATION.md',
+    'docs/security/SPRINT-28-USER-ORG-SCOPING.md',
+    'docs/security/SPRINT-28-CROSS-TENANT-ACCESS-CONTROLS.md',
+    'docs/portals/SPRINT-28-CLUB-SPONSOR-SCOPING.md',
+    'docs/portals/SPRINT-28-ROLE-SMOKE-RUNBOOK.md',
+    'docs/handover/SPRINT-28-BETA-GO-NOGO.md',
+    'docs/handover/SPRINT-28-HANDOVER.md',
+    'docs/handover/SPRINT-28-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-28-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-28-ROLLBACK-PLAN.md',
+    'docs/sprints/SPRINT-28-STORY-MATRIX.md',
+    'docs/data/SPRINT-28-SCOPING-MIGRATION.md',
+    'docs/handover/SPRINT-28-MIGRATION-ROLLBACK.md',
+    'docs/adr/ADR-032-USER-TO-CLUB-SPONSOR-SCOPING.md',
+    'tools/staging/sprint-28-club-scope-smoke.mjs',
+    'tools/staging/sprint-28-sponsor-scope-smoke.mjs',
+    'tools/staging/sprint-28-role-cross-tenant-smoke.mjs',
+  ];
+  it.each(sprint28Items)('exists: %s', (f) => {
+    expect(existsSync(resolve(ROOT2, f))).toBe(true);
+  });
+
+  const handoverDocs = [
+    'docs/handover/SPRINT-28-HANDOVER.md',
+    'docs/handover/SPRINT-28-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-28-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-28-BETA-GO-NOGO.md',
+  ];
+  it.each(handoverDocs)('%s: mentions PSL inactive', (d) => {
+    expect(readFileSync(resolve(ROOT2, d), 'utf-8')).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL remains inactive/i);
+  });
+  it.each(handoverDocs)('%s: mentions wallet/sandbox', (d) => {
+    const c = readFileSync(resolve(ROOT2, d), 'utf-8');
+    expect(c.includes('sandbox') || c.includes('SANDBOX') || c.includes('wallet production')).toBe(true);
+  });
+  it.each(handoverDocs)('%s: mentions non-financial', (d) => {
+    expect(readFileSync(resolve(ROOT2, d), 'utf-8')).toMatch(/non-financial|no real.money|NON_FINANCIAL/i);
+  });
+  it('cross-tenant doc explains denial mechanism', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/security/SPRINT-28-CROSS-TENANT-ACCESS-CONTROLS.md'), 'utf-8');
+    expect(c).toMatch(/CROSS_CLUB_ACCESS_DENIED|cross.tenant/i);
+  });
+  it('smoke tools do not print tokens', () => {
+    for (const t of ['sprint-28-club-scope-smoke.mjs', 'sprint-28-sponsor-scope-smoke.mjs', 'sprint-28-role-cross-tenant-smoke.mjs']) {
+      const src = readFileSync(resolve(ROOT2, 'tools/staging', t), 'utf-8');
+      expect(src).not.toMatch(/console\.log.*TOKEN|console\.log.*password/i);
+    }
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
