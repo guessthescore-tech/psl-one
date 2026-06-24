@@ -6641,6 +6641,113 @@ describe('Sprint 38A — World Cup Live Provider Integration', () => {
   });
 });
 
+// ─── Sprint 38B: WC Seed Data + Admin Routes ─────────────────────────────
+
+describe('Sprint 38B — WC Seed Data & Admin DB Status Routes', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('WorldCupDbStatusService file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'))).toBe(true);
+  });
+
+  it('WorldCupDbStatusService exports getPlayerPoolStatus method', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'), 'utf-8');
+    expect(src).toMatch(/getPlayerPoolStatus/);
+  });
+
+  it('WorldCupDbStatusService exports getFixtureStatus method', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'), 'utf-8');
+    expect(src).toMatch(/getFixtureStatus/);
+  });
+
+  it('WorldCupDbStatusService is read-only (noWrites=true in response)', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'), 'utf-8');
+    expect(src).toMatch(/noWrites.*true/);
+  });
+
+  it('WorldCupDbStatusService enforces points-only context', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'), 'utf-8');
+    expect(src).toMatch(/pointsOnlyContext.*true|points.*only/i);
+  });
+
+  it('WorldCupDbStatusService never activates PSL (noPslActivation=true)', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-db-status.service.ts'), 'utf-8');
+    expect(src).toMatch(/noPslActivation.*true/);
+    expect(src).not.toMatch(/isActive.*true.*psl|psl.*isActive.*true/i);
+  });
+
+  it('player-pool-status route exists in data-provider controller', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.controller.ts'), 'utf-8');
+    expect(src).toMatch(/world-cup\/player-pool-status/);
+  });
+
+  it('fixture-status route exists in data-provider controller', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.controller.ts'), 'utf-8');
+    expect(src).toMatch(/world-cup\/fixture-status/);
+  });
+
+  it('WorldCupDbStatusService is registered in DataProviderModule', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.module.ts'), 'utf-8');
+    expect(src).toMatch(/WorldCupDbStatusService/);
+  });
+
+  it('world-cup-live-readiness admin page exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/world-cup-live-readiness/page.tsx'))).toBe(true);
+  });
+
+  it('world-cup-live-readiness page is read-only (no imports, no activation)', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/world-cup-live-readiness/page.tsx'), 'utf-8');
+    expect(src).toMatch(/READ-ONLY/);
+    expect(src).not.toContain('dryRun: false');
+    expect(src).not.toContain('activateSeason');
+    expect(src).not.toContain('confirmWorldCupWrite');
+  });
+
+  it('world-cup-live-readiness page calls player-pool-status endpoint', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/world-cup-live-readiness/page.tsx'), 'utf-8');
+    expect(src).toMatch(/world-cup\/player-pool-status/);
+  });
+
+  it('world-cup-live-readiness page calls fixture-status endpoint', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/world-cup-live-readiness/page.tsx'), 'utf-8');
+    expect(src).toMatch(/world-cup\/fixture-status/);
+  });
+
+  it('world-cup-live-readiness page enforces points-only safety messaging', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/world-cup-live-readiness/page.tsx'), 'utf-8');
+    expect(src).toMatch(/points.*only|no.*cash.*value|no wagering/i);
+  });
+
+  it('seed.ts includes WC2026 FantasyPlayerPrice seeding', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/prisma/seed.ts'), 'utf-8');
+    expect(src).toMatch(/fantasyPlayerPrice.*upsert|WC.*fantasy.*player.*price|WC_PRICE/i);
+  });
+
+  it('seed.ts includes WC2026 FixturePredictionMarket seeding', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/prisma/seed.ts'), 'utf-8');
+    expect(src).toMatch(/fixturePredictionMarket.*create|WC.*market/i);
+  });
+
+  it('seed.ts WC price seeding states points-only (no cash value)', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/prisma/seed.ts'), 'utf-8');
+    expect(src).toMatch(/POINTS-ONLY|points.*only|no cash value/i);
+  });
+
+  it('seed.ts WC market seeding uses MATCH_RESULT market type', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/prisma/seed.ts'), 'utf-8');
+    expect(src).toMatch(/MATCH_RESULT/);
+  });
+
+  it('no new Prisma migration (Sprint 38B uses existing schema)', () => {
+    const migrationsDir = resolve(ROOT2, 'apps/api/prisma/migrations');
+    const migrations = existsSync(migrationsDir)
+      ? require('fs').readdirSync(migrationsDir) as string[]
+      : [] as string[];
+    const sprint38bMigrations = migrations.filter((m: string) => m.includes('sprint_38b'));
+    expect(sprint38bMigrations).toHaveLength(0);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

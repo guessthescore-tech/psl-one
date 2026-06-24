@@ -20,6 +20,7 @@ import { DataProviderController } from './data-provider.controller';
 import { DataProviderService } from './data-provider.service';
 import { ParsePslFixtureIngestionService } from './parse-psl-fixture-ingestion.service';
 import { WorldCupImportService } from './world-cup-import.service';
+import { WorldCupDbStatusService } from './world-cup-db-status.service';
 import type { TokenPayload } from '../auth/providers/auth.provider.interface';
 
 const FAN_TOKEN = 'test-fan-dp';
@@ -111,12 +112,56 @@ beforeAll(async () => {
     }),
   };
 
+  const mockWcDbStatus: Partial<WorldCupDbStatusService> = {
+    getPlayerPoolStatus: async () => ({
+      competition: 'WC2026' as const,
+      season: { id: 'wc-season-1', name: 'FIFA World Cup 2026', isActive: true },
+      playerPool: {
+        totalPlayers: 1200,
+        teamCount: 48,
+        byPosition: { GOALKEEPER: 144, DEFENDER: 384, MIDFIELDER: 384, FORWARD: 288 },
+        playersWithPrice: 1200,
+        priceSeeded: true,
+        priceNote: 'Fantasy points only — no cash value, no real-money wallet',
+      },
+      safety: {
+        noRealMoney: true as const,
+        noPslActivation: true as const,
+        pointsOnlyContext: true as const,
+        noWrites: true as const,
+      },
+    }),
+    getFixtureStatus: async () => ({
+      competition: 'WC2026' as const,
+      season: { id: 'wc-season-1', name: 'FIFA World Cup 2026', isActive: true },
+      fixtures: {
+        total: 104,
+        published: 104,
+        byRound: { GROUP: 72, ROUND_OF_32: 16, ROUND_OF_16: 8, QUARTER_FINAL: 4, SEMI_FINAL: 2, THIRD_PLACE: 1, FINAL: 1 },
+      },
+      predictionMarkets: {
+        total: 104,
+        open: 104,
+        locked: 0,
+        settled: 0,
+        note: 'Points-based GTS prediction markets — no wagering, no cash value',
+      },
+      safety: {
+        noRealMoney: true as const,
+        noPslActivation: true as const,
+        pointsOnlyContext: true as const,
+        noWrites: true as const,
+      },
+    }),
+  };
+
   const module: TestingModule = await Test.createTestingModule({
     controllers: [DataProviderController],
     providers: [
       { provide: DataProviderService, useValue: mockDataProvider },
       { provide: ParsePslFixtureIngestionService, useValue: mockIngestion },
       { provide: WorldCupImportService, useValue: mockWcImport },
+      { provide: WorldCupDbStatusService, useValue: mockWcDbStatus },
       { provide: LocalJwtProvider, useValue: mockJwt },
       JwtAuthGuard,
       RolesGuard,
@@ -472,6 +517,123 @@ describe('Sprint 38A — POST /admin/data-provider/world-cup/fixtures/import', (
     });
     expect(res.body).not.toMatch(/FOOTBALL_DATA_API_KEY=\S+/);
     expect(res.body).not.toMatch(/SPORTSRADAR_SOCCER_API_KEY=\S+/);
+  });
+});
+
+// ── Sprint 38B: GET /admin/data-provider/world-cup/player-pool-status ───────
+
+describe('Sprint 38B — GET /admin/data-provider/world-cup/player-pool-status', () => {
+  it('returns 401 with no token', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 with invalid token', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status',
+      headers: { Authorization: 'Bearer bad-token-pool' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for FAN role', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status',
+      headers: { Authorization: `Bearer ${FAN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('PSL_ADMIN gets 200 with player pool payload', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.competition).toBe('WC2026');
+    expect(body.playerPool.totalPlayers).toBe(1200);
+    expect(body.playerPool.priceSeeded).toBe(true);
+  });
+
+  it('player pool response includes safety flags (noRealMoney, pointsOnlyContext)', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.safety.noRealMoney).toBe(true);
+    expect(body.safety.noPslActivation).toBe(true);
+    expect(body.safety.pointsOnlyContext).toBe(true);
+    expect(body.safety.noWrites).toBe(true);
+  });
+
+  it('player pool response does not expose provider key values', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/player-pool-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.body).not.toMatch(/FOOTBALL_DATA_API_KEY=\S+/);
+    expect(res.body).not.toMatch(/SPORTSRADAR_SOCCER_API_KEY=\S+/);
+  });
+});
+
+// ── Sprint 38B: GET /admin/data-provider/world-cup/fixture-status ────────────
+
+describe('Sprint 38B — GET /admin/data-provider/world-cup/fixture-status', () => {
+  it('returns 401 with no token', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/data-provider/world-cup/fixture-status' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 with invalid token', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/fixture-status',
+      headers: { Authorization: 'Bearer bad-token-fixture-status' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for FAN role', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/fixture-status',
+      headers: { Authorization: `Bearer ${FAN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('PSL_ADMIN gets 200 with fixture status payload', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/fixture-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.competition).toBe('WC2026');
+    expect(body.fixtures.total).toBe(104);
+    expect(body.fixtures.published).toBe(104);
+    expect(body.predictionMarkets.open).toBe(104);
+  });
+
+  it('fixture status response includes safety flags (noRealMoney, pointsOnlyContext)', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/fixture-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.safety.noRealMoney).toBe(true);
+    expect(body.safety.noPslActivation).toBe(true);
+    expect(body.safety.pointsOnlyContext).toBe(true);
+    expect(body.safety.noWrites).toBe(true);
+  });
+
+  it('fixture status shows prediction markets are points-only (note field)', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/world-cup/fixture-status',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.predictionMarkets.note).toMatch(/points|no wagering|no cash/i);
   });
 });
 

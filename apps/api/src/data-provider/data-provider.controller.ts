@@ -5,6 +5,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { DataProviderService } from './data-provider.service';
 import { ParsePslFixtureIngestionService } from './parse-psl-fixture-ingestion.service';
 import { WorldCupImportService } from './world-cup-import.service';
+import { WorldCupDbStatusService } from './world-cup-db-status.service';
 import { ScoreBatWidgetAdapter } from './scorebat-widget.adapter';
 import type { ParsePslIngestionRequestDto } from './dto/parse-psl-fixture-ingestion.dto';
 import type { WorldCupImportRequestDto } from './dto/world-cup-import.dto';
@@ -17,6 +18,7 @@ export class DataProviderController {
     private service: DataProviderService,
     private ingestion: ParsePslFixtureIngestionService,
     private wcImport: WorldCupImportService,
+    private wcDbStatus: WorldCupDbStatusService,
   ) {}
 
   /** Read-only WC2026 live provider readiness — no writes, no PSL activation. */
@@ -44,6 +46,20 @@ export class DataProviderController {
     }
     return this.wcImport.importFixtures(body);
   }
+
+  /**
+   * Read-only WC2026 player pool status — counts seeded players and prices.
+   * Points-only context: all WC fantasy is points-based, no cash value.
+   */
+  @Get('world-cup/player-pool-status')
+  getWorldCupPlayerPoolStatus() { return this.wcDbStatus.getPlayerPoolStatus(); }
+
+  /**
+   * Read-only WC2026 fixture and prediction market status.
+   * Points-only context: GTS prediction markets are points-based only.
+   */
+  @Get('world-cup/fixture-status')
+  getWorldCupFixtureStatus() { return this.wcDbStatus.getFixtureStatus(); }
 
   /** Read-only ScoreBat widget embed config — no key values in response. */
   @Get('world-cup/scorebat-widget-config')
