@@ -50,6 +50,11 @@ beforeAll(async () => {
       pslActive: false as const,
       fixturePublicationIsActivation: false as const,
       readinessStatus: 'SOURCE_EMPTY' as const,
+      providerDecision: 'none (PROVIDER_NOT_CONFIGURED)',
+      dryRunEligible: false,
+      writeImportForbidden: true as const,
+      fixturePublicationForbidden: true as const,
+      pslActivationForbidden: true as const,
       parsePsl: { configured: false, status: 'NOT_CONFIGURED' as const, candidateFixtureCount: 0, lastCheckedAt: new Date().toISOString() },
       apiFootball: { configured: false, leagueId: 288 as const, status: 'NOT_CONFIGURED' as const },
       ownerActions: ['Monitor until readiness changes'],
@@ -269,5 +274,87 @@ describe('GET /admin/data-provider/psl-fixture-readiness', () => {
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
     expect(body.readinessStatus).toBe('SOURCE_EMPTY');
+  });
+});
+
+// ── Sprint 37: Enhanced PSL fixture readiness fields ─────────────────────
+
+describe('Sprint 37: GET /admin/data-provider/psl-fixture-readiness enhanced fields', () => {
+  it('returns 401 for anonymous', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/data-provider/psl-fixture-readiness' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for FAN', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${FAN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('PSL_ADMIN: writeImportForbidden=true', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.writeImportForbidden).toBe(true);
+  });
+
+  it('PSL_ADMIN: fixturePublicationForbidden=true', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.fixturePublicationForbidden).toBe(true);
+  });
+
+  it('PSL_ADMIN: pslActivationForbidden=true', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.pslActivationForbidden).toBe(true);
+  });
+
+  it('PSL_ADMIN: providerDecision field present', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(typeof body.providerDecision).toBe('string');
+    expect(body.providerDecision.length).toBeGreaterThan(0);
+  });
+
+  it('PSL_ADMIN: dryRunEligible field is boolean', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(typeof body.dryRunEligible).toBe('boolean');
+  });
+
+  it('no provider key value in enhanced response', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.body).not.toMatch(/PARSE_API_KEY=\S+/);
+    expect(res.body).not.toMatch(/API_FOOTBALL_KEY=\S+/);
+    expect(res.body).not.toMatch(/FOOTBALL_DATA_API_KEY=\S+/);
+  });
+
+  it('no import service called during readiness GET', async () => {
+    // ingest mock throws NotFoundException; if it were called the response would be 404
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
   });
 });
