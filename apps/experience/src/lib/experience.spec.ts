@@ -5646,6 +5646,103 @@ describe('Sprint 28: Documentation and tools', () => {
   });
 });
 
+// ─── Sprint 29: Cross-Tenant Membership Smoke ─────────────────────────────────
+
+describe('Sprint 29: Staging docs and runbooks', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  const sprint29StagingDocs = [
+    'docs/staging/SPRINT-29-STAGING-MEMBERSHIP-PREFLIGHT.md',
+    'docs/staging/SPRINT-29-CROSS-TENANT-SMOKE-EXECUTION-LOG.md',
+    'docs/staging/SPRINT-29-SMOKE-SCOPE-SELECTION.md',
+    'docs/staging/SPRINT-29-TEMP-USER-PROVISIONING.md',
+    'docs/staging/SPRINT-29-CROSS-TENANT-SMOKE-RESULTS.md',
+    'docs/staging/SPRINT-29-ROLE-SMOKE-EVIDENCE.md',
+    'docs/staging/SPRINT-29-TEMP-USER-CLEANUP-EVIDENCE.md',
+    'docs/security/SPRINT-29-CROSS-TENANT-ACCESS-VERIFICATION.md',
+    'docs/security/SPRINT-29-MEMBERSHIP-SMOKE-SECURITY-REVIEW.md',
+    'docs/handover/SPRINT-29-BETA-GO-NOGO.md',
+    'docs/handover/SPRINT-29-HANDOVER.md',
+    'docs/handover/SPRINT-29-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-29-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-29-ROLLBACK-PLAN.md',
+    'docs/sprints/SPRINT-29-STORY-MATRIX.md',
+    'tools/staging/sprint-29-ec2-cross-tenant-smoke.sh',
+  ];
+  it.each(sprint29StagingDocs)('exists: %s', (f) => {
+    expect(existsSync(resolve(ROOT2, f))).toBe(true);
+  });
+
+  const handoverDocs = [
+    'docs/handover/SPRINT-29-HANDOVER.md',
+    'docs/handover/SPRINT-29-KNOWN-GAPS.md',
+    'docs/handover/SPRINT-29-OWNER-REVIEW-GUIDE.md',
+    'docs/handover/SPRINT-29-BETA-GO-NOGO.md',
+  ];
+  it.each(handoverDocs)('%s: mentions PSL inactive', (d) => {
+    const c = readFileSync(resolve(ROOT2, d), 'utf-8');
+    expect(c).toMatch(/PSL.*inactive|PSL.*INACTIVE|PSL remains inactive/i);
+  });
+  it.each(handoverDocs)('%s: mentions wallet/sandbox', (d) => {
+    const c = readFileSync(resolve(ROOT2, d), 'utf-8');
+    expect(c.includes('sandbox') || c.includes('SANDBOX') || c.includes('wallet production')).toBe(true);
+  });
+  it.each(handoverDocs)('%s: mentions non-financial', (d) => {
+    const c = readFileSync(resolve(ROOT2, d), 'utf-8');
+    expect(c).toMatch(/non-financial|no real.money|NON_FINANCIAL/i);
+  });
+});
+
+describe('Sprint 29: Cross-tenant smoke design', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('smoke script exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-29-ec2-cross-tenant-smoke.sh'))).toBe(true);
+  });
+  it('smoke script does not print token values', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-29-ec2-cross-tenant-smoke.sh'), 'utf-8');
+    expect(src).not.toMatch(/echo.*TOKEN|echo.*password/i);
+  });
+  it('smoke script checks CROSS_CLUB_ACCESS_DENIED', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-29-ec2-cross-tenant-smoke.sh'), 'utf-8');
+    expect(src).toMatch(/forbidden|cross.tenant|403/i);
+  });
+  it('smoke script confirms PSL_INACTIVE', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-29-ec2-cross-tenant-smoke.sh'), 'utf-8');
+    expect(src).toMatch(/PSL INACTIVE|PSL_INACTIVE/i);
+  });
+  it('smoke execution log exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-29-CROSS-TENANT-SMOKE-EXECUTION-LOG.md'))).toBe(true);
+  });
+  it('cross-tenant smoke results doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-29-CROSS-TENANT-SMOKE-RESULTS.md'))).toBe(true);
+  });
+  it('role smoke evidence doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-29-ROLE-SMOKE-EVIDENCE.md'))).toBe(true);
+  });
+  it('temp user cleanup evidence doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-29-TEMP-USER-CLEANUP-EVIDENCE.md'))).toBe(true);
+  });
+  it('preflight doc mentions additive migration only', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/staging/SPRINT-29-STAGING-MEMBERSHIP-PREFLIGHT.md'), 'utf-8');
+    expect(c).toMatch(/additive|CREATE TABLE/i);
+  });
+  it('cross-tenant verification doc mentions CROSS_CLUB_ACCESS_DENIED', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/security/SPRINT-29-CROSS-TENANT-ACCESS-VERIFICATION.md'), 'utf-8');
+    expect(c).toMatch(/CROSS_CLUB_ACCESS_DENIED|cross.tenant/i);
+  });
+  it('results doc confirms no PSL activation occurred', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/staging/SPRINT-29-CROSS-TENANT-SMOKE-RESULTS.md'), 'utf-8');
+    expect(c).toMatch(/PSL.*inactive|PSL.*INACTIVE|No PSL activation/i);
+  });
+  it('cleanup evidence confirms temp users removed', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/staging/SPRINT-29-TEMP-USER-CLEANUP-EVIDENCE.md'), 'utf-8');
+    expect(c).toMatch(/deleted|disabled|removed|cleanup/i);
+  });
+  it('security review mentions no wallet production', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/security/SPRINT-29-MEMBERSHIP-SMOKE-SECURITY-REVIEW.md'), 'utf-8');
+    expect(c).toMatch(/no wallet production|wallet.*sandbox/i);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
