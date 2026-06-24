@@ -15,6 +15,10 @@ export class DataProviderController {
     private ingestion: ParsePslFixtureIngestionService,
   ) {}
 
+  /** Read-only PSL fixture readiness — no writes, no PSL activation. */
+  @Get('psl-fixture-readiness')
+  getPslFixtureReadiness() { return this.service.getPslFixtureReadiness(); }
+
   @Get('health')
   health() { return this.service.health(); }
 

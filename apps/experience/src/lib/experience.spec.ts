@@ -6309,6 +6309,149 @@ describe('Sprint 35 – Launch Readiness & BRD Gap Closure', () => {
   });
 });
 
+// ─── Sprint 36B: PSL Fixture Readiness Monitoring ─────────────────────────
+
+describe('Sprint 36B: PSL Fixture Readiness Monitoring', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('readiness endpoint exists in DataProviderController', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.controller.ts'), 'utf-8');
+    expect(src).toContain('psl-fixture-readiness');
+    expect(src).toContain('getPslFixtureReadiness');
+  });
+
+  it('readiness service method exists in DataProviderService', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).toContain('getPslFixtureReadiness');
+  });
+
+  it('readiness service returns noWrites=true', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).toContain('noWrites: true');
+  });
+
+  it('readiness service returns noPublication=true', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).toContain('noPublication: true');
+  });
+
+  it('readiness service returns noPslActivation=true', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).toContain('noPslActivation: true');
+  });
+
+  it('readiness service returns pslActive false', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).toContain('pslActive: false');
+  });
+
+  it('readiness service does not expose provider key values', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.service.ts'), 'utf-8');
+    expect(src).not.toMatch(/return.*PARSE_API_KEY/);
+    expect(src).not.toMatch(/return.*API_FOOTBALL_KEY/);
+    expect(src).not.toMatch(/pmx_[A-Za-z0-9]{10,}/);
+  });
+
+  it('admin UI page for readiness exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/psl-fixture-readiness/page.tsx'))).toBe(true);
+  });
+
+  it('admin readiness page is read-only (no import trigger)', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/psl-fixture-readiness/page.tsx'), 'utf-8');
+    expect(src).not.toContain('runWriteRun');
+    expect(src).not.toContain('dryRun: false');
+    expect(src).not.toContain('confirmWrite');
+  });
+
+  it('admin readiness page states READ-ONLY', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/psl-fixture-readiness/page.tsx'), 'utf-8');
+    expect(src).toMatch(/READ.ONLY/i);
+  });
+
+  it('admin readiness page does not expose provider keys to frontend', () => {
+    const src = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/data-provider/psl-fixture-readiness/page.tsx'), 'utf-8');
+    expect(src).not.toMatch(/PARSE_API_KEY\s*=/);
+    expect(src).not.toMatch(/API_FOOTBALL_KEY\s*=/);
+    expect(src).not.toMatch(/NEXT_PUBLIC_PARSE/);
+    expect(src).not.toMatch(/NEXT_PUBLIC_API_FOOTBALL/);
+  });
+
+  it('monitoring tool exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-36b-psl-fixture-readiness-monitor.mjs'))).toBe(true);
+  });
+
+  it('monitoring tool redacts ADMIN_TOKEN', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-36b-psl-fixture-readiness-monitor.mjs'), 'utf-8');
+    // Token value must not be logged — variable name may appear in comments/strings but not in console.log calls
+    expect(src).not.toMatch(/console\.log.*process\.env\[.ADMIN_TOKEN.\]/);
+    expect(src).not.toMatch(/console\.log.*\$\{ADMIN_TOKEN\}/);
+    expect(src).toMatch(/Admin JWT was NOT printed|token.*not.*print/i);
+  });
+
+  it('monitoring tool never calls import write', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-36b-psl-fixture-readiness-monitor.mjs'), 'utf-8');
+    expect(src).not.toContain('dryRun: false');
+    expect(src).not.toContain('confirmWrite');
+    expect(src).not.toContain('/ingest');
+  });
+
+  it('monitoring tool never calls PSL activation', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-36b-psl-fixture-readiness-monitor.mjs'), 'utf-8');
+    expect(src).not.toContain('/activate');
+    expect(src).not.toContain('activateSeason');
+  });
+
+  it('PSL fixture readiness doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-36B-PSL-FIXTURE-READINESS-MONITORING.md'))).toBe(true);
+  });
+
+  it('readiness doc states PSL INACTIVE', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-36B-PSL-FIXTURE-READINESS-MONITORING.md'), 'utf-8');
+    expect(c).toMatch(/PSL.*INACTIVE|INACTIVE.*PSL/i);
+  });
+
+  it('readiness doc states fixture readiness is not fixture import', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-36B-PSL-FIXTURE-READINESS-MONITORING.md'), 'utf-8');
+    expect(c).toMatch(/not.*fixture import|fixture.*readiness.*not/i);
+  });
+
+  it('readiness doc states fixture publication is not PSL activation', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-36B-PSL-FIXTURE-READINESS-MONITORING.md'), 'utf-8');
+    expect(c).toMatch(/publication.*not.*activat|publicat.*activat/i);
+  });
+
+  it('readiness doc states no scheduled ingestion', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-36B-PSL-FIXTURE-READINESS-MONITORING.md'), 'utf-8');
+    expect(c).toMatch(/no scheduled ingestion/i);
+  });
+
+  it('handover doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-36B-PSL-FIXTURE-MONITORING-HANDOVER.md'))).toBe(true);
+  });
+
+  it('known gaps doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-36B-KNOWN-GAPS.md'))).toBe(true);
+  });
+
+  it('known gaps doc states SOURCE_EMPTY is expected', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/handover/SPRINT-36B-KNOWN-GAPS.md'), 'utf-8');
+    expect(c).toMatch(/SOURCE_EMPTY.*expected|expected.*SOURCE_EMPTY/i);
+  });
+
+  it('monitoring runbook exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-36B-PSL-FIXTURE-MONITORING-RUNBOOK.md'))).toBe(true);
+  });
+
+  it('no new Prisma migration (readiness is env-var only)', () => {
+    const migrationsDir = resolve(ROOT2, 'apps/api/prisma/migrations');
+    const migrations = existsSync(migrationsDir)
+      ? require('fs').readdirSync(migrationsDir) as string[]
+      : [] as string[];
+    const sprint36bMigrations = migrations.filter((m: string) => m.includes('sprint_36b'));
+    expect(sprint36bMigrations).toHaveLength(0);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

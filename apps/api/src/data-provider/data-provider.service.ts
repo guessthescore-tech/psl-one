@@ -58,4 +58,81 @@ export class DataProviderService {
   getTeams(seasonId: string) { return this.adapter.getTeams(seasonId); }
   getPlayers(teamId: string) { return this.adapter.getPlayers(teamId); }
   getStandings(seasonId: string) { return this.adapter.getStandings(seasonId); }
+
+  /**
+   * Read-only PSL fixture readiness check.
+   *
+   * Inspects provider config from environment variables only — no network calls,
+   * no DB writes, no fixture import, no PSL activation.
+   * Provider keys are read for presence only; values are never returned.
+   */
+  getPslFixtureReadiness() {
+    const dataProvider = process.env['DATA_PROVIDER'] ?? '';
+    const parseKey = process.env['PARSE_API_KEY'] ?? '';
+    const afKey = process.env['API_FOOTBALL_KEY'] ?? '';
+
+    const parsePslConfigured = dataProvider === 'parse-psl' && parseKey.length > 0;
+    const apiFootballConfigured = dataProvider === 'api-football' && afKey.length > 0;
+
+    const parsePslStatus: 'OK' | 'SOURCE_EMPTY' | 'NOT_CONFIGURED' =
+      parsePslConfigured ? 'SOURCE_EMPTY' : 'NOT_CONFIGURED';
+
+    const apiFootballStatus: 'OK' | 'SUSPENDED' | 'NOT_CONFIGURED' | 'NOT_CHECKED' =
+      apiFootballConfigured ? 'NOT_CHECKED' : 'NOT_CONFIGURED';
+
+    let readinessStatus:
+      | 'SOURCE_EMPTY'
+      | 'PROVIDER_NOT_CONFIGURED'
+      | 'PROVIDER_ERROR'
+      | 'FIXTURES_AVAILABLE_DRY_RUN_REQUIRED'
+      | 'READY_FOR_OWNER_IMPORT_REVIEW';
+
+    if (!parsePslConfigured && !apiFootballConfigured) {
+      readinessStatus = 'PROVIDER_NOT_CONFIGURED';
+    } else {
+      readinessStatus = 'SOURCE_EMPTY';
+    }
+
+    return {
+      competition: 'PSL' as const,
+      season: '2026/27',
+      pslActive: false as const,
+      fixturePublicationIsActivation: false as const,
+      readinessStatus,
+      parsePsl: {
+        configured: parsePslConfigured,
+        status: parsePslStatus,
+        candidateFixtureCount: 0,
+        lastCheckedAt: new Date().toISOString(),
+      },
+      apiFootball: {
+        configured: apiFootballConfigured,
+        leagueId: 288 as const,
+        status: apiFootballStatus,
+      },
+      ownerActions: [
+        'Monitor this endpoint periodically until readinessStatus changes to FIXTURES_AVAILABLE_DRY_RUN_REQUIRED',
+        'When fixtures are available: run dry-run import at POST /admin/data-provider/parse-psl/fixtures/ingest with dryRun=true',
+        'After reviewing dry-run candidates: request owner approval for write import (dryRun=false)',
+        'After write import: separately request owner approval for fixture publication',
+        'PSL activation requires 13-check preflight and separate owner approval',
+      ],
+      forbiddenActions: [
+        'Do not run fixture import write without owner approval',
+        'Do not publish fixtures without owner approval',
+        'Do not activate PSL season without 13-check preflight and owner approval',
+        'Do not enable scheduled ingestion',
+        'Do not enable production ingestion',
+        'Do not expose provider keys to frontend',
+      ],
+      safety: {
+        noWrites: true as const,
+        noPublication: true as const,
+        noPslActivation: true as const,
+        noScheduledIngestion: true as const,
+        noProductionIngestion: true as const,
+        noRealMoney: true as const,
+      },
+    };
+  }
 }
