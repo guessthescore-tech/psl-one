@@ -5,11 +5,12 @@ import { DataProviderService } from './data-provider.service';
 import { DataProviderController } from './data-provider.controller';
 import { ProviderRouterService } from './provider-router.service';
 import { ParsePslFixtureIngestionService } from './parse-psl-fixture-ingestion.service';
+import { WorldCupImportService } from './world-cup-import.service';
 
 @Module({
   imports: [AuthModule, PrismaModule],
-  providers: [DataProviderService, ProviderRouterService, ParsePslFixtureIngestionService],
+  providers: [DataProviderService, ProviderRouterService, ParsePslFixtureIngestionService, WorldCupImportService],
   controllers: [DataProviderController],
-  exports: [DataProviderService, ProviderRouterService, ParsePslFixtureIngestionService],
+  exports: [DataProviderService, ProviderRouterService, ParsePslFixtureIngestionService, WorldCupImportService],
 })
 export class DataProviderModule {}

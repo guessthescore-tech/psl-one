@@ -3,6 +3,7 @@ import { NoOpAdapter } from './no-op.adapter';
 import { ApiFootballAdapter } from './api-football.adapter';
 import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import { ParsePslAdapter } from './parse-psl.adapter';
+import { SportRadarSoccerAdapter } from './sportradar-soccer.adapter';
 import type { ProviderAdapter } from './provider-adapter.interface';
 
 /**
@@ -38,12 +39,17 @@ export class ProviderRouterService {
     const code = competitionCode.toUpperCase().trim();
 
     if (ProviderRouterService.WC_CODES.has(code)) {
-      const key = process.env['FOOTBALL_DATA_API_KEY'];
-      if (key) {
+      const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
+      if (fdKey) {
         this.logger.log(`ProviderRouterService: routing "${competitionCode}" → FootballDataOrgAdapter`);
         return new FootballDataOrgAdapter();
       }
-      this.logger.warn(`ProviderRouterService: WC route requested but FOOTBALL_DATA_API_KEY not set — NoOpAdapter fallback`);
+      const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'];
+      if (srKey) {
+        this.logger.log(`ProviderRouterService: routing "${competitionCode}" → SportRadarSoccerAdapter (FD.org key absent — fallback)`);
+        return new SportRadarSoccerAdapter();
+      }
+      this.logger.warn(`ProviderRouterService: WC route requested but no WC key set — NoOpAdapter fallback`);
       return new NoOpAdapter();
     }
 
@@ -77,8 +83,18 @@ export class ProviderRouterService {
     } else {
       pslStatus = 'BLOCKED_NO_KEY';
     }
+    const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
+    const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'];
+    let wcStatus: string;
+    if (fdKey) {
+      wcStatus = 'READY (football-data-org)';
+    } else if (srKey) {
+      wcStatus = 'READY (sportradar-soccer-fallback)';
+    } else {
+      wcStatus = 'BLOCKED_NO_KEY';
+    }
     return {
-      wc: process.env['FOOTBALL_DATA_API_KEY'] ? 'READY (football-data-org)' : 'BLOCKED_NO_KEY',
+      wc: wcStatus,
       psl: pslStatus,
       default: 'NoOpAdapter',
     };

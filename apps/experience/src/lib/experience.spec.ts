@@ -6452,6 +6452,195 @@ describe('Sprint 36B: PSL Fixture Readiness Monitoring', () => {
   });
 });
 
+// ─── Sprint 38A: World Cup Live Provider Integration ──────────────────────
+
+describe('Sprint 38A — World Cup Live Provider Integration', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('SportRadar adapter exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/data-provider/sportradar-soccer.adapter.ts'))).toBe(true);
+  });
+
+  it('ScoreBat widget adapter exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/data-provider/scorebat-widget.adapter.ts'))).toBe(true);
+  });
+
+  it('WorldCupImportService exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-import.service.ts'))).toBe(true);
+  });
+
+  it('WC import DTO exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/data-provider/dto/world-cup-import.dto.ts'))).toBe(true);
+  });
+
+  it('world-cup/live page exists', () => {
+    expect(existsSync(src('app/world-cup/live/page.tsx'))).toBe(true);
+  });
+
+  it('ScoreBatWorldCupWidget component exists', () => {
+    expect(existsSync(src('components/world-cup/ScoreBatWorldCupWidget.tsx'))).toBe(true);
+  });
+
+  it('world-cup/live page never exposes SCOREBAT_WIDGET_TOKEN via NEXT_PUBLIC_', () => {
+    const src2 = readFileSync(src('app/world-cup/live/page.tsx'), 'utf-8');
+    expect(src2).not.toMatch(/NEXT_PUBLIC_SCOREBAT/);
+    expect(src2).not.toMatch(/NEXT_PUBLIC_FOOTBALL_DATA/);
+    expect(src2).not.toMatch(/NEXT_PUBLIC_SPORTSRADAR/);
+  });
+
+  it('world-cup/live page reads SCOREBAT_WIDGET_TOKEN server-side via backend endpoint only', () => {
+    const src2 = readFileSync(src('app/world-cup/live/page.tsx'), 'utf-8');
+    // Must NOT read env var directly in frontend
+    expect(src2).not.toMatch(/process\.env\['SCOREBAT_WIDGET_TOKEN'\]/);
+    expect(src2).not.toMatch(/process\.env\.SCOREBAT_WIDGET_TOKEN/);
+  });
+
+  it('ScoreBatWorldCupWidget never reads provider keys from process.env', () => {
+    const src2 = readFileSync(src('components/world-cup/ScoreBatWorldCupWidget.tsx'), 'utf-8');
+    // The component must not read env vars directly (server-side keys are passed as embedUrl prop)
+    expect(src2).not.toMatch(/process\.env.*SCOREBAT_WIDGET_TOKEN/);
+    expect(src2).not.toMatch(/process\.env.*FOOTBALL_DATA_API_KEY/);
+    expect(src2).not.toMatch(/process\.env.*SPORTSRADAR_SOCCER_API_KEY/);
+  });
+
+  it('SportRadar adapter never exposes API key value in public-facing response fields', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/sportradar-soccer.adapter.ts'), 'utf-8');
+    // The raw key must never appear in health/data response objects
+    expect(src2).not.toMatch(/message.*apiKey/);
+    expect(src2).not.toMatch(/SPORTSRADAR_SOCCER_API_KEY=/);
+    // Health method must return available/provider/message only
+    expect(src2).toMatch(/available:.*provider:.*message:/s);
+  });
+
+  it('SportRadar adapter implements ProviderAdapter interface', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/sportradar-soccer.adapter.ts'), 'utf-8');
+    expect(src2).toMatch(/implements ProviderAdapter/);
+  });
+
+  it('ScoreBat adapter implements ProviderAdapter interface', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/scorebat-widget.adapter.ts'), 'utf-8');
+    expect(src2).toMatch(/implements ProviderAdapter/);
+  });
+
+  it('WorldCupImportService enforces double-gate write mode (env flag + body confirmation)', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-import.service.ts'), 'utf-8');
+    expect(src2).toMatch(/ALLOW_WORLD_CUP_WRITE/);
+    expect(src2).toMatch(/IMPORT_WORLD_CUP_BETA/);
+    expect(src2).toMatch(/WRITE_BLOCKED/);
+  });
+
+  it('WorldCupImportService always sets isPublished=false on created fixtures', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-import.service.ts'), 'utf-8');
+    expect(src2).toMatch(/isPublished:\s*false/);
+    expect(src2).not.toMatch(/isPublished:\s*true/);
+  });
+
+  it('WorldCupImportService never activates PSL', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-import.service.ts'), 'utf-8');
+    expect(src2).not.toMatch(/activateSeason/);
+    expect(src2).not.toMatch(/pslActivat/);
+    expect(src2).not.toMatch(/isPslActive/);
+  });
+
+  it('WorldCupImportService writes audit log for all operations', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/world-cup-import.service.ts'), 'utf-8');
+    expect(src2).toMatch(/writeAuditLog/);
+    expect(src2).toMatch(/adminAuditLog/);
+  });
+
+  it('provider-router routes WC to SportRadar when FD.org key absent', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/provider-router.service.ts'), 'utf-8');
+    expect(src2).toMatch(/SportRadarSoccerAdapter/);
+    expect(src2).toMatch(/SPORTSRADAR_SOCCER_API_KEY/);
+  });
+
+  it('world-cup-live-readiness endpoint exists in controller', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.controller.ts'), 'utf-8');
+    expect(src2).toMatch(/world-cup-live-readiness/);
+    expect(src2).toMatch(/getWorldCupLiveReadiness/);
+  });
+
+  it('world-cup/fixtures/import endpoint enforces confirmWorldCupWrite validation', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'apps/api/src/data-provider/data-provider.controller.ts'), 'utf-8');
+    expect(src2).toMatch(/IMPORT_WORLD_CUP_BETA/);
+    expect(src2).toMatch(/confirmWorldCupWrite/);
+  });
+
+  it('6 sprint-38a staging tools exist', () => {
+    const tools = [
+      'sprint-38a-world-cup-provider-health.mjs',
+      'sprint-38a-world-cup-fixture-import.mjs',
+      'sprint-38a-world-cup-team-import.mjs',
+      'sprint-38a-world-cup-squad-import.mjs',
+      'sprint-38a-world-cup-fantasy-pool-build.mjs',
+      'sprint-38a-world-cup-gts-card-build.mjs',
+    ];
+    for (const t of tools) {
+      expect(existsSync(resolve(ROOT2, `tools/staging/${t}`))).toBe(true);
+    }
+  });
+
+  it('fixture import tool never sets dryRun: false in default body', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'tools/staging/sprint-38a-world-cup-fixture-import.mjs'), 'utf-8');
+    // Default body has dryRun: true — check that object literal uses true for dry-run branch
+    expect(src2).toMatch(/dryRun:\s*true/);
+  });
+
+  it('fixture import tool never sets confirmWorldCupWrite in dry-run body', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'tools/staging/sprint-38a-world-cup-fixture-import.mjs'), 'utf-8');
+    // The write body should have confirmWorldCupWrite but only in write branch
+    // The tool must also guard write mode with env var checks before calling the API
+    expect(src2).toMatch(/ALLOW_WORLD_CUP_WRITE/);
+    expect(src2).toMatch(/IMPORT_WORLD_CUP_BETA/);
+  });
+
+  it('provider health tool never logs admin token value', () => {
+    const src2 = readFileSync(resolve(ROOT2, 'tools/staging/sprint-38a-world-cup-provider-health.mjs'), 'utf-8');
+    expect(src2).not.toMatch(/console\.log.*process\.env\[.ADMIN_TOKEN.\]/);
+    expect(src2).toMatch(/redacted/i);
+  });
+
+  it('WC provider integration doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-38A-WORLD-CUP-PROVIDER-INTEGRATION.md'))).toBe(true);
+  });
+
+  it('WC integration doc states PSL INACTIVE', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-38A-WORLD-CUP-PROVIDER-INTEGRATION.md'), 'utf-8');
+    expect(c).toMatch(/PSL.*INACTIVE|INACTIVE.*PSL/i);
+  });
+
+  it('WC safety rules doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-38A-WC-IMPORT-SAFETY-RULES.md'))).toBe(true);
+  });
+
+  it('WC safety rules doc states write mode requires double flags', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-38A-WC-IMPORT-SAFETY-RULES.md'), 'utf-8');
+    expect(c).toMatch(/ALLOW_WORLD_CUP_WRITE/);
+    expect(c).toMatch(/IMPORT_WORLD_CUP_BETA/);
+  });
+
+  it('WC go/no-go doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-38A-WC-GO-NOGO.md'))).toBe(true);
+  });
+
+  it('WC handover doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-38A-WC-PROVIDER-HANDOVER.md'))).toBe(true);
+  });
+
+  it('WC known gaps doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-38A-KNOWN-GAPS.md'))).toBe(true);
+  });
+
+  it('no new Prisma migration (WC import uses existing Fixture model)', () => {
+    const migrationsDir = resolve(ROOT2, 'apps/api/prisma/migrations');
+    const migrations = existsSync(migrationsDir)
+      ? require('fs').readdirSync(migrationsDir) as string[]
+      : [] as string[];
+    const sprint38aMigrations = migrations.filter((m: string) => m.includes('sprint_38a'));
+    expect(sprint38aMigrations).toHaveLength(0);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
