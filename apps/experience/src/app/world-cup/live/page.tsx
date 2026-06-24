@@ -1,11 +1,9 @@
 import { ScoreBatWorldCupWidget } from '../../../components/world-cup/ScoreBatWorldCupWidget';
+import { WC_FALLBACK_FIXTURES } from '@/lib/data';
 
 /**
  * World Cup 2026 Live page — server component.
- *
- * Calls only public endpoints — no admin auth dependency.
- * SCOREBAT_WIDGET_TOKEN is read server-side only via the
- * /football/world-cup/scorebat-widget endpoint; it is never exposed to clients.
+ * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
  *
  * No PSL activation. No real money. No betting/odds content.
  * World Cup beta context only.
@@ -28,11 +26,12 @@ async function fetchWcFixtures(): Promise<WcFixture[]> {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return WC_FALLBACK_FIXTURES;
     const data = await res.json() as WcFixture[];
-    return Array.isArray(data) ? data : [];
+    const fixtures = Array.isArray(data) ? data : [];
+    return fixtures.length > 0 ? fixtures : WC_FALLBACK_FIXTURES;
   } catch {
-    return [];
+    return WC_FALLBACK_FIXTURES;
   }
 }
 

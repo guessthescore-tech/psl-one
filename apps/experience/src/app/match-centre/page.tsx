@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { WC_FALLBACK_FIXTURES } from '@/lib/data';
 
 /**
  * Match Centre — live-score style layout, server component.
- * Shows today's and upcoming matches across all loaded competitions.
+ * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
  *
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
@@ -26,13 +27,14 @@ async function fetchTodayFixtures(): Promise<Fixture[]> {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return WC_FALLBACK_FIXTURES;
     const data = await res.json() as Fixture[] | { data?: Fixture[] };
-    if (Array.isArray(data)) return data;
-    if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) return data.data as Fixture[];
-    return [];
+    let fixtures: Fixture[] = [];
+    if (Array.isArray(data)) fixtures = data;
+    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as Fixture[];
+    return fixtures.length > 0 ? fixtures : WC_FALLBACK_FIXTURES;
   } catch {
-    return [];
+    return WC_FALLBACK_FIXTURES;
   }
 }
 
@@ -188,31 +190,21 @@ export default async function MatchCentrePage() {
           </section>
         )}
 
-        {/* Empty state */}
-        {all.length === 0 && (
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-12 text-center">
-            <div className="text-4xl mb-4">📡</div>
-            <h2 className="font-semibold text-base mb-2">No Fixtures Loaded</h2>
-            <p className="text-white/50 text-sm max-w-sm mx-auto mb-5">
-              Fixtures will appear here once imported. World Cup 2026 fixtures are imported
-              via the admin data-provider tools.
-            </p>
-            <div className="flex justify-center gap-3">
-              <Link
-                href="/world-cup"
-                className="px-4 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium hover:bg-emerald-500/25 transition-colors"
-              >
-                WC Hub →
-              </Link>
-              <Link
-                href="/matches"
-                className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/60 text-sm font-medium hover:bg-white/10 transition-colors"
-              >
-                All Matches →
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* Explore more */}
+        <div className="flex justify-center gap-3 pt-4">
+          <Link
+            href="/world-cup"
+            className="px-4 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium hover:bg-emerald-500/25 transition-colors"
+          >
+            WC Hub →
+          </Link>
+          <Link
+            href="/fixtures"
+            className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/60 text-sm font-medium hover:bg-white/10 transition-colors"
+          >
+            All Fixtures →
+          </Link>
+        </div>
       </div>
     </main>
   );

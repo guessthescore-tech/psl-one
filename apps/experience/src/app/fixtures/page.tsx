@@ -1,8 +1,9 @@
 import Link from 'next/link';
+import { WC_FALLBACK_FIXTURES } from '@/lib/data';
 
 /**
  * Fixtures page — World Cup 2026 specific fixture list.
- * Renders the same match data as /matches but scoped to WC competition code.
+ * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API is unreachable.
  *
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
@@ -20,18 +21,20 @@ interface Fixture {
   awayScore?: number | null;
 }
 
-async function fetchWcFixtures(): Promise<Fixture[]> {
+async function fetchWcFixtures(): Promise<{ fixtures: Fixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 300 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
     const data = await res.json() as Fixture[] | { data?: Fixture[] };
-    if (Array.isArray(data)) return data;
-    if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) return data.data as Fixture[];
-    return [];
+    let fixtures: Fixture[] = [];
+    if (Array.isArray(data)) fixtures = data;
+    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as Fixture[];
+    if (fixtures.length === 0) return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
+    return { fixtures, isLive: true };
   } catch {
-    return [];
+    return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
   }
 }
 
@@ -54,7 +57,7 @@ function statusBadge(status: string): { label: string; className: string } {
 }
 
 export default async function FixturesPage() {
-  const fixtures = await fetchWcFixtures();
+  const { fixtures, isLive } = await fetchWcFixtures();
   const grouped = groupByRound(fixtures);
 
   return (
@@ -63,6 +66,7 @@ export default async function FixturesPage() {
       <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center">
         <span className="text-xs text-amber-400/90 font-medium">
           BETA — PSL INACTIVE · World Cup 2026 Beta · No real-money features
+          {!isLive && ' · Demo data'}
         </span>
       </div>
 
@@ -100,63 +104,47 @@ export default async function FixturesPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
-        {fixtures.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-12 text-center">
-            <div className="text-4xl mb-4">📅</div>
-            <h2 className="font-semibold text-base mb-2">No Fixtures Loaded</h2>
-            <p className="text-white/50 text-sm max-w-sm mx-auto mb-5">
-              World Cup 2026 fixtures will appear here once imported via the admin panel.
-            </p>
-            <Link
-              href="/world-cup"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-medium hover:bg-emerald-500/25 transition-colors"
-            >
-              Go to WC Hub →
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-10">
-            {Array.from(grouped.entries()).map(([round, roundFixtures]) => (
-              <section key={round}>
-                <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">{round}</h2>
-                <div className="space-y-2">
-                  {roundFixtures.map(f => {
-                    const { label, className: badgeClass } = statusBadge(f.status);
-                    const kickoff = new Date(f.kickoffAt);
-                    return (
-                      <Link
-                        key={f.id}
-                        href={`/matches/${f.id}`}
-                        className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] px-5 py-3.5 transition-colors group"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
-                            {f.homeTeam?.shortName ?? f.homeTeam?.name ?? 'TBD'}{' '}
-                            <span className="text-white/40">vs</span>{' '}
-                            {f.awayTeam?.shortName ?? f.awayTeam?.name ?? 'TBD'}
-                          </p>
-                          <p className="text-xs text-white/40 mt-0.5">
-                            {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                            {' · '}
-                            {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3 flex-shrink-0">
-                          {f.homeScore != null && f.awayScore != null && (
-                            <span className="font-mono font-bold text-base tabular-nums">
-                              {f.homeScore} – {f.awayScore}
-                            </span>
-                          )}
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
+        <div className="space-y-10">
+          {Array.from(grouped.entries()).map(([round, roundFixtures]) => (
+            <section key={round}>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">{round}</h2>
+              <div className="space-y-2">
+                {roundFixtures.map(f => {
+                  const { label, className: badgeClass } = statusBadge(f.status);
+                  const kickoff = new Date(f.kickoffAt);
+                  return (
+                    <Link
+                      key={f.id}
+                      href={`/matches/${f.id}`}
+                      className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] px-5 py-3.5 transition-colors group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
+                          {f.homeTeam?.shortName ?? f.homeTeam?.name ?? 'TBD'}{' '}
+                          <span className="text-white/40">vs</span>{' '}
+                          {f.awayTeam?.shortName ?? f.awayTeam?.name ?? 'TBD'}
+                        </p>
+                        <p className="text-xs text-white/40 mt-0.5">
+                          {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          {' · '}
+                          {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {f.homeScore != null && f.awayScore != null && (
+                          <span className="font-mono font-bold text-base tabular-nums">
+                            {f.homeScore} – {f.awayScore}
+                          </span>
+                        )}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
     </main>
   );

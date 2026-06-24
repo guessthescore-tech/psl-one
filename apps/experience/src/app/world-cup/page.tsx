@@ -1,10 +1,9 @@
 import Link from 'next/link';
+import { WC_FALLBACK_FIXTURES } from '@/lib/data';
 
 /**
  * World Cup 2026 Hub — server component.
- *
- * No PSL activation. No real money. No betting/odds content.
- * World Cup beta context only.
+ * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
  *
  * PSL_INACTIVE · WC_BETA · NO_REAL_MONEY · GTS_POINTS_ONLY · FANTASY_POINTS_ONLY
  */
@@ -24,18 +23,17 @@ interface WcFixture {
 
 async function fetchUpcomingWcFixtures(): Promise<WcFixture[]> {
   try {
-    const res = await fetch(`${API_BASE}/fixtures?competitionCode=WC&limit=6`, {
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 300 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return WC_FALLBACK_FIXTURES.slice(0, 6);
     const data = await res.json() as WcFixture[] | { data?: WcFixture[] };
-    if (Array.isArray(data)) return data.slice(0, 6);
-    if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) {
-      return (data.data as WcFixture[]).slice(0, 6);
-    }
-    return [];
+    let fixtures: WcFixture[] = [];
+    if (Array.isArray(data)) fixtures = data;
+    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as WcFixture[];
+    return fixtures.length > 0 ? fixtures.slice(0, 6) : WC_FALLBACK_FIXTURES.slice(0, 6);
   } catch {
-    return [];
+    return WC_FALLBACK_FIXTURES.slice(0, 6);
   }
 }
 

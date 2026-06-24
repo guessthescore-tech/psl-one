@@ -1327,10 +1327,10 @@ describe('STORY-S4-01: Vercel preview config', () => {
     expect(require('fs').existsSync(path)).toBe(true);
   });
 
-  it('vercel.json sets DESIGN_REVIEW_DATA mode', () => {
+  it('vercel.json sets WC_BETA data mode (not DESIGN_REVIEW_DATA)', () => {
     const path = require('path').resolve(ROOT, 'vercel.json');
     const content = require('fs').readFileSync(path, 'utf8');
-    expect(content).toContain('DESIGN_REVIEW_DATA');
+    expect(content).toContain('WC_BETA');
   });
 
   it('vercel.json sets X-Robots-Tag noindex', () => {

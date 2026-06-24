@@ -4,9 +4,9 @@
   "outputDirectory": ".next",
   "installCommand": "pnpm install --frozen-lockfile",
   "env": {
-    "NEXT_PUBLIC_DATA_MODE": "DESIGN_REVIEW_DATA",
+    "NEXT_PUBLIC_DATA_MODE": "WC_BETA",
     "NEXT_PUBLIC_API_BASE_URL": "https://api.beta.pslone.co.za",
-    "NEXT_PUBLIC_ENVIRONMENT_LABEL": "vercel-preview"
+    "NEXT_PUBLIC_ENVIRONMENT_LABEL": "vercel-beta"
   },
   "headers": [
     {

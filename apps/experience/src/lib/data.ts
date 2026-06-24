@@ -1,8 +1,10 @@
-export type DataMode = 'DESIGN_REVIEW_DATA' | 'LIVE_BETA_DATA';
+export type DataMode = 'DESIGN_REVIEW_DATA' | 'LIVE_BETA_DATA' | 'WC_BETA';
 
 export function getDataMode(): DataMode {
   const mode = process.env['NEXT_PUBLIC_DATA_MODE'];
-  return mode === 'LIVE_BETA_DATA' ? 'LIVE_BETA_DATA' : 'DESIGN_REVIEW_DATA';
+  if (mode === 'LIVE_BETA_DATA') return 'LIVE_BETA_DATA';
+  if (mode === 'WC_BETA') return 'WC_BETA';
+  return 'DESIGN_REVIEW_DATA';
 }
 
 /* ── Shared types ──────────────────────────────────────────────────── */
@@ -229,9 +231,30 @@ const MOROCCO: ExpClub = {
   city: 'Casablanca', country: 'Morocco',
   primaryColor: '#C1272D', secondaryColor: '#006233', textColor: '#ffffff', founded: 1955,
 };
+const SOUTH_AFRICA: ExpClub = {
+  id: 'rsa', name: 'South Africa', shortName: 'Bafana Bafana', abbr: 'RSA',
+  city: 'Johannesburg', country: 'South Africa',
+  primaryColor: '#007A4D', secondaryColor: '#FFB612', textColor: '#ffffff', founded: 1991,
+};
+const SOUTH_KOREA: ExpClub = {
+  id: 'kor', name: 'South Korea', shortName: 'South Korea', abbr: 'KOR',
+  city: 'Seoul', country: 'South Korea',
+  primaryColor: '#C60C30', secondaryColor: '#003478', textColor: '#ffffff', founded: 1928,
+};
+const USA: ExpClub = {
+  id: 'usa', name: 'United States', shortName: 'USA', abbr: 'USA',
+  city: 'New York', country: 'United States',
+  primaryColor: '#002868', secondaryColor: '#BF0A30', textColor: '#ffffff', founded: 1913,
+};
+const MEXICO: ExpClub = {
+  id: 'mex', name: 'Mexico', shortName: 'Mexico', abbr: 'MEX',
+  city: 'Mexico City', country: 'Mexico',
+  primaryColor: '#006847', secondaryColor: '#CE1126', textColor: '#ffffff', founded: 1927,
+};
 
 export const WC_CLUBS: ExpClub[] = [
   FRANCE, GERMANY, ARGENTINA, BRAZIL, SPAIN, ENGLAND, PORTUGAL, MOROCCO,
+  SOUTH_AFRICA, SOUTH_KOREA, USA, MEXICO,
 ];
 
 export const WC_FIXTURES: ExpFixture[] = [
@@ -239,7 +262,7 @@ export const WC_FIXTURES: ExpFixture[] = [
     id: 'wc-f1',
     homeClub: FRANCE, awayClub: GERMANY,
     homeScore: 2, awayScore: 1,
-    status: 'LIVE', minute: 67,
+    status: 'FINISHED', minute: 90,
     kickoffAt: '2026-06-19T18:00:00Z',
     venue: 'MetLife Stadium, New Jersey',
     competition: 'FIFA World Cup 2026', group: 'Group D',
@@ -247,8 +270,8 @@ export const WC_FIXTURES: ExpFixture[] = [
   {
     id: 'wc-f2',
     homeClub: ARGENTINA, awayClub: BRAZIL,
-    homeScore: null, awayScore: null,
-    status: 'SCHEDULED', minute: null,
+    homeScore: 1, awayScore: 1,
+    status: 'FINISHED', minute: 90,
     kickoffAt: '2026-06-20T21:00:00Z',
     venue: 'AT&T Stadium, Dallas',
     competition: 'FIFA World Cup 2026', group: 'Group C',
@@ -265,8 +288,8 @@ export const WC_FIXTURES: ExpFixture[] = [
   {
     id: 'wc-f4',
     homeClub: PORTUGAL, awayClub: MOROCCO,
-    homeScore: null, awayScore: null,
-    status: 'SCHEDULED', minute: null,
+    homeScore: 2, awayScore: 0,
+    status: 'FINISHED', minute: 90,
     kickoffAt: '2026-06-21T17:00:00Z',
     venue: 'SoFi Stadium, Los Angeles',
     competition: 'FIFA World Cup 2026', group: 'Group B',
@@ -274,13 +297,65 @@ export const WC_FIXTURES: ExpFixture[] = [
   {
     id: 'wc-f5',
     homeClub: GERMANY, awayClub: ARGENTINA,
-    homeScore: null, awayScore: null,
-    status: 'SCHEDULED', minute: null,
+    homeScore: 2, awayScore: 2,
+    status: 'FINISHED', minute: 90,
     kickoffAt: '2026-06-23T21:00:00Z',
     venue: 'Levi\'s Stadium, San Francisco',
     competition: 'FIFA World Cup 2026', group: 'Group D',
   },
+  {
+    id: 'wc-sa-kor',
+    homeClub: SOUTH_AFRICA, awayClub: SOUTH_KOREA,
+    homeScore: null, awayScore: null,
+    status: 'SCHEDULED', minute: null,
+    kickoffAt: '2026-06-26T01:00:00Z',
+    venue: 'Levi\'s Stadium, San Francisco',
+    competition: 'FIFA World Cup 2026', group: 'Group A',
+  },
+  {
+    id: 'wc-f7',
+    homeClub: USA, awayClub: MEXICO,
+    homeScore: null, awayScore: null,
+    status: 'SCHEDULED', minute: null,
+    kickoffAt: '2026-06-26T20:00:00Z',
+    venue: 'AT&T Stadium, Dallas',
+    competition: 'FIFA World Cup 2026', group: 'Group B',
+  },
+  {
+    id: 'wc-f8',
+    homeClub: BRAZIL, awayClub: SPAIN,
+    homeScore: null, awayScore: null,
+    status: 'SCHEDULED', minute: null,
+    kickoffAt: '2026-06-27T21:00:00Z',
+    venue: 'MetLife Stadium, New Jersey',
+    competition: 'FIFA World Cup 2026', group: 'Group C',
+  },
 ];
+
+/* ── API-format fallback fixtures (for server-component pages when API unreachable) ── */
+export interface WcApiFallbackFixture {
+  id: string;
+  kickoffAt: string;
+  status: string;
+  round: string;
+  competitionCode: string;
+  homeTeam: { name: string; shortName: string } | null;
+  awayTeam: { name: string; shortName: string } | null;
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
+export const WC_FALLBACK_FIXTURES: WcApiFallbackFixture[] = WC_FIXTURES.map(f => ({
+  id: f.id,
+  kickoffAt: f.kickoffAt,
+  status: f.status,
+  round: f.group ?? 'Group Stage',
+  competitionCode: 'WC',
+  homeTeam: { name: f.homeClub.name, shortName: f.homeClub.abbr },
+  awayTeam: { name: f.awayClub.name, shortName: f.awayClub.abbr },
+  homeScore: f.homeScore,
+  awayScore: f.awayScore,
+}));
 
 export const WC_STANDINGS: ExpStanding[] = [
   { position: 1, club: FRANCE,   played: 2, won: 2, drawn: 0, lost: 0, goalsFor: 5, goalsAgainst: 1, goalDifference:  4, points: 6, form: ['W', 'W'] },
