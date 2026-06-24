@@ -6027,6 +6027,148 @@ describe('Sprint 33 – Object Storage/CDN/File Upload Architecture', () => {
   });
 });
 
+// ─── Sprint 34 — Production Performance, Caching & Edge Readiness ─────────
+
+describe('Sprint 34 – API Caching & Edge Readiness', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('cache interface file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/cache.interface.ts'))).toBe(true);
+  });
+
+  it('CACHE_PROVIDER symbol is exported', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/cache.interface.ts'), 'utf-8');
+    expect(c).toMatch(/CACHE_PROVIDER/);
+    expect(c).toMatch(/Symbol/);
+  });
+
+  it('CacheProvider interface defines get/set/delete', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/cache.interface.ts'), 'utf-8');
+    expect(c).toMatch(/get\b/);
+    expect(c).toMatch(/set\b/);
+    expect(c).toMatch(/delete\b/);
+  });
+
+  it('InMemoryCacheAdapter file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/adapters/in-memory-cache.adapter.ts'))).toBe(true);
+  });
+
+  it('InMemoryCacheAdapter implements CacheProvider', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/adapters/in-memory-cache.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/implements CacheProvider/);
+  });
+
+  it('InMemoryCacheAdapter uses TTL expiry', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/adapters/in-memory-cache.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/expiresAt|ttl/i);
+  });
+
+  it('ApiCacheService file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/api-cache.service.ts'))).toBe(true);
+  });
+
+  it('CacheInvalidationService file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/cache-invalidation.service.ts'))).toBe(true);
+  });
+
+  it('CacheInvalidationService has invalidateFixture method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/cache-invalidation.service.ts'), 'utf-8');
+    expect(c).toMatch(/invalidateFixture/);
+  });
+
+  it('CacheInvalidationService has invalidateLeaderboard method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/cache-invalidation.service.ts'), 'utf-8');
+    expect(c).toMatch(/invalidateLeaderboard/);
+  });
+
+  it('CacheInvalidationService has invalidateAll method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/cache-invalidation.service.ts'), 'utf-8');
+    expect(c).toMatch(/invalidateAll/);
+  });
+
+  it('CacheResponseInterceptor file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/interceptors/cache-response.interceptor.ts'))).toBe(true);
+  });
+
+  it('CacheResponseInterceptor only caches GET requests', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/interceptors/cache-response.interceptor.ts'), 'utf-8');
+    expect(c).toMatch(/GET/);
+    expect(c).toMatch(/method/);
+  });
+
+  it('CacheResponse decorator file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/decorators/cache-response.decorator.ts'))).toBe(true);
+  });
+
+  it('CacheResponse decorator applies SetMetadata and UseInterceptors', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/decorators/cache-response.decorator.ts'), 'utf-8');
+    expect(c).toMatch(/SetMetadata/);
+    expect(c).toMatch(/UseInterceptors/);
+  });
+
+  it('ApiCacheModule file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/api-cache.module.ts'))).toBe(true);
+  });
+
+  it('ApiCacheModule is marked Global', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/api-cache.module.ts'), 'utf-8');
+    expect(c).toMatch(/@Global\(\)/);
+  });
+
+  it('ApiCacheModule exports CacheInvalidationService', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/api-cache.module.ts'), 'utf-8');
+    expect(c).toMatch(/CacheInvalidationService/);
+    expect(c).toMatch(/exports/);
+  });
+
+  it('spec file exists for api-cache', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/api-cache/api-cache.spec.ts'))).toBe(true);
+  });
+
+  it('ADR-036 exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/adr/ADR-036-API-RESPONSE-CACHING-STRATEGY.md'))).toBe(true);
+  });
+
+  it('ADR-036 documents the upgrade path to Redis', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-036-API-RESPONSE-CACHING-STRATEGY.md'), 'utf-8');
+    expect(c).toMatch(/Redis/);
+    expect(c).toMatch(/Upgrade Path|upgrade path/i);
+  });
+
+  it('caching architecture doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/performance/SPRINT-34-CACHING-ARCHITECTURE.md'))).toBe(true);
+  });
+
+  it('caching doc documents recommended TTLs', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/performance/SPRINT-34-CACHING-ARCHITECTURE.md'), 'utf-8');
+    expect(c).toMatch(/TTL/);
+  });
+
+  it('caching doc says live match data is not cached', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/performance/SPRINT-34-CACHING-ARCHITECTURE.md'), 'utf-8');
+    expect(c).toMatch(/live.*match.*none|never cache|0.*none/i);
+  });
+
+  it('edge readiness doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/performance/SPRINT-34-EDGE-READINESS.md'))).toBe(true);
+  });
+
+  it('edge readiness doc lists performance gaps', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/performance/SPRINT-34-EDGE-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/PERF-0[12]/);
+  });
+
+  it('interceptor never caches mutations', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/interceptors/cache-response.interceptor.ts'), 'utf-8');
+    expect(c).not.toMatch(/method.*POST|cache.*POST/);
+  });
+
+  it('cache does not store auth tokens', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/api-cache/interceptors/cache-response.interceptor.ts'), 'utf-8');
+    expect(c).not.toMatch(/authorization|Bearer|jwt/i);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
