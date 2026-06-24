@@ -5743,6 +5743,128 @@ describe('Sprint 29: Cross-tenant smoke design', () => {
   });
 });
 
+// ─── Sprint 30 — World Cup Beta Data Completeness ────────────────────────
+
+describe('Sprint 30 – World Cup Beta Data Completeness', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  const sprint30Docs = [
+    'docs/data/SPRINT-30-WORLD-CUP-DATA-SOURCE-REVIEW.md',
+    'docs/data/SPRINT-30-FREE-DATA-OPTIONS.md',
+    'docs/data/SPRINT-30-WORLD-CUP-DATA-GO-NOGO.md',
+    'docs/data/SPRINT-30-WORLD-CUP-FIXTURE-COMPLETENESS.md',
+    'docs/data/SPRINT-30-WORLD-CUP-SQUAD-READINESS.md',
+    'docs/fantasy/SPRINT-30-WORLD-CUP-FANTASY-PLAYER-POOL.md',
+    'docs/fantasy/SPRINT-30-WORLD-CUP-FANTASY-READINESS.md',
+    'docs/predictions/SPRINT-30-WORLD-CUP-GTS-READINESS.md',
+  ];
+
+  const sprint30Tools = [
+    'tools/staging/sprint-30-world-cup-fixture-completeness.mjs',
+    'tools/staging/sprint-30-world-cup-import-dry-run.mjs',
+    'tools/staging/sprint-30-world-cup-squad-audit.mjs',
+    'tools/staging/sprint-30-fantasy-player-pool-dry-run.mjs',
+  ];
+
+  sprint30Docs.forEach((f) => {
+    it(`doc exists: ${f}`, () => {
+      expect(existsSync(resolve(ROOT2, f))).toBe(true);
+    });
+  });
+
+  sprint30Tools.forEach((f) => {
+    it(`tool exists: ${f}`, () => {
+      expect(existsSync(resolve(ROOT2, f))).toBe(true);
+    });
+  });
+
+  it('go-nogo doc confirms fixtures are GO', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-WORLD-CUP-DATA-GO-NOGO.md'), 'utf-8');
+    expect(c).toMatch(/fixtures.*GO|GO.*fixtures/i);
+  });
+
+  it('go-nogo doc includes PSL INACTIVE safety badge', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-WORLD-CUP-DATA-GO-NOGO.md'), 'utf-8');
+    expect(c).toMatch(/PSL INACTIVE/);
+  });
+
+  it('squad readiness doc mentions 48 teams', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-WORLD-CUP-SQUAD-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/48 teams|48.*team/i);
+  });
+
+  it('GTS readiness doc confirms points-only', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/predictions/SPRINT-30-WORLD-CUP-GTS-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/POINTS_ONLY|points.only/i);
+  });
+
+  it('GTS readiness doc confirms no betting or gambling', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/predictions/SPRINT-30-WORLD-CUP-GTS-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/NO BETTING|no betting|no gambling/i);
+  });
+
+  it('fantasy player pool doc confirms points-only', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/fantasy/SPRINT-30-WORLD-CUP-FANTASY-PLAYER-POOL.md'), 'utf-8');
+    expect(c).toMatch(/POINTS_ONLY|points.only/i);
+  });
+
+  it('fantasy player pool doc mentions non-financial', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/fantasy/SPRINT-30-WORLD-CUP-FANTASY-PLAYER-POOL.md'), 'utf-8');
+    expect(c).toMatch(/non.financial|NON.FINANCIAL/i);
+  });
+
+  it('fantasy readiness doc confirms squad creation is READY', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/fantasy/SPRINT-30-WORLD-CUP-FANTASY-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/READY/);
+  });
+
+  it('data source review mentions football-data.org', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-WORLD-CUP-DATA-SOURCE-REVIEW.md'), 'utf-8');
+    expect(c).toMatch(/football-data\.org/i);
+  });
+
+  it('data source review mentions ToS/licensing', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-WORLD-CUP-DATA-SOURCE-REVIEW.md'), 'utf-8');
+    expect(c).toMatch(/ToS|licensing|licence/i);
+  });
+
+  it('free data options doc mentions rate limit', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-30-FREE-DATA-OPTIONS.md'), 'utf-8');
+    expect(c).toMatch(/rate limit|10 req/i);
+  });
+
+  it('fixture completeness tool is non-empty and has safety banner', () => {
+    const c = readFileSync(resolve(ROOT2, 'tools/staging/sprint-30-world-cup-fixture-completeness.mjs'), 'utf-8');
+    expect(c.length).toBeGreaterThan(500);
+    expect(c).toMatch(/PSL INACTIVE/);
+  });
+
+  it('import dry-run tool has DRY RUN marker and never writes', () => {
+    const c = readFileSync(resolve(ROOT2, 'tools/staging/sprint-30-world-cup-import-dry-run.mjs'), 'utf-8');
+    expect(c).toMatch(/DRY.RUN/i);
+    expect(c).toMatch(/NO WRITES|no writes/i);
+  });
+
+  it('squad audit tool has safety banner', () => {
+    const c = readFileSync(resolve(ROOT2, 'tools/staging/sprint-30-world-cup-squad-audit.mjs'), 'utf-8');
+    expect(c).toMatch(/PSL INACTIVE/);
+  });
+
+  it('fantasy player pool tool confirms points-only', () => {
+    const c = readFileSync(resolve(ROOT2, 'tools/staging/sprint-30-fantasy-player-pool-dry-run.mjs'), 'utf-8');
+    expect(c).toMatch(/POINTS_ONLY/);
+  });
+
+  it('no tool contains hardcoded API keys or tokens', () => {
+    for (const f of sprint30Tools) {
+      const c = readFileSync(resolve(ROOT2, f), 'utf-8');
+      expect(c).not.toMatch(/FOOTBALL_DATA_API_KEY=\w{10,}/);
+      expect(c).not.toMatch(/API_FOOTBALL_KEY=\w{10,}/);
+      expect(c).not.toMatch(/Bearer \w{30,}/);
+    }
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
