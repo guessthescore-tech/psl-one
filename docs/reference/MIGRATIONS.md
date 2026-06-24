@@ -1,6 +1,6 @@
 # PSL One — Migration Reference
 
-**Purpose:** Ordered list of all 43 database migrations
+**Purpose:** Ordered list of all 44 database migrations
 **Audience:** Backend engineers
 **Status:** Current as of Sprint 7 (Provider Trial Activation & Challenge Settlement)
 **Last verified:** 2026-06-21
@@ -9,7 +9,7 @@
 
 ## Migration Count
 
-**Total migrations:** 43 (as of Sprint 28)
+**Total migrations:** 44 (as of Sprint 32)
 
 ---
 
@@ -66,6 +66,7 @@ These early migrations establish the core schema. Exact timestamps vary; see `ap
 | `20260621000002_prediction_challenge_token` | Sprint 6 | PredictionChallengeStatus enum; AuditEvent extensions (CHALLENGE_TOKEN_CREATED, CHALLENGE_TOKEN_ACCEPTED); prediction_challenges table |
 | `20260621000003_challenge_settlement` | Sprint 7 | PredictionChallengeStatus.SETTLED; AuditEvent.CHALLENGE_SETTLED; settlement columns on prediction_challenges (settled_at, creator_points, acceptor_points, winner_user_id, settlement_reason) |
 | `20260623000001_club_sponsor_memberships` | Sprint 28 | ClubMembership table (club_memberships); SponsorMembership table (sponsor_memberships); DB-backed user-to-org scoping (ADR-032) |
+| `20260624120000_audience_segment` | Sprint 32 | AudienceSegment table (audience_segments); POPIA-safe sponsor audience segmentation; criteria JSON field (aggregate filters only, no fan PII); ADR-034 |
 
 ---
 

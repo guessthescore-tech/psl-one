@@ -12,6 +12,8 @@ const makePrisma = () => ({
   rewardDefinition: { findMany: vi.fn(), count: vi.fn() },
   campaignAnalyticsSnapshot: { findMany: vi.fn() },
   team: { findMany: vi.fn() },
+  audienceSegment: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  mediaAsset: { findMany: vi.fn() },
 });
 
 const makeScope = () => ({
@@ -161,9 +163,29 @@ describe('SponsorPortalService (Sprint 28 — DB-backed scoping)', () => {
   });
 
   describe('getSponsorAudiences', () => {
-    it('returns PLANNED placeholder', () => {
-      const result = service.getSponsorAudiences('sp-1');
-      expect(result).toMatchObject({ audienceStatus: 'PLANNED', segments: [] });
+    it('returns active segments for the resolved sponsor', async () => {
+      const mockSegments = [
+        { id: 'seg-1', sponsorId: 'sp-1', name: 'WC Viewers', isActive: true, criteria: {} },
+      ];
+      prisma.audienceSegment.findMany.mockResolvedValue(mockSegments);
+
+      const result = await service.getSponsorAudiences('user-1', 'SPONSOR');
+      expect(result).toEqual(mockSegments);
+      expect(prisma.audienceSegment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { sponsorId: 'sp-1', isActive: true } }),
+      );
+    });
+
+    it('throws ForbiddenException when scope denied', async () => {
+      scope.resolveSponsorScope.mockResolvedValue({
+        allowed: false,
+        reason: 'CROSS_SPONSOR_ACCESS_DENIED',
+        statusCode: 403,
+        errorCode: 'CROSS_SPONSOR_ACCESS_DENIED',
+      });
+      await expect(service.getSponsorAudiences('user-1', 'SPONSOR', 'wrong-sp')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -211,9 +233,29 @@ describe('SponsorPortalService (Sprint 28 — DB-backed scoping)', () => {
   });
 
   describe('getSponsorAssets', () => {
-    it('returns PLANNED placeholder', () => {
-      const result = service.getSponsorAssets('sp-1');
-      expect(result).toMatchObject({ assetsStatus: 'PLANNED', assets: [] });
+    it('returns active media assets for the resolved sponsor', async () => {
+      const mockAssets = [
+        { id: 'a-1', sponsorId: 'sp-1', title: 'Logo', archivedAt: null },
+      ];
+      prisma.mediaAsset.findMany.mockResolvedValue(mockAssets);
+
+      const result = await service.getSponsorAssets('user-1', 'SPONSOR');
+      expect(result).toEqual(mockAssets);
+      expect(prisma.mediaAsset.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { sponsorId: 'sp-1', archivedAt: null } }),
+      );
+    });
+
+    it('throws ForbiddenException when scope denied', async () => {
+      scope.resolveSponsorScope.mockResolvedValue({
+        allowed: false,
+        reason: 'CROSS_SPONSOR_ACCESS_DENIED',
+        statusCode: 403,
+        errorCode: 'CROSS_SPONSOR_ACCESS_DENIED',
+      });
+      await expect(service.getSponsorAssets('user-1', 'SPONSOR', 'wrong-sp')).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 

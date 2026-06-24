@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Request,
@@ -11,7 +14,11 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { SponsorPortalService } from './sponsor-portal.service';
-import { CreateCampaignDraftDto } from './sponsor-portal.dto';
+import {
+  CreateCampaignDraftDto,
+  CreateAudienceSegmentDto,
+  UpdateAudienceSegmentDto,
+} from './sponsor-portal.dto';
 
 @Controller('sponsor-portal')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,8 +51,36 @@ export class SponsorPortalController {
   }
 
   @Get('audiences')
-  getSponsorAudiences(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorAudiences(sponsorId);
+  getSponsorAudiences(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorAudiences(req.user?.sub, req.user?.role, sponsorId);
+  }
+
+  @Post('audiences')
+  createAudienceSegment(
+    @Body() dto: CreateAudienceSegmentDto,
+    @Request() req: any,
+    @Query('sponsorId') sponsorId?: string,
+  ) {
+    return this.service.createAudienceSegment(req.user?.sub, req.user?.role, dto, sponsorId);
+  }
+
+  @Patch('audiences/:id')
+  updateAudienceSegment(
+    @Param('id') id: string,
+    @Body() dto: UpdateAudienceSegmentDto,
+    @Request() req: any,
+    @Query('sponsorId') sponsorId?: string,
+  ) {
+    return this.service.updateAudienceSegment(req.user?.sub, req.user?.role, id, dto, sponsorId);
+  }
+
+  @Delete('audiences/:id')
+  deleteAudienceSegment(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Query('sponsorId') sponsorId?: string,
+  ) {
+    return this.service.deleteAudienceSegment(req.user?.sub, req.user?.role, id, sponsorId);
   }
 
   @Get('activations')
@@ -69,8 +104,8 @@ export class SponsorPortalController {
   }
 
   @Get('assets')
-  getSponsorAssets(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorAssets(sponsorId);
+  getSponsorAssets(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorAssets(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('billing-placeholder')

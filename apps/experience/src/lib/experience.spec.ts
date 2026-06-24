@@ -5743,6 +5743,152 @@ describe('Sprint 29: Cross-tenant smoke design', () => {
   });
 });
 
+// ─── Sprint 32 — Sponsor Audience Segmentation + Asset Management ─────────
+
+describe('Sprint 32 – Sponsor Audience Segmentation + Asset Management', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+  it('AudienceSegment migration file exists', () => {
+    const p = resolve(ROOT2, 'apps/api/prisma/migrations/20260624120000_audience_segment/migration.sql');
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it('migration creates audience_segments table', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/prisma/migrations/20260624120000_audience_segment/migration.sql'), 'utf-8');
+    expect(c).toMatch(/CREATE TABLE "audience_segments"/);
+  });
+
+  it('migration adds sponsor_id FK with CASCADE', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/prisma/migrations/20260624120000_audience_segment/migration.sql'), 'utf-8');
+    expect(c).toMatch(/FOREIGN KEY.*sponsor_id.*REFERENCES.*sponsors/s);
+    expect(c).toMatch(/ON DELETE CASCADE/);
+  });
+
+  it('schema.prisma includes AudienceSegment model', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/prisma/schema.prisma'), 'utf-8');
+    expect(c).toMatch(/model AudienceSegment/);
+  });
+
+  it('schema AudienceSegment has criteria Json field', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/prisma/schema.prisma'), 'utf-8');
+    expect(c).toMatch(/criteria\s+Json/);
+  });
+
+  it('SponsorPortalService has getSponsorAudiences method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/async getSponsorAudiences\(/);
+  });
+
+  it('SponsorPortalService has createAudienceSegment method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/async createAudienceSegment\(/);
+  });
+
+  it('SponsorPortalService has updateAudienceSegment method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/async updateAudienceSegment\(/);
+  });
+
+  it('SponsorPortalService has deleteAudienceSegment method', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/async deleteAudienceSegment\(/);
+  });
+
+  it('SponsorPortalService getSponsorAudiences queries audienceSegment', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/prisma\.audienceSegment\.findMany/);
+  });
+
+  it('SponsorPortalService getSponsorAssets queries mediaAsset', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/prisma\.mediaAsset\.findMany/);
+  });
+
+  it('getSponsorAssets filters archivedAt null', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).toMatch(/archivedAt.*null/);
+  });
+
+  it('controller has POST audiences route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(c).toMatch(/@Post\('audiences'\)/);
+  });
+
+  it('controller has PATCH audiences/:id route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(c).toMatch(/@Patch\('audiences\/:id'\)/);
+  });
+
+  it('controller has DELETE audiences/:id route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(c).toMatch(/@Delete\('audiences\/:id'\)/);
+  });
+
+  it('controller passes req.user to getSponsorAudiences', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(c).toMatch(/getSponsorAudiences\(req\.user/);
+  });
+
+  it('controller passes req.user to getSponsorAssets', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.controller.ts'), 'utf-8');
+    expect(c).toMatch(/getSponsorAssets\(req\.user/);
+  });
+
+  it('audience segmentation doc exists', () => {
+    const p = resolve(ROOT2, 'docs/sponsor/SPRINT-32-AUDIENCE-SEGMENTATION.md');
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it('audience segmentation doc references POPIA', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/sponsor/SPRINT-32-AUDIENCE-SEGMENTATION.md'), 'utf-8');
+    expect(c).toMatch(/POPIA/);
+  });
+
+  it('audience segmentation doc states no individual fan PII', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/sponsor/SPRINT-32-AUDIENCE-SEGMENTATION.md'), 'utf-8');
+    expect(c).toMatch(/no individual fan|not.*individual fan|aggregate.*criteria/i);
+  });
+
+  it('sponsor asset management doc exists', () => {
+    const p = resolve(ROOT2, 'docs/sponsor/SPRINT-32-SPONSOR-ASSET-MANAGEMENT.md');
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it('campaign targeting doc exists', () => {
+    const p = resolve(ROOT2, 'docs/sponsor/SPRINT-32-CAMPAIGN-TARGETING.md');
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it('campaign targeting doc states non-financial boundary', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/sponsor/SPRINT-32-CAMPAIGN-TARGETING.md'), 'utf-8');
+    expect(c).toMatch(/non-financial|no.*gambling/i);
+  });
+
+  it('ADR-034 exists', () => {
+    const p = resolve(ROOT2, 'docs/adr/ADR-034-SPONSOR-AUDIENCE-SEGMENTATION-PRIVACY.md');
+    expect(existsSync(p)).toBe(true);
+  });
+
+  it('ADR-034 references POPIA', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-034-SPONSOR-AUDIENCE-SEGMENTATION-PRIVACY.md'), 'utf-8');
+    expect(c).toMatch(/POPIA/);
+  });
+
+  it('ADR-034 rejects fan list export alternative', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-034-SPONSOR-AUDIENCE-SEGMENTATION-PRIVACY.md'), 'utf-8');
+    expect(c).toMatch(/Export fan lists.*Rejected|Rejected.*fan list/si);
+  });
+
+  it('service has no stub PLANNED return for audiences', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).not.toMatch(/audienceStatus.*PLANNED/);
+  });
+
+  it('service has no stub PLANNED return for assets', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/sponsor-portal/sponsor-portal.service.ts'), 'utf-8');
+    expect(c).not.toMatch(/assetsStatus.*PLANNED/);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
