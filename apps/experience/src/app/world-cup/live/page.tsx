@@ -1,12 +1,11 @@
-import { getToken } from '../../../lib/auth';
 import { ScoreBatWorldCupWidget } from '../../../components/world-cup/ScoreBatWorldCupWidget';
 
 /**
  * World Cup 2026 Live page — server component.
  *
- * SCOREBAT_WIDGET_TOKEN is read server-side only; it is never passed to the
- * client as a raw env var or NEXT_PUBLIC_ variable. The embed URL is constructed
- * here and passed to the client widget as a prop.
+ * Calls only public endpoints — no admin auth dependency.
+ * SCOREBAT_WIDGET_TOKEN is read server-side only via the
+ * /football/world-cup/scorebat-widget endpoint; it is never exposed to clients.
  *
  * No PSL activation. No real money. No betting/odds content.
  * World Cup beta context only.
@@ -24,24 +23,22 @@ interface WcFixture {
   awayScore?: number | null;
 }
 
-async function fetchLiveFixtures(token: string): Promise<WcFixture[]> {
+async function fetchWcFixtures(): Promise<WcFixture[]> {
   try {
-    const res = await fetch(`${API_BASE}/admin/data-provider/discovery/fixtures/WC`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store',
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
+      next: { revalidate: 60 },
     });
     if (!res.ok) return [];
     const data = await res.json() as WcFixture[];
-    return Array.isArray(data) ? data.slice(0, 20) : [];
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
 }
 
-async function fetchWidgetConfig(token: string): Promise<{ available: boolean; embedUrl: string | null }> {
+async function fetchWidgetConfig(): Promise<{ available: boolean; embedUrl: string | null }> {
   try {
-    const res = await fetch(`${API_BASE}/admin/data-provider/world-cup/scorebat-widget-config`, {
-      headers: { Authorization: `Bearer ${token}` },
+    const res = await fetch(`${API_BASE}/football/world-cup/scorebat-widget`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return { available: false, embedUrl: null };
@@ -52,13 +49,12 @@ async function fetchWidgetConfig(token: string): Promise<{ available: boolean; e
 }
 
 export default async function WorldCupLivePage() {
-  const token = await getToken();
   const [fixtures, widgetConfig] = await Promise.all([
-    token ? fetchLiveFixtures(token) : Promise.resolve([] as WcFixture[]),
-    token ? fetchWidgetConfig(token) : Promise.resolve({ available: false, embedUrl: null }),
+    fetchWcFixtures(),
+    fetchWidgetConfig(),
   ]);
 
-  const liveFixtures = fixtures.filter(f => f.status === 'IN_PLAY' || f.status === 'in_progress');
+  const liveFixtures = fixtures.filter(f => f.status === 'LIVE' || f.status === 'IN_PLAY' || f.status === 'HALF_TIME');
   const upcomingFixtures = fixtures.filter(f => f.status === 'SCHEDULED' || f.status === 'not_started');
   const completedFixtures = fixtures.filter(
     f => f.status === 'FINISHED' || f.status === 'closed' || f.status === 'ended',
@@ -110,7 +106,7 @@ export default async function WorldCupLivePage() {
             <ScoreBatWorldCupWidget embedUrl={widgetConfig.embedUrl} />
           </section>
         ) : (
-          <section className="rounded-xl border border-white/10 bg-white/3 p-8 text-center">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
             <p className="text-white/40 text-sm">
               Highlights widget not configured —{' '}
               <span className="text-white/60">set <code className="text-emerald-400">SCOREBAT_WIDGET_TOKEN</code> to enable</span>
@@ -144,7 +140,7 @@ export default async function WorldCupLivePage() {
 
         {/* Empty state */}
         {fixtures.length === 0 && (
-          <section className="rounded-xl border border-white/10 bg-white/3 p-12 text-center">
+          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-12 text-center">
             <div className="text-4xl mb-4">📅</div>
             <h3 className="text-lg font-bold mb-2">Fixtures Not Yet Loaded</h3>
             <p className="text-white/50 text-sm max-w-sm mx-auto">
@@ -175,7 +171,7 @@ function FixtureCard({ fixture: f, liveStyle }: { fixture: WcFixture; liveStyle?
     <div className={`rounded-xl border px-5 py-4 flex items-center justify-between gap-4 transition-colors ${
       liveStyle
         ? 'border-red-500/30 bg-red-500/5'
-        : 'border-white/10 bg-white/3 hover:bg-white/5'
+        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
     }`}>
       <div className="flex-1 min-w-0">
         <p className="font-semibold text-sm truncate">

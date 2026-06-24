@@ -12,6 +12,7 @@ import { AddMatchEventDto } from './dto/add-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
 import { UpsertPlayerStatDto } from './dto/upsert-player-stat.dto';
 import { BulkUpsertPlayerStatsDto } from './dto/bulk-upsert-player-stats.dto';
+import { ScoreBatWidgetAdapter } from '../data-provider/scorebat-widget.adapter';
 
 @Controller('football')
 export class FootballController {
@@ -167,6 +168,13 @@ export class FootballController {
   @Get('match-centre/:fixtureId')
   getMatchCentre(@Param('fixtureId') fixtureId: string) {
     return this.footballService.getMatchCentre(fixtureId);
+  }
+
+  /** Public ScoreBat widget embed config — no auth, token never exposed to client. */
+  @Get('world-cup/scorebat-widget')
+  getWorldCupScoreBatWidget() {
+    const adapter = new ScoreBatWidgetAdapter();
+    return adapter.getWidgetEmbedConfig('world-cup');
   }
 
   // ── Admin ──────────────────────────────────────────────────────────────────
