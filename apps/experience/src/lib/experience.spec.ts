@@ -6452,6 +6452,152 @@ describe('Sprint 36B: PSL Fixture Readiness Monitoring', () => {
   });
 });
 
+// ─── Sprint 37: Live Provider Procurement & Import Readiness ──────────────
+
+describe('Sprint 37: Live Provider Procurement & Import Readiness', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  // --- Docs exist ---
+
+  it('provider architecture baseline doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-PROVIDER-ARCHITECTURE-BASELINE.md'))).toBe(true);
+  });
+
+  it('provider procurement matrix doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-LIVE-PROVIDER-PROCUREMENT-MATRIX.md'))).toBe(true);
+  });
+
+  it('provider env validation doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-PROVIDER-ENV-VALIDATION.md'))).toBe(true);
+  });
+
+  it('dry-run readiness doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-FIXTURE-IMPORT-DRY-RUN-READINESS.md'))).toBe(true);
+  });
+
+  it('owner approval pack doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-OWNER-APPROVAL-PACK-FIXTURE-WRITE-IMPORT.md'))).toBe(true);
+  });
+
+  it('live data provider readiness doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-LIVE-DATA-PROVIDER-READINESS.md'))).toBe(true);
+  });
+
+  it('PSL fixture provider go-nogo doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-PSL-FIXTURE-PROVIDER-GO-NOGO.md'))).toBe(true);
+  });
+
+  it('WC data provider status doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/data/SPRINT-37-WORLD-CUP-DATA-PROVIDER-STATUS.md'))).toBe(true);
+  });
+
+  it('provider check runbook exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/staging/SPRINT-37-PROVIDER-CHECK-RUNBOOK.md'))).toBe(true);
+  });
+
+  it('sprint 37 handover doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-37-HANDOVER.md'))).toBe(true);
+  });
+
+  it('sprint 37 known gaps doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-37-KNOWN-GAPS.md'))).toBe(true);
+  });
+
+  it('sprint 37 owner review guide exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-37-OWNER-REVIEW-GUIDE.md'))).toBe(true);
+  });
+
+  it('sprint 37 story matrix exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/sprints/SPRINT-37-STORY-MATRIX.md'))).toBe(true);
+  });
+
+  // --- Tools exist ---
+
+  it('provider env check tool exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-37-provider-env-check.mjs'))).toBe(true);
+  });
+
+  it('PSL provider availability tool exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-37-psl-provider-availability-check.mjs'))).toBe(true);
+  });
+
+  it('WC provider availability tool exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-37-world-cup-provider-availability-check.mjs'))).toBe(true);
+  });
+
+  it('fixture import dry-run readiness tool exists', () => {
+    expect(existsSync(resolve(ROOT2, 'tools/staging/sprint-37-fixture-import-dry-run-readiness.mjs'))).toBe(true);
+  });
+
+  // --- Doc content safety assertions ---
+
+  it('dry-run readiness doc states dryRun=true always', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-37-FIXTURE-IMPORT-DRY-RUN-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/dryRun.*true|always.*true/i);
+  });
+
+  it('dry-run readiness doc states write import is separate', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-37-FIXTURE-IMPORT-DRY-RUN-READINESS.md'), 'utf-8');
+    expect(c).toMatch(/write.*import.*separate|separate.*owner.*approv/i);
+  });
+
+  it('owner approval pack states PSL remains inactive', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-37-OWNER-APPROVAL-PACK-FIXTURE-WRITE-IMPORT.md'), 'utf-8');
+    expect(c).toMatch(/PSL.*INACTIVE|INACTIVE.*PSL/i);
+  });
+
+  it('owner approval pack states not approved in sprint 37', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-37-OWNER-APPROVAL-PACK-FIXTURE-WRITE-IMPORT.md'), 'utf-8');
+    expect(c).toMatch(/not approved in sprint 37/i);
+  });
+
+  it('procurement matrix states no scheduled ingestion', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/data/SPRINT-37-LIVE-PROVIDER-PROCUREMENT-MATRIX.md'), 'utf-8');
+    expect(c).toMatch(/scheduled ingestion.*disabled|no.*scheduled/i);
+  });
+
+  // --- Tool safety assertions ---
+
+  it('dry-run tool body object never assigns dryRun: false', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-37-fixture-import-dry-run-readiness.mjs'), 'utf-8');
+    // Must not have dryRun: false in a body/request object (assignment in object literal)
+    expect(src).not.toMatch(/dryRun:\s*false/);
+  });
+
+  it('dry-run tool body object never assigns confirmWrite: true', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-37-fixture-import-dry-run-readiness.mjs'), 'utf-8');
+    // Must not have confirmWrite: true in a body/request object (assignment in object literal)
+    expect(src).not.toMatch(/confirmWrite:\s*true/);
+  });
+
+  it('PSL availability tool never calls ingestion endpoint', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-37-psl-provider-availability-check.mjs'), 'utf-8');
+    expect(src).not.toContain('/ingest');
+  });
+
+  it('env check tool never prints key values (no process.env[key] in console.log)', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-37-provider-env-check.mjs'), 'utf-8');
+    expect(src).not.toMatch(/console\.log.*process\.env\[.PARSE_API_KEY.\]/);
+    expect(src).not.toMatch(/console\.log.*process\.env\[.API_FOOTBALL_KEY.\]/);
+  });
+
+  it('PSL availability tool comment states ADMIN_TOKEN never printed', () => {
+    const src = readFileSync(resolve(ROOT2, 'tools/staging/sprint-37-psl-provider-availability-check.mjs'), 'utf-8');
+    expect(src).toMatch(/ADMIN_TOKEN.*NEVER.*printed|never.*print.*token/i);
+  });
+
+  // --- No new migration in Sprint 37 ---
+
+  it('no new Prisma migration in sprint 37 (backend changes are service-only)', () => {
+    const migrationsDir = resolve(ROOT2, 'apps/api/prisma/migrations');
+    const migrations = existsSync(migrationsDir)
+      ? require('fs').readdirSync(migrationsDir) as string[]
+      : [] as string[];
+    const sprint37Migrations = migrations.filter((m: string) => m.includes('sprint_37'));
+    expect(sprint37Migrations).toHaveLength(0);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

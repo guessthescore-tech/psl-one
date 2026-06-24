@@ -73,6 +73,7 @@ export class DataProviderService {
 
     const parsePslConfigured = dataProvider === 'parse-psl' && parseKey.length > 0;
     const apiFootballConfigured = dataProvider === 'api-football' && afKey.length > 0;
+    const anyProviderConfigured = parsePslConfigured || apiFootballConfigured;
 
     const parsePslStatus: 'OK' | 'SOURCE_EMPTY' | 'NOT_CONFIGURED' =
       parsePslConfigured ? 'SOURCE_EMPTY' : 'NOT_CONFIGURED';
@@ -87,10 +88,19 @@ export class DataProviderService {
       | 'FIXTURES_AVAILABLE_DRY_RUN_REQUIRED'
       | 'READY_FOR_OWNER_IMPORT_REVIEW';
 
-    if (!parsePslConfigured && !apiFootballConfigured) {
+    if (!anyProviderConfigured) {
       readinessStatus = 'PROVIDER_NOT_CONFIGURED';
     } else {
       readinessStatus = 'SOURCE_EMPTY';
+    }
+
+    let providerDecision: string;
+    if (parsePslConfigured) {
+      providerDecision = 'parse-psl (primary)';
+    } else if (apiFootballConfigured) {
+      providerDecision = 'api-football (fallback — PSL 288)';
+    } else {
+      providerDecision = 'none (PROVIDER_NOT_CONFIGURED)';
     }
 
     return {
@@ -99,6 +109,11 @@ export class DataProviderService {
       pslActive: false as const,
       fixturePublicationIsActivation: false as const,
       readinessStatus,
+      providerDecision,
+      dryRunEligible: anyProviderConfigured,
+      writeImportForbidden: true as const,
+      fixturePublicationForbidden: true as const,
+      pslActivationForbidden: true as const,
       parsePsl: {
         configured: parsePslConfigured,
         status: parsePslStatus,
