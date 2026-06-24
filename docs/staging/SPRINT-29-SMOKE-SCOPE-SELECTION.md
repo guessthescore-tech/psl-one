@@ -3,6 +3,8 @@
 **Date:** 2026-06-24
 **Environment:** Beta EC2 (i-0a5f16539c9626f90, af-south-1)
 **Purpose:** Select team and sponsor records for cross-tenant smoke testing
+**Executed:** 2026-06-24T06:15Z
+**Records found:** TEAM_COUNT=65 | SPONSOR_COUNT=1 (IDs stored and deleted post-smoke)
 
 ---
 

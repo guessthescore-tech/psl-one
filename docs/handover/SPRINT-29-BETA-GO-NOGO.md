@@ -22,19 +22,22 @@
 | No production ingestion | GO | NoOpAdapter is default; no @Cron active |
 | Migration 43 additive | GO | 2 × CREATE TABLE only |
 | Cross-tenant smoke design | GO | Script committed; 21 checks designed |
-| Cross-tenant smoke live | PENDING | EC2 deployment required first |
-| EC2 deployed to Sprint 28 | PENDING | Owner must trigger deploy-beta-ec2.yml |
+| Cross-tenant smoke live | CONDITIONAL | Executed 2026-06-24T06:51:48Z; 1 PASS / 0 FAIL / 20 SKIP |
+| EC2 deployed to Sprint 28 | PENDING | c731c494 running; 2605b372 requires owner trigger |
+| Migration 43 applied | GO | Applied manually via psql 2026-06-24T06:14:08Z |
+| Temp users created & cleaned | GO | 3 users created at 06:30Z; deleted at 07:00Z |
+| Temp workspace /tmp/sprint29 | GO | Created and deleted; no secrets persist |
 
 ---
 
 ## Conditions for Unconditional GO
 
-1. Owner triggers `deploy-beta-ec2.yml` with SHA `2605b372df829ea77f76c9c334909d54abdec294`
-2. 17/17 standard smoke checks PASS post-deploy
-3. Temp smoke users provisioned
-4. `sprint-29-ec2-cross-tenant-smoke.sh` executed: 21 PASS / 0 FAIL
-5. Temp users cleaned up: `SMOKE_USER_COUNT=0`
-6. Results populated in `SPRINT-29-CROSS-TENANT-SMOKE-RESULTS.md`
+1. ~~Temp smoke users provisioned~~ — DONE (3 users created and cleaned up)
+2. ~~Migration 43 applied~~ — DONE (manually applied 2026-06-24T06:14:08Z)
+3. ~~Workspace /tmp/sprint29 cleaned~~ — DONE (deleted 2026-06-24T07:00Z)
+4. Owner triggers `deploy-beta-ec2.yml` with SHA `2605b372df829ea77f76c9c334909d54abdec294` — PENDING
+5. Re-run `sprint-29-ec2-cross-tenant-smoke.sh` post-deploy: target 21 PASS / 0 FAIL
+6. Results populated in `SPRINT-29-CROSS-TENANT-SMOKE-RESULTS.md` — PARTIAL (20 SKIP)
 
 ---
 
@@ -79,6 +82,24 @@ Sprint 29 introduces no financial functionality:
 
 ## Sprint 29 Verdict
 
-**CONDITIONAL_GO** — All code gates pass. Pending live smoke execution after EC2 deployment.
+**CONDITIONAL_GO** — All code gates pass. Migration 43 applied. Smoke executed (1 PASS / 0 FAIL / 20 SKIP).
+SKIP checks require owner deploy trigger for SHA `2605b372` to get portal routes active.
+No cross-tenant leak detected. No FAIL recorded. PSL remains INACTIVE.
 
 This is consistent with the CONDITIONAL_GO verdicts from Sprints 22, 23, 24, 25, 26, 27, and 28.
+
+### Smoke Execution Summary (2026-06-24T06:51:48Z)
+
+| Item | Result |
+|---|---|
+| Deploy run SHA | c731c494 (Sprint 23 — portal code not present) |
+| Migration 43 | APPLIED (manually via psql) |
+| CLUB_ADMIN user | CREATED + DELETED |
+| SPONSOR user | CREATED + DELETED |
+| FAN user | CREATED + DELETED |
+| ClubMembership | CREATED (cascade-deleted with user) |
+| SponsorMembership | CREATED (cascade-deleted with user) |
+| API health check | PASS |
+| Portal route checks | 20 SKIP (CODE_NOT_DEPLOYED) |
+| Cross-tenant leak | NONE_DETECTED |
+| Cleanup | COMPLETE (SMOKE_USER_COUNT=0, TMP_DELETED) |

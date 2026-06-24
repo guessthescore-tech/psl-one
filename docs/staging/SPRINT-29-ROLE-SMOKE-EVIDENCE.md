@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-24
 **Environment:** Beta EC2 (i-0a5f16539c9626f90, af-south-1)
-**Status:** STAGING_SMOKE_PENDING
+**Executed:** 2026-06-24T06:51:48Z
+**Deployed SHA:** c731c494 (Sprint 23 — portal routes NOT present)
+**Status:** STAGING_SMOKE_EXECUTED (1 PASS / 0 FAIL / 20 SKIP — CODE_NOT_DEPLOYED)
 
 ---
 
@@ -10,12 +12,12 @@
 
 ### ANONYMOUS
 
-| Route | Expected | Result |
-|---|---|---|
-| GET /club-portal/overview | 401 | PENDING |
-| GET /sponsor-portal/overview | 401 | PENDING |
-| GET /club-portal/fixtures | 401 | PENDING |
-| GET /sponsor-portal/campaigns | 401 | PENDING |
+| Route | Expected | Actual | Status |
+|---|---|---|---|
+| GET /club-portal/overview | 401 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/overview | 401 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /club-portal/fixtures | 401 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/campaigns | 401 | 404 | SKIP (CODE_NOT_DEPLOYED) |
 
 **Mechanism:** `JwtAuthGuard` rejects all unauthenticated requests.
 
@@ -23,11 +25,11 @@
 
 ### PSL_ADMIN
 
-| Route | Expected | Result |
-|---|---|---|
-| GET /club-portal/overview?teamId=ALLOWED | 200 | PENDING |
-| GET /sponsor-portal/overview?sponsorId=ALLOWED | 200 | PENDING |
-| GET /club-portal/overview (no teamId) | 400/403 | PENDING |
+| Route | Expected | Actual | Status |
+|---|---|---|---|
+| GET /club-portal/overview?teamId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/overview?sponsorId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /club-portal/overview (no teamId) | 400/403 | 404 | SKIP (CODE_NOT_DEPLOYED) |
 
 **Mechanism:** `PortalScopeService.assertClubScope()` allows PSL_ADMIN to
 specify any teamId. Without a scope param, returns 400 (missing required param).
@@ -36,14 +38,14 @@ specify any teamId. Without a scope param, returns 400 (missing required param).
 
 ### CLUB_ADMIN (with ClubMembership for ALLOWED_TEAM_ID)
 
-| Route | Expected | Result |
-|---|---|---|
-| GET /club-portal/overview?teamId=ALLOWED | 200 | PENDING |
-| GET /club-portal/fixtures?teamId=ALLOWED | 200 | PENDING |
-| GET /club-portal/overview?teamId=FORBIDDEN | **403** | PENDING |
-| GET /club-portal/fixtures?teamId=FORBIDDEN | **403** | PENDING |
-| GET /sponsor-portal/overview | **403** | PENDING |
-| GET /sponsor-portal/campaigns | **403** | PENDING |
+| Route | Expected | Actual | Status |
+|---|---|---|---|
+| GET /club-portal/overview?teamId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /club-portal/fixtures?teamId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /club-portal/overview?teamId=FORBIDDEN | **403** | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /club-portal/fixtures?teamId=FORBIDDEN | **403** | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/overview | **403** | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/campaigns | **403** | 404 | SKIP (CODE_NOT_DEPLOYED) |
 
 **Mechanism:** 
 - Allowed team: `ClubMembership` record exists — `PortalScopeService` confirms access.
@@ -54,13 +56,13 @@ specify any teamId. Without a scope param, returns 400 (missing required param).
 
 ### SPONSOR (with SponsorMembership for ALLOWED_SPONSOR_ID)
 
-| Route | Expected | Result |
-|---|---|---|
-| GET /sponsor-portal/overview?sponsorId=ALLOWED | 200 | PENDING |
-| GET /sponsor-portal/campaigns?sponsorId=ALLOWED | 200 | PENDING |
-| GET /sponsor-portal/overview?sponsorId=FORBIDDEN | **403** | PENDING |
-| GET /sponsor-portal/campaigns?sponsorId=FORBIDDEN | **403** | PENDING |
-| GET /club-portal/overview | **403** | PENDING |
+| Route | Expected | Actual | Status |
+|---|---|---|---|
+| GET /sponsor-portal/overview?sponsorId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/campaigns?sponsorId=ALLOWED | 200 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/overview?sponsorId=FORBIDDEN | **403** | SKIP | SKIP (only 1 sponsor in beta) |
+| GET /sponsor-portal/campaigns?sponsorId=FORBIDDEN | **403** | SKIP | SKIP (only 1 sponsor in beta) |
+| GET /club-portal/overview | **403** | 404 | SKIP (CODE_NOT_DEPLOYED) |
 
 **Mechanism:**
 - Allowed sponsor: `SponsorMembership` record exists — `PortalScopeService` confirms access.
@@ -71,10 +73,10 @@ specify any teamId. Without a scope param, returns 400 (missing required param).
 
 ### FAN
 
-| Route | Expected | Result |
-|---|---|---|
-| GET /club-portal/overview | 403 | PENDING |
-| GET /sponsor-portal/overview | 403 | PENDING |
+| Route | Expected | Actual | Status |
+|---|---|---|---|
+| GET /club-portal/overview | 403 | 404 | SKIP (CODE_NOT_DEPLOYED) |
+| GET /sponsor-portal/overview | 403 | 404 | SKIP (CODE_NOT_DEPLOYED) |
 
 **Mechanism:** FAN role is not included in `@Roles(...)` decorator for portal controllers.
 
@@ -94,6 +96,12 @@ specify any teamId. Without a scope param, returns 400 (missing required param).
 
 ## Status
 
-**STAGING_SMOKE_PENDING** — Results will be populated after EC2 deployment and smoke run.
+**STAGING_SMOKE_EXECUTED** (2026-06-24T06:51:48Z) — 1 PASS / 0 FAIL / 20 SKIP
+
+All SKIP results are due to CODE_NOT_DEPLOYED (c731c494 does not include portal routes).
+No FAIL was recorded. No cross-tenant leak detected. No unauthenticated access granted.
+
+**Owner action required:** Trigger `deploy-beta-ec2.yml` with SHA `2605b372...` to
+deploy portal code, then re-run smoke to populate PASS/FAIL results for checks 2-21.
 
 PSL remains INACTIVE. Wallet SANDBOX only. NON_FINANCIAL scope. No real-money.

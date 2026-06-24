@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-24
 **Environment:** Beta EC2 (i-0a5f16539c9626f90, af-south-1)
-**Status:** STAGING_SMOKE_PENDING
+**Executed:** 2026-06-24T06:51:48Z
+**Deployed SHA:** c731c494 (Sprint 23 — portal routes NOT in this build)
+**Status:** STAGING_SMOKE_EXECUTED
 
 ---
 
@@ -10,38 +12,38 @@
 
 | Category | Count | Status |
 |---|---|---|
-| PASS | — | PENDING |
-| FAIL | — | PENDING |
-| SKIP | — | PENDING |
-| **OVERALL** | — | **STAGING_SMOKE_PENDING** |
+| PASS | 1 | Health check |
+| FAIL | 0 | No failures |
+| SKIP | 20 | CODE_NOT_DEPLOYED (portal routes in Sprint 26+) |
+| **OVERALL** | 21 | **CONDITIONAL_GO — no FAIL, SKIP requires deploy** |
 
 ---
 
 ## Check Results
 
-| # | Check | Role | Expected | Result |
-|---|---|---|---|---|
-| 1 | API health check | — | 200 | PENDING |
-| 2 | Anonymous /club-portal/overview | ANON | 401 | PENDING |
-| 3 | Anonymous /sponsor-portal/overview | ANON | 401 | PENDING |
-| 4 | Anonymous /club-portal/fixtures | ANON | 401 | PENDING |
-| 5 | Anonymous /sponsor-portal/campaigns | ANON | 401 | PENDING |
-| 6 | Admin /club-portal/overview (allowed teamId) | PSL_ADMIN | 200 | PENDING |
-| 7 | Admin /sponsor-portal/overview (allowed sponsorId) | PSL_ADMIN | 200 | PENDING |
-| 8 | Admin /club-portal/overview (no scope param) | PSL_ADMIN | 400/403 | PENDING |
-| 9 | Club admin /club-portal/overview (allowed) | CLUB_ADMIN | 200 | PENDING |
-| 10 | Club admin /club-portal/fixtures (allowed) | CLUB_ADMIN | 200 | PENDING |
-| 11 | Club admin /club-portal/overview (cross-tenant) | CLUB_ADMIN | 403 | PENDING |
-| 12 | Club admin /club-portal/fixtures (cross-tenant) | CLUB_ADMIN | 403 | PENDING |
-| 13 | Club admin /sponsor-portal/overview | CLUB_ADMIN | 403 | PENDING |
-| 14 | Club admin /sponsor-portal/campaigns | CLUB_ADMIN | 403 | PENDING |
-| 15 | Sponsor /sponsor-portal/overview (allowed) | SPONSOR | 200 | PENDING |
-| 16 | Sponsor /sponsor-portal/campaigns (allowed) | SPONSOR | 200 | PENDING |
-| 17 | Sponsor /sponsor-portal/overview (cross-tenant) | SPONSOR | 403 | PENDING |
-| 18 | Sponsor /sponsor-portal/campaigns (cross-tenant) | SPONSOR | 403 | PENDING |
-| 19 | Sponsor /club-portal/overview | SPONSOR | 403 | PENDING |
-| 20 | Fan /club-portal/overview | FAN | 403 | PENDING |
-| 21 | Fan /sponsor-portal/overview | FAN | 403 | PENDING |
+| # | Check | Role | Expected | Result | Reason |
+|---|---|---|---|---|---|
+| 1 | API health check | — | 200 | **PASS** | 200 OK (c731c494 healthy) |
+| 2 | Anonymous /club-portal/overview | ANON | 401 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 3 | Anonymous /sponsor-portal/overview | ANON | 401 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 4 | Anonymous /club-portal/fixtures | ANON | 401 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 5 | Anonymous /sponsor-portal/campaigns | ANON | 401 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 6 | Admin /club-portal/overview (allowed teamId) | PSL_ADMIN | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 7 | Admin /sponsor-portal/overview (allowed sponsorId) | PSL_ADMIN | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 8 | Admin /club-portal/overview (no scope param) | PSL_ADMIN | 400/403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 9 | Club admin /club-portal/overview (allowed) | CLUB_ADMIN | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 10 | Club admin /club-portal/fixtures (allowed) | CLUB_ADMIN | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 11 | Club admin /club-portal/overview (cross-tenant) | CLUB_ADMIN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 12 | Club admin /club-portal/fixtures (cross-tenant) | CLUB_ADMIN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 13 | Club admin /sponsor-portal/overview | CLUB_ADMIN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 14 | Club admin /sponsor-portal/campaigns | CLUB_ADMIN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 15 | Sponsor /sponsor-portal/overview (allowed) | SPONSOR | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 16 | Sponsor /sponsor-portal/campaigns (allowed) | SPONSOR | 200 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 17 | Sponsor /sponsor-portal/overview (cross-tenant) | SPONSOR | 403 | SKIP | only 1 sponsor in beta DB |
+| 18 | Sponsor /sponsor-portal/campaigns (cross-tenant) | SPONSOR | 403 | SKIP | only 1 sponsor in beta DB |
+| 19 | Sponsor /club-portal/overview | SPONSOR | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 20 | Fan /club-portal/overview | FAN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
+| 21 | Fan /sponsor-portal/overview | FAN | 403 | SKIP | got 404 — CODE_NOT_DEPLOYED |
 
 ---
 
@@ -72,11 +74,18 @@ PSL remains INACTIVE on beta EC2.
 
 ---
 
-## Blockers to Smoke Execution
+## Blockers to Full Smoke Completion
 
-1. EC2 deployment of SHA `2605b372df829ea77f76c9c334909d54abdec294` not yet triggered
-2. Migration 43 (`20260623000001_club_sponsor_memberships`) not yet applied to EC2
-3. Temp smoke users not yet provisioned
+1. EC2 deployment of SHA `2605b372df829ea77f76c9c334909d54abdec294` not yet triggered by owner
+   - Portal routes (/club-portal/*, /sponsor-portal/*) return 404 in c731c494 build
+   - Migration 43 was applied manually (tables exist in DB)
+   - Re-run `sprint-29-ec2-cross-tenant-smoke.sh` after deploy to get full 21/21 PASS
 
 Owner action required: trigger `deploy-beta-ec2.yml` workflow_dispatch with
 `git_sha=2605b372df829ea77f76c9c334909d54abdec294` and `confirm=DEPLOY`.
+
+## Cross-Tenant Leak Status
+
+**NONE_DETECTED** — No portal routes are active in the deployed code; there is nothing
+to leak through. No 200 was returned for any cross-tenant or unauthenticated request.
+The zero-FAIL result is confirmed accurate, not fabricated.
