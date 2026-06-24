@@ -5889,6 +5889,144 @@ describe('Sprint 32 – Sponsor Audience Segmentation + Asset Management', () =>
   });
 });
 
+// ─── Sprint 33 — Object Storage / CDN / File Upload Architecture ──────────
+
+describe('Sprint 33 – Object Storage/CDN/File Upload Architecture', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('object-storage interface file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.interface.ts'))).toBe(true);
+  });
+
+  it('OBJECT_STORAGE_PROVIDER symbol is exported', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.interface.ts'), 'utf-8');
+    expect(c).toMatch(/OBJECT_STORAGE_PROVIDER/);
+    expect(c).toMatch(/Symbol/);
+  });
+
+  it('ObjectStorageProvider interface defines putObject', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.interface.ts'), 'utf-8');
+    expect(c).toMatch(/putObject/);
+  });
+
+  it('ObjectStorageProvider interface defines getPublicUrl', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.interface.ts'), 'utf-8');
+    expect(c).toMatch(/getPublicUrl/);
+  });
+
+  it('ObjectStorageProvider interface defines deleteObject', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.interface.ts'), 'utf-8');
+    expect(c).toMatch(/deleteObject/);
+  });
+
+  it('LocalDiskAdapter file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/local-disk.adapter.ts'))).toBe(true);
+  });
+
+  it('LocalDiskAdapter implements ObjectStorageProvider', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/local-disk.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/implements ObjectStorageProvider/);
+  });
+
+  it('LocalDiskAdapter sanitizes file keys', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/local-disk.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/replace\(/);
+  });
+
+  it('S3CompatibleAdapter file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/s3-compatible.adapter.ts'))).toBe(true);
+  });
+
+  it('S3CompatibleAdapter throws NotImplementedException', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/s3-compatible.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/NotImplementedException/);
+  });
+
+  it('S3CompatibleAdapter references ADR-035', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/s3-compatible.adapter.ts'), 'utf-8');
+    expect(c).toMatch(/ADR-035/);
+  });
+
+  it('FileUploadService file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/file-upload.service.ts'))).toBe(true);
+  });
+
+  it('FileUploadService validates content type allowlist', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/file-upload.service.ts'), 'utf-8');
+    expect(c).toMatch(/image\/jpeg|ALLOWED_CONTENT_TYPES/);
+  });
+
+  it('FileUploadService enforces max file size', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/file-upload.service.ts'), 'utf-8');
+    expect(c).toMatch(/MAX_SIZE|50.*MB|max.*size/i);
+  });
+
+  it('ObjectStorageModule file exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.module.ts'))).toBe(true);
+  });
+
+  it('ObjectStorageModule selects adapter from env var', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.module.ts'), 'utf-8');
+    expect(c).toMatch(/OBJECT_STORAGE_ADAPTER/);
+  });
+
+  it('ObjectStorageModule exports FileUploadService', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.module.ts'), 'utf-8');
+    expect(c).toMatch(/exports.*FileUploadService|FileUploadService.*exports/s);
+  });
+
+  it('spec file exists for object-storage', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/api/src/object-storage/object-storage.spec.ts'))).toBe(true);
+  });
+
+  it('ADR-035 exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/adr/ADR-035-OBJECT-STORAGE-PROVIDER-BOUNDARY.md'))).toBe(true);
+  });
+
+  it('ADR-035 describes the interface pattern', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-035-OBJECT-STORAGE-PROVIDER-BOUNDARY.md'), 'utf-8');
+    expect(c).toMatch(/ObjectStorageProvider/);
+  });
+
+  it('ADR-035 rejects binary blobs in DB', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-035-OBJECT-STORAGE-PROVIDER-BOUNDARY.md'), 'utf-8');
+    expect(c).toMatch(/blob|BYTEA|Rejected/i);
+  });
+
+  it('storage architecture doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/storage/SPRINT-33-OBJECT-STORAGE-ARCHITECTURE.md'))).toBe(true);
+  });
+
+  it('storage architecture doc mentions no AWS deployment', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/storage/SPRINT-33-OBJECT-STORAGE-ARCHITECTURE.md'), 'utf-8');
+    expect(c).toMatch(/no.*deploy|NOT_DEPLOYED|not yet|no.*AWS/i);
+  });
+
+  it('file upload API doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/storage/SPRINT-33-FILE-UPLOAD-API.md'))).toBe(true);
+  });
+
+  it('CDN strategy doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/storage/SPRINT-33-CDN-STRATEGY.md'))).toBe(true);
+  });
+
+  it('CDN strategy doc describes URL schema', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/storage/SPRINT-33-CDN-STRATEGY.md'), 'utf-8');
+    expect(c).toMatch(/cdn\.psl\.co\.za|CDN_BASE_URL/);
+  });
+
+  it('module does not store blobs in DB', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/file-upload.service.ts'), 'utf-8');
+    expect(c).not.toMatch(/prisma|PrismaService/);
+  });
+
+  it('S3CompatibleAdapter does not commit credentials', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/object-storage/adapters/s3-compatible.adapter.ts'), 'utf-8');
+    expect(c).not.toMatch(/AKIA[A-Z0-9]{16}/);
+    expect(c).not.toMatch(/aws_secret_access_key\s*=\s*[A-Za-z0-9+/]{40}/i);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
