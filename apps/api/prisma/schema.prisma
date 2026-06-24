@@ -2601,6 +2601,7 @@ model Sponsor {
   campaigns           SponsorCampaign[]
   rewardDefinitions   RewardDefinition[]
   sponsorMemberships  SponsorMembership[]
+  audienceSegments    AudienceSegment[]
 
   @@index([status])
   @@map("sponsors")
@@ -3676,4 +3677,25 @@ model SponsorMembership {
   @@index([sponsorId])
   @@index([userId])
   @@map("sponsor_memberships")
+}
+
+// ── Audience Segmentation ──────────────────────────────────────────────────────
+
+model AudienceSegment {
+  id              String   @id @default(uuid())
+  sponsorId       String   @map("sponsor_id")
+  name            String
+  description     String?
+  criteria        Json     @default("{}")  @map("criteria")
+  estimatedSize   Int?     @map("estimated_size")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdByUserId String?  @map("created_by_user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  sponsor Sponsor @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+
+  @@index([sponsorId])
+  @@index([isActive])
+  @@map("audience_segments")
 }

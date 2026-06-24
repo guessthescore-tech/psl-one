@@ -4,7 +4,7 @@
 **Audience:** Backend engineers  
 **Status:** Current as of STORY-39 (commit `08e3852`)  
 **Last verified:** 2026-06-14  
-**Total models:** 103
+**Total models:** 104
 **Source:** `apps/api/prisma/schema.prisma`  
 **Authority:** Schema is the single source of truth — this document is a navigational aid only  
 
@@ -36,7 +36,8 @@
 | Admin & Audit | 3 |
 | Beta Launch | 2 |
 | Portal Scoping | 2 |
-| **Total** | **103** |
+| Sponsor Audiences | 1 |
+| **Total** | **104** |
 
 ---
 
@@ -287,6 +288,7 @@
 |-------|-----------|-------|
 | `ClubMembership` | `id`, `userId`, `teamId`, `role`, `isActive`, `createdAt` | DB-backed user-to-club scoping (Sprint 28 — ADR-032) |
 | `SponsorMembership` | `id`, `userId`, `sponsorId`, `role`, `isActive`, `createdAt` | DB-backed user-to-sponsor scoping (Sprint 28 — ADR-032) |
+| `AudienceSegment` | `id`, `sponsorId`, `name`, `criteria`, `estimatedSize`, `isActive`, `createdByUserId` | POPIA-safe sponsor audience segmentation; criteria stores aggregate filter JSON only — no fan PII (Sprint 32 — ADR-034) |
 
 ---
 
@@ -336,4 +338,4 @@ ChallengeMatch ──1:1──> ChallengeScore
 
 ## Schema File
 
-`apps/api/prisma/schema.prisma` — 103 models, 43 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership)
+`apps/api/prisma/schema.prisma` — 104 models, 44 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership, Sprint 32 AudienceSegment)

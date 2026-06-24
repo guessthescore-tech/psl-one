@@ -23,7 +23,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PortalScopeService } from '../portal-scope/portal-scope.service';
-import { CreateCampaignDraftDto } from './sponsor-portal.dto';
+import {
+  CreateCampaignDraftDto,
+  CreateAudienceSegmentDto,
+  UpdateAudienceSegmentDto,
+} from './sponsor-portal.dto';
 import { CampaignType } from '@prisma/client';
 
 @Injectable()
@@ -117,14 +121,6 @@ export class SponsorPortalService {
     });
   }
 
-  getSponsorAudiences(_sponsorId?: string) {
-    return {
-      audienceStatus: 'PLANNED',
-      message: 'Audience segmentation planned post-Sprint 28',
-      segments: [],
-    };
-  }
-
   async getSponsorActivations(userId: string, role: string, requestedSponsorId?: string) {
     const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
@@ -200,12 +196,85 @@ export class SponsorPortalService {
     return this.prisma.team.findMany({ where: { id: { in: clubIds } } });
   }
 
-  getSponsorAssets(_sponsorId?: string) {
-    return {
-      assetsStatus: 'PLANNED',
-      message: 'Asset management planned post-Sprint 28',
-      assets: [],
-    };
+  async getSponsorAssets(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
+    return this.prisma.mediaAsset.findMany({
+      where: { sponsorId, archivedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  // ── Audience Segmentation ────────────────────────────────────────────────
+  // POPIA-safe: stores filter criteria only, never individual fan PII lists.
+  // Sponsors see aggregate estimated counts, not raw fan data.
+
+  async getSponsorAudiences(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
+    return this.prisma.audienceSegment.findMany({
+      where: { sponsorId, isActive: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createAudienceSegment(
+    userId: string,
+    role: string,
+    dto: CreateAudienceSegmentDto,
+    requestedSponsorId?: string,
+  ) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
+    return this.prisma.audienceSegment.create({
+      data: {
+        sponsorId,
+        name: dto.name,
+        description: dto.description ?? null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        criteria: (dto.criteria ?? {}) as any,
+        createdByUserId: userId,
+      },
+    });
+  }
+
+  async updateAudienceSegment(
+    userId: string,
+    role: string,
+    segmentId: string,
+    dto: UpdateAudienceSegmentDto,
+    requestedSponsorId?: string,
+  ) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
+    const segment = await this.prisma.audienceSegment.findFirst({
+      where: { id: segmentId, sponsorId },
+    });
+    if (!segment) throw new NotFoundException(`Audience segment not found: ${segmentId}`);
+
+    return this.prisma.audienceSegment.update({
+      where: { id: segmentId },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...(dto.criteria !== undefined ? { criteria: dto.criteria as any } : {}),
+        ...(dto.estimatedSize !== undefined ? { estimatedSize: dto.estimatedSize } : {}),
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+      },
+    });
+  }
+
+  async deleteAudienceSegment(
+    userId: string,
+    role: string,
+    segmentId: string,
+    requestedSponsorId?: string,
+  ) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
+    const segment = await this.prisma.audienceSegment.findFirst({
+      where: { id: segmentId, sponsorId },
+    });
+    if (!segment) throw new NotFoundException(`Audience segment not found: ${segmentId}`);
+    await this.prisma.audienceSegment.delete({ where: { id: segmentId } });
+    return { deleted: true, id: segmentId };
   }
 
   getBillingPlaceholder() {
