@@ -44,6 +44,18 @@ beforeAll(async () => {
     health: async () => { throw new NotFoundException('no provider'); },
     getSeasons: async () => { throw new NotFoundException('no seasons'); },
     getFixtures: async () => { throw new NotFoundException('no fixtures'); },
+    getPslFixtureReadiness: () => ({
+      competition: 'PSL' as const,
+      season: '2026/27',
+      pslActive: false as const,
+      fixturePublicationIsActivation: false as const,
+      readinessStatus: 'SOURCE_EMPTY' as const,
+      parsePsl: { configured: false, status: 'NOT_CONFIGURED' as const, candidateFixtureCount: 0, lastCheckedAt: new Date().toISOString() },
+      apiFootball: { configured: false, leagueId: 288 as const, status: 'NOT_CONFIGURED' as const },
+      ownerActions: ['Monitor until readiness changes'],
+      forbiddenActions: ['Do not activate PSL'],
+      safety: { noWrites: true as const, noPublication: true as const, noPslActivation: true as const, noScheduledIngestion: true as const, noProductionIngestion: true as const, noRealMoney: true as const },
+    }),
   };
 
   const mockIngestion: Partial<ParsePslFixtureIngestionService> = {
@@ -185,5 +197,77 @@ describe('POST /admin/data-provider/parse-psl/fixtures/ingest', () => {
     // Response body must not leak any provider key value
     expect(res.body).not.toMatch(/PARSE_API_KEY=\S+/);
     expect(res.body).not.toMatch(/pmx_[A-Za-z0-9]{10,}/);
+  });
+});
+
+// ── GET /admin/data-provider/psl-fixture-readiness ────────────────────────
+
+describe('GET /admin/data-provider/psl-fixture-readiness', () => {
+  it('returns 401 with no token', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/data-provider/psl-fixture-readiness' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 401 with invalid token', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: 'Bearer bad-token-readiness' },
+    });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for FAN role', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${FAN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('PSL_ADMIN gets 200 with readiness payload', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.competition).toBe('PSL');
+    expect(body.pslActive).toBe(false);
+    expect(body.fixturePublicationIsActivation).toBe(false);
+  });
+
+  it('readiness response includes safety flags noWrites=true noPublication=true noPslActivation=true', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    const body = JSON.parse(res.body);
+    expect(body.safety.noWrites).toBe(true);
+    expect(body.safety.noPublication).toBe(true);
+    expect(body.safety.noPslActivation).toBe(true);
+    expect(body.safety.noScheduledIngestion).toBe(true);
+    expect(body.safety.noProductionIngestion).toBe(true);
+    expect(body.safety.noRealMoney).toBe(true);
+  });
+
+  it('readiness response does not expose provider key values', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.body).not.toMatch(/pmx_[A-Za-z0-9]{10,}/);
+    expect(res.body).not.toMatch(/PARSE_API_KEY=\S+/);
+    expect(res.body).not.toMatch(/API_FOOTBALL_KEY=\S+/);
+  });
+
+  it('readiness response is read-only — no DB writes, no import, no activation triggered', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/psl-fixture-readiness',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    // 200 means controller returned successfully; mock never called ingest
+    expect(res.statusCode).toBe(200);
+    const body = JSON.parse(res.body);
+    expect(body.readinessStatus).toBe('SOURCE_EMPTY');
   });
 });
