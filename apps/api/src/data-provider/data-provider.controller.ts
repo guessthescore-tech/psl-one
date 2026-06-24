@@ -1,10 +1,14 @@
-import { Body, Controller, Get, Param, Post, UseGuards, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, UseGuards, BadRequestException } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { DataProviderService } from './data-provider.service';
 import { ParsePslFixtureIngestionService } from './parse-psl-fixture-ingestion.service';
+import { WorldCupImportService } from './world-cup-import.service';
+import { WorldCupDbStatusService } from './world-cup-db-status.service';
+import { ScoreBatWidgetAdapter } from './scorebat-widget.adapter';
 import type { ParsePslIngestionRequestDto } from './dto/parse-psl-fixture-ingestion.dto';
+import type { WorldCupImportRequestDto } from './dto/world-cup-import.dto';
 
 @Controller('admin/data-provider')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,7 +17,56 @@ export class DataProviderController {
   constructor(
     private service: DataProviderService,
     private ingestion: ParsePslFixtureIngestionService,
+    private wcImport: WorldCupImportService,
+    private wcDbStatus: WorldCupDbStatusService,
   ) {}
+
+  /** Read-only WC2026 live provider readiness — no writes, no PSL activation. */
+  @Get('world-cup-live-readiness')
+  getWorldCupLiveReadiness() { return this.service.getWorldCupLiveReadiness(); }
+
+  /**
+   * WC2026 fixture import — dry-run by default, write requires safety flags.
+   *
+   * Write-mode safety:
+   * - dryRun=false requires confirmWorldCupWrite='IMPORT_WORLD_CUP_BETA'
+   * - Server env var ALLOW_WORLD_CUP_WRITE=true must also be set
+   * No PSL activation. No scheduled ingestion.
+   */
+  @Post('world-cup/fixtures/import')
+  @HttpCode(200)
+  async importWorldCupFixtures(@Body() body: WorldCupImportRequestDto = {}) {
+    const dryRun = body.dryRun !== false;
+    if (!dryRun) {
+      if (body.confirmWorldCupWrite !== 'IMPORT_WORLD_CUP_BETA') {
+        throw new BadRequestException(
+          'confirmWorldCupWrite must be "IMPORT_WORLD_CUP_BETA" for write mode',
+        );
+      }
+    }
+    return this.wcImport.importFixtures(body);
+  }
+
+  /**
+   * Read-only WC2026 player pool status — counts seeded players and prices.
+   * Points-only context: all WC fantasy is points-based, no cash value.
+   */
+  @Get('world-cup/player-pool-status')
+  getWorldCupPlayerPoolStatus() { return this.wcDbStatus.getPlayerPoolStatus(); }
+
+  /**
+   * Read-only WC2026 fixture and prediction market status.
+   * Points-only context: GTS prediction markets are points-based only.
+   */
+  @Get('world-cup/fixture-status')
+  getWorldCupFixtureStatus() { return this.wcDbStatus.getFixtureStatus(); }
+
+  /** Read-only ScoreBat widget embed config — no key values in response. */
+  @Get('world-cup/scorebat-widget-config')
+  getScoreBatWidgetConfig() {
+    const adapter = new ScoreBatWidgetAdapter();
+    return adapter.getWidgetEmbedConfig('world-cup');
+  }
 
   /** Read-only PSL fixture readiness — no writes, no PSL activation. */
   @Get('psl-fixture-readiness')

@@ -1058,6 +1058,116 @@ async function main() {
   });
   console.log(`  ✓ Compliance domain config seeded (POINTS_BASED_SOCIAL_PREDICTION_COMPLIANCE)`);
 
+  // ── SPRINT-38B: WC2026 FantasyRulesConfig ────────────────────────────────
+  // 9 gameweeks (group MD1, MD2, MD3 + R32, R16, QF, SF, 3P, Final)
+  await prisma.fantasyRulesConfig.upsert({
+    where: { seasonId: season.id },
+    create: {
+      seasonId: season.id,
+      halfwayGameweek: 5,
+      seasonGameweekCount: 9,
+    },
+    update: {},
+  });
+  console.log(`  ✓ WC2026 FantasyRulesConfig seeded (9 gameweeks)`);
+
+  // ── SPRINT-38B: WC2026 Market configs (for FixturePredictionMarket) ──────
+  const wcMarketConfigDefs: Array<{ marketType: PredictionMarketType; label: string; baseOpportunity: number; allowedMultipliers: number[] }> = [
+    { marketType: PredictionMarketType.MATCH_RESULT, label: 'WC2026 Match Result (1X2)', baseOpportunity: 100, allowedMultipliers: [1.0, 1.5, 2.0] },
+    { marketType: PredictionMarketType.BOTH_TEAMS_TO_SCORE, label: 'WC2026 Both Teams to Score', baseOpportunity: 80, allowedMultipliers: [1.0, 1.5] },
+    { marketType: PredictionMarketType.CORRECT_SCORE, label: 'WC2026 Correct Score', baseOpportunity: 60, allowedMultipliers: [1.0, 2.0, 3.0] },
+  ];
+  const wcMarketConfigMap = new Map<PredictionMarketType, string>(); // marketType → id
+  for (const mc of wcMarketConfigDefs) {
+    const existing = await prisma.predictionMarketConfig.findFirst({
+      where: { seasonId: season.id, marketType: mc.marketType },
+    });
+    if (!existing) {
+      const created = await prisma.predictionMarketConfig.create({
+        data: {
+          seasonId: season.id,
+          marketType: mc.marketType,
+          label: mc.label,
+          baseOpportunity: mc.baseOpportunity,
+          allowedMultipliersJson: mc.allowedMultipliers,
+          minCommitmentPct: 10,
+          maxCommitmentPct: 100,
+          pointsReturnRate: 1.0,
+          isEnabled: true,
+          createdByUserId: seedAdminUser.id,
+        },
+      });
+      wcMarketConfigMap.set(mc.marketType, created.id);
+    } else {
+      wcMarketConfigMap.set(mc.marketType, existing.id);
+    }
+  }
+  console.log(`  ✓ WC2026 prediction market configs seeded (${wcMarketConfigDefs.length} configs)`);
+
+  // ── SPRINT-38B: WC2026 FantasyPlayerPrice (points-only, no cash value) ───
+  // Seed prices for all real WC2026 players (excludes TBD team)
+  // GK: 55 pts · DEF: 50 pts · MID: 70 pts · FWD: 85 pts
+  // Prices are fantasy points only — no cash value whatsoever
+  const WC_PRICE: Record<string, number> = {
+    GOALKEEPER: 55,
+    DEFENDER:   50,
+    MIDFIELDER: 70,
+    FORWARD:    85,
+  };
+
+  const wcPlayers = await prisma.player.findMany({
+    where: { source: 'fifa-wc2026', team: { NOT: { slug: 'tbd' } } },
+    select: { id: true, position: true },
+  });
+  let wcPriceCount = 0;
+  for (const p of wcPlayers) {
+    const price = WC_PRICE[p.position] ?? 55;
+    await prisma.fantasyPlayerPrice.upsert({
+      where: { playerId_seasonId: { playerId: p.id, seasonId: season.id } },
+      create: { playerId: p.id, seasonId: season.id, price },
+      update: {},
+    });
+    wcPriceCount++;
+  }
+  console.log(`  ✓ WC2026 fantasy player prices seeded: ${wcPriceCount} (POINTS-ONLY, no cash value)`);
+
+  // ── SPRINT-38B: WC2026 FixturePredictionMarket (RESULT market per fixture)
+  // Only for isPublished=true fixtures. marketType=MATCH_RESULT.
+  // locksAt = kickoffAt - 30 min. status = OPEN. Points-only, no wagering.
+  const matchResultConfigId = wcMarketConfigMap.get(PredictionMarketType.MATCH_RESULT);
+  let wcMarketCount = 0;
+  if (matchResultConfigId) {
+    const publishedFixtures = await prisma.fixture.findMany({
+      where: { seasonId: season.id, isPublished: true },
+      select: { id: true, kickoffAt: true, homeTeam: { select: { shortName: true } }, awayTeam: { select: { shortName: true } } },
+    });
+    for (const f of publishedFixtures) {
+      const existing = await prisma.fixturePredictionMarket.findFirst({
+        where: { fixtureId: f.id, marketType: PredictionMarketType.MATCH_RESULT },
+      });
+      if (!existing) {
+        const locksAt = new Date(f.kickoffAt.getTime() - 30 * 60 * 1000);
+        await prisma.fixturePredictionMarket.create({
+          data: {
+            fixtureId: f.id,
+            marketConfigId: matchResultConfigId,
+            marketType: PredictionMarketType.MATCH_RESULT,
+            status: 'OPEN',
+            homeSelectionLabel: f.homeTeam.shortName,
+            drawSelectionLabel: 'Draw',
+            awaySelectionLabel: f.awayTeam.shortName,
+            baseOpportunity: 100,
+            pointsReturnRate: 1.0,
+            allowedMultipliersJson: [1.0, 1.5, 2.0],
+            locksAt,
+          },
+        });
+        wcMarketCount++;
+      }
+    }
+  }
+  console.log(`  ✓ WC2026 fixture prediction markets seeded: ${wcMarketCount} (MATCH_RESULT, OPEN, POINTS-ONLY)`);
+
   // ── STORY-38: Market configs for PSL season ───────────────────────────────
   const marketConfigDefs: Array<{ marketType: PredictionMarketType; label: string; baseOpportunity: number; allowedMultipliers: number[] }> = [
     { marketType: PredictionMarketType.MATCH_RESULT, label: 'Match Result (1X2)', baseOpportunity: 100, allowedMultipliers: [1.0, 1.5, 2.0] },
@@ -1160,6 +1270,8 @@ async function main() {
   console.log(`  PSL Clubs   : ${PSL_CLUBS.length}`);
   console.log(`  PSL Players : ${pslPlayerCount} (provisional)`);
   console.log(`  PSL Prices  : ${pslPriceCount} (provisional)`);
+  console.log(`  WC Prices   : ${wcPriceCount} (points-only, no cash value)`);
+  console.log(`  WC Markets  : ${wcMarketCount} (MATCH_RESULT, OPEN, points-only)`);
 }
 
 main()

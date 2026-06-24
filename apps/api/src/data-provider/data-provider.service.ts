@@ -60,6 +60,90 @@ export class DataProviderService {
   getStandings(seasonId: string) { return this.adapter.getStandings(seasonId); }
 
   /**
+   * Read-only World Cup 2026 live provider readiness check.
+   *
+   * Inspects provider config from environment variables only — no network calls,
+   * no DB writes, no fixture import, no PSL activation.
+   * Provider keys are checked for presence only; values are never returned.
+   */
+  getWorldCupLiveReadiness() {
+    const fdKey = process.env['FOOTBALL_DATA_API_KEY'] ?? '';
+    const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'] ?? '';
+    const sbToken = process.env['SCOREBAT_WIDGET_TOKEN'] ?? '';
+
+    const fdConfigured = fdKey.length > 0;
+    const srConfigured = srKey.length > 0;
+    const sbConfigured = sbToken.length > 0;
+
+    const primaryProvider = fdConfigured
+      ? 'football-data-org'
+      : srConfigured
+        ? 'sportradar-soccer'
+        : 'noop';
+
+    const dryRunEligible = fdConfigured || srConfigured;
+
+    const allowWriteFlag = process.env['ALLOW_WORLD_CUP_WRITE'] === 'true';
+
+    return {
+      competition: 'WC2026' as const,
+      worldCupActive: true as const,
+      activeProviders: {
+        footballDataOrg: {
+          configured: fdConfigured,
+          envVar: 'FOOTBALL_DATA_API_KEY',
+          status: fdConfigured ? 'CONFIGURED' : 'NOT_CONFIGURED',
+        },
+        sportRadar: {
+          configured: srConfigured,
+          envVar: 'SPORTSRADAR_SOCCER_API_KEY',
+          status: srConfigured ? 'CONFIGURED' : 'NOT_CONFIGURED',
+        },
+        scoreBat: {
+          configured: sbConfigured,
+          envVar: 'SCOREBAT_WIDGET_TOKEN',
+          status: sbConfigured ? 'WIDGET_READY' : 'NOT_CONFIGURED',
+        },
+      },
+      primaryProvider,
+      fallbackChain: ['football-data-org', 'sportradar-soccer', 'noop'],
+      importReadiness: {
+        dryRunEligible,
+        writeImportAllowedByEnvFlag: allowWriteFlag,
+        writeImportRequiresFlags: [
+          'ALLOW_WORLD_CUP_WRITE=true (server env var)',
+          'confirmWorldCupWrite=IMPORT_WORLD_CUP_BETA (request body)',
+        ],
+      },
+      ownerActions: [
+        fdConfigured
+          ? 'football-data.org key configured — run dry-run at POST /admin/data-provider/world-cup/fixtures/import'
+          : 'Set FOOTBALL_DATA_API_KEY to enable WC fixture import',
+        srConfigured
+          ? 'SportRadar key configured — available as fallback provider'
+          : 'Set SPORTSRADAR_SOCCER_API_KEY for SportRadar fallback',
+        sbConfigured
+          ? 'ScoreBat token configured — widget available at /world-cup/live'
+          : 'Set SCOREBAT_WIDGET_TOKEN to enable WC highlights widget',
+      ],
+      forbiddenActions: [
+        'Do not activate PSL season',
+        'Do not run write import without ALLOW_WORLD_CUP_WRITE=true server env var',
+        'Do not expose provider keys to frontend or NEXT_PUBLIC_ vars',
+        'Do not enable scheduled ingestion',
+        'Do not enable production ingestion',
+      ],
+      safety: {
+        noRealMoney: true as const,
+        noPslActivation: true as const,
+        worldCupBetaContext: true as const,
+        noScheduledIngestion: true as const,
+        noProductionIngestion: true as const,
+      },
+    };
+  }
+
+  /**
    * Read-only PSL fixture readiness check.
    *
    * Inspects provider config from environment variables only — no network calls,
