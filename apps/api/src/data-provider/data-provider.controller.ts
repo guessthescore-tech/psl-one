@@ -68,6 +68,30 @@ export class DataProviderController {
     return adapter.getWidgetEmbedConfig('world-cup');
   }
 
+  /** Refresh fixture statuses from football-data.org — safety: noNewFixtures. */
+  @Post('world-cup/fixtures/refresh-status')
+  @HttpCode(200)
+  refreshWorldCupFixtureStatuses() {
+    return this.wcImport.refreshFixtureStatuses();
+  }
+
+  /** Read-only WC2026 GTS prediction market status. */
+  @Get('world-cup/gts-status')
+  getWorldCupGtsStatus() { return this.wcDbStatus.getFixtureStatus(); }
+
+  /** Read-only WC2026 media / ScoreBat widget status. */
+  @Get('world-cup/media-status')
+  getWorldCupMediaStatus() {
+    const adapter = new ScoreBatWidgetAdapter();
+    const widgetConfig = adapter.getWidgetEmbedConfig('world-cup');
+    return {
+      provider: 'scorebat',
+      widget: widgetConfig,
+      note: 'Widget token is embedded in URL by ScoreBat design — not a secret leak',
+      safety: { noRealMoney: true, noPslActivation: true },
+    };
+  }
+
   /** Read-only PSL fixture readiness — no writes, no PSL activation. */
   @Get('psl-fixture-readiness')
   getPslFixtureReadiness() { return this.service.getPslFixtureReadiness(); }

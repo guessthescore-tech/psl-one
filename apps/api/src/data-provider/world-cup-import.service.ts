@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { FixtureStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import { SportRadarSoccerAdapter } from './sportradar-soccer.adapter';
@@ -345,6 +346,140 @@ export class WorldCupImportService {
       }
     }
     return { created, updated, skipped, errors, warnings };
+  }
+
+  /**
+   * Refresh fixture statuses from football-data.org without creating new fixtures.
+   * Maps external statuses to internal PSL One statuses.
+   * Safety: noNewFixtures=true — only existing DB fixtures are updated.
+   */
+  async refreshFixtureStatuses(): Promise<{
+    provider: string;
+    sourceStatus: string;
+    discovered: number;
+    matched: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+    safety: { noNewFixtures: true; noRealMoney: true; noPslActivation: true };
+  }> {
+    const result = {
+      provider: WC_PROVIDER_SOURCE,
+      sourceStatus: 'SOURCE_EMPTY',
+      discovered: 0,
+      matched: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [] as string[],
+      safety: { noNewFixtures: true as const, noRealMoney: true as const, noPslActivation: true as const },
+    };
+
+    const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
+    if (!fdKey) {
+      result.sourceStatus = 'AUTH_FAILED';
+      result.errors.push('FOOTBALL_DATA_API_KEY not set — cannot refresh statuses');
+      await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH_FAILED', { reason: 'AUTH_FAILED' });
+      return result;
+    }
+
+    let providerFixtures: ProviderFixture[] = [];
+    try {
+      const adapter = new FootballDataOrgAdapter();
+      providerFixtures = await adapter.getFixtures('WC');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.sourceStatus = 'PROVIDER_ERROR';
+      result.errors.push('PROVIDER_ERROR: ' + msg);
+      this.logger.error(`refreshFixtureStatuses: fetch error — ${msg}`);
+      await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH_FAILED', { reason: 'PROVIDER_ERROR' });
+      return result;
+    }
+
+    result.discovered = providerFixtures.length;
+    if (providerFixtures.length === 0) {
+      result.sourceStatus = 'SOURCE_EMPTY';
+      await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH_EMPTY', {});
+      return result;
+    }
+
+    result.sourceStatus = 'SOURCE_AVAILABLE';
+    const now = new Date();
+
+    // Status mapping from provider values to internal enum
+    const STATUS_MAP: Record<string, string> = {
+      TIMED: 'SCHEDULED',
+      SCHEDULED: 'SCHEDULED',
+      not_started: 'SCHEDULED',
+      IN_PLAY: 'LIVE',
+      in_progress: 'LIVE',
+      PAUSED: 'HALF_TIME',
+      half_time: 'HALF_TIME',
+      FINISHED: 'FINISHED',
+      closed: 'FINISHED',
+      ended: 'FINISHED',
+      POSTPONED: 'POSTPONED',
+      CANCELLED: 'CANCELLED',
+      SUSPENDED: 'SUSPENDED',
+    };
+
+    for (const pf of providerFixtures) {
+      try {
+        const kickoffAt = pf.kickoffAt ? new Date(pf.kickoffAt) : null;
+        if (!kickoffAt || isNaN(kickoffAt.getTime())) {
+          result.skipped++;
+          continue;
+        }
+
+        // Match by homeTeamName + awayTeamName + kickoffAt within ±24h window
+        const windowStart = new Date(kickoffAt.getTime() - 24 * 60 * 60 * 1000);
+        const windowEnd = new Date(kickoffAt.getTime() + 24 * 60 * 60 * 1000);
+
+        const homeTeam = await this.resolveTeam(pf.homeTeamName);
+        const awayTeam = await this.resolveTeam(pf.awayTeamName);
+        if (!homeTeam || !awayTeam) {
+          result.skipped++;
+          continue;
+        }
+
+        const existing = await this.prisma.fixture.findFirst({
+          where: {
+            homeTeamId: homeTeam.id,
+            awayTeamId: awayTeam.id,
+            kickoffAt: { gte: windowStart, lte: windowEnd },
+          },
+          select: { id: true, status: true },
+        });
+
+        if (!existing) {
+          result.skipped++;
+          continue;
+        }
+
+        result.matched++;
+        const rawStatus = STATUS_MAP[pf.status ?? ''] ?? existing.status;
+        const newStatus = rawStatus as FixtureStatus;
+        await this.prisma.fixture.update({
+          where: { id: existing.id },
+          data: { status: newStatus, lastSyncedAt: now },
+        });
+        result.updated++;
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        result.errors.push(msg);
+      }
+    }
+
+    this.logger.log(
+      `refreshFixtureStatuses: discovered=${result.discovered} matched=${result.matched} updated=${result.updated} skipped=${result.skipped}`,
+    );
+    await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH', {
+      provider: result.provider,
+      discovered: result.discovered,
+      matched: result.matched,
+      updated: result.updated,
+      skipped: result.skipped,
+    });
+    return result;
   }
 
   private async writeAuditLog(action: string, metadata: Record<string, unknown>): Promise<void> {
