@@ -5743,6 +5743,123 @@ describe('Sprint 29: Cross-tenant smoke design', () => {
   });
 });
 
+// ─── Sprint 31 — News Centre + Video Centre CMS/VOD Foundation ───────────
+
+describe('Sprint 31 – News Centre + Video Centre CMS/VOD Foundation', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  const sprint31Pages = [
+    'apps/experience/src/app/news/page.tsx',
+    'apps/experience/src/app/news/[slug]/page.tsx',
+    'apps/experience/src/app/video-centre/page.tsx',
+    'apps/experience/src/app/video-centre/[slug]/page.tsx',
+    'apps/experience/src/app/admin/news/page.tsx',
+    'apps/experience/src/app/admin/videos/page.tsx',
+  ];
+
+  const sprint31Docs = [
+    'docs/media/SPRINT-31-NEWS-CENTRE-SCOPE.md',
+    'docs/media/SPRINT-31-EDITORIAL-WORKFLOW.md',
+    'docs/media/SPRINT-31-VIDEO-CENTRE-SCOPE.md',
+    'docs/media/SPRINT-31-VOD-RIGHTS-METADATA.md',
+  ];
+
+  sprint31Pages.forEach((f) => {
+    it(`page exists: ${f}`, () => {
+      expect(existsSync(resolve(ROOT2, f))).toBe(true);
+    });
+  });
+
+  sprint31Docs.forEach((f) => {
+    it(`doc exists: ${f}`, () => {
+      expect(existsSync(resolve(ROOT2, f))).toBe(true);
+    });
+  });
+
+  it('news page references WC_STORIES data', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/news/page.tsx'), 'utf-8');
+    expect(c).toMatch(/WC_STORIES/);
+  });
+
+  it('news page has accessible section labels', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/news/page.tsx'), 'utf-8');
+    expect(c).toMatch(/aria-label/);
+  });
+
+  it('video centre page references WC_VIDEOS data', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/video-centre/page.tsx'), 'utf-8');
+    expect(c).toMatch(/WC_VIDEOS/);
+  });
+
+  it('video centre page has play indicator', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/video-centre/page.tsx'), 'utf-8');
+    expect(c).toMatch(/▶|play/i);
+  });
+
+  it('admin news page references admin API routes', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/news/page.tsx'), 'utf-8');
+    expect(c).toMatch(/\/admin\/news/);
+  });
+
+  it('admin videos page references admin/videos API route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/videos/page.tsx'), 'utf-8');
+    expect(c).toMatch(/\/admin\/videos/);
+  });
+
+  it('admin videos page mentions rights review requirement', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/videos/page.tsx'), 'utf-8');
+    expect(c).toMatch(/rights|CLEAR/i);
+  });
+
+  it('media controller has fan/news routes', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/media/media.controller.ts'), 'utf-8');
+    expect(c).toMatch(/fan\/news/);
+  });
+
+  it('media controller has fan/videos routes', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/media/media.controller.ts'), 'utf-8');
+    expect(c).toMatch(/fan\/videos/);
+  });
+
+  it('media controller has admin/news shortcut route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/media/media.controller.ts'), 'utf-8');
+    expect(c).toMatch(/admin\/news/);
+  });
+
+  it('media controller has admin/videos shortcut route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/api/src/media/media.controller.ts'), 'utf-8');
+    expect(c).toMatch(/admin\/videos/);
+  });
+
+  it('news centre scope doc describes CDN-served images not DB blobs', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/media/SPRINT-31-NEWS-CENTRE-SCOPE.md'), 'utf-8');
+    expect(c).toMatch(/CDN|url|URL/);
+  });
+
+  it('VOD rights doc mentions CLEAR status required for publication', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/media/SPRINT-31-VOD-RIGHTS-METADATA.md'), 'utf-8');
+    expect(c).toMatch(/CLEAR/);
+  });
+
+  it('editorial workflow doc describes DRAFT to PUBLIC flow', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/media/SPRINT-31-EDITORIAL-WORKFLOW.md'), 'utf-8');
+    expect(c).toMatch(/DRAFT/);
+    expect(c).toMatch(/PUBLIC/);
+  });
+
+  it('video centre scope doc confirms no video blobs in DB', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/media/SPRINT-31-VIDEO-CENTRE-SCOPE.md'), 'utf-8');
+    expect(c).toMatch(/metadata.*URL|URL.*metadata|no raw video blob|not.*DB/i);
+  });
+
+  it('no Sprint 31 pages reference real-money or betting', () => {
+    for (const f of sprint31Pages) {
+      const c = readFileSync(resolve(ROOT2, f), 'utf-8');
+      expect(c).not.toMatch(/betting|wager|cash prize|real money/i);
+    }
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

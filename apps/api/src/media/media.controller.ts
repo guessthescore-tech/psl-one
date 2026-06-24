@@ -77,6 +77,70 @@ export class MediaController {
     return this.service.recordCompletion(id, req.user?.userId ?? '', body?.idempotencyKey);
   }
 
+  // ── Fan: news-specific routes ──────────────────────────────────────────────
+
+  @Get('fan/news')
+  listPublicNews(
+    @Query('clubId') clubId?: string,
+    @Query('category') category?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const filters: ListPublicMediaFilters = { mediaType: 'ARTICLE' };
+    if (clubId) filters.clubId = clubId;
+    if (category) filters.category = category;
+    if (limit) filters.limit = parseInt(limit, 10);
+    if (offset) filters.offset = parseInt(offset, 10);
+    return this.service.listPublicMedia(filters);
+  }
+
+  @Get('fan/news/:slug')
+  getPublicNewsDetail(@Param('slug') slug: string) {
+    return this.service.getPublicMediaDetail(slug);
+  }
+
+  // ── Fan: video-specific routes ─────────────────────────────────────────────
+
+  @Get('fan/videos')
+  listPublicVideos(
+    @Query('clubId') clubId?: string,
+    @Query('category') category?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const filters: ListPublicMediaFilters = { mediaType: 'VIDEO' };
+    if (clubId) filters.clubId = clubId;
+    if (category) filters.category = category;
+    if (limit) filters.limit = parseInt(limit, 10);
+    if (offset) filters.offset = parseInt(offset, 10);
+    return this.service.listPublicMedia(filters);
+  }
+
+  @Get('fan/videos/:slug')
+  getPublicVideoDetail(@Param('slug') slug: string) {
+    return this.service.getPublicMediaDetail(slug);
+  }
+
+  // ── Admin: news management shortcuts ──────────────────────────────────────
+
+  @Get('admin/news')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('PSL_ADMIN')
+  adminListNews(@Query('visibility') visibility?: string) {
+    const filters: AdminListMediaFilters = { mediaType: 'ARTICLE' };
+    if (visibility) filters.visibility = visibility;
+    return this.service.adminListMedia(filters);
+  }
+
+  @Get('admin/videos')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('PSL_ADMIN')
+  adminListVideos(@Query('visibility') visibility?: string) {
+    const filters: AdminListMediaFilters = { mediaType: 'VIDEO' };
+    if (visibility) filters.visibility = visibility;
+    return this.service.adminListMedia(filters);
+  }
+
   // ── Admin ──────────────────────────────────────────────────────────────────
 
   @Get('admin/media')
