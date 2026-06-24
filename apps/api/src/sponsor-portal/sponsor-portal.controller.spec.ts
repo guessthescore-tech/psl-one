@@ -4,8 +4,8 @@ import { SponsorPortalController } from './sponsor-portal.controller';
 import type { SponsorPortalService } from './sponsor-portal.service';
 
 const makeService = () => ({
-  getSponsorOverview: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
-  getSponsorProfile: vi.fn().mockResolvedValue({ scopeStatus: 'API_SCOPE_PENDING' }),
+  getSponsorOverview: vi.fn().mockResolvedValue({ sponsorId: 'sp-1', campaignCount: 0 }),
+  getSponsorProfile: vi.fn().mockResolvedValue({ id: 'sp-1', name: 'Nike' }),
   getSponsorCampaigns: vi.fn().mockResolvedValue([]),
   createCampaignDraft: vi.fn().mockResolvedValue({ id: 'camp-new', status: 'DRAFT' }),
   getSponsorAudiences: vi.fn().mockReturnValue({ audienceStatus: 'PLANNED', segments: [] }),
@@ -22,9 +22,12 @@ const makeService = () => ({
   }),
 });
 
-describe('SponsorPortalController', () => {
+describe('SponsorPortalController (Sprint 28 — req.user scoping)', () => {
   let controller: SponsorPortalController;
   let service: ReturnType<typeof makeService>;
+
+  const mockReq = { user: { sub: 'user-1', role: 'SPONSOR' } };
+  const mockAdminReq = { user: { sub: 'admin-1', role: 'PSL_ADMIN' } };
 
   beforeEach(() => {
     service = makeService();
@@ -35,26 +38,30 @@ describe('SponsorPortalController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('getSponsorOverview calls service with sponsorId', async () => {
-    await controller.getSponsorOverview('sp-1');
-    expect(service.getSponsorOverview).toHaveBeenCalledWith('sp-1');
+  it('getSponsorOverview passes req.user.sub and role to service', async () => {
+    await controller.getSponsorOverview(mockReq, 'sp-1');
+    expect(service.getSponsorOverview).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 
-  it('getSponsorProfile calls service with sponsorId', async () => {
-    await controller.getSponsorProfile('sp-1');
-    expect(service.getSponsorProfile).toHaveBeenCalledWith('sp-1');
+  it('getSponsorProfile passes req.user.sub and role to service', async () => {
+    await controller.getSponsorProfile(mockReq, 'sp-1');
+    expect(service.getSponsorProfile).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 
-  it('getSponsorCampaigns calls service with sponsorId', async () => {
-    await controller.getSponsorCampaigns('sp-1');
-    expect(service.getSponsorCampaigns).toHaveBeenCalledWith('sp-1');
+  it('getSponsorCampaigns passes req.user.sub and role to service', async () => {
+    await controller.getSponsorCampaigns(mockReq, 'sp-1');
+    expect(service.getSponsorCampaigns).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 
-  it('createCampaignDraft calls service with dto, sponsorId, userId', async () => {
+  it('createCampaignDraft passes dto, req.user.sub, role, sponsorId', async () => {
     const dto = { title: 'New Draft', startsAt: '2026-07-01', endsAt: '2026-08-01' };
-    const req = { user: { userId: 'user-1' } };
-    await controller.createCampaignDraft(dto, 'sp-1', req);
-    expect(service.createCampaignDraft).toHaveBeenCalledWith(dto, 'sp-1', 'user-1');
+    await controller.createCampaignDraft(dto, mockReq, 'sp-1');
+    expect(service.createCampaignDraft).toHaveBeenCalledWith(dto, 'user-1', 'SPONSOR', 'sp-1');
+  });
+
+  it('PSL_ADMIN can pass explicit sponsorId', async () => {
+    await controller.getSponsorOverview(mockAdminReq, 'explicit-sp-id');
+    expect(service.getSponsorOverview).toHaveBeenCalledWith('admin-1', 'PSL_ADMIN', 'explicit-sp-id');
   });
 
   it('getBillingPlaceholder returns INVOICE_ONLY', () => {
@@ -73,18 +80,18 @@ describe('SponsorPortalController', () => {
     expect(roles).toContain('PSL_ADMIN');
   });
 
-  it('getSponsorRewards calls service with sponsorId', async () => {
-    await controller.getSponsorRewards('sp-1');
-    expect(service.getSponsorRewards).toHaveBeenCalledWith('sp-1');
+  it('getSponsorRewards passes req.user.sub and role', async () => {
+    await controller.getSponsorRewards(mockReq, 'sp-1');
+    expect(service.getSponsorRewards).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 
-  it('getSponsorAnalytics calls service with sponsorId', async () => {
-    await controller.getSponsorAnalytics('sp-1');
-    expect(service.getSponsorAnalytics).toHaveBeenCalledWith('sp-1');
+  it('getSponsorAnalytics passes req.user.sub and role', async () => {
+    await controller.getSponsorAnalytics(mockReq, 'sp-1');
+    expect(service.getSponsorAnalytics).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 
-  it('getSponsorClubs calls service with sponsorId', async () => {
-    await controller.getSponsorClubs('sp-1');
-    expect(service.getSponsorClubs).toHaveBeenCalledWith('sp-1');
+  it('getSponsorClubs passes req.user.sub and role', async () => {
+    await controller.getSponsorClubs(mockReq, 'sp-1');
+    expect(service.getSponsorClubs).toHaveBeenCalledWith('user-1', 'SPONSOR', 'sp-1');
   });
 });

@@ -1,41 +1,68 @@
 /**
- * ClubPortalService
+ * ClubPortalService — Sprint 28
  *
  * PSL_INACTIVE - do not activate PSL season
  * WALLET_SANDBOX_ONLY - no production wallet
  * SPONSOR_REWARDS_NON_FINANCIAL - no cash payouts
  * NO_REAL_MONEY
  *
- * GAP-27-01: No user-to-club DB FK on User model.
- * Club scoping via clubId query param until Sprint 28 user-club association.
+ * Sprint 28: GAP-27-01 RESOLVED — DB-backed club scoping via ClubMembership table.
+ * CLUB_ADMIN scope derives from active ClubMembership (not query param alone).
+ * PSL_ADMIN must provide explicit teamId param.
+ * Cross-club access denied with CROSS_CLUB_ACCESS_DENIED (403).
  */
 
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PortalScopeService } from '../portal-scope/portal-scope.service';
 import { ContentSubmissionDto } from './club-portal.dto';
 import { ClubContentType } from '@prisma/client';
 
-const SCOPE_PENDING = {
-  scopeStatus: 'API_SCOPE_PENDING',
-  reason: 'Provide clubId query param. GAP-27-01: No user-club FK.',
-};
-
 @Injectable()
 export class ClubPortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly portalScopeService: PortalScopeService,
+  ) {}
 
-  async getClubOverview(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  /**
+   * Resolve club scope from DB membership.
+   * Throws appropriate HTTP exception on denial.
+   */
+  private async resolveScope(
+    userId: string,
+    role: string,
+    requestedTeamId?: string,
+  ): Promise<string> {
+    const result = await this.portalScopeService.resolveClubScope(userId, role, requestedTeamId);
+    if (!result.allowed) {
+      if (result.statusCode === 400) throw new BadRequestException(result.reason);
+      if (result.statusCode === 404) throw new NotFoundException(result.reason);
+      throw new ForbiddenException(result.reason);
+    }
+    if (result.scopeType !== 'club') {
+      throw new ForbiddenException('Expected club scope');
+    }
+    return result.teamId;
+  }
+
+  async getClubOverview(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     const team = await this.prisma.team.findFirst({
-      where: { id: clubId },
+      where: { id: teamId },
       include: { clubProfile: true },
     });
 
-    const playerCount = await this.prisma.player.count({ where: { teamId: clubId } });
+    const playerCount = await this.prisma.player.count({ where: { teamId } });
 
     const recentFixtures = await this.prisma.fixture.findMany({
-      where: { OR: [{ homeTeamId: clubId }, { awayTeamId: clubId }] },
+      where: { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] },
       orderBy: { kickoffAt: 'desc' },
       take: 3,
     });
@@ -43,72 +70,70 @@ export class ClubPortalService {
     return { team, playerCount, recentFixtures };
   }
 
-  async getClubProfile(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubProfile(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     return this.prisma.team.findFirst({
-      where: { id: clubId },
+      where: { id: teamId },
       include: { clubProfile: true },
     });
   }
 
-  async getClubSquad(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubSquad(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
-    const players = await this.prisma.player.findMany({
-      where: { teamId: clubId },
+    return this.prisma.player.findMany({
+      where: { teamId },
       orderBy: { name: 'asc' },
     });
-
-    return players;
   }
 
-  async getClubFixtures(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubFixtures(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     return this.prisma.fixture.findMany({
-      where: { OR: [{ homeTeamId: clubId }, { awayTeamId: clubId }] },
+      where: { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] },
       orderBy: { kickoffAt: 'desc' },
       take: 20,
     });
   }
 
-  getClubFans(_clubId?: string) {
+  getClubFans(_teamId?: string) {
     return {
       fanCount: 0,
       fans: [],
-      note: 'Fan-club association pending Sprint 28 (GAP-27-01)',
+      note: 'Fan-club association future feature (post-Sprint 28)',
     };
   }
 
-  async getClubAnalytics(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubAnalytics(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     const [playerCount, fixtureCount, contentCount] = await Promise.all([
-      this.prisma.player.count({ where: { teamId: clubId } }),
+      this.prisma.player.count({ where: { teamId } }),
       this.prisma.fixture.count({
-        where: { OR: [{ homeTeamId: clubId }, { awayTeamId: clubId }] },
+        where: { OR: [{ homeTeamId: teamId }, { awayTeamId: teamId }] },
       }),
-      this.prisma.clubContentItem.count({ where: { teamId: clubId } }),
+      this.prisma.clubContentItem.count({ where: { teamId } }),
     ]);
 
     return { playerCount, fixtureCount, contentCount };
   }
 
-  async getClubCampaigns(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubCampaigns(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     return this.prisma.sponsorCampaign.findMany({
-      where: { clubId },
+      where: { clubId: teamId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async getClubSponsors(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubSponsors(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     const campaigns = await this.prisma.sponsorCampaign.findMany({
-      where: { clubId, sponsorId: { not: null } },
+      where: { clubId: teamId, sponsorId: { not: null } },
       select: { sponsorId: true },
       distinct: ['sponsorId'],
     });
@@ -122,17 +147,22 @@ export class ClubPortalService {
     });
   }
 
-  async getClubContent(clubId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async getClubContent(userId: string, role: string, requestedTeamId?: string) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     return this.prisma.clubContentItem.findMany({
-      where: { teamId: clubId },
+      where: { teamId },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async submitContent(dto: ContentSubmissionDto, clubId?: string, userId?: string) {
-    if (!clubId) return SCOPE_PENDING;
+  async submitContent(
+    dto: ContentSubmissionDto,
+    userId: string,
+    role: string,
+    requestedTeamId?: string,
+  ) {
+    const teamId = await this.resolveScope(userId, role, requestedTeamId);
 
     // Map contentType string to ClubContentType enum (default to NEWS if unknown)
     const typeMap: Record<string, ClubContentType> = {
@@ -145,7 +175,7 @@ export class ClubPortalService {
 
     return this.prisma.clubContentItem.create({
       data: {
-        teamId: clubId,
+        teamId,
         title: dto.title,
         type: resolvedType,
         summary: dto.body ?? null,

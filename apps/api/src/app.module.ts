@@ -46,6 +46,7 @@ import { DataProviderModule } from './data-provider/data-provider.module';
 import { PreviewAnalyticsModule } from './preview-analytics/preview-analytics.module';
 import { ClubPortalModule } from './club-portal/club-portal.module';
 import { SponsorPortalModule } from './sponsor-portal/sponsor-portal.module';
+import { PortalScopeModule } from './portal-scope/portal-scope.module';
 
 @Module({
   imports: [
@@ -93,6 +94,7 @@ import { SponsorPortalModule } from './sponsor-portal/sponsor-portal.module';
     PreviewAnalyticsModule,
     ClubPortalModule,
     SponsorPortalModule,
+    PortalScopeModule,
     HealthModule,
   ],
   controllers: [VersionController],

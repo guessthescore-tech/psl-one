@@ -20,27 +20,27 @@ export class SponsorPortalController {
   constructor(private readonly service: SponsorPortalService) {}
 
   @Get('overview')
-  getSponsorOverview(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorOverview(sponsorId);
+  getSponsorOverview(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorOverview(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('profile')
-  getSponsorProfile(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorProfile(sponsorId);
+  getSponsorProfile(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorProfile(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('campaigns')
-  getSponsorCampaigns(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorCampaigns(sponsorId);
+  getSponsorCampaigns(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorCampaigns(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Post('campaigns/drafts')
   createCampaignDraft(
     @Body() dto: CreateCampaignDraftDto,
+    @Request() req: any,
     @Query('sponsorId') sponsorId?: string,
-    @Request() req?: any,
   ) {
-    return this.service.createCampaignDraft(dto, sponsorId, req?.user?.userId);
+    return this.service.createCampaignDraft(dto, req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('audiences')
@@ -49,23 +49,23 @@ export class SponsorPortalController {
   }
 
   @Get('activations')
-  getSponsorActivations(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorActivations(sponsorId);
+  getSponsorActivations(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorActivations(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('rewards')
-  getSponsorRewards(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorRewards(sponsorId);
+  getSponsorRewards(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorRewards(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('analytics')
-  getSponsorAnalytics(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorAnalytics(sponsorId);
+  getSponsorAnalytics(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorAnalytics(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('clubs')
-  getSponsorClubs(@Query('sponsorId') sponsorId?: string) {
-    return this.service.getSponsorClubs(sponsorId);
+  getSponsorClubs(@Request() req: any, @Query('sponsorId') sponsorId?: string) {
+    return this.service.getSponsorClubs(req.user?.sub, req.user?.role, sponsorId);
   }
 
   @Get('assets')

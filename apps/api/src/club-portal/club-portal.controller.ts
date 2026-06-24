@@ -20,60 +20,60 @@ export class ClubPortalController {
   constructor(private readonly service: ClubPortalService) {}
 
   @Get('overview')
-  getClubOverview(@Query('clubId') clubId?: string) {
-    return this.service.getClubOverview(clubId);
+  getClubOverview(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubOverview(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('profile')
-  getClubProfile(@Query('clubId') clubId?: string) {
-    return this.service.getClubProfile(clubId);
+  getClubProfile(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubProfile(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('squad')
-  getClubSquad(@Query('clubId') clubId?: string) {
-    return this.service.getClubSquad(clubId);
+  getClubSquad(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubSquad(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('fixtures')
-  getClubFixtures(@Query('clubId') clubId?: string) {
-    return this.service.getClubFixtures(clubId);
+  getClubFixtures(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubFixtures(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('fans')
   getClubFans(
-    @Query('clubId') clubId?: string,
+    @Query('teamId') teamId?: string,
     @Query('limit') _limit?: string,
     @Query('offset') _offset?: string,
   ) {
-    return this.service.getClubFans(clubId);
+    return this.service.getClubFans(teamId);
   }
 
   @Get('analytics')
-  getClubAnalytics(@Query('clubId') clubId?: string) {
-    return this.service.getClubAnalytics(clubId);
+  getClubAnalytics(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubAnalytics(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('campaigns')
-  getClubCampaigns(@Query('clubId') clubId?: string) {
-    return this.service.getClubCampaigns(clubId);
+  getClubCampaigns(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubCampaigns(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('sponsors')
-  getClubSponsors(@Query('clubId') clubId?: string) {
-    return this.service.getClubSponsors(clubId);
+  getClubSponsors(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubSponsors(req.user?.sub, req.user?.role, teamId);
   }
 
   @Get('content')
-  getClubContent(@Query('clubId') clubId?: string) {
-    return this.service.getClubContent(clubId);
+  getClubContent(@Request() req: any, @Query('teamId') teamId?: string) {
+    return this.service.getClubContent(req.user?.sub, req.user?.role, teamId);
   }
 
   @Post('content-submissions')
   submitContent(
     @Body() dto: ContentSubmissionDto,
-    @Query('clubId') clubId?: string,
-    @Request() req?: any,
+    @Request() req: any,
+    @Query('teamId') teamId?: string,
   ) {
-    return this.service.submitContent(dto, clubId, req?.user?.userId);
+    return this.service.submitContent(dto, req.user?.sub, req.user?.role, teamId);
   }
 }

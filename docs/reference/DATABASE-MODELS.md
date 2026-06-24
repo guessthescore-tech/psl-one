@@ -4,7 +4,7 @@
 **Audience:** Backend engineers  
 **Status:** Current as of STORY-39 (commit `08e3852`)  
 **Last verified:** 2026-06-14  
-**Total models:** 101
+**Total models:** 103
 **Source:** `apps/api/prisma/schema.prisma`  
 **Authority:** Schema is the single source of truth — this document is a navigational aid only  
 
@@ -35,7 +35,8 @@
 | Rewards | 3 |
 | Admin & Audit | 3 |
 | Beta Launch | 2 |
-| **Total** | **100** |
+| Portal Scoping | 2 |
+| **Total** | **103** |
 
 ---
 
@@ -280,6 +281,15 @@
 
 ---
 
+## Portal Scoping
+
+| Model | Key Fields | Notes |
+|-------|-----------|-------|
+| `ClubMembership` | `id`, `userId`, `teamId`, `role`, `isActive`, `createdAt` | DB-backed user-to-club scoping (Sprint 28 — ADR-032) |
+| `SponsorMembership` | `id`, `userId`, `sponsorId`, `role`, `isActive`, `createdAt` | DB-backed user-to-sponsor scoping (Sprint 28 — ADR-032) |
+
+---
+
 ## Integrity Rules
 
 - `FanValueLedger` — append-only; no update or delete
@@ -302,6 +312,8 @@ User ──1:*──> FanValueLedger
 User ──1:*──> FantasyTeam (one per season)
 User ──1:*──> FanAchievement
 User ──1:*──> Notification
+User ──1:*──> ClubMembership (portal scoping)
+User ──1:*──> SponsorMembership (portal scoping)
 
 Season ──1:*──> Gameweek
 Season ──1:*──> Fixture
@@ -324,4 +336,4 @@ ChallengeMatch ──1:1──> ChallengeScore
 
 ## Schema File
 
-`apps/api/prisma/schema.prisma` — 100 models, 40 migrations applied
+`apps/api/prisma/schema.prisma` — 103 models, 43 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership)

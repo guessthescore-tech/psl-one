@@ -1,34 +1,61 @@
 /**
- * SponsorPortalService
+ * SponsorPortalService — Sprint 28
  *
  * PSL_INACTIVE - do not activate PSL season
  * WALLET_SANDBOX_ONLY - no production wallet, no wallet production
  * SPONSOR_REWARDS_NON_FINANCIAL - no cash payouts, no real-money
  * BILLING_INVOICE_ONLY - see ADR-031
  *
- * GAP-27-02: No user-to-sponsor DB FK on User model.
- * Sponsor scoping via sponsorId query param until Sprint 28.
- * GAP-27-03: Audience segmentation PLANNED Sprint 28.
- * GAP-27-04: Asset management PLANNED Sprint 28.
+ * Sprint 28: GAP-27-02 RESOLVED — DB-backed sponsor scoping via SponsorMembership table.
+ * SPONSOR scope derives from active SponsorMembership (not query param alone).
+ * PSL_ADMIN must provide explicit sponsorId param.
+ * Cross-sponsor access denied with CROSS_SPONSOR_ACCESS_DENIED (403).
+ * GAP-27-03: Audience segmentation PLANNED post-Sprint 28.
+ * GAP-27-04: Asset management PLANNED post-Sprint 28.
  * GAP-27-07: Billing off-platform (invoice-only per ADR-031).
  */
 
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { PortalScopeService } from '../portal-scope/portal-scope.service';
 import { CreateCampaignDraftDto } from './sponsor-portal.dto';
 import { CampaignType } from '@prisma/client';
 
-const SCOPE_PENDING = (label: string) => ({
-  scopeStatus: 'API_SCOPE_PENDING',
-  reason: `Provide ${label}Id query param. GAP-27-02: No user-sponsor FK.`,
-});
-
 @Injectable()
 export class SponsorPortalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly portalScopeService: PortalScopeService,
+  ) {}
 
-  async getSponsorOverview(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  /**
+   * Resolve sponsor scope from DB membership.
+   * Throws appropriate HTTP exception on denial.
+   */
+  private async resolveScope(
+    userId: string,
+    role: string,
+    requestedSponsorId?: string,
+  ): Promise<string> {
+    const result = await this.portalScopeService.resolveSponsorScope(userId, role, requestedSponsorId);
+    if (!result.allowed) {
+      if (result.statusCode === 400) throw new BadRequestException(result.reason);
+      if (result.statusCode === 404) throw new NotFoundException(result.reason);
+      throw new ForbiddenException(result.reason);
+    }
+    if (result.scopeType !== 'sponsor') {
+      throw new ForbiddenException('Expected sponsor scope');
+    }
+    return result.sponsorId;
+  }
+
+  async getSponsorOverview(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     const sponsor = await this.prisma.sponsor.findFirst({ where: { id: sponsorId } });
     const campaignCount = await this.prisma.sponsorCampaign.count({ where: { sponsorId } });
@@ -37,14 +64,14 @@ export class SponsorPortalService {
     return { sponsor, campaignCount, rewardCount };
   }
 
-  async getSponsorProfile(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorProfile(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     return this.prisma.sponsor.findFirst({ where: { id: sponsorId } });
   }
 
-  async getSponsorCampaigns(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorCampaigns(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     return this.prisma.sponsorCampaign.findMany({
       where: { sponsorId },
@@ -52,8 +79,13 @@ export class SponsorPortalService {
     });
   }
 
-  async createCampaignDraft(dto: CreateCampaignDraftDto, sponsorId?: string, _userId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async createCampaignDraft(
+    dto: CreateCampaignDraftDto,
+    userId: string,
+    role: string,
+    requestedSponsorId?: string,
+  ) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     // Map campaignType string to CampaignType enum (default to OTHER)
     const typeMap: Record<string, CampaignType> = {
@@ -88,13 +120,13 @@ export class SponsorPortalService {
   getSponsorAudiences(_sponsorId?: string) {
     return {
       audienceStatus: 'PLANNED',
-      message: 'Audience segmentation planned Sprint 28',
+      message: 'Audience segmentation planned post-Sprint 28',
       segments: [],
     };
   }
 
-  async getSponsorActivations(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorActivations(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     // Get analytics snapshots for this sponsor's campaigns
     const campaigns = await this.prisma.sponsorCampaign.findMany({
@@ -112,8 +144,8 @@ export class SponsorPortalService {
     });
   }
 
-  async getSponsorRewards(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorRewards(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     const rewards = await this.prisma.rewardDefinition.findMany({
       where: { sponsorId },
@@ -124,8 +156,8 @@ export class SponsorPortalService {
     return rewards.map((r) => ({ ...r, isFinancial: false }));
   }
 
-  async getSponsorAnalytics(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorAnalytics(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     const campaigns = await this.prisma.sponsorCampaign.findMany({
       where: { sponsorId },
@@ -153,8 +185,8 @@ export class SponsorPortalService {
     return { ...totals, campaignCount: campaigns.length };
   }
 
-  async getSponsorClubs(sponsorId?: string) {
-    if (!sponsorId) return SCOPE_PENDING('sponsor');
+  async getSponsorClubs(userId: string, role: string, requestedSponsorId?: string) {
+    const sponsorId = await this.resolveScope(userId, role, requestedSponsorId);
 
     const campaigns = await this.prisma.sponsorCampaign.findMany({
       where: { sponsorId, clubId: { not: null } },
@@ -171,14 +203,14 @@ export class SponsorPortalService {
   getSponsorAssets(_sponsorId?: string) {
     return {
       assetsStatus: 'PLANNED',
-      message: 'Asset management planned Sprint 28',
+      message: 'Asset management planned post-Sprint 28',
       assets: [],
     };
   }
 
   getBillingPlaceholder() {
     // ADR-031: INVOICE_ONLY — No payment processing. No wallet production.
-    // Sponsor billing is off-platform. No real-money.
+    // Sponsor billing is off-platform. No real-money. Non-financial.
     return {
       billingStatus: 'INVOICE_ONLY',
       message: 'No payment processing. Invoice-only. See ADR-031.',
