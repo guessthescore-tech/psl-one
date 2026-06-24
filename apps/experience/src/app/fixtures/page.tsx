@@ -22,7 +22,7 @@ interface Fixture {
 
 async function fetchWcFixtures(): Promise<Fixture[]> {
   try {
-    const res = await fetch(`${API_BASE}/fixtures?competitionCode=WC&limit=50`, {
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 300 },
     });
     if (!res.ok) return [];
