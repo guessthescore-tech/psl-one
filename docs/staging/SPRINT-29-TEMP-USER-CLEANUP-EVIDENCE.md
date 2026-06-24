@@ -2,17 +2,18 @@
 
 **Date:** 2026-06-24
 **Environment:** Beta EC2 (i-0a5f16539c9626f90, af-south-1)
-**Status:** CLEANUP_COMPLETE (2026-06-24T07:00:32Z)
+**Status:** CLEANUP_COMPLETE (2026-06-24T07:58:00Z — post smoke run 28082159537)
 
 ---
 
-## Users to be Removed
+## Users Removed
 
 | Email | Role | Created | Removed |
 |---|---|---|---|
-| `sprint29-club-admin-smoke@psl-one.internal` | CLUB_ADMIN | 2026-06-24T06:30Z | DELETED |
-| `sprint29-sponsor-smoke@psl-one.internal` | SPONSOR | 2026-06-24T06:30Z | DELETED |
-| `sprint29-fan-smoke@psl-one.internal` | FAN | 2026-06-24T06:50Z | DELETED |
+| `sprint29-club-admin-smoke@psl-one.internal` | CLUB_ADMIN | 2026-06-24T07:41Z | DELETED |
+| `sprint29-sponsor-smoke@psl-one.internal` | SPONSOR | 2026-06-24T07:41Z | DELETED |
+| `sprint29-fan-smoke@psl-one.internal` | FAN | 2026-06-24T07:41Z | DELETED |
+| `sprint29-psl-admin-smoke@psl-one.internal` | PSL_ADMIN | 2026-06-24T07:46Z | DELETED |
 
 ---
 
@@ -51,24 +52,26 @@ aws ssm send-command \
 
 ## Cleanup Evidence
 
-**CLEANUP_STATUS: COMPLETE (2026-06-24T07:00:32Z)**
+**CLEANUP_STATUS: COMPLETE (2026-06-24T07:58:00Z)**
 
 Actual SSM output:
 ```
-=== Deleting smoke users ===
-DELETE 3
-USERS_DELETED_OK
-=== Verifying cleanup ===
-SMOKE_USER_COUNT=0
-=== Removing temp files ===
+USERS_DELETED=4
+SMOKE_SPONSORS_DELETED=1
+CLEANUP_COMPLETE
 TMP_DELETED
-=== Resetting seed admin password lock ===
-SEED_ADMIN_PASS_RESET_DURING_SMOKE=acknowledged
-CLEANUP_DONE
 ```
 
-Note: 3 users deleted (CLUB_ADMIN + SPONSOR + FAN). /tmp/sprint29/ deleted.
-Cascade delete also removed ClubMembership and SponsorMembership records.
+Verification:
+```
+SMOKE_USER_COUNT=0
+SMOKE_SPONSOR_COUNT=0
+TMP_DELETED
+VERIFICATION_DONE
+```
+
+Note: 4 users deleted (CLUB_ADMIN + SPONSOR + FAN + PSL_ADMIN). 1 smoke-only sponsor deleted.
+`/tmp/sprint29/` deleted. Cascade delete also removed ClubMembership and SponsorMembership records.
 
 ---
 

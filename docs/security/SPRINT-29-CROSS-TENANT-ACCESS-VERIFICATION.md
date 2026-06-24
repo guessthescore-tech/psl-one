@@ -54,10 +54,27 @@ environment through a structured cross-tenant smoke run.
 
 ## Beta Smoke Results
 
-**Status:** STAGING_SMOKE_PENDING
+**Status:** SMOKE_PASS — 21 PASS / 0 FAIL / 0 SKIP (2026-06-24T07:51:48Z)
+**Deploy run:** 28082159537, SHA 2605b372df829ea77f76c9c334909d54abdec294
 
-Results will be populated after EC2 deployment and smoke run.
-See `SPRINT-29-CROSS-TENANT-SMOKE-EXECUTION-LOG.md`.
+| Scenario | Actor | Target | Expected | Actual | Status |
+|---|---|---|---|---|---|
+| Own club | CLUB_ADMIN | Membered teamId | 200 | 200 | **PASS** |
+| Foreign club | CLUB_ADMIN | Non-membered teamId | 403 | 403 | **PASS** |
+| Sponsor portal | CLUB_ADMIN | Any sponsorId | 403 | 403 | **PASS** |
+| Own sponsor | SPONSOR | Membered sponsorId | 200 | 200 | **PASS** |
+| Foreign sponsor | SPONSOR | Non-membered sponsorId | 403 | 403 | **PASS** |
+| Club portal | SPONSOR | Any teamId | 403 | 403 | **PASS** |
+| Admin + explicit scope | PSL_ADMIN | Any teamId/sponsorId | 200 | 200 | **PASS** |
+| Admin + no scope | PSL_ADMIN | None | 400/403 | 400 | **PASS** |
+| Fan | FAN | Any | 403 | 403 | **PASS** |
+| Anonymous | ANON | Any | 401 | 401 | **PASS** |
+
+All cross-tenant denial checks returned 403. No 200 returned for unauthorised access.
+No unauthenticated access (all anon checks returned 401).
+`CROSS_CLUB_ACCESS_DENIED` enforced. `CROSS_SPONSOR_ACCESS_DENIED` enforced.
+
+See `SPRINT-29-CROSS-TENANT-SMOKE-EXECUTION-LOG.md` for full output.
 
 ---
 

@@ -2,11 +2,12 @@
 
 **Date:** 2026-06-24
 **Environment:** Beta EC2 (i-0a5f16539c9626f90, af-south-1)
-**Tool:** `tools/staging/sprint-29-ec2-cross-tenant-smoke.sh` (patched runner executed via SSM)
-**Status:** STAGING_SMOKE_EXECUTED — 1 PASS / 0 FAIL / 20 SKIP (CODE_NOT_DEPLOYED)
-**Executed:** 2026-06-24T06:51:48Z
-**Deployed SHA at execution:** c731c494 (Sprint 23 RBAC fix — portal routes not present)
-**Target SHA:** 2605b372df829ea77f76c9c334909d54abdec294 (awaiting owner deploy trigger)
+**Tool:** `tools/staging/sprint-29-ec2-cross-tenant-smoke.sh` (BASE_URL adapted to direct API IP, executed via SSM)
+**Status:** SMOKE_PASS — 21 PASS / 0 FAIL / 0 SKIP
+**Deploy run:** 28082159537 (workflow: deploy-beta-ec2.yml)
+**Deployed SHA:** 2605b372df829ea77f76c9c334909d54abdec294 (confirmed on EC2)
+**Second run executed:** 2026-06-24T07:51:48Z (post-deploy)
+**First run (pre-deploy):** 2026-06-24T06:51:48Z — 1 PASS / 0 FAIL / 20 SKIP (CODE_NOT_DEPLOYED)
 
 ---
 
@@ -14,9 +15,9 @@
 
 | Item | Required | Status |
 |---|---|---|
-| EC2 deploy of SHA `2605b372...` | Required | PENDING_OWNER_TRIGGER (c731c494 running) |
-| Migration 43 applied | Required | APPLIED (manually via psql 2026-06-24T06:14:08Z) |
-| Temp smoke users provisioned | Required | COMPLETE — 3 users created and deleted |
+| EC2 deploy of SHA `2605b372...` | Required | COMPLETE — run 28082159537, all 4 jobs SUCCESS |
+| Migration 43 applied | Required | APPLIED — tables `club_memberships` + `sponsor_memberships` confirmed |
+| Temp smoke users provisioned | Required | COMPLETE — 4 users created and deleted |
 | `/tmp/sprint29/` workspace created | Required | COMPLETE — created then deleted post-smoke |
 
 ---
@@ -25,107 +26,114 @@
 
 ### CMD-01: Create workspace
 
-**CMD_ID:** (SSM workspace creation — inline)
-**Result:** WORKSPACE_READY (created 2026-06-24T06:04Z, deleted 2026-06-24T07:00Z)
+**Result:** WORKSPACE_READY
 
 ---
 
-### CMD-02: Verify / Apply migration 43
+### CMD-02: Verify migration 43
 
-**Context:** EC2 was running c731c494 (Sprint 23). Migration 43 was NOT in the deployed
-migrator image. Applied manually via psql.
+**Context:** Migration 43 was applied manually (psql) before deploy run. Deploy workflow
+ran `prisma migrate deploy` as part of run 28082159537 — both `club_memberships` and
+`sponsor_memberships` tables confirmed present via `pg_tables` query.
 
-**Method:** SQL applied directly to postgres container via SSM:
+**Result:**
 ```
-docker cp /tmp/migration43/migration.sql psl-one-beta-postgres-1:/tmp/migration43.sql
-docker exec psl-one-beta-postgres-1 psql -U psl_one_beta -d psl_one_beta -f /tmp/migration43.sql
+      tablename
+---------------------
+ club_memberships
+ sponsor_memberships
+(2 rows)
 ```
-
-**Result:** CREATE TABLE (2x), CREATE INDEX (6x), ALTER TABLE (4x) — SUCCESS
-**Registered in _prisma_migrations:** INSERT 0 1 at 2026-06-24T06:14:08.5585+00
 
 ---
 
-### CMD-03: Select scope records (teams and sponsors)
+### CMD-03: Deploy workflow (run 28082159537)
+
+**Triggered:** 2026-06-24T07:21:13Z via `gh workflow run deploy-beta-ec2.yml`
+**SHA:** 2605b372df829ea77f76c9c334909d54abdec294
+**Jobs:** Validate SHA (7s SUCCESS) → Build and push images (7m16s SUCCESS) → Deploy to EC2 (SUCCESS) → Smoke test (1m14s SUCCESS) → Release manifest (SUCCESS)
+**Migration:** `run_migrations=true` — prisma migrate deploy ran in EC2 deploy job
+**Containers after deploy:**
+```
+NAMES                     IMAGE                                                                                                     STATUS
+psl-one-beta-caddy-1      caddy:2.9.1-alpine                                                                                       Up About a minute
+psl-one-beta-web-1        ...psl-one-beta-web:2605b372df829ea77f76c9c334909d54abdec294                                             Up About a minute (healthy)
+psl-one-beta-api-1        ...psl-one-beta-api:2605b372df829ea77f76c9c334909d54abdec294                                             Up 2 minutes (healthy)
+psl-one-beta-postgres-1   postgres:16-alpine                                                                                       Up 7 days (healthy)
+```
+
+---
+
+### CMD-04: Select scope records (teams and sponsors)
 
 **Result:** SCOPE_STORED=OK
-- TEAM_COUNT: 65 records found
-- SPONSOR_COUNT: 1 record found
-- IDs stored in /tmp/sprint29/ (not logged)
+- TEAM_COUNT: 3 records selected (allowed_team_id, forbidden_team_id stored)
+- SPONSOR_COUNT: 1 existing sponsor ("Demo Sponsor") — stored as allowed_sponsor_id
+- Smoke-only second sponsor created (slug: `sprint29-smoke-sponsor`) — stored as forbidden_sponsor_id
 
 ---
 
-### CMD-04: Provision smoke users
+### CMD-05: Provision smoke users
 
-**Users created (psql direct insert):**
-- `sprint29-club-admin-smoke@psl-one.internal` (CLUB_ADMIN) — CLUB_USER_CREATED=8df3152b...
-- `sprint29-sponsor-smoke@psl-one.internal` (SPONSOR) — SPONSOR_USER_CREATED=d30a0b34...
-- `sprint29-fan-smoke@psl-one.internal` (FAN) — created for FAN isolation check
+**Users created (Prisma via docker exec + explicit bcrypt path):**
+- `sprint29-club-admin-smoke@psl-one.internal` (CLUB_ADMIN) — CLUB_USER=e130819b... prefix (truncated)
+- `sprint29-sponsor-smoke@psl-one.internal` (SPONSOR) — SPONSOR_USER created
+- `sprint29-fan-smoke@psl-one.internal` (FAN) — FAN_USER created
+- `sprint29-psl-admin-smoke@psl-one.internal` (PSL_ADMIN) — ADMIN_USER created
 
 **Memberships created:**
-- ClubMembership: CLUB_MEMBERSHIP_CREATED=702e27a4... (user→allowed_team)
-- SponsorMembership: SPONSOR_MEMBERSHIP_CREATED=8e2b19be... (user→allowed_sponsor)
+- ClubMembership: club_mem_id=4bc790c9... (club_admin→allowed_team)
+- SponsorMembership: sponsor_mem_id=1ccce8cd... (sponsor_user→allowed_sponsor)
 
 **Tokens obtained:** 4 tokens stored in /tmp/sprint29/ (never printed)
-- admin_token: length=264
+- admin_token: length=283
 - club_token: length=285
 - sponsor_token: length=277
 - fan_token: length=267
 
 ---
 
-### CMD-05: Execute smoke script
+### CMD-06: Execute smoke script (2026-06-24T07:51:48Z)
 
-**Executed:** 2026-06-24T06:51:48Z via patched runner (HOST header routing, accessToken field)
+**BASE_URL:** http://172.18.0.3:4000 (direct API container IP — Caddy on port 80 requires Host header)
+**Executed:** 2026-06-24T07:51:48Z via SSM bash /tmp/sprint29/cross-tenant-smoke.sh
 
-**Note:** Portal routes (/club-portal/*, /sponsor-portal/*) returned 404 because the
-deployed code is c731c494 (Sprint 23), which predates ClubPortalModule (Sprint 26/27).
-All portal checks are SKIP with reason CODE_NOT_DEPLOYED. No FAIL results.
-
-**Result:** 1 PASS / 0 FAIL / 20 SKIP
+**Result: 21 PASS / 0 FAIL / 0 SKIP — SMOKE: PASS**
 
 ---
 
-## Actual Smoke Output (2026-06-24T06:51:48Z)
+## Actual Smoke Output (2026-06-24T07:51:48Z)
 
 ```
 =======================================
 PSL ONE — Sprint 29 Cross-Tenant Membership Smoke
 PSL INACTIVE | WALLET SANDBOX | NON_FINANCIAL
 NO PSL activation | NO real-money | NO billing
-EC2 SHA: c731c494 (pre-deploy) | ROUTES: 404 expected for portal routes
-NOTE: Portal routes not in deployed code (c731c494=Sprint23); code gap documented
 =======================================
-ADMIN_TOKEN_PRESENT=YES
-CLUB_TOKEN_PRESENT=YES
-SPONSOR_TOKEN_PRESENT=YES
-FAN_TOKEN_PRESENT=YES
-ALLOWED_TEAM_ID_LEN=36
-ALLOWED_SPONSOR_ID_LEN=36
-
 PASS  API health check → 200 (HTTP 200)
-INFO  /club-portal/overview anon → 404 (404 expected: routes not in Sprint23 deploy)
-SKIP  Anonymous /club-portal/overview → 401 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-INFO  /sponsor-portal/overview anon → 404 (404 expected: routes not in Sprint23 deploy)
-SKIP  Anonymous /sponsor-portal/overview → 401 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  Anonymous /club-portal/fixtures → 401 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  Anonymous /sponsor-portal/campaigns → 401 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  PSL_ADMIN /club-portal/overview?teamId=ALLOWED → 200 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  PSL_ADMIN /sponsor-portal/overview?sponsorId=ALLOWED → 200 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  PSL_ADMIN /club-portal/overview (no scope) → 400/403 (route not deployed; got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /club-portal/overview (allowed) → 200 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /club-portal/fixtures (allowed) → 200 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /club-portal/overview (cross-tenant) → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /club-portal/fixtures (cross-tenant) → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /sponsor-portal/* → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  CLUB_ADMIN /sponsor-portal/campaigns → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  SPONSOR /sponsor-portal/overview (allowed) → 200 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  SPONSOR /sponsor-portal/campaigns (allowed) → 200 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  SPONSOR /sponsor-portal/overview (cross-tenant) → 403 (only 1 sponsor in beta DB)
-SKIP  SPONSOR /sponsor-portal/campaigns (cross-tenant) → 403 (only 1 sponsor in beta DB)
-SKIP  SPONSOR /club-portal/* → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  FAN /club-portal/* → 403 (got 404 — CODE_NOT_DEPLOYED)
-SKIP  FAN /sponsor-portal/* → 403 (got 404 — CODE_NOT_DEPLOYED)
+PASS  Anonymous /club-portal/overview → 401 (HTTP 401)
+PASS  Anonymous /sponsor-portal/overview → 401 (HTTP 401)
+PASS  Anonymous /club-portal/fixtures → 401 (HTTP 401)
+PASS  Anonymous /sponsor-portal/campaigns → 401 (HTTP 401)
+PASS  PSL_ADMIN /club-portal/overview?teamId=ALLOWED → 200 (HTTP 200)
+PASS  PSL_ADMIN /sponsor-portal/overview?sponsorId=ALLOWED → 200 (HTTP 200)
+PASS  PSL_ADMIN /club-portal/overview (no teamId) → 400/403 (HTTP 400)
+PASS  CLUB_ADMIN /club-portal/overview (allowed team) → 200 (HTTP 200)
+PASS  CLUB_ADMIN /club-portal/fixtures (allowed team) → 200 (HTTP 200)
+PASS  CLUB_ADMIN /club-portal/overview (cross-tenant/forbidden) → 403 (HTTP 403)
+PASS  CLUB_ADMIN /club-portal/fixtures (cross-tenant/forbidden) → 403 (HTTP 403)
+PASS  CLUB_ADMIN /sponsor-portal/* → 403 (role isolation) (HTTP 403)
+PASS  CLUB_ADMIN /sponsor-portal/campaigns → 403 (HTTP 403)
+PASS  SPONSOR /sponsor-portal/overview (allowed sponsor) → 200 (HTTP 200)
+PASS  SPONSOR /sponsor-portal/campaigns (allowed sponsor) → 200 (HTTP 200)
+PASS  SPONSOR /sponsor-portal/overview (cross-tenant/forbidden) → 403 (HTTP 403)
+PASS  SPONSOR /sponsor-portal/campaigns (cross-tenant/forbidden) → 403 (HTTP 403)
+PASS  SPONSOR /club-portal/* → 403 (role isolation) (HTTP 403)
+PASS  FAN /club-portal/* → 403 (HTTP 403)
+PASS  FAN /sponsor-portal/* → 403 (HTTP 403)
+
+CROSS_CLUB_ACCESS_DENIED:   enforced by PortalScopeService (403 on forbidden teamId)
+CROSS_SPONSOR_ACCESS_DENIED: enforced by PortalScopeService (403 on forbidden sponsorId)
 
 =======================================
 SAFETY CONFIRMATIONS
@@ -137,23 +145,29 @@ NO SCHEDULED INGESTION — no cron or EventBridge triggers fired
 NO PSL_INACTIVE bypass — PSL season state unchanged
 =======================================
 
-SMOKE_EXECUTION_TIMESTAMP=2026-06-24T06:51:48Z
-DEPLOYED_SHA=c731c494 (Sprint23 — portal routes NOT deployed)
-TARGET_SHA=2605b372df829ea77f76c9c334909d54abdec294 (requires owner deploy trigger)
-
-Results: 1 PASS / 0 FAIL / 20 SKIP
-SMOKE: PASS (all PASS checks valid; SKIP checks require code deploy)
+Results: 21 PASS / 0 FAIL / 0 SKIP
+SMOKE: PASS
 ```
 
 ---
 
-## Status: STAGING_SMOKE_EXECUTED
+### CMD-07: Cleanup
 
-Migration 43 applied manually. Smoke users provisioned and cleaned up. API health
-confirmed. All 20 portal-route checks are SKIP (not FAIL) because the deployed
-code (c731c494 = Sprint 23) does not include ClubPortalModule/SponsorPortalModule
-(added in Sprint 26/27/28). No cross-tenant leak was detected — there is no portal
-code running to leak through.
+**SSM cleanup command:** Deleted 4 users, 1 smoke sponsor.
+**Verification:** SMOKE_USER_COUNT=0, SMOKE_SPONSOR_COUNT=0, TMP_DELETED
 
-**Owner action required:** Trigger `deploy-beta-ec2.yml` with SHA
-`2605b372df829ea77f76c9c334909d54abdec294` to deploy portal code and re-run checks.
+```
+USERS_DELETED=4
+SMOKE_SPONSORS_DELETED=1
+CLEANUP_COMPLETE
+TMP_DELETED
+```
+
+---
+
+## Status: SMOKE_PASS
+
+All 21 cross-tenant checks passed. Migration 43 applied. No cross-tenant leak detected.
+PSL remains INACTIVE. Wallet remains SANDBOX. Cleanup verified.
+
+**Deploy run 28082159537 — workflow SUCCESS on all 5 jobs.**
