@@ -6748,6 +6748,115 @@ describe('Sprint 38B — WC Seed Data & Admin DB Status Routes', () => {
   });
 });
 
+// ─── Sprint 38B: Fan Pages & Admin Portal ─────────────────────────────────
+
+describe('Sprint 38B — Fan Pages & Admin Portal', () => {
+  it('/world-cup page exists', () => {
+    expect(exists('app/world-cup/page.tsx')).toBe(true);
+  });
+
+  it('/news page exists', () => {
+    expect(exists('app/news/page.tsx')).toBe(true);
+  });
+
+  it('/videos page exists', () => {
+    expect(exists('app/videos/page.tsx')).toBe(true);
+  });
+
+  it('/leaderboards page exists', () => {
+    expect(exists('app/leaderboards/page.tsx')).toBe(true);
+  });
+
+  it('/fixtures page exists', () => {
+    expect(exists('app/fixtures/page.tsx')).toBe(true);
+  });
+
+  it('/match-centre page exists', () => {
+    expect(exists('app/match-centre/page.tsx')).toBe(true);
+  });
+
+  it('/guess-the-score page exists', () => {
+    expect(exists('app/guess-the-score/page.tsx')).toBe(true);
+  });
+
+  it('/admin/data-provider/world-cup-live-readiness page exists', () => {
+    expect(exists('app/admin/data-provider/world-cup-live-readiness/page.tsx')).toBe(true);
+  });
+
+  it('/admin/data-provider/psl-fixture-readiness page exists', () => {
+    expect(exists('app/admin/data-provider/psl-fixture-readiness/page.tsx')).toBe(true);
+  });
+
+  it('/admin/fantasy/player-pool page exists', () => {
+    expect(exists('app/admin/fantasy/player-pool/page.tsx')).toBe(true);
+  });
+
+  it('/admin/predictions/gts-fixtures page exists', () => {
+    expect(exists('app/admin/predictions/gts-fixtures/page.tsx')).toBe(true);
+  });
+
+  it('club portal pages still exist', () => {
+    expect(exists('app/club/page.tsx')).toBe(true);
+    expect(exists('app/club/overview/page.tsx')).toBe(true);
+    expect(exists('app/club/fixtures/page.tsx')).toBe(true);
+  });
+
+  it('sponsor portal pages still exist', () => {
+    expect(exists('app/sponsor/page.tsx')).toBe(true);
+    expect(exists('app/sponsor/overview/page.tsx')).toBe(true);
+    expect(exists('app/sponsor/campaigns/page.tsx')).toBe(true);
+  });
+
+  const NEW_APP_PAGES = [
+    'app/world-cup/page.tsx',
+    'app/news/page.tsx',
+    'app/videos/page.tsx',
+    'app/leaderboards/page.tsx',
+    'app/fixtures/page.tsx',
+    'app/match-centre/page.tsx',
+    'app/guess-the-score/page.tsx',
+    'app/admin/data-provider/world-cup-live-readiness/page.tsx',
+    'app/admin/fantasy/player-pool/page.tsx',
+    'app/admin/predictions/gts-fixtures/page.tsx',
+  ];
+
+  const FORBIDDEN_KEYWORDS = ['place your bet', 'cash out', 'withdrawal amount', 'deposit funds'];
+
+  for (const page of NEW_APP_PAGES) {
+    it(`${page} — no betting/real-money keywords`, () => {
+      if (!exists(page)) return;
+      const content = read(page);
+      for (const kw of FORBIDDEN_KEYWORDS) {
+        expect(content.toLowerCase()).not.toContain(kw);
+      }
+    });
+  }
+
+  const ADMIN_APP_PAGES = [
+    'app/admin/data-provider/world-cup-live-readiness/page.tsx',
+    'app/admin/data-provider/psl-fixture-readiness/page.tsx',
+    'app/admin/fantasy/player-pool/page.tsx',
+    'app/admin/predictions/gts-fixtures/page.tsx',
+  ];
+
+  for (const page of ADMIN_APP_PAGES) {
+    it(`${page} — no NEXT_PUBLIC_ provider key exposure`, () => {
+      if (!exists(page)) return;
+      const content = read(page);
+      const providerKeyPatterns = [
+        'NEXT_PUBLIC_SCOREBAT',
+        'NEXT_PUBLIC_SPORTRADAR',
+        'NEXT_PUBLIC_FOOTBALL_DATA',
+        'NEXT_PUBLIC_API_FOOTBALL',
+        'NEXT_PUBLIC_PARSE_PSL',
+      ];
+      for (const pattern of providerKeyPatterns) {
+        expect(content).not.toContain(pattern);
+      }
+    });
+  }
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
