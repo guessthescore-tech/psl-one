@@ -6169,6 +6169,146 @@ describe('Sprint 34 – API Caching & Edge Readiness', () => {
   });
 });
 
+// ─── Sprint 35 — Launch Readiness / BRD Gap Closure ──────────────────────
+
+describe('Sprint 35 – Launch Readiness & BRD Gap Closure', () => {
+  const ROOT2 = resolve(__dirname, '../../../..');
+
+  it('fan shop page exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/shop/page.tsx'))).toBe(true);
+  });
+
+  it('fan shop page is CATALOGUE_ONLY', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/shop/page.tsx'), 'utf-8');
+    expect(c).toMatch(/CATALOGUE.ONLY|catalogue.*only/i);
+  });
+
+  it('fan shop page has no checkout action elements', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/shop/page.tsx'), 'utf-8');
+    expect(c).not.toMatch(/>Checkout<|>Add to Cart<|>Buy Now<|>Place Order</);
+  });
+
+  it('club shop portal page exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/club/shop/page.tsx'))).toBe(true);
+  });
+
+  it('club shop product page exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/club/shop/[productSlug]/page.tsx'))).toBe(true);
+  });
+
+  it('admin shop page exists', () => {
+    expect(existsSync(resolve(ROOT2, 'apps/experience/src/app/admin/shop/page.tsx'))).toBe(true);
+  });
+
+  it('admin shop page references commerce API route', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/admin/shop/page.tsx'), 'utf-8');
+    expect(c).toMatch(/club-experience/);
+  });
+
+  it('ADR-033 exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/adr/ADR-033-COMMERCE-BOUNDARY.md'))).toBe(true);
+  });
+
+  it('ADR-033 establishes CATALOGUE_ONLY commerce boundary', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-033-COMMERCE-BOUNDARY.md'), 'utf-8');
+    expect(c).toMatch(/CATALOGUE_ONLY/);
+  });
+
+  it('ADR-033 rejects full commerce at launch', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/adr/ADR-033-COMMERCE-BOUNDARY.md'), 'utf-8');
+    expect(c).toMatch(/Rejected/);
+  });
+
+  it('club shop scope doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-CLUB-SHOP-SCOPE.md'))).toBe(true);
+  });
+
+  it('club shop scope doc lists API routes', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-CLUB-SHOP-SCOPE.md'), 'utf-8');
+    expect(c).toMatch(/club-experience/);
+  });
+
+  it('ticketing scope doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-TICKETING-SCOPE.md'))).toBe(true);
+  });
+
+  it('ticketing scope doc requires owner gate', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-TICKETING-SCOPE.md'), 'utf-8');
+    expect(c).toMatch(/OG-35-TICKET|owner gate/i);
+  });
+
+  it('commerce boundary doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-COMMERCE-BOUNDARY.md'))).toBe(true);
+  });
+
+  it('commerce boundary doc confirms non-financial', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/commerce/SPRINT-35-COMMERCE-BOUNDARY.md'), 'utf-8');
+    expect(c).toMatch(/NON.FINANCIAL|non-financial/i);
+  });
+
+  it('launch owner gates doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/launch/SPRINT-35-LAUNCH-OWNER-GATES.md'))).toBe(true);
+  });
+
+  it('launch owner gates doc includes PSL activation gate', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/launch/SPRINT-35-LAUNCH-OWNER-GATES.md'), 'utf-8');
+    expect(c).toMatch(/OG-35-PSL-ACT/);
+  });
+
+  it('beta to production checklist exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/launch/SPRINT-35-BETA-TO-PRODUCTION-CHECKLIST.md'))).toBe(true);
+  });
+
+  it('PSL activation sequence doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/launch/SPRINT-35-PSL-ACTIVATION-SEQUENCE.md'))).toBe(true);
+  });
+
+  it('PSL activation sequence has WARNING not to execute without gate', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/launch/SPRINT-35-PSL-ACTIVATION-SEQUENCE.md'), 'utf-8');
+    expect(c).toMatch(/WARNING|OG-35-PSL-ACT/);
+  });
+
+  it('monitoring and alerting doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/launch/SPRINT-35-MONITORING-AND-ALERTING.md'))).toBe(true);
+  });
+
+  it('incident playbook doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/launch/SPRINT-35-PRODUCTION-INCIDENT-PLAYBOOK.md'))).toBe(true);
+  });
+
+  it('BRD gap analysis doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-35-BRD-GAP-ANALYSIS.md'))).toBe(true);
+  });
+
+  it('BRD gap analysis identifies commerce as deferred', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/handover/SPRINT-35-BRD-GAP-ANALYSIS.md'), 'utf-8');
+    expect(c).toMatch(/DEFERRED|deferred/);
+  });
+
+  it('launch readiness checklist exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-35-LAUNCH-READINESS-CHECKLIST.md'))).toBe(true);
+  });
+
+  it('launch readiness checklist has CONDITIONAL_GO status', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/handover/SPRINT-35-LAUNCH-READINESS-CHECKLIST.md'), 'utf-8');
+    expect(c).toMatch(/CONDITIONAL_GO/);
+  });
+
+  it('handover notes doc exists', () => {
+    expect(existsSync(resolve(ROOT2, 'docs/handover/SPRINT-35-HANDOVER-NOTES.md'))).toBe(true);
+  });
+
+  it('handover notes list all sprints 30-35', () => {
+    const c = readFileSync(resolve(ROOT2, 'docs/handover/SPRINT-35-HANDOVER-NOTES.md'), 'utf-8');
+    expect(c).toMatch(/Sprint 30|Sprint 31|Sprint 32|Sprint 33|Sprint 34|Sprint 35/);
+  });
+
+  it('fan shop page has no gambling language', () => {
+    const c = readFileSync(resolve(ROOT2, 'apps/experience/src/app/shop/page.tsx'), 'utf-8');
+    expect(c).not.toMatch(/bet|gambl|wager|odds|stake/i);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
