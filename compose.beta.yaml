@@ -68,6 +68,16 @@ services:
       ENVIRONMENT_LABEL: beta
       GIT_SHA: ${GIT_SHA:-unknown}
       BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-unknown}
+      # Data provider keys — set in .env.beta, never committed
+      FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY:-}
+      SPORTSRADAR_SOCCER_API_KEY: ${SPORTSRADAR_SOCCER_API_KEY:-}
+      SCOREBAT_WIDGET_TOKEN: ${SCOREBAT_WIDGET_TOKEN:-}
+      SCOREBAT_VIDEO_API_ACCESS_TOKEN: ${SCOREBAT_VIDEO_API_ACCESS_TOKEN:-}
+      PARSE_API_KEY: ${PARSE_API_KEY:-}
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
+      DATA_PROVIDER: ${DATA_PROVIDER:-NoOp}
+      # World Cup write import gate — must be explicitly enabled per-deploy
+      ALLOW_WORLD_CUP_WRITE: ${ALLOW_WORLD_CUP_WRITE:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -92,6 +102,8 @@ services:
       NEXT_PUBLIC_ENVIRONMENT_LABEL: beta
       NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-unknown}
       NEXT_PUBLIC_BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-unknown}
+      # Internal API URL for server-side Next.js calls (same Docker network)
+      INTERNAL_API_URL: http://api:4000
     depends_on:
       api:
         condition: service_healthy
