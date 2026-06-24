@@ -23,7 +23,7 @@ interface Fixture {
 
 async function fetchTodayFixtures(): Promise<Fixture[]> {
   try {
-    const res = await fetch(`${API_BASE}/fixtures?limit=20`, {
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return [];

@@ -13,7 +13,7 @@ const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
 
 async function fetchWidgetConfig(): Promise<{ available: boolean; embedUrl: string | null }> {
   try {
-    const res = await fetch(`${API_BASE}/admin/data-provider/world-cup/scorebat-widget-config`, {
+    const res = await fetch(`${API_BASE}/football/world-cup/scorebat-widget`, {
       next: { revalidate: 3600 },
     });
     if (!res.ok) return { available: false, embedUrl: null };

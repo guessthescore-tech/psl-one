@@ -347,6 +347,118 @@ export class WorldCupImportService {
     return { created, updated, skipped, errors, warnings };
   }
 
+  /**
+   * Refreshes WC fixture statuses from football-data.org without creating new fixtures.
+   * Matches existing DB fixtures by homeTeamId + awayTeamId + kickoff date (±24h window).
+   * Only updates status and scores — never creates fixtures, never touches PSL.
+   */
+  async refreshFixtureStatuses(): Promise<{
+    provider: string;
+    sourceStatus: string;
+    discovered: number;
+    matched: number;
+    updated: number;
+    skipped: number;
+    errors: string[];
+    safety: { noPslActivation: boolean; noRealMoney: boolean; noNewFixtures: boolean };
+  }> {
+    const result = {
+      provider: 'football-data-org',
+      sourceStatus: 'SOURCE_EMPTY',
+      discovered: 0,
+      matched: 0,
+      updated: 0,
+      skipped: 0,
+      errors: [] as string[],
+      safety: { noPslActivation: true, noRealMoney: true, noNewFixtures: true },
+    };
+
+    const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
+    if (!fdKey) {
+      result.sourceStatus = 'AUTH_FAILED';
+      result.errors.push('FOOTBALL_DATA_API_KEY not set');
+      return result;
+    }
+
+    let providerFixtures: ProviderFixture[] = [];
+    try {
+      const adapter = new FootballDataOrgAdapter();
+      providerFixtures = await adapter.getFixtures('WC');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.sourceStatus = 'PROVIDER_ERROR';
+      result.errors.push(msg);
+      return result;
+    }
+
+    result.discovered = providerFixtures.length;
+    if (providerFixtures.length === 0) return result;
+    result.sourceStatus = 'SOURCE_AVAILABLE';
+
+    const wcSeasonId = await this.findWcSeasonId();
+    if (!wcSeasonId) {
+      result.errors.push('WC2026 season not found in DB');
+      return result;
+    }
+
+    const statusMap: Record<string, string> = {
+      TIMED: 'SCHEDULED',
+      SCHEDULED: 'SCHEDULED',
+      IN_PLAY: 'LIVE',
+      LIVE: 'LIVE',
+      PAUSED: 'HALF_TIME',
+      HALF_TIME: 'HALF_TIME',
+      FINISHED: 'FINISHED',
+      POSTPONED: 'POSTPONED',
+      CANCELLED: 'CANCELLED',
+      SUSPENDED: 'POSTPONED',
+    };
+
+    for (const pf of providerFixtures) {
+      if (!pf.homeTeamName || !pf.awayTeamName || !pf.kickoffAt) { result.skipped++; continue; }
+      try {
+        const homeTeam = await this.resolveTeam(pf.homeTeamName);
+        const awayTeam = await this.resolveTeam(pf.awayTeamName);
+        if (!homeTeam || !awayTeam) { result.skipped++; continue; }
+
+        const kickoff = new Date(pf.kickoffAt);
+        const windowStart = new Date(kickoff.getTime() - 24 * 60 * 60 * 1000);
+        const windowEnd = new Date(kickoff.getTime() + 24 * 60 * 60 * 1000);
+
+        const existing = await this.prisma.fixture.findFirst({
+          where: {
+            seasonId: wcSeasonId,
+            homeTeamId: homeTeam.id,
+            awayTeamId: awayTeam.id,
+            kickoffAt: { gte: windowStart, lte: windowEnd },
+          },
+          select: { id: true, status: true },
+        });
+
+        if (!existing) { result.skipped++; continue; }
+        result.matched++;
+
+        const newStatus = statusMap[pf.status ?? ''] ?? 'SCHEDULED';
+        const updateData: Record<string, unknown> = { lastSyncedAt: new Date() };
+        if (newStatus !== existing.status) updateData['status'] = newStatus;
+
+        await this.prisma.fixture.update({ where: { id: existing.id }, data: updateData as never });
+        result.updated++;
+      } catch (err: unknown) {
+        result.errors.push(err instanceof Error ? err.message : String(err));
+      }
+    }
+
+    await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH', {
+      provider: result.provider,
+      discovered: result.discovered,
+      matched: result.matched,
+      updated: result.updated,
+    });
+    this.logger.log(`refreshFixtureStatuses: matched=${result.matched} updated=${result.updated} skipped=${result.skipped}`);
+    return result;
+  }
+
   private async writeAuditLog(action: string, metadata: Record<string, unknown>): Promise<void> {
     try {
       await this.prisma.adminAuditLog.create({

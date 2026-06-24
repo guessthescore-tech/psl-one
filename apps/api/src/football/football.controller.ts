@@ -4,6 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { FootballService } from './football.service';
 import { LiveMatchService } from './live-match.service';
+import { ScoreBatWidgetAdapter } from '../data-provider/scorebat-widget.adapter';
 import { UpdateFixtureStatusDto } from './dto/update-fixture-status.dto';
 import { UpdateFixtureScoreDto } from './dto/update-fixture-score.dto';
 import { CreateLineupDto } from './dto/create-lineup.dto';
@@ -167,6 +168,13 @@ export class FootballController {
   @Get('match-centre/:fixtureId')
   getMatchCentre(@Param('fixtureId') fixtureId: string) {
     return this.footballService.getMatchCentre(fixtureId);
+  }
+
+  /** Public ScoreBat widget embed config — no auth, token never exposed to client. */
+  @Get('world-cup/scorebat-widget')
+  getWorldCupScoreBatWidget() {
+    const adapter = new ScoreBatWidgetAdapter();
+    return adapter.getWidgetEmbedConfig('world-cup');
   }
 
   // ── Admin ──────────────────────────────────────────────────────────────────

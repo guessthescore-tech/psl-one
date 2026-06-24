@@ -68,6 +68,39 @@ export class DataProviderController {
     return adapter.getWidgetEmbedConfig('world-cup');
   }
 
+  /**
+   * Refresh WC fixture statuses from football-data.org — PSL_ADMIN only.
+   * Matches existing DB fixtures by teams + kickoff date; updates status/scores only.
+   * Never creates new fixtures. Never touches PSL data.
+   */
+  @Post('world-cup/fixtures/refresh-status')
+  @HttpCode(200)
+  refreshWorldCupFixtureStatuses() {
+    return this.wcImport.refreshFixtureStatuses();
+  }
+
+  /**
+   * Read-only WC2026 GTS prediction market status — admin dashboard use.
+   * Delegates to existing fixture-status endpoint which includes market counts.
+   */
+  @Get('world-cup/gts-status')
+  getWorldCupGtsStatus() { return this.wcDbStatus.getFixtureStatus(); }
+
+  /**
+   * Read-only WC2026 media provider status — ScoreBat widget config availability.
+   */
+  @Get('world-cup/media-status')
+  getWorldCupMediaStatus() {
+    const adapter = new ScoreBatWidgetAdapter();
+    const widgetConfig = adapter.getWidgetEmbedConfig('world-cup');
+    return {
+      provider: 'scorebat',
+      widget: widgetConfig,
+      note: 'Widget token is embedded in URL by ScoreBat design — not a secret leak',
+      safety: { noRealMoney: true, noPslActivation: true },
+    };
+  }
+
   /** Read-only PSL fixture readiness — no writes, no PSL activation. */
   @Get('psl-fixture-readiness')
   getPslFixtureReadiness() { return this.service.getPslFixtureReadiness(); }
