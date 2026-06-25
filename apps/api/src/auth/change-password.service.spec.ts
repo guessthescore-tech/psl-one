@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { LocalJwtProvider } from './providers/local-jwt.provider';
 import type { PasswordResetNotifier } from './providers/password-reset-notifier';
+import type { EmailProvider } from './providers/email-provider';
 
 vi.mock('bcrypt', () => ({
   hash: vi.fn().mockResolvedValue('$2b$12$newhash'),
@@ -18,10 +19,21 @@ const makePrismaMock = () => ({
   consentRecord: { createMany: vi.fn().mockResolvedValue({}) },
   authAuditLog: { create: vi.fn().mockResolvedValue({}) },
   passwordResetToken: { create: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  emailVerificationToken: {
+    create: vi.fn().mockResolvedValue({}),
+    findFirst: vi.fn(),
+    update: vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({}),
+  },
   $transaction: vi.fn().mockImplementation(async (arg: unknown) => {
     if (typeof arg === 'function') return (arg as (tx: unknown) => Promise<unknown>)(makePrismaMock());
     return Promise.all(arg as Promise<unknown>[]);
   }),
+});
+
+const makeConfigMock = () => ({
+  get: vi.fn().mockReturnValue(undefined),
+  getOrThrow: vi.fn().mockReturnValue('http://localhost:3001'),
 });
 
 describe('AuthService.changePassword', () => {
@@ -31,10 +43,13 @@ describe('AuthService.changePassword', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
+    const configMock = makeConfigMock();
     authService = new AuthService(
       prisma as unknown as PrismaService,
       {} as LocalJwtProvider,
       {} as PasswordResetNotifier,
+      { sendEmailVerification: vi.fn().mockResolvedValue(undefined), sendPasswordReset: vi.fn() } as unknown as EmailProvider,
+      configMock as never,
     );
   });
 

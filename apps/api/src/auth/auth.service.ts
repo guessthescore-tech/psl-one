@@ -2,9 +2,11 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { createHash, randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { AuditEvent, ConsentPurpose, UserRole } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { LocalJwtProvider } from './providers/local-jwt.provider';
 import { PasswordResetNotifier } from './providers/password-reset-notifier';
+import { EmailProvider } from './providers/email-provider';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
@@ -15,14 +17,15 @@ const CONSENT_VERSION = '1.0';
 const CONSENT_LEGAL_BASIS = 'consent';
 const MIN_AGE_YEARS = 13;
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type SafeUser = { id: string; email: string; role: UserRole };
 
 type RegisterResult =
-  | { enumerable: true; accessToken: string; user: SafeUser }
+  | { enumerable: true; accessToken: string; user: SafeUser & { emailVerified: boolean } }
   | { enumerable: false };
 
-type LoginResult = { accessToken: string; user: SafeUser };
+type LoginResult = { accessToken: string; user: SafeUser & { emailVerified: boolean } };
 
 export type UserProfile = {
   id: string;
@@ -40,6 +43,8 @@ export class AuthService {
     private prisma: PrismaService,
     private authProvider: LocalJwtProvider,
     private passwordResetNotifier: PasswordResetNotifier,
+    private emailProvider: EmailProvider,
+    private config: ConfigService,
   ) {}
 
   async register(dto: RegisterDto, userAgent?: string): Promise<RegisterResult> {
@@ -115,13 +120,24 @@ export class AuthService {
 
     await this.writeAuditLog(user.id, AuditEvent.REGISTER, true, userAgent);
 
+    // Trigger email verification — failure must not block registration
+    try {
+      await this.requestEmailVerification(user.id, user.email, userAgent);
+    } catch {
+      // Email delivery failure is non-fatal. The fan can re-request from their account.
+    }
+
     const accessToken = await this.authProvider.signToken({
       sub: user.id,
       email: user.email,
       role: user.role,
     });
 
-    return { enumerable: true, accessToken, user: { id: user.id, email: user.email, role: user.role } };
+    return {
+      enumerable: true,
+      accessToken,
+      user: { id: user.id, email: user.email, role: user.role, emailVerified: false },
+    };
   }
 
   async login(dto: LoginDto, userAgent?: string): Promise<LoginResult> {
@@ -145,7 +161,15 @@ export class AuthService {
       role: user.role,
     });
 
-    return { accessToken, user: { id: user.id, email: user.email, role: user.role } };
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.isVerified,
+      },
+    };
   }
 
   async logout(userId: string, token: string, userAgent?: string): Promise<void> {
@@ -229,6 +253,58 @@ export class AuthService {
     ]);
 
     await this.writeAuditLog(resetToken.userId, AuditEvent.PASSWORD_RESET_CONFIRM, true, userAgent);
+  }
+
+  async requestEmailVerification(userId: string, email: string, userAgent?: string): Promise<void> {
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+
+    // Invalidate any existing unused tokens for this user before creating a new one
+    await this.prisma.emailVerificationToken.deleteMany({
+      where: { userId, usedAt: null },
+    });
+
+    await this.prisma.emailVerificationToken.create({
+      data: { userId, tokenHash, expiresAt },
+    });
+
+    const baseUrl = this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3001';
+    const verifyUrl = `${baseUrl}/verify-email?token=${rawToken}`;
+
+    await this.emailProvider.sendEmailVerification(email, verifyUrl);
+
+    await this.writeAuditLog(userId, AuditEvent.EMAIL_VERIFICATION_REQUEST, true, userAgent);
+  }
+
+  async confirmEmailVerification(
+    rawToken: string,
+    userAgent?: string,
+  ): Promise<{ emailVerified: boolean }> {
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const token = await this.prisma.emailVerificationToken.findFirst({
+      where: { tokenHash, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+
+    if (!token) {
+      throw new BadRequestException('Verification link is invalid or has expired');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: token.userId },
+        data: { isVerified: true },
+      }),
+      this.prisma.emailVerificationToken.update({
+        where: { id: token.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    await this.writeAuditLog(token.userId, AuditEvent.EMAIL_VERIFICATION_CONFIRM, true, userAgent);
+
+    return { emailVerified: true };
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto, userAgent?: string): Promise<void> {

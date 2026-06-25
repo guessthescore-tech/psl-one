@@ -12,6 +12,12 @@ import {
   ConsolePasswordResetNotifier,
   NullPasswordResetNotifier,
 } from './providers/password-reset-notifier';
+import {
+  EmailProvider,
+  ConsoleEmailProvider,
+  NullEmailProvider,
+  SmtpEmailProvider,
+} from './providers/email-provider';
 import { AuthThrottleGuard } from './guards/auth-throttle.guard';
 
 export function passwordResetNotifierFactory(config: ConfigService): PasswordResetNotifier {
@@ -23,6 +29,21 @@ export function passwordResetNotifierFactory(config: ConfigService): PasswordRes
     return new ConsolePasswordResetNotifier();
   }
   return new NullPasswordResetNotifier(config);
+}
+
+export function emailProviderFactory(config: ConfigService): EmailProvider {
+  const emailProvider = config.get<string>('EMAIL_PROVIDER');
+  // EMAIL_PROVIDER=smtp enables real SMTP delivery (nodemailer).
+  // Requires SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in env.
+  if (emailProvider === 'smtp') {
+    return new SmtpEmailProvider(config);
+  }
+  // ConsoleEmailProvider only in isolated local development.
+  const env = config.get<string>('NODE_ENV') ?? 'development';
+  if (env === 'development') {
+    return new ConsoleEmailProvider();
+  }
+  return new NullEmailProvider(config);
 }
 
 @Module({
@@ -47,6 +68,11 @@ export function passwordResetNotifierFactory(config: ConfigService): PasswordRes
       provide: PasswordResetNotifier,
       inject: [ConfigService],
       useFactory: passwordResetNotifierFactory,
+    },
+    {
+      provide: EmailProvider,
+      inject: [ConfigService],
+      useFactory: emailProviderFactory,
     },
   ],
   exports: [JwtAuthGuard, LocalJwtProvider, RolesGuard],

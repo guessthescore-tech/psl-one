@@ -4,7 +4,7 @@
 **Audience:** Backend engineers  
 **Status:** Current as of STORY-39 (commit `08e3852`)  
 **Last verified:** 2026-06-14  
-**Total models:** 104
+**Total models:** 105
 **Source:** `apps/api/prisma/schema.prisma`  
 **Authority:** Schema is the single source of truth — this document is a navigational aid only  
 
@@ -48,6 +48,7 @@
 | `User` | `id`, `email`, `passwordHash`, `role`, `createdAt` | `role` is `PSL_ADMIN` or `FAN` |
 | `FanProfile` | `id`, `userId`, `displayName`, `clubAffiliation`, `avatarUrl` | One-to-one with User |
 | `PasswordResetToken` | `id`, `userId`, `token`, `expiresAt`, `usedAt` | Single-use token |
+| `EmailVerificationToken` | `id`, `userId`, `tokenHash`, `expiresAt`, `usedAt`, `createdAt` | SHA-256 hashed, 24h TTL, single-use email verification token |
 | `AuthAuditLog` | `id`, `userId`, `action`, `ipAddress`, `createdAt` | Append-only |
 | `ConsentRecord` | `id`, `userId`, `consentType`, `accepted`, `createdAt` | GDPR consent |
 | `AccountDeletionRequest` | `id`, `userId`, `status`, `reason`, `requestedAt`, `cancelledAt` | POPIA deletion request workflow; status is PENDING, CANCELLED, COMPLETED, or REJECTED |
@@ -338,4 +339,4 @@ ChallengeMatch ──1:1──> ChallengeScore
 
 ## Schema File
 
-`apps/api/prisma/schema.prisma` — 104 models, 44 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership, Sprint 32 AudienceSegment)
+`apps/api/prisma/schema.prisma` — 105 models, 45 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership, Sprint 32 AudienceSegment, Sprint 41 EmailVerificationToken)

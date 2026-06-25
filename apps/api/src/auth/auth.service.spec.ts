@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { LocalJwtProvider } from './providers/local-jwt.provider';
 import type { PasswordResetNotifier } from './providers/password-reset-notifier';
+import type { EmailProvider } from './providers/email-provider';
 import type { RegisterDto } from './dto/register.dto';
 
 vi.mock('bcrypt', () => ({
@@ -34,6 +35,12 @@ const makePrismaMock = () => ({
     findFirst: vi.fn(),
     update: vi.fn().mockResolvedValue({}),
   },
+  emailVerificationToken: {
+    create: vi.fn().mockResolvedValue({}),
+    findFirst: vi.fn(),
+    update: vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({}),
+  },
   $transaction: vi.fn().mockImplementation(async (arg: unknown) => {
     if (typeof arg === 'function') {
       return (arg as (tx: unknown) => Promise<unknown>)(makePrismaMock());
@@ -52,6 +59,16 @@ const makeNotifierMock = () => ({
   sendPasswordResetEmail: vi.fn().mockResolvedValue(undefined),
 });
 
+const makeEmailProviderMock = () => ({
+  sendEmailVerification: vi.fn().mockResolvedValue(undefined),
+  sendPasswordReset: vi.fn().mockResolvedValue(undefined),
+});
+
+const makeConfigMock = () => ({
+  get: vi.fn().mockReturnValue(undefined),
+  getOrThrow: vi.fn().mockReturnValue('http://localhost:3001'),
+});
+
 const VALID_REGISTER_DTO: RegisterDto = {
   email: 'fan@pslone.co.za',
   password: 'Password1!',
@@ -64,12 +81,16 @@ describe('AuthService', () => {
   let prisma: ReturnType<typeof makePrismaMock>;
   let provider: ReturnType<typeof makeProviderMock>;
   let notifier: ReturnType<typeof makeNotifierMock>;
+  let emailProvider: ReturnType<typeof makeEmailProviderMock>;
+  let configService: ReturnType<typeof makeConfigMock>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
     provider = makeProviderMock();
     notifier = makeNotifierMock();
+    emailProvider = makeEmailProviderMock();
+    configService = makeConfigMock();
 
     prisma.$transaction = vi.fn().mockImplementation(async (arg: unknown) => {
       if (typeof arg === 'function') {
@@ -86,6 +107,8 @@ describe('AuthService', () => {
       prisma as unknown as PrismaService,
       provider as unknown as LocalJwtProvider,
       notifier as unknown as PasswordResetNotifier,
+      emailProvider as unknown as EmailProvider,
+      configService as never,
     );
   });
 
@@ -134,7 +157,25 @@ describe('AuthService', () => {
     await expect(authService.register(dto)).rejects.toThrow(BadRequestException);
   });
 
-  // ── 5. Login success ──────────────────────────────────────────────────────
+  // ── 5. Register creates unverified user and triggers verification ─────────
+  it('register creates unverified user and triggers email verification', async () => {
+    const newUser = { id: 'uid-1', email: 'fan@pslone.co.za', role: 'FAN' as const };
+    (prisma.user.findUnique as Mock).mockResolvedValue(null);
+    (prisma.user.create as Mock).mockResolvedValue(newUser);
+
+    const result = await authService.register(VALID_REGISTER_DTO);
+
+    expect(result).toMatchObject({ enumerable: true });
+    if (result.enumerable) {
+      expect(result.user.emailVerified).toBe(false);
+    }
+    expect(emailProvider.sendEmailVerification).toHaveBeenCalledWith(
+      'fan@pslone.co.za',
+      expect.stringContaining('/verify-email?token='),
+    );
+  });
+
+  // ── 6. Login success ──────────────────────────────────────────────────────
   it('login returns accessToken on valid credentials', async () => {
     const user = {
       id: 'uid-1',
@@ -142,6 +183,7 @@ describe('AuthService', () => {
       role: 'FAN',
       passwordHash: '$2b$12$mockedhash',
       isActive: true,
+      isVerified: false,
     };
     (prisma.user.findUnique as Mock).mockResolvedValue(user);
     vi.mocked(bcrypt.compare).mockResolvedValueOnce(true as never);
@@ -151,13 +193,35 @@ describe('AuthService', () => {
     expect(result).toMatchObject({ accessToken: 'mock-access-token' });
   });
 
-  // ── 6. Failed login is audited ────────────────────────────────────────────
+  // ── 7. Login includes emailVerified field ─────────────────────────────────
+  it('login includes emailVerified field reflecting isVerified from DB', async () => {
+    const verifiedUser = {
+      id: 'uid-2',
+      email: 'verified@pslone.co.za',
+      role: 'FAN',
+      passwordHash: '$2b$12$mockedhash',
+      isActive: true,
+      isVerified: true,
+    };
+    (prisma.user.findUnique as Mock).mockResolvedValue(verifiedUser);
+    vi.mocked(bcrypt.compare).mockResolvedValueOnce(true as never);
+
+    const result = await authService.login({
+      email: 'verified@pslone.co.za',
+      password: 'Password1!',
+    });
+
+    expect(result.user.emailVerified).toBe(true);
+  });
+
+  // ── 8. Failed login is audited ────────────────────────────────────────────
   it('login writes a failed audit log entry on wrong password', async () => {
     const user = {
       id: 'uid-1',
       email: 'fan@pslone.co.za',
       passwordHash: '$2b$12$mockedhash',
       isActive: true,
+      isVerified: false,
     };
     (prisma.user.findUnique as Mock).mockResolvedValue(user);
     vi.mocked(bcrypt.compare).mockResolvedValueOnce(false as never);
@@ -173,7 +237,7 @@ describe('AuthService', () => {
     );
   });
 
-  // ── 7. Password reset: raw token delivered to notifier, not to console ────
+  // ── 9. Password reset: raw token delivered to notifier, not to console ────
   it('requestPasswordReset passes raw token to notifier, never logs it', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
     (prisma.user.findUnique as Mock).mockResolvedValue({ id: 'uid-1', isActive: true });
@@ -195,7 +259,7 @@ describe('AuthService', () => {
     consoleSpy.mockRestore();
   });
 
-  // ── 8. Password reset: only the hash is stored in DB, not the raw token ───
+  // ── 10. Password reset: only the hash is stored in DB, not the raw token ──
   it('requestPasswordReset stores tokenHash in DB, not raw token', async () => {
     (prisma.user.findUnique as Mock).mockResolvedValue({ id: 'uid-1', isActive: true });
 
@@ -212,7 +276,7 @@ describe('AuthService', () => {
     expect(storedHash).not.toBe(rawTokenPassed);
   });
 
-  // ── 9. Password reset request does not enumerate ──────────────────────────
+  // ── 11. Password reset request does not enumerate ─────────────────────────
   it('requestPasswordReset resolves without error for unknown email', async () => {
     (prisma.user.findUnique as Mock).mockResolvedValue(null);
 
@@ -229,7 +293,7 @@ describe('AuthService', () => {
     );
   });
 
-  // ── 10. Password reset confirm works ──────────────────────────────────────
+  // ── 12. Password reset confirm works ─────────────────────────────────────
   it('confirmPasswordReset updates password when token is valid', async () => {
     const rawToken = 'valid-raw-token-abc123';
     const tokenHash = createHash('sha256').update(rawToken).digest('hex');
@@ -247,6 +311,132 @@ describe('AuthService', () => {
     await expect(
       authService.confirmPasswordReset({ token: rawToken, newPassword: 'NewPassword1!' }),
     ).resolves.toBeUndefined();
+  });
+
+  // ── 13. requestEmailVerification creates hashed token, not raw ────────────
+  it('requestEmailVerification creates hashed token in DB, not raw token', async () => {
+    await authService.requestEmailVerification('uid-1', 'fan@pslone.co.za');
+
+    const createCall = (prisma.emailVerificationToken.create as Mock).mock.calls[0]?.[0] as {
+      data: { tokenHash: string; userId: string };
+    };
+    const storedHash = createCall.data.tokenHash;
+
+    // The URL passed to the provider contains the raw token
+    const verifyUrl = (emailProvider.sendEmailVerification as Mock).mock.calls[0]?.[1] as string;
+    const rawToken = new URL(verifyUrl).searchParams.get('token') as string;
+
+    expect(storedHash).toBe(createHash('sha256').update(rawToken).digest('hex'));
+    expect(storedHash).not.toBe(rawToken);
+    expect(createCall.data.userId).toBe('uid-1');
+  });
+
+  // ── 14. requestEmailVerification audits the event ────────────────────────
+  it('requestEmailVerification writes EMAIL_VERIFICATION_REQUEST audit log', async () => {
+    await authService.requestEmailVerification('uid-1', 'fan@pslone.co.za');
+
+    expect(prisma.authAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'uid-1',
+          event: AuditEvent.EMAIL_VERIFICATION_REQUEST,
+          success: true,
+        }),
+      }),
+    );
+  });
+
+  // ── 15. confirmEmailVerification with valid token sets isVerified=true ────
+  it('confirmEmailVerification with valid token sets isVerified=true', async () => {
+    const rawToken = 'valid-verify-token-xyz';
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const mockToken = {
+      id: 'ev-token-id',
+      userId: 'uid-1',
+      tokenHash,
+      expiresAt: new Date(Date.now() + 60_000),
+      usedAt: null,
+    };
+
+    (prisma.emailVerificationToken.findFirst as Mock).mockResolvedValue(mockToken);
+    prisma.$transaction = vi.fn().mockResolvedValue([{}, {}]);
+
+    const result = await authService.confirmEmailVerification(rawToken);
+
+    expect(result).toEqual({ emailVerified: true });
+    expect(prisma.$transaction).toHaveBeenCalled();
+  });
+
+  // ── 16. confirmEmailVerification with expired token throws ────────────────
+  it('confirmEmailVerification with expired token throws BadRequestException', async () => {
+    (prisma.emailVerificationToken.findFirst as Mock).mockResolvedValue(null);
+
+    await expect(
+      authService.confirmEmailVerification('expired-token'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // ── 17. confirmEmailVerification with invalid token throws ────────────────
+  it('confirmEmailVerification with invalid token throws BadRequestException', async () => {
+    (prisma.emailVerificationToken.findFirst as Mock).mockResolvedValue(null);
+
+    await expect(
+      authService.confirmEmailVerification('completely-invalid-token'),
+    ).rejects.toThrow('Verification link is invalid or has expired');
+  });
+
+  // ── 18. confirmEmailVerification with already-used token throws ───────────
+  it('confirmEmailVerification with already-used token throws BadRequestException', async () => {
+    // findFirst with usedAt: null will return null when token is used
+    (prisma.emailVerificationToken.findFirst as Mock).mockResolvedValue(null);
+
+    await expect(
+      authService.confirmEmailVerification('already-used-token'),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  // ── 19. confirmEmailVerification audits the event ─────────────────────────
+  it('confirmEmailVerification writes EMAIL_VERIFICATION_CONFIRM audit log', async () => {
+    const rawToken = 'audit-test-token';
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const mockToken = {
+      id: 'ev-token-id',
+      userId: 'uid-audit',
+      tokenHash,
+      expiresAt: new Date(Date.now() + 60_000),
+      usedAt: null,
+    };
+
+    (prisma.emailVerificationToken.findFirst as Mock).mockResolvedValue(mockToken);
+    prisma.$transaction = vi.fn().mockResolvedValue([{}, {}]);
+
+    await authService.confirmEmailVerification(rawToken);
+
+    expect(prisma.authAuditLog.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'uid-audit',
+          event: AuditEvent.EMAIL_VERIFICATION_CONFIRM,
+          success: true,
+        }),
+      }),
+    );
+  });
+
+  // ── 20. Email provider never receives raw token directly (only URL) ────────
+  it('email provider receives verifyUrl containing token param, not a raw 32-byte hex string as a direct arg', async () => {
+    await authService.requestEmailVerification('uid-1', 'fan@pslone.co.za');
+
+    const callArgs = (emailProvider.sendEmailVerification as Mock).mock.calls[0] as [
+      string,
+      string,
+    ];
+    const [toArg, urlArg] = callArgs;
+
+    // First arg is the email address (no raw token)
+    expect(toArg).toBe('fan@pslone.co.za');
+    // Second arg is a URL string containing the token as a query parameter
+    expect(urlArg).toMatch(/\/verify-email\?token=[0-9a-f]{64}/);
   });
 });
 

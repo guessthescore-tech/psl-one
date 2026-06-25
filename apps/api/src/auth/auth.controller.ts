@@ -14,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { PasswordResetRequestDto } from './dto/password-reset-request.dto';
 import { PasswordResetConfirmDto } from './dto/password-reset-confirm.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { EmailVerifyDto } from './dto/email-verify.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthThrottleGuard } from './guards/auth-throttle.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -94,5 +95,27 @@ export class AuthController {
   ) {
     await this.authService.changePassword(user.sub, dto, ua);
     return { message: 'Password changed successfully.' };
+  }
+
+  @Post('email/verify/request')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async requestEmailVerification(
+    @CurrentUser() user: TokenPayload,
+    @Headers('user-agent') ua: string,
+  ) {
+    const profile = await this.authService.me(user.sub);
+    await this.authService.requestEmailVerification(user.sub, profile.email, ua);
+    return { message: 'Verification email sent. Please check your inbox.' };
+  }
+
+  @Post('email/verify')
+  @UseGuards(AuthThrottleGuard)
+  @HttpCode(HttpStatus.OK)
+  async confirmEmailVerification(
+    @Body() dto: EmailVerifyDto,
+    @Headers('user-agent') ua: string,
+  ) {
+    return this.authService.confirmEmailVerification(dto.token, ua);
   }
 }

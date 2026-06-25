@@ -23,13 +23,87 @@
 #   http://16.28.84.11/ → web:3001
 #   Testers access directly without /etc/hosts.
 #   Security group rule sgr-076c905eb942f0213 allows 0.0.0.0/0:80.
+#
+# Mode D (named domain HTTPS — beta.pslone.co.za / api.beta.pslone.co.za):
+#   DNS A records: beta.pslone.co.za → 16.28.84.11, api.beta.pslone.co.za → 16.28.84.11
+#   Caddy auto-provisions TLS via Let's Encrypt HTTP-01 challenge (port 80 must be open).
+#   Port 443 security group: open to 0.0.0.0/0.
+#   Caddy will auto-redirect HTTP → HTTPS for these named blocks.
+#   Mode C IP access remains available in parallel.
 
 {
-	email {$CADDY_ACME_EMAIL}
-	auto_https off
+	email {$CADDY_ACME_EMAIL:guessthescore2@gmail.com}
 }
 
-# Mode C: raw-IP API access (strips /api prefix)
+# ── Mode D: named domain — API ──────────────────────────────────────────────
+api.beta.pslone.co.za {
+	reverse_proxy api:4000 {
+		flush_interval -1
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+		}
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options        "DENY"
+		Referrer-Policy        "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-X-Powered-By
+	}
+
+	@sensitive_api path /auth/* /admin/* /health/*
+	header @sensitive_api Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
+}
+
+# ── Mode D: named domain — Web ──────────────────────────────────────────────
+beta.pslone.co.za {
+	reverse_proxy web:3001 {
+		flush_interval -1
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+		}
+	}
+
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		X-Content-Type-Options  "nosniff"
+		X-Frame-Options         "SAMEORIGIN"
+		Referrer-Policy         "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		-Server
+		-X-Powered-By
+	}
+
+	@sensitive_web path /api/* /login /logout /admin/*
+	header @sensitive_web Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
+}
+
+# ── Mode C: raw-IP API access (strips /api prefix) ──────────────────────────
 http://{$EC2_PUBLIC_IP:16.28.84.11}/api/* {
 	uri strip_prefix /api
 
@@ -64,7 +138,7 @@ http://{$EC2_PUBLIC_IP:16.28.84.11}/api/* {
 	}
 }
 
-# Mode C: raw-IP web access
+# ── Mode C: raw-IP web access ────────────────────────────────────────────────
 http://{$EC2_PUBLIC_IP:16.28.84.11} {
 	reverse_proxy web:3001 {
 		flush_interval -1
@@ -97,6 +171,7 @@ http://{$EC2_PUBLIC_IP:16.28.84.11} {
 	}
 }
 
+# ── Mode A/B: named staging domains (HTTP-only; ACME requires public DNS) ────
 http://{$API_DOMAIN:api.staging.pslone.co.za} {
 	reverse_proxy api:4000 {
 		# flush_interval -1 enables WebSocket and Server-Sent-Event streaming
