@@ -7165,6 +7165,100 @@ describe('Sprint 41 docs', () => {
   });
 });
 
+// ─── Sprint 42B: Remove silent fallback data ─────────────────────────────────
+
+describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
+  const pages = [
+    'app/guess-the-score/page.tsx',
+    'app/fixtures/page.tsx',
+    'app/world-cup/page.tsx',
+    'app/world-cup/live/page.tsx',
+    'app/match-centre/page.tsx',
+  ];
+
+  for (const page of pages) {
+    it(`${page} does not import WC_FALLBACK_FIXTURES`, () => {
+      const content = read(page);
+      expect(content).not.toContain('WC_FALLBACK_FIXTURES');
+    });
+  }
+
+  it('guess-the-score page does not use STATIC_MARKETS', () => {
+    expect(read('app/guess-the-score/page.tsx')).not.toContain('STATIC_MARKETS');
+  });
+
+  it('guess-the-score fetches /football/fixtures for open markets', () => {
+    expect(read('app/guess-the-score/page.tsx')).toContain('/football/fixtures');
+  });
+
+  it('guess-the-score shows explicit error when API unavailable', () => {
+    const content = read('app/guess-the-score/page.tsx');
+    expect(content).toContain('Fixture data unavailable');
+  });
+
+  it('fixtures page shows explicit error when API unavailable', () => {
+    const content = read('app/fixtures/page.tsx');
+    expect(content).toContain('Fixtures unavailable');
+  });
+
+  it('world-cup page shows explicit error when API unavailable', () => {
+    const content = read('app/world-cup/page.tsx');
+    expect(content).toContain('Fixtures unavailable');
+  });
+
+  it('match-centre shows explicit error when API unavailable', () => {
+    const content = read('app/match-centre/page.tsx');
+    expect(content).toContain('Match data unavailable');
+  });
+
+  it('world-cup/live page shows explicit error state', () => {
+    const content = read('app/world-cup/live/page.tsx');
+    expect(content).toContain('Fixtures unavailable');
+  });
+});
+
+// ─── Sprint 42B: WcFixtureCard shared component ───────────────────────────
+
+describe('WcFixtureCard shared component', () => {
+  it('WcFixtureCard component exists', () => {
+    expect(exists('components/world-cup/WcFixtureCard.tsx')).toBe(true);
+  });
+  it('WcFixtureCard has flag mapping for SA, France, Brazil, England', () => {
+    const content = read('components/world-cup/WcFixtureCard.tsx');
+    expect(content).toContain('South Africa');
+    expect(content).toContain('France');
+    expect(content).toContain('Brazil');
+    expect(content).toContain('England');
+  });
+  it('WcFixtureCard uses Link for navigation', () => {
+    expect(read('components/world-cup/WcFixtureCard.tsx')).toContain("from 'next/link'");
+  });
+  it('fixtures page uses WcFixtureCard', () => {
+    expect(read('app/fixtures/page.tsx')).toContain('WcFixtureCard');
+  });
+  it('world-cup page uses WcFixtureCard', () => {
+    expect(read('app/world-cup/page.tsx')).toContain('WcFixtureCard');
+  });
+  it('world-cup/live page uses WcFixtureCard', () => {
+    expect(read('app/world-cup/live/page.tsx')).toContain('WcFixtureCard');
+  });
+  it('match-centre page uses WcFixtureCard', () => {
+    expect(read('app/match-centre/page.tsx')).toContain('WcFixtureCard');
+  });
+});
+
+describe('Sprint 42B: news page upgraded', () => {
+  it('news page uses NewsHeroCard', () => {
+    expect(read('app/news/page.tsx')).toContain('NewsHeroCard');
+  });
+  it('news page uses VideoTile', () => {
+    expect(read('app/news/page.tsx')).toContain('VideoTile');
+  });
+  it('news page uses expImg for image generation', () => {
+    expect(read('app/news/page.tsx')).toContain('expImg');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

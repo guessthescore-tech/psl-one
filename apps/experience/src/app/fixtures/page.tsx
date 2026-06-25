@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { WC_FALLBACK_FIXTURES } from '@/lib/data';
+import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
 
 /**
  * Fixtures page — World Cup 2026 specific fixture list.
- * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API is unreachable.
+ * Returns empty list (not static fallback) when API is unavailable.
  *
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
@@ -26,15 +26,15 @@ async function fetchWcFixtures(): Promise<{ fixtures: Fixture[]; isLive: boolean
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 300 },
     });
-    if (!res.ok) return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
+    if (!res.ok) return { fixtures: [], isLive: false };
     const data = await res.json() as Fixture[] | { data?: Fixture[] };
     let fixtures: Fixture[] = [];
     if (Array.isArray(data)) fixtures = data;
     else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as Fixture[];
-    if (fixtures.length === 0) return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
+    if (fixtures.length === 0) return { fixtures: [], isLive: false };
     return { fixtures, isLive: true };
   } catch {
-    return { fixtures: WC_FALLBACK_FIXTURES, isLive: false };
+    return { fixtures: [], isLive: false };
   }
 }
 
@@ -49,12 +49,6 @@ function groupByRound(fixtures: Fixture[]): Map<string, Fixture[]> {
   return map;
 }
 
-function statusBadge(status: string): { label: string; className: string } {
-  const s = status.toLowerCase();
-  if (s === 'in_play' || s === 'in_progress') return { label: 'LIVE', className: 'bg-red-500/20 text-red-400' };
-  if (s === 'finished' || s === 'closed' || s === 'ended') return { label: 'FT', className: 'bg-white/10 text-white/50' };
-  return { label: status.replace(/_/g, ' '), className: 'bg-emerald-500/10 text-emerald-400' };
-}
 
 export default async function FixturesPage() {
   const { fixtures, isLive } = await fetchWcFixtures();
@@ -66,7 +60,7 @@ export default async function FixturesPage() {
       <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center">
         <span className="text-xs text-amber-400/90 font-medium">
           BETA — PSL INACTIVE · World Cup 2026 Beta · No real-money features
-          {!isLive && ' · Demo data'}
+          {!isLive && fixtures.length === 0 && ' · API unavailable — refresh to retry'}
         </span>
       </div>
 
@@ -104,43 +98,34 @@ export default async function FixturesPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-6 py-12">
+        {!isLive && fixtures.length === 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-10 text-center mb-10">
+            <div className="text-4xl mb-4">📡</div>
+            <h3 className="text-lg font-bold text-amber-400 mb-2">Fixtures unavailable</h3>
+            <p className="text-white/50 text-sm max-w-sm mx-auto">
+              Could not load World Cup 2026 fixtures from the beta API.
+              Please refresh the page or try again shortly.
+            </p>
+          </div>
+        )}
         <div className="space-y-10">
           {Array.from(grouped.entries()).map(([round, roundFixtures]) => (
             <section key={round}>
               <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-4">{round}</h2>
               <div className="space-y-2">
-                {roundFixtures.map(f => {
-                  const { label, className: badgeClass } = statusBadge(f.status);
-                  const kickoff = new Date(f.kickoffAt);
-                  return (
-                    <Link
-                      key={f.id}
-                      href={`/matches/${f.id}`}
-                      className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] px-5 py-3.5 transition-colors group"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
-                          {f.homeTeam?.shortName ?? f.homeTeam?.name ?? 'TBD'}{' '}
-                          <span className="text-white/40">vs</span>{' '}
-                          {f.awayTeam?.shortName ?? f.awayTeam?.name ?? 'TBD'}
-                        </p>
-                        <p className="text-xs text-white/40 mt-0.5">
-                          {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          {' · '}
-                          {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0">
-                        {f.homeScore != null && f.awayScore != null && (
-                          <span className="font-mono font-bold text-base tabular-nums">
-                            {f.homeScore} – {f.awayScore}
-                          </span>
-                        )}
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badgeClass}`}>{label}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
+                {roundFixtures.map(f => (
+                  <WcFixtureCard
+                    key={f.id}
+                    id={f.id}
+                    kickoffAt={f.kickoffAt}
+                    status={f.status}
+                    homeTeam={f.homeTeam}
+                    awayTeam={f.awayTeam}
+                    homeScore={f.homeScore}
+                    awayScore={f.awayScore}
+                    round={f.round}
+                  />
+                ))}
               </div>
             </section>
           ))}

@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { WC_FALLBACK_FIXTURES } from '@/lib/data';
 
 /**
  * Guess the Score hub — server component.
- * Falls back to static WC markets derived from WC_FALLBACK_FIXTURES when API unreachable.
+ * Derives open markets from the public /football/fixtures endpoint (SCHEDULED fixtures = open for prediction).
+ * Returns empty list (not static fallback) when API is unavailable.
  *
  * PSL_INACTIVE · GTS_POINTS_ONLY · NO_REAL_MONEY · WC_BETA
  */
@@ -19,30 +19,31 @@ interface OpenMarket {
   status: string;
 }
 
-const STATIC_MARKETS: OpenMarket[] = WC_FALLBACK_FIXTURES
-  .filter(f => f.status === 'SCHEDULED')
-  .map(f => ({
-    id: `demo-market-${f.id}`,
-    fixtureId: f.id,
-    kickoffAt: f.kickoffAt,
-    homeTeam: f.homeTeam,
-    awayTeam: f.awayTeam,
-    status: 'OPEN',
-  }));
+interface ApiFixture {
+  id: string;
+  kickoffAt: string;
+  status: string;
+  homeTeam: { name: string } | null;
+  awayTeam: { name: string } | null;
+}
 
 async function fetchOpenMarkets(): Promise<{ markets: OpenMarket[]; isLive: boolean }> {
   try {
-    const res = await fetch(`${API_BASE}/predictions/open?competitionCode=WC&limit=8`, {
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 120 },
     });
-    if (!res.ok) return { markets: STATIC_MARKETS, isLive: false };
-    const data = await res.json() as OpenMarket[] | { data?: OpenMarket[] };
-    let markets: OpenMarket[] = [];
-    if (Array.isArray(data)) markets = data.slice(0, 8);
-    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) markets = (data.data as OpenMarket[]).slice(0, 8);
-    return markets.length > 0 ? { markets, isLive: true } : { markets: STATIC_MARKETS, isLive: false };
+    if (!res.ok) return { markets: [], isLive: false };
+    const data = await res.json() as ApiFixture[] | { data?: ApiFixture[] };
+    let fixtures: ApiFixture[] = [];
+    if (Array.isArray(data)) fixtures = data;
+    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as ApiFixture[];
+    const markets: OpenMarket[] = fixtures
+      .filter(f => f.status === 'SCHEDULED' || f.status === 'not_started')
+      .slice(0, 8)
+      .map(f => ({ id: f.id, fixtureId: f.id, kickoffAt: f.kickoffAt, homeTeam: f.homeTeam, awayTeam: f.awayTeam, status: 'OPEN' }));
+    return markets.length > 0 ? { markets, isLive: true } : { markets: [], isLive: false };
   } catch {
-    return { markets: STATIC_MARKETS, isLive: false };
+    return { markets: [], isLive: false };
   }
 }
 
@@ -122,44 +123,55 @@ export default async function GuessTheScorePage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-sm font-bold uppercase tracking-widest text-white/60">
               Open Markets — WC 2026
-              {!isLive && <span className="ml-2 text-white/30 font-normal normal-case tracking-normal text-xs">· Demo</span>}
+              {isLive && <span className="ml-2 text-emerald-400/60 font-normal normal-case tracking-normal text-xs">· Live from API</span>}
             </h2>
             <Link href="/predict" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
               All markets →
             </Link>
           </div>
 
-          <div className="space-y-2">
-            {markets.map(m => {
-              const kickoff = new Date(m.kickoffAt);
-              return (
-                <Link
-                  key={m.id}
-                  href={`/predict?fixtureId=${m.fixtureId}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] hover:border-emerald-500/30 px-5 py-4 transition-colors group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
-                      {m.homeTeam?.name ?? 'TBD'}{' '}
-                      <span className="text-white/40">vs</span>{' '}
-                      {m.awayTeam?.name ?? 'TBD'}
-                    </p>
-                    <p className="text-xs text-white/40 mt-0.5">
-                      {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      {' · '}
-                      {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400">
-                      OPEN
-                    </span>
-                    <span className="text-xs text-white/30 group-hover:text-emerald-400 transition-colors">Predict →</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+          {!isLive && markets.length === 0 ? (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
+              <div className="text-3xl mb-3">📡</div>
+              <h3 className="text-sm font-semibold text-amber-400 mb-1">Fixture data unavailable</h3>
+              <p className="text-xs text-white/40 max-w-sm mx-auto">
+                Could not load World Cup 2026 fixtures from the beta API.
+                Please refresh the page or try again shortly.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {markets.map(m => {
+                const kickoff = new Date(m.kickoffAt);
+                return (
+                  <Link
+                    key={m.id}
+                    href={`/predict?fixtureId=${m.fixtureId}`}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] hover:border-emerald-500/30 px-5 py-4 transition-colors group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
+                        {m.homeTeam?.name ?? 'TBD'}{' '}
+                        <span className="text-white/40">vs</span>{' '}
+                        {m.awayTeam?.name ?? 'TBD'}
+                      </p>
+                      <p className="text-xs text-white/40 mt-0.5">
+                        {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {' · '}
+                        {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400">
+                        OPEN
+                      </span>
+                      <span className="text-xs text-white/30 group-hover:text-emerald-400 transition-colors">Predict →</span>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* No real money notice */}
