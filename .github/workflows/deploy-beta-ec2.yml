@@ -153,14 +153,14 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: apps/web/Dockerfile
+          file: apps/experience/Dockerfile
           push: true
           platforms: linux/amd64
           tags: ${{ steps.refs.outputs.web_image_uri }}
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=${{ vars.BETA_API_BASE_URL }}
             NEXT_PUBLIC_ENVIRONMENT_LABEL=beta
-            NEXT_PUBLIC_DESIGN_LAB_ENABLED=true
+            NEXT_PUBLIC_DATA_MODE=WC_BETA
           cache-from: type=gha,scope=beta-web
           cache-to: type=gha,mode=max,scope=beta-web
 
