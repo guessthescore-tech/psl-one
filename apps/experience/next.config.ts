@@ -9,9 +9,8 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Compatibility aliases for staging smoke script and legacy links
+      // Legacy alias — smoke script and old links
       { source: '/predictions', destination: '/guess-the-score', permanent: false },
-      { source: '/social-challenges', destination: '/predict/challenge', permanent: false },
     ];
   },
 };

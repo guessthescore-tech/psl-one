@@ -49,8 +49,8 @@ const checks = isBeta
       ['standings',                      () => expectJson(`${apiBaseUrl}/football/standings`)],
       ['match centre',                   () => expectHtml(`${webBaseUrl}/matches`, ['Match'])],
       ['fantasy landing',                () => expectHtml(`${webBaseUrl}/fantasy`, ['Fantasy'])],
-      ['guess the score landing',        () => expectHtml(`${webBaseUrl}/predictions`, ['Predict'])],
-      ['social prediction landing',      () => expectHtml(`${webBaseUrl}/social-challenges`, ['Challenge'])],
+      ['guess the score landing',        () => expectHtml(`${webBaseUrl}/guess-the-score`, ['Score'])],
+      ['social prediction landing',      () => expectHtml(`${webBaseUrl}/predict`, ['Score'])],
       ['leaderboards',                   () => expectHtml(`${webBaseUrl}/leaderboards`, ['Leaderboard'])],
       ['unauthenticated admin rejection', () => expectStatus(`${apiBaseUrl}/seasons/admin/context`, [401, 403])],
     ]
