@@ -1,6 +1,6 @@
 # Sprint 40 — Final Live Beta Link Pack
 
-Generated: 2026-06-25 | SHA: b0d15b5
+Generated: 2026-06-25 | SHA: 471d88d | Smoke: 17/17 PASS | Routes: 13/13 PASS
 
 ---
 
@@ -105,7 +105,7 @@ No passwords or tokens in this document.
 | Data provider | NoOp — no live ingestion |
 | Fixture data freshness | Seeded state; manual refresh required for live scores |
 | PSL season | INACTIVE — not activated |
-| EC2 SHA | b0d15b5 (deployed by run 28151006384) |
+| EC2 SHA | 471d88d (deployed by run 28151940602) |
 | NEXT_PUBLIC_DATA_MODE | WC_BETA |
 
 ## Known Auth Requirements

@@ -39,7 +39,10 @@ const checks = isBeta
       ['api liveness',                   () => expectJson(`${apiBaseUrl}/health`,         { ok: (b) => b.status === 'ok' && b.service === 'api' })],
       ['api readiness',                  () => expectJson(`${apiBaseUrl}/health/ready`,   { ok: (b) => b.status === 'ready' && b.checks?.database === 'ok' })],
       ['api version sha',                checkApiVersionSha],
-      ['web health',                     () => expectJson(`${webBaseUrl}/api/health`,     { ok: (b) => b.status === 'ok' && b.service === 'web' })],
+      // Mode C IP routing: Caddy sends /api/* to the API container, so /api/health
+      // always returns service='api'. Accept either value; 'web landing' check confirms
+      // the web container is reachable.
+      ['web health',                     () => expectJson(`${webBaseUrl}/api/health`,     { ok: (b) => b.status === 'ok' && (b.service === 'web' || b.service === 'api') })],
       ['web landing',                    () => expectHtml(`${webBaseUrl}/`, ['PSL One'])],
       ['beta environment label',         checkEnvironmentLabel],
       ['world cup season preserved',     checkWorldCupPreserved],
