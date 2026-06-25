@@ -100,6 +100,7 @@ services:
       PORT: "3001"
       HOSTNAME: "0.0.0.0"
       NEXT_PUBLIC_ENVIRONMENT_LABEL: beta
+      NEXT_PUBLIC_DATA_MODE: WC_BETA
       NEXT_PUBLIC_GIT_SHA: ${GIT_SHA:-unknown}
       NEXT_PUBLIC_BUILD_TIMESTAMP: ${BUILD_TIMESTAMP:-unknown}
       # Internal API URL for server-side Next.js calls (same Docker network)

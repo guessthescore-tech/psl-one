@@ -17,10 +17,84 @@
 #   Caddy provisions TLS via Let's Encrypt HTTP-01 on first request.
 #   Rebuild web image with NEXT_PUBLIC_API_BASE_URL=https://{API_DOMAIN}.
 #   Requires Elastic IP (create_elastic_ip = true) for a stable IP during ACME validation.
+#
+# Mode C (direct raw-IP access — security group port 80 open to 0.0.0.0/0):
+#   http://16.28.84.11/api/* → strips /api prefix → api:4000
+#   http://16.28.84.11/ → web:3001
+#   Testers access directly without /etc/hosts.
+#   Security group rule sgr-076c905eb942f0213 allows 0.0.0.0/0:80.
 
 {
 	email {$CADDY_ACME_EMAIL}
 	auto_https off
+}
+
+# Mode C: raw-IP API access (strips /api prefix)
+http://{$EC2_PUBLIC_IP:16.28.84.11}/api/* {
+	uri strip_prefix /api
+
+	reverse_proxy api:4000 {
+		flush_interval -1
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+		}
+	}
+
+	request_body {
+		max_size 10MB
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options        "DENY"
+		Referrer-Policy        "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	@sensitive_api path /auth/* /admin/*
+	header @sensitive_api Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
+}
+
+# Mode C: raw-IP web access
+http://{$EC2_PUBLIC_IP:16.28.84.11} {
+	reverse_proxy web:3001 {
+		flush_interval -1
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+		transport http {
+			dial_timeout        5s
+			response_header_timeout 60s
+		}
+	}
+
+	request_body {
+		max_size 5MB
+	}
+
+	header {
+		X-Content-Type-Options  "nosniff"
+		X-Frame-Options         "SAMEORIGIN"
+		Referrer-Policy         "strict-origin-when-cross-origin"
+		-Server
+		-X-Powered-By
+	}
+
+	@sensitive_web path /api/* /login /logout /admin/*
+	header @sensitive_web Cache-Control "no-store, no-cache, must-revalidate"
+
+	log {
+		output stderr
+		format console
+	}
 }
 
 http://{$API_DOMAIN:api.staging.pslone.co.za} {

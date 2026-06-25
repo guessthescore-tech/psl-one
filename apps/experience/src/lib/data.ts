@@ -308,8 +308,8 @@ export const WC_FIXTURES: ExpFixture[] = [
     homeClub: SOUTH_AFRICA, awayClub: SOUTH_KOREA,
     homeScore: null, awayScore: null,
     status: 'SCHEDULED', minute: null,
-    kickoffAt: '2026-06-26T01:00:00Z',
-    venue: 'Levi\'s Stadium, San Francisco',
+    kickoffAt: '2026-06-25T01:00:00Z',
+    venue: 'Estadio BBVA, Guadalupe, Mexico',
     competition: 'FIFA World Cup 2026', group: 'Group A',
   },
   {
