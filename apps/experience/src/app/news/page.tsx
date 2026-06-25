@@ -1,6 +1,8 @@
 import Link from 'next/link';
-import { WC_STORIES, WC_VIDEOS } from '@/lib/data';
+import { WC_STORIES, WC_VIDEOS, expImg } from '@/lib/data';
 import type { ExpStory, ExpVideo } from '@/lib/data';
+import { NewsHeroCard } from '@/components/design/NewsHeroCard';
+import { VideoTile } from '@/components/design/VideoTile';
 
 /**
  * News — World Cup 2026 News Centre (Sprint 38C rebuild).
@@ -68,22 +70,13 @@ export default function NewsPage() {
         {featured && (
           <section>
             <h2 className="text-xs font-bold uppercase tracking-widest text-white/40 mb-5">Featured</h2>
-            <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-900/20 to-transparent p-6 md:p-8">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                {featured.category}
-              </span>
-              <h3 className="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight leading-tight">
-                {featured.title}
-              </h3>
-              <p className="mt-3 text-white/60 leading-relaxed max-w-2xl">
-                {featured.summary}
-              </p>
-              <div className="mt-5 flex items-center gap-4 text-xs text-white/40">
-                <span>{formatDate(featured.publishedAt)}</span>
-                <span>·</span>
-                <span>{formatReadTime(featured.readMinutes)}</span>
-              </div>
-            </div>
+            <NewsHeroCard
+              title={featured.title}
+              category={featured.category}
+              excerpt={featured.summary}
+              publishedAt={featured.publishedAt}
+              imageUrl={expImg(`story-wc-${featured.id}`, 800, 450)}
+            />
           </section>
         )}
 
@@ -122,21 +115,15 @@ export default function NewsPage() {
                 All videos →
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-6 px-6 sm:grid sm:grid-cols-3 sm:overflow-x-visible sm:pb-0 sm:mx-0 sm:px-0">
               {topVideos.map(video => (
-                <div
+                <VideoTile
                   key={video.id}
-                  className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05] transition-colors"
-                >
-                  <div className="w-full aspect-video rounded-lg bg-white/5 flex items-center justify-center mb-3">
-                    <span className="text-2xl">▶</span>
-                  </div>
-                  <span className="text-xs font-medium text-white/40 uppercase tracking-wide">
-                    {video.category}
-                  </span>
-                  <h3 className="mt-1 text-xs font-semibold leading-snug">{video.title}</h3>
-                  <p className="mt-2 text-xs text-white/30">{formatDuration(video.durationSeconds)}</p>
-                </div>
+                  title={video.title}
+                  duration={formatDuration(video.durationSeconds)}
+                  category={video.category}
+                  thumbnailUrl={expImg(`video-wc-${video.id}`, 400, 225)}
+                />
               ))}
             </div>
           </section>

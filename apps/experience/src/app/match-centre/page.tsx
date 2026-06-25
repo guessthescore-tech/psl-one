@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { WC_FALLBACK_FIXTURES } from '@/lib/data';
+import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
 
 /**
  * Match Centre — live-score style layout, server component.
- * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
+ * Returns empty list (not static fallback) when API is unavailable.
  *
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
@@ -22,19 +22,19 @@ interface Fixture {
   awayScore?: number | null;
 }
 
-async function fetchTodayFixtures(): Promise<Fixture[]> {
+async function fetchTodayFixtures(): Promise<{ fixtures: Fixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return WC_FALLBACK_FIXTURES;
+    if (!res.ok) return { fixtures: [], isLive: false };
     const data = await res.json() as Fixture[] | { data?: Fixture[] };
     let fixtures: Fixture[] = [];
     if (Array.isArray(data)) fixtures = data;
     else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as Fixture[];
-    return fixtures.length > 0 ? fixtures : WC_FALLBACK_FIXTURES;
+    return fixtures.length > 0 ? { fixtures, isLive: true } : { fixtures: [], isLive: false };
   } catch {
-    return WC_FALLBACK_FIXTURES;
+    return { fixtures: [], isLive: false };
   }
 }
 
@@ -44,19 +44,9 @@ function isToday(iso: string): boolean {
   return d.toDateString() === now.toDateString();
 }
 
-function statusLabel(status: string): { label: string; className: string; pulse?: boolean } {
-  const s = status.toLowerCase();
-  if (s === 'in_play' || s === 'in_progress' || s === 'half_time') {
-    return { label: s === 'half_time' ? 'HT' : 'LIVE', className: 'text-red-400 bg-red-500/20', pulse: true };
-  }
-  if (s === 'finished' || s === 'closed' || s === 'ended') {
-    return { label: 'FT', className: 'text-white/50 bg-white/10' };
-  }
-  return { label: 'SCH', className: 'text-emerald-400 bg-emerald-500/10' };
-}
 
 export default async function MatchCentrePage() {
-  const all = await fetchTodayFixtures();
+  const { fixtures: all, isLive } = await fetchTodayFixtures();
   const todayMatches = all.filter(f => isToday(f.kickoffAt));
   const upcoming = all.filter(f => !isToday(f.kickoffAt)).slice(0, 10);
 
@@ -90,6 +80,18 @@ export default async function MatchCentrePage() {
 
       <div className="max-w-5xl mx-auto px-6 py-12 space-y-12">
 
+        {/* API unavailable notice */}
+        {!isLive && all.length === 0 && (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
+            <div className="text-3xl mb-3">📡</div>
+            <h3 className="text-sm font-semibold text-amber-400 mb-1">Match data unavailable</h3>
+            <p className="text-xs text-white/40 max-w-sm mx-auto">
+              Could not load World Cup 2026 fixtures from the beta API.
+              Please refresh the page or try again shortly.
+            </p>
+          </div>
+        )}
+
         {/* Today */}
         <section>
           <div className="flex items-center gap-2 mb-5">
@@ -99,50 +101,20 @@ export default async function MatchCentrePage() {
 
           {todayMatches.length > 0 ? (
             <div className="space-y-2">
-              {todayMatches.map(f => {
-                const { label, className: badgeClass, pulse } = statusLabel(f.status);
-                const kickoff = new Date(f.kickoffAt);
-                return (
-                  <Link
-                    key={f.id}
-                    href={`/matches/${f.id}`}
-                    className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] px-5 py-4 transition-colors group"
-                  >
-                    {/* Competition badge */}
-                    {f.competitionCode && (
-                      <span className="text-xs font-mono text-white/30 flex-shrink-0 w-8 text-center">
-                        {f.competitionCode}
-                      </span>
-                    )}
-
-                    {/* Teams */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate group-hover:text-emerald-400 transition-colors">
-                        {f.homeTeam?.shortName ?? f.homeTeam?.name ?? 'TBD'}{' '}
-                        <span className="text-white/30">vs</span>{' '}
-                        {f.awayTeam?.shortName ?? f.awayTeam?.name ?? 'TBD'}
-                      </p>
-                      <p className="text-xs text-white/40 mt-0.5">
-                        {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
-                        {f.round ? ` · ${f.round}` : ''}
-                      </p>
-                    </div>
-
-                    {/* Score */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      {f.homeScore != null && f.awayScore != null && (
-                        <span className="font-mono font-bold text-xl tabular-nums">
-                          {f.homeScore} – {f.awayScore}
-                        </span>
-                      )}
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 ${badgeClass}`}>
-                        {pulse && <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />}
-                        {label}
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
+              {todayMatches.map(f => (
+                <WcFixtureCard
+                  key={f.id}
+                  id={f.id}
+                  kickoffAt={f.kickoffAt}
+                  status={f.status}
+                  homeTeam={f.homeTeam}
+                  awayTeam={f.awayTeam}
+                  homeScore={f.homeScore}
+                  awayScore={f.awayScore}
+                  round={f.round}
+                  variant={f.status === 'IN_PLAY' || f.status === 'in_progress' ? 'live' : 'default'}
+                />
+              ))}
             </div>
           ) : (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-8 text-center">
@@ -157,35 +129,20 @@ export default async function MatchCentrePage() {
           <section>
             <h2 className="text-sm font-bold uppercase tracking-widest text-white/60 mb-5">Upcoming</h2>
             <div className="space-y-2">
-              {upcoming.map(f => {
-                const kickoff = new Date(f.kickoffAt);
-                return (
-                  <Link
-                    key={f.id}
-                    href={`/matches/${f.id}`}
-                    className="flex items-center gap-4 rounded-xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] px-5 py-3 transition-colors group"
-                  >
-                    {f.competitionCode && (
-                      <span className="text-xs font-mono text-white/30 flex-shrink-0 w-8 text-center">
-                        {f.competitionCode}
-                      </span>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm truncate group-hover:text-emerald-400 transition-colors">
-                        {f.homeTeam?.shortName ?? f.homeTeam?.name ?? 'TBD'}{' '}
-                        <span className="text-white/30">vs</span>{' '}
-                        {f.awayTeam?.shortName ?? f.awayTeam?.name ?? 'TBD'}
-                      </p>
-                      <p className="text-xs text-white/40 mt-0.5">
-                        {kickoff.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        {' · '}
-                        {kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' })} SAST
-                      </p>
-                    </div>
-                    <span className="text-xs text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity">Predict →</span>
-                  </Link>
-                );
-              })}
+              {upcoming.map(f => (
+                <WcFixtureCard
+                  key={f.id}
+                  id={f.id}
+                  kickoffAt={f.kickoffAt}
+                  status={f.status}
+                  homeTeam={f.homeTeam}
+                  awayTeam={f.awayTeam}
+                  homeScore={f.homeScore}
+                  awayScore={f.awayScore}
+                  round={f.round}
+                  variant="predict"
+                />
+              ))}
             </div>
           </section>
         )}

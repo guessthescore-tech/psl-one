@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import { WC_FALLBACK_FIXTURES } from '@/lib/data';
+import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
 
 /**
  * World Cup 2026 Hub — server component.
- * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
+ * Returns empty list (not static fallback) when API is unavailable.
  *
  * PSL_INACTIVE · WC_BETA · NO_REAL_MONEY · GTS_POINTS_ONLY · FANTASY_POINTS_ONLY
  */
@@ -21,24 +21,24 @@ interface WcFixture {
   round?: string | null;
 }
 
-async function fetchUpcomingWcFixtures(): Promise<WcFixture[]> {
+async function fetchUpcomingWcFixtures(): Promise<{ fixtures: WcFixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 300 },
     });
-    if (!res.ok) return WC_FALLBACK_FIXTURES.slice(0, 6);
+    if (!res.ok) return { fixtures: [], isLive: false };
     const data = await res.json() as WcFixture[] | { data?: WcFixture[] };
     let fixtures: WcFixture[] = [];
     if (Array.isArray(data)) fixtures = data;
     else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as WcFixture[];
-    return fixtures.length > 0 ? fixtures.slice(0, 6) : WC_FALLBACK_FIXTURES.slice(0, 6);
+    return fixtures.length > 0 ? { fixtures: fixtures.slice(0, 6), isLive: true } : { fixtures: [], isLive: false };
   } catch {
-    return WC_FALLBACK_FIXTURES.slice(0, 6);
+    return { fixtures: [], isLive: false };
   }
 }
 
 export default async function WorldCupPage() {
-  const fixtures = await fetchUpcomingWcFixtures();
+  const { fixtures, isLive } = await fetchUpcomingWcFixtures();
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -100,55 +100,35 @@ export default async function WorldCupPage() {
             </Link>
           </div>
 
-          {fixtures.length > 0 ? (
-            <div className="space-y-3">
+          {!isLive && fixtures.length === 0 ? (
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-8 text-center">
+              <div className="text-3xl mb-3">📡</div>
+              <h3 className="text-sm font-semibold text-amber-400 mb-1">Fixtures unavailable</h3>
+              <p className="text-xs text-white/40 max-w-sm mx-auto">
+                Could not load World Cup 2026 fixtures. Please refresh the page or check back shortly.
+              </p>
+            </div>
+          ) : fixtures.length > 0 ? (
+            <div className="space-y-2">
               {fixtures.map(f => (
-                <Link
+                <WcFixtureCard
                   key={f.id}
-                  href={`/matches/${f.id}`}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] px-5 py-4 transition-colors group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm truncate text-white group-hover:text-emerald-400 transition-colors">
-                      {f.homeTeam?.name ?? 'TBD'}{' '}
-                      <span className="text-white/40">vs</span>{' '}
-                      {f.awayTeam?.name ?? 'TBD'}
-                    </p>
-                    <p className="text-xs text-white/40 mt-0.5">
-                      {new Date(f.kickoffAt).toLocaleDateString('en-ZA', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                      })}{' '}
-                      ·{' '}
-                      {new Date(f.kickoffAt).toLocaleTimeString('en-ZA', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        timeZone: 'Africa/Johannesburg',
-                      })}{' '}
-                      SAST
-                      {f.round ? ` · ${f.round}` : ''}
-                    </p>
-                  </div>
-                  <div className="flex-shrink-0">
-                    {f.homeScore != null && f.awayScore != null ? (
-                      <span className="font-mono font-bold text-lg tabular-nums">
-                        {f.homeScore} – {f.awayScore}
-                      </span>
-                    ) : (
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-500/10 text-emerald-400">
-                        {f.status.replace(/_/g, ' ')}
-                      </span>
-                    )}
-                  </div>
-                </Link>
+                  id={f.id}
+                  kickoffAt={f.kickoffAt}
+                  status={f.status}
+                  homeTeam={f.homeTeam}
+                  awayTeam={f.awayTeam}
+                  homeScore={f.homeScore}
+                  awayScore={f.awayScore}
+                  round={f.round}
+                />
               ))}
             </div>
           ) : (
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-10 text-center">
               <div className="text-3xl mb-3">📅</div>
               <p className="text-white/50 text-sm">
-                Fixtures not yet loaded. World Cup 2026 starts June 2026.
+                No upcoming fixtures found.
               </p>
             </div>
           )}

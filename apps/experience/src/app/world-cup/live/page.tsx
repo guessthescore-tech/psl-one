@@ -1,9 +1,9 @@
 import { ScoreBatWorldCupWidget } from '../../../components/world-cup/ScoreBatWorldCupWidget';
-import { WC_FALLBACK_FIXTURES } from '@/lib/data';
+import { WcFixtureCard } from '../../../components/world-cup/WcFixtureCard';
 
 /**
  * World Cup 2026 Live page — server component.
- * Falls back to WC_FALLBACK_FIXTURES (includes SA vs KOR) when API unreachable.
+ * Returns empty list (not static fallback) when API is unavailable.
  *
  * No PSL activation. No real money. No betting/odds content.
  * World Cup beta context only.
@@ -21,17 +21,19 @@ interface WcFixture {
   awayScore?: number | null;
 }
 
-async function fetchWcFixtures(): Promise<WcFixture[]> {
+async function fetchWcFixtures(): Promise<{ fixtures: WcFixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return WC_FALLBACK_FIXTURES;
-    const data = await res.json() as WcFixture[];
-    const fixtures = Array.isArray(data) ? data : [];
-    return fixtures.length > 0 ? fixtures : WC_FALLBACK_FIXTURES;
+    if (!res.ok) return { fixtures: [], isLive: false };
+    const data = await res.json() as WcFixture[] | { data?: WcFixture[] };
+    let fixtures: WcFixture[] = [];
+    if (Array.isArray(data)) fixtures = data;
+    else if (data && typeof data === 'object' && 'data' in data && Array.isArray(data.data)) fixtures = data.data as WcFixture[];
+    return fixtures.length > 0 ? { fixtures, isLive: true } : { fixtures: [], isLive: false };
   } catch {
-    return WC_FALLBACK_FIXTURES;
+    return { fixtures: [], isLive: false };
   }
 }
 
@@ -48,7 +50,7 @@ async function fetchWidgetConfig(): Promise<{ available: boolean; embedUrl: stri
 }
 
 export default async function WorldCupLivePage() {
-  const [fixtures, widgetConfig] = await Promise.all([
+  const [{ fixtures, isLive }, widgetConfig] = await Promise.all([
     fetchWcFixtures(),
     fetchWidgetConfig(),
   ]);
@@ -90,9 +92,11 @@ export default async function WorldCupLivePage() {
               <span className="inline-block w-2 h-2 rounded-full bg-red-500 animate-pulse" />
               <h2 className="text-sm font-bold uppercase tracking-widest text-red-400">Live Now</h2>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {liveFixtures.map(f => (
-                <FixtureCard key={f.id} fixture={f} liveStyle />
+                <WcFixtureCard key={f.id} id={f.id} kickoffAt={f.kickoffAt} status={f.status}
+                  homeTeam={f.homeTeam} awayTeam={f.awayTeam} homeScore={f.homeScore} awayScore={f.awayScore}
+                  variant="live" />
               ))}
             </div>
           </section>
@@ -117,9 +121,10 @@ export default async function WorldCupLivePage() {
         {upcomingFixtures.length > 0 && (
           <section>
             <h2 className="text-sm font-bold uppercase tracking-widest text-white/60 mb-5">Upcoming Matches</h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {upcomingFixtures.slice(0, 8).map(f => (
-                <FixtureCard key={f.id} fixture={f} />
+                <WcFixtureCard key={f.id} id={f.id} kickoffAt={f.kickoffAt} status={f.status}
+                  homeTeam={f.homeTeam} awayTeam={f.awayTeam} homeScore={f.homeScore} awayScore={f.awayScore} />
               ))}
             </div>
           </section>
@@ -129,22 +134,28 @@ export default async function WorldCupLivePage() {
         {completedFixtures.length > 0 && (
           <section>
             <h2 className="text-sm font-bold uppercase tracking-widest text-white/60 mb-5">Recent Results</h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {completedFixtures.slice(0, 5).map(f => (
-                <FixtureCard key={f.id} fixture={f} />
+                <WcFixtureCard key={f.id} id={f.id} kickoffAt={f.kickoffAt} status={f.status}
+                  homeTeam={f.homeTeam} awayTeam={f.awayTeam} homeScore={f.homeScore} awayScore={f.awayScore} />
               ))}
             </div>
           </section>
         )}
 
-        {/* Empty state */}
+        {/* Empty / error state */}
         {fixtures.length === 0 && (
-          <section className="rounded-xl border border-white/10 bg-white/[0.03] p-12 text-center">
-            <div className="text-4xl mb-4">📅</div>
-            <h3 className="text-lg font-bold mb-2">Fixtures Not Yet Loaded</h3>
+          <section className={`rounded-xl border p-12 text-center ${
+            !isLive ? 'border-amber-500/20 bg-amber-500/5' : 'border-white/10 bg-white/[0.03]'
+          }`}>
+            <div className="text-4xl mb-4">{!isLive ? '📡' : '📅'}</div>
+            <h3 className="text-lg font-bold mb-2">
+              {!isLive ? 'Fixtures unavailable' : 'Fixtures Not Yet Loaded'}
+            </h3>
             <p className="text-white/50 text-sm max-w-sm mx-auto">
-              World Cup 2026 fixtures will appear here once imported.
-              Run the dry-run fixture import tool to preview available matches.
+              {!isLive
+                ? 'Could not load World Cup 2026 fixtures from the beta API. Please refresh the page or try again shortly.'
+                : 'World Cup 2026 fixtures will appear here once imported.'}
             </p>
           </section>
         )}
@@ -159,41 +170,3 @@ export default async function WorldCupLivePage() {
   );
 }
 
-function FixtureCard({ fixture: f, liveStyle }: { fixture: WcFixture; liveStyle?: boolean }) {
-  const kickoff = new Date(f.kickoffAt);
-  const timeStr = kickoff.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Johannesburg' });
-  const dateStr = kickoff.toLocaleDateString('en-ZA', { weekday: 'short', month: 'short', day: 'numeric' });
-
-  const hasScore = f.homeScore != null && f.awayScore != null;
-
-  return (
-    <div className={`rounded-xl border px-5 py-4 flex items-center justify-between gap-4 transition-colors ${
-      liveStyle
-        ? 'border-red-500/30 bg-red-500/5'
-        : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
-    }`}>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">
-          {f.homeTeam?.name ?? 'TBD'} <span className="text-white/40">vs</span> {f.awayTeam?.name ?? 'TBD'}
-        </p>
-        <p className="text-xs text-white/40 mt-0.5">{dateStr} · {timeStr} SAST</p>
-      </div>
-      <div className="flex items-center gap-3 flex-shrink-0">
-        {hasScore && (
-          <span className="font-mono font-bold text-lg tabular-nums">
-            {f.homeScore} – {f.awayScore}
-          </span>
-        )}
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-          liveStyle
-            ? 'bg-red-500/20 text-red-400'
-            : f.status === 'FINISHED' || f.status === 'closed'
-              ? 'bg-white/10 text-white/50'
-              : 'bg-emerald-500/10 text-emerald-400'
-        }`}>
-          {liveStyle ? 'LIVE' : f.status.replace(/_/g, ' ')}
-        </span>
-      </div>
-    </div>
-  );
-}
