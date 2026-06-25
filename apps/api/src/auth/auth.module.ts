@@ -16,6 +16,7 @@ import {
   EmailProvider,
   ConsoleEmailProvider,
   NullEmailProvider,
+  SmtpEmailProvider,
 } from './providers/email-provider';
 import { AuthThrottleGuard } from './guards/auth-throttle.guard';
 
@@ -31,10 +32,14 @@ export function passwordResetNotifierFactory(config: ConfigService): PasswordRes
 }
 
 export function emailProviderFactory(config: ConfigService): EmailProvider {
-  const env = config.get<string>('NODE_ENV') ?? 'development';
+  const emailProvider = config.get<string>('EMAIL_PROVIDER');
+  // EMAIL_PROVIDER=smtp enables real SMTP delivery (nodemailer).
+  // Requires SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in env.
+  if (emailProvider === 'smtp') {
+    return new SmtpEmailProvider(config);
+  }
   // ConsoleEmailProvider only in isolated local development.
-  // test / staging / production all use NullEmailProvider so raw
-  // tokens are never written to shared or structured logs.
+  const env = config.get<string>('NODE_ENV') ?? 'development';
   if (env === 'development') {
     return new ConsoleEmailProvider();
   }
