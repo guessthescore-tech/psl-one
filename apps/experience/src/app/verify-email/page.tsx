@@ -15,7 +15,7 @@ type VerifyResult =
 
 async function verifyToken(token: string): Promise<VerifyResult> {
   try {
-    const res = await fetch(`${API_BASE}/api/auth/email/verify`, {
+    const res = await fetch(`${API_BASE}/auth/email/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),

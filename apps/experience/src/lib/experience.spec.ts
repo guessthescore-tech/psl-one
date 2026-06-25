@@ -815,11 +815,10 @@ describe('Account & Auth pages', () => {
     expect(content).toContain('Sign in');
   });
 
-  it('register page renders form with terms checkbox', () => {
+  it('register page redirects to /sign-up', () => {
     const content = read('app/register/page.tsx');
-    expect(content).toContain('type="checkbox"');
-    expect(content).toContain('Terms');
-    expect(content).toContain('Create Account');
+    expect(content).toContain('redirect');
+    expect(content).toContain('/sign-up');
   });
 
   it('account overview renders profile summary', () => {
@@ -986,8 +985,8 @@ describe('aria labels on auth forms', () => {
   it('sign-in form has aria-label', () => {
     expect(read('app/sign-in/page.tsx')).toContain('aria-label="Sign in"');
   });
-  it('register form has aria-label', () => {
-    expect(read('app/register/page.tsx')).toContain('aria-label="Create account"');
+  it('register page redirects to sign-up', () => {
+    expect(read('app/register/page.tsx')).toContain('/sign-up');
   });
   it('sign-in button has aria-busy', () => {
     expect(read('app/sign-in/page.tsx')).toContain('aria-busy');
@@ -7069,8 +7068,8 @@ describe('SignUpForm', () => {
   it('has consentAnalytics checkbox', () => {
     expect(read('app/sign-up/SignUpForm.tsx')).toContain('consentAnalytics');
   });
-  it('submits to /api/auth/register', () => {
-    expect(read('app/sign-up/SignUpForm.tsx')).toContain('/api/auth/register');
+  it('submits to /auth/register', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('/auth/register');
   });
   it('has success state with verification message', () => {
     const content = read('app/sign-up/SignUpForm.tsx');
@@ -7112,8 +7111,8 @@ describe('verify-email page', () => {
   it('app/verify-email/page.tsx exists', () => {
     expect(exists('app/verify-email/page.tsx')).toBe(true);
   });
-  it('calls POST /api/auth/email/verify', () => {
-    expect(read('app/verify-email/page.tsx')).toContain('/api/auth/email/verify');
+  it('calls POST /auth/email/verify', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('/auth/email/verify');
   });
   it('handles no-token case', () => {
     expect(read('app/verify-email/page.tsx')).toContain('no_token');

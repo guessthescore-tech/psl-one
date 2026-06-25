@@ -80,7 +80,7 @@ export function SignUpForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/auth/register`, {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -111,7 +111,7 @@ export function SignUpForm() {
     if (!success) return;
     setResendLoading(true);
     try {
-      await fetch(`${API_BASE}/api/auth/email/verify/request`, {
+      await fetch(`${API_BASE}/auth/email/verify/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
