@@ -6857,6 +6857,315 @@ describe('Sprint 38B — Fan Pages & Admin Portal', () => {
   }
 });
 
+// ─── Sprint 41: Design system components ────────────────────────────────────
+
+describe('design system components exist', () => {
+  const designComponents = [
+    'components/design/PslOneHero.tsx',
+    'components/design/PslOneSection.tsx',
+    'components/design/PlayerCard.tsx',
+    'components/design/ClubCrest.tsx',
+    'components/design/SponsorBanner.tsx',
+    'components/design/NewsHeroCard.tsx',
+    'components/design/VideoTile.tsx',
+    'components/design/MatchdayBanner.tsx',
+  ];
+  for (const c of designComponents) {
+    it(c.split('/').pop()!, () => expect(exists(c)).toBe(true));
+  }
+});
+
+describe('PslOneHero', () => {
+  it('is a client component', () => {
+    expect(read('components/design/PslOneHero.tsx')).toContain("'use client'");
+  });
+  it('uses useReducedMotion for accessibility', () => {
+    expect(read('components/design/PslOneHero.tsx')).toContain('useReducedMotion');
+  });
+  it('renders a section with aria-label', () => {
+    expect(read('components/design/PslOneHero.tsx')).toContain('aria-label');
+  });
+  it('has min-h-[40vh] mobile and min-h-[60vh] desktop', () => {
+    const content = read('components/design/PslOneHero.tsx');
+    expect(content).toContain('min-h-[40vh]');
+    expect(content).toContain('min-h-[60vh]');
+  });
+  it('uses exp-gold accent', () => {
+    expect(read('components/design/PslOneHero.tsx')).toContain('exp-gold');
+  });
+  it('CTA link has min-h-[44px] touch target', () => {
+    expect(read('components/design/PslOneHero.tsx')).toContain('min-h-[44px]');
+  });
+});
+
+describe('PslOneSection', () => {
+  it('supports dark and light variants', () => {
+    const content = read('components/design/PslOneSection.tsx');
+    expect(content).toContain('bg-exp-navy');
+    expect(content).toContain('bg-exp-surface');
+  });
+  it('renders tag chip', () => {
+    expect(read('components/design/PslOneSection.tsx')).toContain('tag');
+  });
+  it('renders children', () => {
+    expect(read('components/design/PslOneSection.tsx')).toContain('children');
+  });
+});
+
+describe('PlayerCard', () => {
+  it('shows initials when no imageUrl', () => {
+    expect(read('components/design/PlayerCard.tsx')).toContain('getInitials');
+  });
+  it('shows price in gold', () => {
+    const content = read('components/design/PlayerCard.tsx');
+    expect(content).toContain('exp-gold');
+    expect(content).toContain('price');
+  });
+  it('shows score when provided', () => {
+    expect(read('components/design/PlayerCard.tsx')).toContain('score');
+  });
+  it('has fixed 160px width', () => {
+    expect(read('components/design/PlayerCard.tsx')).toContain('w-[160px]');
+  });
+});
+
+describe('ClubCrest', () => {
+  it('has beta placeholder comment', () => {
+    expect(read('components/design/ClubCrest.tsx')).toContain('Beta placeholder crest');
+  });
+  it('uses shield border-radius identical to TeamIdentity', () => {
+    expect(read('components/design/ClubCrest.tsx')).toContain('rounded-[28%_28%_50%_50%');
+  });
+  it('has aria role="img"', () => {
+    expect(read('components/design/ClubCrest.tsx')).toContain('role="img"');
+  });
+  it('supports 4 sizes', () => {
+    const content = read('components/design/ClubCrest.tsx');
+    expect(content).toContain("'sm'");
+    expect(content).toContain("'md'");
+    expect(content).toContain("'lg'");
+    expect(content).toContain("'xl'");
+  });
+});
+
+describe('SponsorBanner', () => {
+  it('has non-financial disclaimer', () => {
+    const content = read('components/design/SponsorBanner.tsx');
+    expect(
+      content.includes('Points only') ||
+      content.includes('no real money') ||
+      content.includes('no financial value'),
+    ).toBe(true);
+  });
+  it('has no gambling language', () => {
+    const content = read('components/design/SponsorBanner.tsx').toLowerCase();
+    expect(content).not.toContain('gamble');
+    expect(content).not.toContain('betting');
+    expect(content).not.toContain('wager');
+    expect(content).not.toContain('casino');
+    expect(content).not.toContain('cash');
+  });
+  it('CTA has min-h-[44px]', () => {
+    expect(read('components/design/SponsorBanner.tsx')).toContain('min-h-[44px]');
+  });
+  it('uses accentColor prop', () => {
+    expect(read('components/design/SponsorBanner.tsx')).toContain('accentColor');
+  });
+});
+
+describe('NewsHeroCard', () => {
+  it('has gradient fallback when no imageUrl', () => {
+    expect(read('components/design/NewsHeroCard.tsx')).toContain('FALLBACK_GRADIENT');
+  });
+  it('renders category as chip', () => {
+    expect(read('components/design/NewsHeroCard.tsx')).toContain('category');
+  });
+  it('formats publishedAt date', () => {
+    expect(read('components/design/NewsHeroCard.tsx')).toContain('publishedAt');
+  });
+  it('Read more link has min-h-[44px]', () => {
+    expect(read('components/design/NewsHeroCard.tsx')).toContain('min-h-[44px]');
+  });
+});
+
+describe('VideoTile', () => {
+  it('is a client component', () => {
+    expect(read('components/design/VideoTile.tsx')).toContain("'use client'");
+  });
+  it('has aria-label on play button', () => {
+    expect(read('components/design/VideoTile.tsx')).toContain('aria-label');
+  });
+  it('has min-h-[44px] touch target', () => {
+    expect(read('components/design/VideoTile.tsx')).toContain('min-h-[44px]');
+  });
+  it('has fixed 200px width', () => {
+    expect(read('components/design/VideoTile.tsx')).toContain('w-[200px]');
+  });
+  it('shows duration chip', () => {
+    expect(read('components/design/VideoTile.tsx')).toContain('duration');
+  });
+});
+
+describe('MatchdayBanner', () => {
+  it('is a client component', () => {
+    expect(read('components/design/MatchdayBanner.tsx')).toContain("'use client'");
+  });
+  it('uses useReducedMotion', () => {
+    expect(read('components/design/MatchdayBanner.tsx')).toContain('useReducedMotion');
+  });
+  it('shows live pulse for LIVE status', () => {
+    expect(read('components/design/MatchdayBanner.tsx')).toContain('animate-live-pulse');
+  });
+  it('supports SCHEDULED, LIVE and FINISHED statuses', () => {
+    const content = read('components/design/MatchdayBanner.tsx');
+    expect(content).toContain('SCHEDULED');
+    expect(content).toContain('LIVE');
+    expect(content).toContain('FINISHED');
+  });
+  it('has aria-label on score element', () => {
+    expect(read('components/design/MatchdayBanner.tsx')).toContain('aria-label');
+  });
+});
+
+// ─── Sprint 41: Sign-up page ─────────────────────────────────────────────────
+
+describe('sign-up page', () => {
+  it('app/sign-up/page.tsx exists', () => {
+    expect(exists('app/sign-up/page.tsx')).toBe(true);
+  });
+  it('SignUpForm.tsx exists', () => {
+    expect(exists('app/sign-up/SignUpForm.tsx')).toBe(true);
+  });
+  it('page renders title "Create your account"', () => {
+    expect(read('app/sign-up/page.tsx')).toContain('Create your account');
+  });
+  it('page links to /sign-in', () => {
+    expect(read('app/sign-up/page.tsx')).toContain('/sign-in');
+  });
+  it('page uses AuthLayout', () => {
+    expect(read('app/sign-up/page.tsx')).toContain('AuthLayout');
+  });
+});
+
+describe('SignUpForm', () => {
+  it('is a client component', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain("'use client'");
+  });
+  it('has email field', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('type="email"');
+  });
+  it('has password field', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('type={showPassword');
+  });
+  it('has dateOfBirth field', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('dateOfBirth');
+  });
+  it('has consentCoreService checkbox', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('consentCoreService');
+  });
+  it('has consentMarketing checkbox', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('consentMarketing');
+  });
+  it('has consentAnalytics checkbox', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('consentAnalytics');
+  });
+  it('submits to /api/auth/register', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('/api/auth/register');
+  });
+  it('has success state with verification message', () => {
+    const content = read('app/sign-up/SignUpForm.tsx');
+    expect(content).toContain('verification email');
+  });
+  it('has resend button', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('Resend verification email');
+  });
+  it('has aria-label="Create account" on form', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('aria-label="Create account"');
+  });
+  it('has aria-busy on submit button', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('aria-busy');
+  });
+  it('has min-h-[44px] on interactive elements', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('min-h-[44px]');
+  });
+  it('validates minimum password length', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('8');
+  });
+  it('validates age 13+', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('13');
+  });
+  it('uses NEXT_PUBLIC_API_BASE_URL', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('NEXT_PUBLIC_API_BASE_URL');
+  });
+  it('has no gambling language', () => {
+    const content = read('app/sign-up/SignUpForm.tsx').toLowerCase();
+    expect(content).not.toContain('gamble');
+    expect(content).not.toContain('betting');
+    expect(content).not.toContain('wager');
+    expect(content).not.toContain('casino');
+  });
+});
+
+// ─── Sprint 41: Verify-email page ───────────────────────────────────────────
+
+describe('verify-email page', () => {
+  it('app/verify-email/page.tsx exists', () => {
+    expect(exists('app/verify-email/page.tsx')).toBe(true);
+  });
+  it('calls POST /api/auth/email/verify', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('/api/auth/email/verify');
+  });
+  it('handles no-token case', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('no_token');
+  });
+  it('handles expired token case', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('expired');
+  });
+  it('handles success case', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('success');
+  });
+  it('links to /sign-in on success', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('/sign-in');
+  });
+  it('links to /account/security on expired', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('/account/security');
+  });
+  it('uses cache: no-store for server fetch', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('no-store');
+  });
+  it('interactive links have min-h-[44px]', () => {
+    expect(read('app/verify-email/page.tsx')).toContain('min-h-[44px]');
+  });
+});
+
+// ─── Sprint 41: Account security page update ─────────────────────────────────
+
+describe('account security page', () => {
+  it('has email verification callout section', () => {
+    const content = read('app/account/security/page.tsx');
+    expect(content).toContain('Email verification');
+  });
+  it('still includes PasswordForm', () => {
+    expect(read('app/account/security/page.tsx')).toContain('PasswordForm');
+  });
+  it('has resend verification email link', () => {
+    expect(read('app/account/security/page.tsx')).toContain('Resend verification email');
+  });
+  it('has min-h-[44px] on resend link', () => {
+    expect(read('app/account/security/page.tsx')).toContain('min-h-[44px]');
+  });
+});
+
+// ─── Sprint 41: Component inventory doc ──────────────────────────────────────
+
+describe('Sprint 41 docs', () => {
+  const { existsSync } = require('fs');
+  const { resolve } = require('path');
+  it('docs/design/SPRINT-41-COMPONENT-INVENTORY.md exists', () => {
+    expect(existsSync(resolve(ROOT, '../../docs/design/SPRINT-41-COMPONENT-INVENTORY.md'))).toBe(true);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
