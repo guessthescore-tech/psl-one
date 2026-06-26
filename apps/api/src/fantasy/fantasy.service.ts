@@ -295,6 +295,7 @@ export class FantasyService {
       where: {
         ...(position ? { position } : {}),
         team: { externalId: { not: 'TBD' } },
+        prices: { some: { seasonId: season.id } },
       },
       include: {
         team: { select: { id: true, name: true, shortName: true, externalId: true } },

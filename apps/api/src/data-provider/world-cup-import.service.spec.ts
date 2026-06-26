@@ -293,3 +293,70 @@ describe('WorldCupImportService — cascade lookup for seeded fixtures', () => {
     expect(Object.keys(updateArg.data)).not.toContain('awayScore');
   });
 });
+
+// ── Team alias resolution ────────────────────────────────────────────────────
+
+describe('WorldCupImportService — team alias resolution', () => {
+  let svc: WorldCupImportService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    svc = new WorldCupImportService(prisma as unknown as PrismaService);
+  });
+
+  const ALIAS_CASES = [
+    { providerName: 'Bosnia-Herzegovina', dbName: 'Bosnia and Herzegovina', label: 'Bosnia-Herzegovina → Bosnia and Herzegovina' },
+    { providerName: 'Turkey', dbName: 'Türkiye', label: 'Turkey → Türkiye' },
+    { providerName: 'Turkiye', dbName: 'Türkiye', label: 'Turkiye → Türkiye' },
+    { providerName: 'Cape Verde Islands', dbName: 'Cape Verde', label: 'Cape Verde Islands → Cape Verde' },
+    { providerName: 'Cabo Verde', dbName: 'Cape Verde', label: 'Cabo Verde → Cape Verde' },
+    { providerName: 'Congo DR', dbName: 'DR Congo', label: 'Congo DR → DR Congo' },
+    { providerName: 'Democratic Republic of Congo', dbName: 'DR Congo', label: 'Democratic Republic of Congo → DR Congo' },
+    { providerName: 'Korea Republic', dbName: 'South Korea', label: 'Korea Republic → South Korea' },
+    { providerName: "Ivory Coast", dbName: "Côte d'Ivoire", label: "Ivory Coast → Côte d'Ivoire" },
+    { providerName: "Cote d'Ivoire", dbName: "Côte d'Ivoire", label: "Cote d'Ivoire → Côte d'Ivoire" },
+  ];
+
+  for (const { providerName, dbName, label } of ALIAS_CASES) {
+    it(`alias: ${label}`, async () => {
+      // First findFirst (exact by providerName) returns null — provider name not in DB
+      (prisma.team.findFirst as Mock)
+        .mockResolvedValueOnce(null)
+        // Second findFirst (by aliased DB name) finds the team
+        .mockResolvedValueOnce({ id: 'team-id' })
+        // awayTeam exact + alias
+        .mockResolvedValueOnce({ id: 'away-id' });
+      // Fixture lookup — cascade returns existing seeded fixture
+      (prisma.fixture.findFirst as Mock)
+        .mockResolvedValueOnce({ id: 'fx-1', providerSource: null, providerFixtureId: null, importedAt: null, homeScore: null, awayScore: null });
+
+      const fixtures = [
+        {
+          externalId: 'ext-test',
+          homeTeamName: providerName,
+          awayTeamName: 'Germany',
+          kickoffAt: '2026-06-20T18:00:00Z',
+          status: 'FINISHED',
+          homeScore: 2,
+          awayScore: 1,
+        },
+      ];
+
+      await (svc as unknown as { upsertFixtures(f: typeof fixtures, s: string, p: string): Promise<unknown> }).upsertFixtures(
+        fixtures, 'season-1', 'football-data-org',
+      );
+
+      // Should have tried the alias query with the DB-canonical name
+      const allCalls = (prisma.team.findFirst as Mock).mock.calls;
+      const queriedNames = allCalls.map((c: unknown[]) => {
+        const arg = c[0] as { where: { name?: string } };
+        return arg?.where?.name;
+      }).filter(Boolean);
+      expect(queriedNames).toContain(dbName);
+
+      // Should not have created a new fixture (alias resolved correctly)
+      expect(prisma.fixture.create).not.toHaveBeenCalled();
+    });
+  }
+});

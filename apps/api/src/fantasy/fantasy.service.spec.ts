@@ -794,3 +794,67 @@ describe('Fantasy team management — deadline locks', () => {
     }
   });
 });
+
+// ── getPlayerPool — active season scope ─────────────────────────────────────
+
+describe('FantasyService.getPlayerPool — active season scope', () => {
+  const makePrismaMock = () =>
+    ({
+      season: { findFirst: vi.fn() },
+      player: { findMany: vi.fn() },
+    }) as unknown as PrismaService;
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+  });
+
+  it('queries players with prices scoped to active season', async () => {
+    const seasonId = 'wc-season-123';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: seasonId });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await service.getPlayerPool();
+
+    expect(prisma.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          prices: { some: { seasonId } },
+        }),
+      }),
+    );
+  });
+
+  it('returns only players priced in active season — excludes PSL placeholders', async () => {
+    const wcSeasonId = 'wc-season-456';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: wcSeasonId });
+
+    const wcPlayer = { id: 'wc-p1', name: 'WC Player', source: 'fifa-wc2026', team: { externalId: 'mexico', name: 'Mexico' } };
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([wcPlayer]);
+
+    const result = await service.getPlayerPool();
+
+    // The filter must include prices scope
+    const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      where: { prices?: { some?: { seasonId?: string } }; team?: { externalId?: unknown } };
+    };
+    expect(call.where.prices?.some?.seasonId).toBe(wcSeasonId);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('WC Player');
+  });
+
+  it('includes position filter when provided', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'season-789' });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await service.getPlayerPool('FORWARD' as never);
+
+    const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      where: { position?: string };
+    };
+    expect(call.where.position).toBe('FORWARD');
+  });
+});

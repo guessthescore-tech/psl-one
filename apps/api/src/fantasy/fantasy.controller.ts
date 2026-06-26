@@ -206,7 +206,7 @@ export class FantasyController {
   // ── Player prices ─────────────────────────────────────────────────────────
 
   @Get('player-prices')
-  getPlayerPrices(@Query('seasonId') seasonId: string) {
+  getPlayerPrices(@Query('seasonId') seasonId?: string) {
     return this.priceService.getPlayerPrices(seasonId);
   }
 
