@@ -470,3 +470,98 @@ describe('JwtAuthGuard', () => {
     await expect(guard.canActivate(ctx)).rejects.toThrow(UnauthorizedException);
   });
 });
+
+describe('AuthService — emailDeliveryStatus', () => {
+  let authService: AuthService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+  let emailProvider: ReturnType<typeof makeEmailProviderMock>;
+
+  const VALID_DTO = {
+    email: 'fan@pslone.co.za',
+    password: 'Password123!',
+    dateOfBirth: '2000-01-01',
+    consentCoreService: true as const,
+  };
+
+  function setup(emailSendResult: 'success' | 'failure') {
+    prisma = makePrismaMock();
+    emailProvider = makeEmailProviderMock();
+    const provider = makeProviderMock();
+    const notifier = makeNotifierMock();
+    const configService = makeConfigMock();
+
+    prisma.$transaction = vi.fn().mockImplementation(async (arg: unknown) => {
+      if (typeof arg === 'function') {
+        const tx = {
+          user: { create: prisma.user.create },
+          consentRecord: { createMany: prisma.consentRecord.createMany },
+        };
+        return (arg as (tx: unknown) => Promise<unknown>)(tx);
+      }
+      return Promise.all(arg as Promise<unknown>[]);
+    });
+
+    if (emailSendResult === 'failure') {
+      (emailProvider.sendEmailVerification as Mock).mockRejectedValue(new Error('SMTP connection refused'));
+    }
+
+    return new AuthService(
+      prisma as unknown as PrismaService,
+      provider as unknown as LocalJwtProvider,
+      notifier as unknown as PasswordResetNotifier,
+      emailProvider as unknown as EmailProvider,
+      configService as never,
+    );
+  }
+
+  it('returns emailDeliveryStatus SENT when email send succeeds', async () => {
+    authService = setup('success');
+    const newUser = { id: 'uid-1', email: 'fan@pslone.co.za', role: 'FAN' as const };
+    (prisma.user.findUnique as Mock).mockResolvedValue(null);
+    (prisma.user.create as Mock).mockResolvedValue(newUser);
+
+    const result = await authService.register(VALID_DTO);
+
+    expect(result.enumerable).toBe(true);
+    if (result.enumerable) {
+      expect(result.emailDeliveryStatus).toBe('SENT');
+    }
+  });
+
+  it('returns emailDeliveryStatus FAILED when SMTP throws — user is still created', async () => {
+    authService = setup('failure');
+    const newUser = { id: 'uid-1', email: 'fan@pslone.co.za', role: 'FAN' as const };
+    (prisma.user.findUnique as Mock).mockResolvedValue(null);
+    (prisma.user.create as Mock).mockResolvedValue(newUser);
+
+    const result = await authService.register(VALID_DTO);
+
+    // Registration succeeds — user was created
+    expect(result.enumerable).toBe(true);
+    if (result.enumerable) {
+      // Email delivery failed but is reported honestly
+      expect(result.emailDeliveryStatus).toBe('FAILED');
+      // Access token still returned — user can still log in
+      expect(result.accessToken).toBe('mock-access-token');
+    }
+  });
+
+  it('does not throw when email send fails', async () => {
+    authService = setup('failure');
+    const newUser = { id: 'uid-2', email: 'fan2@pslone.co.za', role: 'FAN' as const };
+    (prisma.user.findUnique as Mock).mockResolvedValue(null);
+    (prisma.user.create as Mock).mockResolvedValue(newUser);
+
+    await expect(authService.register(VALID_DTO)).resolves.toBeDefined();
+  });
+
+  it('register result includes emailDeliveryStatus field on success', async () => {
+    authService = setup('success');
+    const newUser = { id: 'uid-1', email: 'fan@pslone.co.za', role: 'FAN' as const };
+    (prisma.user.findUnique as Mock).mockResolvedValue(null);
+    (prisma.user.create as Mock).mockResolvedValue(newUser);
+
+    const result = await authService.register(VALID_DTO);
+    expect(result).toHaveProperty('emailDeliveryStatus');
+  });
+});

@@ -7346,6 +7346,69 @@ describe('Hotfix: email delivery — resend verification', () => {
   });
 });
 
+describe('Hotfix: resend checks res.ok — no false success', () => {
+  const form = () => read('app/sign-up/SignUpForm.tsx');
+
+  it('handleResend checks res.ok before setting resendSent', () => {
+    const content = form();
+    expect(content).toContain('res.ok');
+  });
+
+  it('handleResend sets error state on non-ok response', () => {
+    const content = form();
+    expect(content).toContain('resendError');
+  });
+
+  it('resendError state is rendered as visible error', () => {
+    const content = form();
+    expect(content).toContain('resendError &&');
+  });
+
+  it('resendSent is only set after res.ok is true', () => {
+    const content = form();
+    // setResendSent(true) must come after the res.ok check, not before or unconditionally
+    const okIndex = content.indexOf('res.ok');
+    const setSentIndex = content.indexOf('setResendSent(true)');
+    expect(okIndex).toBeGreaterThan(-1);
+    expect(setSentIndex).toBeGreaterThan(okIndex);
+  });
+
+  it('resend error message is user-facing', () => {
+    const content = form();
+    expect(content).toContain('Failed to resend');
+  });
+});
+
+describe('Hotfix: editorial mock sections labelled on homepage', () => {
+  const home = () => read('app/page.tsx');
+
+  it('homepage shows editorial preview notice for non-live sections', () => {
+    const content = home();
+    expect(content).toContain('editorial beta preview');
+  });
+
+  it('homepage editorial notice is aria-labelled', () => {
+    const content = home();
+    expect(content).toContain('aria-label');
+  });
+
+  it('homepage editorial notice is only shown in WC_BETA or DESIGN_REVIEW_DATA mode', () => {
+    const content = home();
+    // must be conditional on mode
+    expect(content).toContain("mode === 'WC_BETA'");
+  });
+
+  it('data.ts does not have TODO claiming LIVE_BETA_DATA is wired', () => {
+    const content = read('lib/data.ts');
+    expect(content).not.toContain('TODO: replace with real API calls when LIVE_BETA_DATA is wired');
+  });
+
+  it('data.ts LIVE_BETA_DATA comment acknowledges it returns mock data', () => {
+    const content = read('lib/data.ts');
+    expect(content).toContain('not yet wired');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

@@ -139,6 +139,77 @@ export class WorldCupDbStatusService {
     };
   }
 
+  /**
+   * Provider sync status — reports whether WC fixtures have been synced from a
+   * real data provider or are still static seed data.
+   * Read-only, no writes, no PSL activation.
+   */
+  async getProviderSyncStatus() {
+    const wcSeason = await this.findWcSeason();
+    const seasonFilter = wcSeason ? { seasonId: wcSeason.id } : { season: { competition: { name: { contains: 'World Cup', mode: 'insensitive' as const } } } };
+
+    const fixtureCount = await this.prisma.fixture.count({ where: seasonFilter });
+
+    const providerBackedCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, providerSource: { not: null } },
+    });
+
+    const providerFixtureIdCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, providerFixtureId: { not: null } },
+    });
+
+    const importedAtCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, importedAt: { not: null } },
+    });
+
+    const lastSyncedAtCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, lastSyncedAt: { not: null } },
+    });
+
+    const finishedCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, status: 'FINISHED' },
+    });
+
+    const finishedWithScoresCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, status: 'FINISHED', homeScore: { not: null }, awayScore: { not: null } },
+    });
+
+    const lastSyncedRecord = await this.prisma.fixture.findFirst({
+      where: { ...seasonFilter, lastSyncedAt: { not: null } },
+      orderBy: { lastSyncedAt: 'desc' },
+      select: { lastSyncedAt: true },
+    });
+
+    let dataState: 'SEEDED_STATIC' | 'PARTIAL_PROVIDER_SYNC' | 'PROVIDER_SYNCED';
+    if (providerBackedCount === 0) {
+      dataState = 'SEEDED_STATIC';
+    } else if (providerBackedCount < fixtureCount || finishedWithScoresCount < finishedCount) {
+      dataState = 'PARTIAL_PROVIDER_SYNC';
+    } else {
+      dataState = 'PROVIDER_SYNCED';
+    }
+
+    return {
+      competition: 'WORLD_CUP_2026' as const,
+      fixtureCount,
+      providerBackedCount,
+      providerFixtureIdCount,
+      importedAtCount,
+      lastSyncedAtCount,
+      finishedCount,
+      finishedWithScoresCount,
+      finishedMissingScoresCount: finishedCount - finishedWithScoresCount,
+      lastSyncedAtLatest: lastSyncedRecord?.lastSyncedAt?.toISOString() ?? null,
+      dataState,
+      safety: {
+        pslInactive: true as const,
+        noPslWrite: true as const,
+        noFixturePublication: true as const,
+        noRealMoney: true as const,
+      },
+    };
+  }
+
   private async findWcSeason() {
     return this.prisma.season.findFirst({
       where: {

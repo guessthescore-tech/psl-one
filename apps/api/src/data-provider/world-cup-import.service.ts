@@ -209,18 +209,20 @@ export class WorldCupImportService {
 
   private normalizeFixtures(
     raw: ProviderFixture[],
-  ): { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string }[] {
+  ): { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[] {
     return raw.filter(f => f.externalId && f.homeTeamName && f.awayTeamName).map(f => ({
       externalId: f.externalId,
       homeTeamName: f.homeTeamName,
       awayTeamName: f.awayTeamName,
       kickoffAt: f.kickoffAt ?? new Date().toISOString(),
       status: f.status ?? 'SCHEDULED',
+      ...(f.homeScore !== undefined ? { homeScore: f.homeScore } : {}),
+      ...(f.awayScore !== undefined ? { awayScore: f.awayScore } : {}),
     }));
   }
 
   private async buildCandidates(
-    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string }[],
+    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[],
     providerSource: string,
   ): Promise<WorldCupImportCandidateDto[]> {
     const candidates: WorldCupImportCandidateDto[] = [];
@@ -289,7 +291,7 @@ export class WorldCupImportService {
   }
 
   private async upsertFixtures(
-    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string }[],
+    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[],
     seasonId: string,
     providerSource: string,
   ): Promise<{ created: number; updated: number; skipped: number; errors: string[]; warnings: string[] }> {
@@ -312,14 +314,49 @@ export class WorldCupImportService {
           skipped++;
           continue;
         }
-        const existing = await this.prisma.fixture.findFirst({
+
+        // Primary lookup: by providerFixtureId + providerSource (already provider-synced fixtures)
+        let existing = await this.prisma.fixture.findFirst({
           where: { providerFixtureId: f.externalId, providerSource },
-          select: { id: true },
+          select: { id: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
         });
+
+        // Cascade lookup: team + kickoff window matches seeded fixtures with no providerFixtureId
+        if (!existing) {
+          const windowStart = new Date(kickoffAt.getTime() - 2 * 60 * 60 * 1000);
+          const windowEnd = new Date(kickoffAt.getTime() + 2 * 60 * 60 * 1000);
+          existing = await this.prisma.fixture.findFirst({
+            where: {
+              homeTeamId: homeTeam.id,
+              awayTeamId: awayTeam.id,
+              kickoffAt: { gte: windowStart, lte: windowEnd },
+            },
+            select: { id: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
+          });
+        }
+
         if (existing) {
+          // Preserve valid existing scores unless provider gives a new non-null value
+          const scoreUpdates: { homeScore?: number | null; awayScore?: number | null } = {};
+          if (f.homeScore !== undefined) {
+            if (f.homeScore !== null || existing.homeScore == null) scoreUpdates.homeScore = f.homeScore;
+          }
+          if (f.awayScore !== undefined) {
+            if (f.awayScore !== null || existing.awayScore == null) scoreUpdates.awayScore = f.awayScore;
+          }
+
           await this.prisma.fixture.update({
             where: { id: existing.id },
-            data: { kickoffAt, lastSyncedAt: now },
+            data: {
+              kickoffAt,
+              status: f.status as FixtureStatus,
+              lastSyncedAt: now,
+              // Backfill provider metadata on seeded fixtures
+              ...(existing.providerSource == null ? { providerSource } : {}),
+              ...(existing.providerFixtureId == null ? { providerFixtureId: f.externalId } : {}),
+              ...(existing.importedAt == null ? { importedAt: now } : {}),
+              ...scoreUpdates,
+            },
           });
           updated++;
         } else {
@@ -329,13 +366,15 @@ export class WorldCupImportService {
               homeTeamId: homeTeam.id,
               awayTeamId: awayTeam.id,
               kickoffAt,
-              status: 'SCHEDULED',
+              status: f.status as FixtureStatus,
               providerSource,
               providerFixtureId: f.externalId,
               externalId: f.externalId,
               importedAt: now,
               lastSyncedAt: now,
               isPublished: false,
+              ...(f.homeScore != null ? { homeScore: f.homeScore } : {}),
+              ...(f.awayScore != null ? { awayScore: f.awayScore } : {}),
             },
           });
           created++;
@@ -447,7 +486,7 @@ export class WorldCupImportService {
             awayTeamId: awayTeam.id,
             kickoffAt: { gte: windowStart, lte: windowEnd },
           },
-          select: { id: true, status: true },
+          select: { id: true, status: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
         });
 
         if (!existing) {
@@ -458,9 +497,27 @@ export class WorldCupImportService {
         result.matched++;
         const rawStatus = STATUS_MAP[pf.status ?? ''] ?? existing.status;
         const newStatus = rawStatus as FixtureStatus;
+
+        // Preserve valid existing scores unless provider gives a new non-null value
+        const scoreUpdates: { homeScore?: number | null; awayScore?: number | null } = {};
+        if (pf.homeScore !== undefined) {
+          if (pf.homeScore !== null || existing.homeScore == null) scoreUpdates.homeScore = pf.homeScore;
+        }
+        if (pf.awayScore !== undefined) {
+          if (pf.awayScore !== null || existing.awayScore == null) scoreUpdates.awayScore = pf.awayScore;
+        }
+
         await this.prisma.fixture.update({
           where: { id: existing.id },
-          data: { status: newStatus, lastSyncedAt: now },
+          data: {
+            status: newStatus,
+            lastSyncedAt: now,
+            // Backfill provider metadata on seeded fixtures
+            ...(existing.providerSource == null ? { providerSource: WC_PROVIDER_SOURCE } : {}),
+            ...(existing.providerFixtureId == null && pf.externalId ? { providerFixtureId: pf.externalId } : {}),
+            ...(existing.importedAt == null ? { importedAt: now } : {}),
+            ...scoreUpdates,
+          },
         });
         result.updated++;
       } catch (err: unknown) {
