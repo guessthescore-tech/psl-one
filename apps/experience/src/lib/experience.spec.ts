@@ -575,12 +575,13 @@ describe('Fantasy lib layer', () => {
 // ─── Football Context pages ────────────────────────────────────────────────
 
 describe('Football Context pages', () => {
-  it('matches list renders fixture cards', () => {
+  it('matches list renders fixture cards from live API', () => {
     expect(exists('app/matches/page.tsx')).toBe(true);
     const content = read('app/matches/page.tsx');
-    expect(content).toContain('WC_FIXTURES');
-    expect(content).toContain('MatchHeader');
-    expect(content).toContain('MatchStateBadge');
+    // Page now fetches from live API instead of WC_FIXTURES static data
+    expect(content).toContain('getFixtures');
+    expect(content).toContain('WcFixtureCard');
+    expect(content).toContain('seasonSlug');
     expect(content).toContain("'results'");
     expect(content).toContain("'fixtures'");
     expect(content).toContain("'live'");
@@ -7406,6 +7407,163 @@ describe('Hotfix: editorial mock sections labelled on homepage', () => {
   it('data.ts LIVE_BETA_DATA comment acknowledges it returns mock data', () => {
     const content = read('lib/data.ts');
     expect(content).toContain('not yet wired');
+  });
+});
+
+// ─── A+ Gap-Close: News Centre scope ─────────────────────────────────────
+
+describe('News Centre — editorial scope and safety', () => {
+  it('news page exists', () => {
+    expect(exists('app/news/page.tsx')).toBe(true);
+  });
+
+  it('news page shows EDITORIAL BETA badge — not claiming official PSL coverage', () => {
+    const content = read('app/news/page.tsx');
+    expect(content).toContain('EDITORIAL BETA');
+  });
+
+  it('news page does not claim to be official PSL news or official PSL coverage', () => {
+    const content = read('app/news/page.tsx').toLowerCase();
+    // Must not imply official PSL press/news coverage before contract
+    expect(content).not.toContain('official psl news');
+    expect(content).not.toContain('official psl coverage');
+    expect(content).not.toContain('official psl media partner');
+  });
+
+  it('WC_STORIES entries all have publishedAt ISO timestamps', () => {
+    const content = read('lib/data.ts');
+    // All story publishedAt entries are ISO 8601 format
+    const timestamps = content.match(/publishedAt:\s*'([^']+)'/g) ?? [];
+    expect(timestamps.length).toBeGreaterThan(0);
+    for (const ts of timestamps) {
+      const iso = ts.match(/'([^']+)'/)?.[1];
+      expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    }
+  });
+
+  it('WC_STORIES categories label editorial type (not source attribution)', () => {
+    const content = read('lib/data.ts');
+    // Category values must be editorial types, not news agency names
+    const categories = ['Match Report', 'Feature', 'Analysis', 'Fantasy'];
+    for (const cat of categories) {
+      expect(content).toContain(cat);
+    }
+    // Must not attribute to news agencies not under contract
+    expect(content).not.toContain('Reuters');
+    expect(content).not.toContain('AP Sports');
+    expect(content).not.toContain('AFP');
+    expect(content).not.toContain('BBC Sport API');
+  });
+
+  it('news page renders timestamps via publishedAt field', () => {
+    const content = read('app/news/page.tsx');
+    expect(content).toContain('publishedAt');
+    expect(content).toContain('formatDate');
+  });
+
+  it('news page has WC_BETA disclaimer in comment header', () => {
+    const content = read('app/news/page.tsx');
+    expect(content).toContain('WC_BETA');
+    expect(content).toContain('PSL_INACTIVE');
+  });
+
+  it('news page shows stale/empty state gracefully — featured section only renders when story exists', () => {
+    const content = read('app/news/page.tsx');
+    // Featured section is wrapped in conditional: {featured && ...}
+    expect(content).toContain('{featured && (');
+    // Grid is conditional: {remaining.length > 0 && ...}
+    expect(content).toContain('remaining.length > 0');
+  });
+});
+
+// ─── A+ Gap-Close: Video / ScoreBat token safety ──────────────────────────
+
+describe('Video page — ScoreBat token safety and empty state', () => {
+  it('/videos page exists', () => {
+    expect(exists('app/videos/page.tsx')).toBe(true);
+  });
+
+  it('/videos page does not expose SCOREBAT_WIDGET_TOKEN via NEXT_PUBLIC_ env var', () => {
+    const content = read('app/videos/page.tsx');
+    expect(content).not.toMatch(/NEXT_PUBLIC_SCOREBAT/);
+    expect(content).not.toMatch(/NEXT_PUBLIC_WIDGET_TOKEN/);
+  });
+
+  it('/videos page does not read SCOREBAT_WIDGET_TOKEN directly — fetches from backend API', () => {
+    const content = read('app/videos/page.tsx');
+    // Must NOT read token directly in the frontend page
+    expect(content).not.toMatch(/process\.env.*SCOREBAT_WIDGET_TOKEN/);
+    // Must use server-side backend fetch
+    expect(content).toContain('fetchWidgetConfig');
+    expect(content).toContain('/football/world-cup/scorebat-widget');
+  });
+
+  it('/videos page uses INTERNAL_API_URL (server-side only, not NEXT_PUBLIC)', () => {
+    const content = read('app/videos/page.tsx');
+    expect(content).toContain("process.env['INTERNAL_API_URL']");
+    expect(content).not.toContain('NEXT_PUBLIC_API');
+  });
+
+  it('/videos page has explicit placeholder/empty state when widget token not configured', () => {
+    const content = read('app/videos/page.tsx');
+    // Must render a human-readable placeholder, not a blank iframe
+    expect(content).toContain('Highlights Coming Soon');
+    expect(content).toContain('widgetConfig.available');
+  });
+
+  it('/videos page shows attribution "via ScoreBat" when widget is enabled', () => {
+    const content = read('app/videos/page.tsx');
+    expect(content).toContain('ScoreBat');
+  });
+
+  it('ScoreBatWorldCupWidget component does not read env vars directly', () => {
+    const content = read('components/world-cup/ScoreBatWorldCupWidget.tsx');
+    expect(content).not.toMatch(/process\.env.*SCOREBAT/);
+    expect(content).not.toMatch(/process\.env.*TOKEN/);
+  });
+
+  it('ScoreBatWidgetAdapter health response never leaks raw token value', () => {
+    // This is covered in scorebat-widget.adapter.spec.ts but assert file structure here
+    const ROOT2 = resolve(__dirname, '../../../..');
+    const { existsSync: ex2, readFileSync: rf2 } = require('fs');
+    const specPath = resolve(ROOT2, 'apps/api/src/data-provider/scorebat-widget.adapter.spec.ts');
+    expect(ex2(specPath)).toBe(true);
+    const specContent = rf2(specPath, 'utf-8');
+    // Confirm the spec has a test that health message does not contain the token
+    expect(specContent).toContain('not.toContain');
+    expect(specContent).toContain('sb-test-token');
+  });
+});
+
+// ─── A+ Gap-Close: /matches route contract ────────────────────────────────
+
+describe('/matches route contract', () => {
+  it('/matches page exists and uses live API', () => {
+    expect(exists('app/matches/page.tsx')).toBe(true);
+    const content = read('app/matches/page.tsx');
+    expect(content).toContain('getFixtures');
+    expect(content).toContain('WcFixtureCard');
+  });
+
+  it('/matches/[fixtureId] page exists', () => {
+    expect(exists('app/matches/[fixtureId]/page.tsx')).toBe(true);
+  });
+
+  it('/matches/live route does NOT exist — live scores are at /world-cup/live', () => {
+    // Intentional: /matches/live was never implemented.
+    // Live match data is served by /world-cup/live and /world-cup/live's WcFixtureCard.
+    expect(exists('app/matches/live/page.tsx')).toBe(false);
+  });
+
+  it('/world-cup/live page exists and is the canonical live match hub', () => {
+    expect(exists('app/world-cup/live/page.tsx')).toBe(true);
+    const content = read('app/world-cup/live/page.tsx');
+    expect(content).toContain('WcFixtureCard');
+  });
+
+  it('/matches page no longer uses static WC_FIXTURES data', () => {
+    const content = read('app/matches/page.tsx');
+    expect(content).not.toContain('WC_FIXTURES');
   });
 });
 

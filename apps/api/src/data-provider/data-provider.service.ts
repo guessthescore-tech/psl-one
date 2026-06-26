@@ -219,4 +219,64 @@ export class DataProviderService {
       },
     };
   }
+
+  /**
+   * Read-only WC beta capability matrix by concern (fixture/live/video).
+   *
+   * Reports key presence only — values are never returned.
+   * Covers: football-data.org (fixtures/scores), Sportmonks (live events/lineups/stats),
+   * ScoreBat (video highlights).
+   * PSL production use of Sportmonks is not authorised — see ADR-037.
+   */
+  getWcBetaCapability() {
+    const hasFdKey = (process.env['FOOTBALL_DATA_API_KEY'] ?? '').length > 0;
+    const hasSmKey = (process.env['SPORTMONKS_API_KEY'] ?? '').length > 0;
+    const hasScoreBatToken = (process.env['SCOREBAT_WIDGET_TOKEN'] ?? '').length > 0;
+    const wcLiveProvider = process.env['WC_LIVE_PROVIDER'] ?? 'manual';
+
+    const liveProviderActive = wcLiveProvider === 'sportmonks';
+    const liveReady = liveProviderActive && hasSmKey;
+
+    return {
+      competition: 'fifa-world-cup-2026' as const,
+      providers: {
+        fixture: {
+          name: 'football-data-org' as const,
+          keyPresent: hasFdKey,
+          status: hasFdKey ? ('READY' as const) : ('NO_KEY' as const),
+          capabilities: ['fixtures', 'scores', 'standings', 'teams'],
+        },
+        live: {
+          name: wcLiveProvider,
+          keyPresent: liveProviderActive ? hasSmKey : true,
+          status: liveReady ? ('READY' as const) : liveProviderActive && !hasSmKey ? ('NO_KEY' as const) : ('MANUAL_FALLBACK' as const),
+          capabilities: liveReady
+            ? ['fixture_state', 'match_events', 'lineups', 'player_stats']
+            : ['manual_admin_entry_only'],
+          envVar: 'WC_LIVE_PROVIDER',
+        },
+        video: {
+          name: 'scorebat' as const,
+          keyPresent: hasScoreBatToken,
+          status: hasScoreBatToken ? ('WIDGET_READY' as const) : ('NO_KEY' as const),
+          capabilities: ['embedded_highlights_widget'],
+          envVar: 'SCOREBAT_WIDGET_TOKEN',
+        },
+      },
+      ownerActions: [
+        liveReady
+          ? 'Sportmonks live provider active — events, lineups, player stats available'
+          : 'Set WC_LIVE_PROVIDER=sportmonks + SPORTMONKS_API_KEY to enable live match events',
+        hasScoreBatToken
+          ? 'ScoreBat token present — embedded video widget available at /world-cup/live'
+          : 'Set SCOREBAT_WIDGET_TOKEN to enable WC highlights widget',
+      ],
+      guards: {
+        pslActivated: false as const,
+        productionIngestionEnabled: false as const,
+        bettingEnabled: false as const,
+        realMoneyEnabled: false as const,
+      },
+    };
+  }
 }

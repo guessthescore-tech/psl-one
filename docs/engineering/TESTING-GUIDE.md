@@ -2,8 +2,8 @@
 
 **Purpose:** Testing patterns, conventions, and standards  
 **Audience:** All engineers  
-**Status:** Current as of STORY-39  
-**Last verified:** 2026-06-14  
+**Status:** Current as of Sprint 42B  
+**Last verified:** 2026-06-26  
 
 ---
 
@@ -11,8 +11,34 @@
 
 - **Framework:** Vitest 4.x (NestJS API)
 - **Test runner:** `pnpm --filter @psl-one/api test`
-- **Current count:** 1,560 tests across 54 spec files (as of STORY-39)
-- **Web tests:** 3 spec files (minimal — web is tested via build + manual review)
+- **Current count:** 2,355 tests across 100 spec files (as of Sprint 42B)
+- **Experience tests:** 1 spec file, 1,638 tests
+- **Web tests:** 9 spec files, 543 tests
+
+---
+
+## PostgreSQL and Integration Tests
+
+Most service spec files use a **mocked** `PrismaService` (via `vi.fn()`) and do not require a live database. However, one file hits a real database:
+
+- `src/football/world-cup-2026.integration.spec.ts` — connects directly via `PrismaClient` to verify WC 2026 seed data shape.
+
+This file is included in the default `pnpm --filter @psl-one/api test` run. If PostgreSQL is not reachable or the database is not seeded, these tests will fail.
+
+**Before running the full suite, confirm PostgreSQL is available:**
+
+```bash
+# Quick reachability check
+pg_isready -h localhost -p 5432
+
+# Confirm migration state
+pnpm --filter @psl-one/api exec -- prisma migrate status
+
+# Apply any pending migrations (safe, additive only)
+pnpm --filter @psl-one/api db:migrate
+```
+
+If `pg_isready` returns "accepting connections" but `psql -U postgres` fails with `FATAL: role "postgres" does not exist`, you are on a native macOS PostgreSQL install. That error does not mean the database is down. See [Local Development](LOCAL-DEVELOPMENT.md#postgresql-variants) for both supported DATABASE_URL variants.
 
 ---
 

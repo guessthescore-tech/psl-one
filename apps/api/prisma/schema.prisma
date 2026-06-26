@@ -758,6 +758,9 @@ model PredictionPointsLedger {
   prediction ScorePrediction? @relation(fields: [predictionId], references: [id])
   challenge  PeerChallenge?   @relation(fields: [challengeId], references: [id])
 
+  // DB-level partial unique index on prediction_id WHERE prediction_id IS NOT NULL is defined
+  // in migration 20260626000001_replay_ledger_idempotency. Partial indexes cannot be expressed
+  // in Prisma @@unique; the migration is authoritative. Services catch P2002 for idempotency.
   @@index([userId])
   @@index([fixtureId])
   @@map("prediction_points_ledger")
@@ -915,6 +918,7 @@ model FantasyPointsLedger {
   player      Player      @relation(fields: [playerId], references: [id])
   fixture     Fixture     @relation(fields: [fixtureId], references: [id])
 
+  @@unique([fantasyTeamId, playerId, fixtureId], map: "fantasy_points_ledger_team_player_fixture_unique")
   @@index([fantasyTeamId, fixtureId])
   @@index([fantasyTeamId])
   @@map("fantasy_points_ledger")

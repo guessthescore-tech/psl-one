@@ -6,24 +6,10 @@ import { FanValueLedgerService } from '../fan-value/fan-value-ledger.service';
 import { AchievementsService } from '../achievements/achievements.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityFeedService } from '../activity-feed/activity-feed.service';
+import { computePlayerBasePoints, type PointsBreakdown, type StatInput } from './fantasy-scoring.utils';
 
-interface BreakdownJson {
-  appearance: number;
-  goals: number;
-  assists: number;
-  cleanSheet: number;
-  saves: number;
-  penaltySaves: number;
-  penaltyMisses: number;
-  yellowCards: number;
-  redCards: number;
-  ownGoals: number;
-  goalsConcededDeduction: number;
-  bonus: number;
-  defensive: number;
-  captainMultiplier: number;
-  benchBoostCounted: boolean;
-}
+// Internal alias — kept for compatibility with private method signature
+type BreakdownJson = PointsBreakdown;
 
 interface PlayerScoreResult {
   basePoints: number;
@@ -38,6 +24,12 @@ interface TeamPlayerSlot {
   isBench: boolean;
   isCaptain: boolean;
   isViceCaptain: boolean;
+}
+
+export interface PlayerFixturePointsResult {
+  basePoints: number;
+  played: boolean;
+  breakdown: BreakdownJson;
 }
 
 export interface GameweekScoreResult {
@@ -99,89 +91,8 @@ export class FantasyGameweekScoringService {
     private readonly activityFeedService: ActivityFeedService,
   ) {}
 
-  private computeBasePoints(
-    stat: {
-      minutesPlayed: number;
-      goals: number;
-      assists: number;
-      ownGoals: number;
-      yellowCards: number;
-      redCards: number;
-      penaltiesMissed: number;
-      penaltiesSaved: number;
-      saves: number;
-      cleanSheet: boolean;
-      bonusPoints: number;
-      tacklesWon: number;
-      interceptions: number;
-      blockedShots: number;
-      didNotPlay: boolean;
-    },
-    position: PlayerPosition,
-  ): PlayerScoreResult {
-    if (stat.didNotPlay || stat.minutesPlayed === 0) {
-      return {
-        basePoints: 0,
-        breakdown: {
-          appearance: 0, goals: 0, assists: 0, cleanSheet: 0, saves: 0,
-          penaltySaves: 0, penaltyMisses: 0, yellowCards: 0, redCards: 0,
-          ownGoals: 0, goalsConcededDeduction: 0, bonus: 0, defensive: 0,
-          captainMultiplier: 1, benchBoostCounted: false,
-        },
-        played: false,
-      };
-    }
-
-    const appearance = stat.minutesPlayed >= 60 ? 2 : 1;
-
-    const goals =
-      position === PlayerPosition.GOALKEEPER
-        ? stat.goals * 10
-        : position === PlayerPosition.DEFENDER
-        ? stat.goals * 6
-        : position === PlayerPosition.MIDFIELDER
-        ? stat.goals * 5
-        : stat.goals * 4;
-
-    const assists = stat.assists * 3;
-
-    const cleanSheet =
-      stat.cleanSheet && stat.minutesPlayed >= 60
-        ? position === PlayerPosition.GOALKEEPER || position === PlayerPosition.DEFENDER
-          ? 4
-          : position === PlayerPosition.MIDFIELDER
-          ? 1
-          : 0
-        : 0;
-
-    const saves = Math.floor(stat.saves / 3);
-    const penaltySaves = stat.penaltiesSaved * 5;
-    const penaltyMisses = stat.penaltiesMissed * -2;
-    const yellowCards = stat.yellowCards * -1;
-    const redCards = stat.redCards * -3;
-    const ownGoals = stat.ownGoals * -2;
-    const bonus = stat.bonusPoints;
-    const defensive = Math.floor((stat.tacklesWon + stat.interceptions + stat.blockedShots) / 3);
-
-    const basePoints =
-      appearance + goals + assists + cleanSheet +
-      saves + penaltySaves + penaltyMisses +
-      yellowCards + redCards + ownGoals + bonus + defensive;
-
-    return {
-      basePoints,
-      breakdown: {
-        appearance, goals, assists, cleanSheet,
-        saves: saves + penaltySaves,
-        penaltySaves, penaltyMisses,
-        yellowCards, redCards, ownGoals,
-        goalsConcededDeduction: 0,
-        bonus, defensive,
-        captainMultiplier: 1,
-        benchBoostCounted: false,
-      },
-      played: true,
-    };
+  private computeBasePoints(stat: StatInput, position: PlayerPosition): PlayerScoreResult {
+    return computePlayerBasePoints(stat, position);
   }
 
   async calculatePlayerGameweekPoints(playerId: string, gameweekId: string): Promise<number> {
@@ -224,6 +135,30 @@ export class FantasyGameweekScoringService {
     }
 
     return this.computeBasePoints(aggregate, player.position).basePoints;
+  }
+
+  async computePlayerFixturePoints(
+    playerId: string,
+    fixtureId: string,
+  ): Promise<PlayerFixturePointsResult> {
+    const [player, stat] = await Promise.all([
+      this.prisma.player.findUnique({ where: { id: playerId }, select: { position: true } }),
+      this.prisma.fantasyPlayerMatchStat.findFirst({ where: { playerId, fixtureId } }),
+    ]);
+
+    const emptyBreakdown: BreakdownJson = {
+      appearance: 0, goals: 0, assists: 0, cleanSheet: 0, saves: 0,
+      penaltySaves: 0, penaltyMisses: 0, yellowCards: 0, redCards: 0,
+      ownGoals: 0, goalsConcededDeduction: 0, bonus: 0, defensive: 0,
+      captainMultiplier: 1, benchBoostCounted: false,
+    };
+
+    if (!player || !stat) {
+      return { basePoints: 0, played: false, breakdown: emptyBreakdown };
+    }
+
+    const result = this.computeBasePoints(stat, player.position);
+    return { basePoints: result.basePoints, played: result.played, breakdown: result.breakdown };
   }
 
   async calculateFantasyTeamGameweekScore(

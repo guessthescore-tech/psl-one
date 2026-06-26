@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FixtureStatus, MatchEventType, PlayerPosition } from '@prisma/client';
 import { LiveMatchService } from './live-match.service';
@@ -689,5 +689,50 @@ describe('RBAC — admin live routes require PSL_ADMIN', () => {
         expect(roles, `${method} should NOT require PSL_ADMIN`).not.toContain('PSL_ADMIN');
       }
     }
+  });
+});
+
+// ── LiveMatchService.resolveProvider ─────────────────────────────────────────
+
+describe('LiveMatchService.resolveProvider', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('returns ManualLiveMatchProviderAdapter when WC_LIVE_PROVIDER not set', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', '');
+    vi.stubEnv('SPORTMONKS_API_KEY', '');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('manual');
+  });
+
+  it('returns ManualLiveMatchProviderAdapter when WC_LIVE_PROVIDER=sportmonks but key absent', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', 'sportmonks');
+    vi.stubEnv('SPORTMONKS_API_KEY', '');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('manual');
+  });
+
+  it('returns SportmonksLiveMatchAdapter when WC_LIVE_PROVIDER=sportmonks and key present', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', 'sportmonks');
+    vi.stubEnv('SPORTMONKS_API_KEY', 'test-key-sm');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('sportmonks');
+  });
+
+  it('returns ManualLiveMatchProviderAdapter for unknown WC_LIVE_PROVIDER values', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', 'opta');
+    vi.stubEnv('SPORTMONKS_API_KEY', 'some-key');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('manual');
   });
 });

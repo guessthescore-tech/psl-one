@@ -1,12 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useState, useMemo, useEffect } from 'react';
 import { clsx } from 'clsx';
-import { WC_FIXTURES, getDataMode } from '@/lib/data';
-import type { ExpFixture } from '@/lib/data';
-import { MatchHeader } from '@/components/football/MatchHeader';
-import { MatchStateBadge } from '@/components/football/MatchStateBadge';
+import { getFixtures, type Fixture } from '@/lib/football-api';
+import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
+import { getDataMode } from '@/lib/data';
 
 type Tab = 'results' | 'fixtures' | 'live';
 
@@ -23,12 +21,8 @@ function formatDateGroup(iso: string): string {
   return d.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function formatKickoff(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
-}
-
-function groupByDate(fixtures: ExpFixture[]): Map<string, ExpFixture[]> {
-  const map = new Map<string, ExpFixture[]>();
+function groupByDate(fixtures: Fixture[]): Map<string, Fixture[]> {
+  const map = new Map<string, Fixture[]>();
   for (const f of fixtures) {
     const key = formatDateGroup(f.kickoffAt);
     const existing = map.get(key) ?? [];
@@ -38,75 +32,23 @@ function groupByDate(fixtures: ExpFixture[]): Map<string, ExpFixture[]> {
   return map;
 }
 
-function FixtureRow({ fixture }: { fixture: ExpFixture }) {
-  const isLive = fixture.status === 'LIVE' || fixture.status === 'HALF_TIME';
-  const isFinished = fixture.status === 'FINISHED';
-
-  return (
-    <Link
-      href={`/matches/${fixture.id}`}
-      className={clsx(
-        'flex items-center gap-3 px-4 py-3 rounded-card-sm border transition-colors',
-        'min-h-[44px] focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2',
-        isLive
-          ? 'bg-exp-navy border-exp-live/30 hover:border-exp-live/50'
-          : 'bg-exp-card border-exp-border hover:border-exp-muted/40',
-      )}
-      aria-label={`${fixture.homeClub.name} vs ${fixture.awayClub.name}, ${isFinished ? `Result: ${fixture.homeScore}-${fixture.awayScore}` : isLive ? `Live: ${fixture.homeScore}-${fixture.awayScore}, minute ${fixture.minute}` : `Kick off ${formatKickoff(fixture.kickoffAt)}`}`}
-    >
-      {/* Home */}
-      <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-        <span className={clsx('font-semibold truncate', isLive ? 'text-white' : 'text-exp-navy')}>
-          {fixture.homeClub.shortName}
-        </span>
-        <div
-          className="w-3 h-3 rounded-full flex-shrink-0 border border-white/10"
-          style={{ backgroundColor: fixture.homeClub.primaryColor }}
-          aria-hidden
-        />
-      </div>
-
-      {/* Score / status */}
-      <div className="flex-shrink-0 text-center w-24">
-        {isLive || isFinished ? (
-          <span
-            className={clsx(
-              'text-score-md font-black tabular-nums',
-              isLive ? 'text-white' : 'text-exp-navy',
-            )}
-          >
-            {fixture.homeScore} – {fixture.awayScore}
-          </span>
-        ) : (
-          <span className="text-label-sm text-exp-muted font-bold">
-            {formatKickoff(fixture.kickoffAt)}
-          </span>
-        )}
-        <div className="mt-0.5 flex justify-center">
-          <MatchStateBadge status={fixture.status} minute={fixture.minute} size="sm" />
-        </div>
-      </div>
-
-      {/* Away */}
-      <div className="flex-1 flex items-center gap-2 min-w-0">
-        <div
-          className="w-3 h-3 rounded-full flex-shrink-0 border border-white/10"
-          style={{ backgroundColor: fixture.awayClub.primaryColor }}
-          aria-hidden
-        />
-        <span className={clsx('font-semibold truncate', isLive ? 'text-white' : 'text-exp-navy')}>
-          {fixture.awayClub.shortName}
-        </span>
-      </div>
-    </Link>
-  );
+function getRound(f: Fixture): string | null {
+  return f.group?.name ?? f.season?.competition?.name ?? null;
 }
 
 export default function MatchesPage() {
   const [activeTab, setActiveTab] = useState<Tab>('fixtures');
+  const [allFixtures, setAllFixtures] = useState<Fixture[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const mode = getDataMode();
 
-  const allFixtures = WC_FIXTURES;
+  useEffect(() => {
+    getFixtures({ seasonSlug: 'fifa-world-cup-2026' })
+      .then(setAllFixtures)
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Failed to load fixtures'))
+      .finally(() => setLoading(false));
+  }, []);
 
   const results = useMemo(
     () => allFixtures.filter((f) => f.status === 'FINISHED'),
@@ -121,7 +63,7 @@ export default function MatchesPage() {
     [allFixtures],
   );
 
-  const activeFixtures: ExpFixture[] =
+  const activeFixtures: Fixture[] =
     activeTab === 'results' ? results : activeTab === 'live' ? live : fixtures;
   const grouped = groupByDate(activeFixtures);
 
@@ -191,7 +133,21 @@ export default function MatchesPage() {
           role="tabpanel"
           aria-label={tabs.find((t) => t.id === activeTab)?.label}
         >
-          {activeTab === 'live' && live.length === 0 && (
+          {loading && (
+            <div className="py-16 text-center">
+              <div className="text-exp-muted text-sm">Loading fixtures…</div>
+            </div>
+          )}
+
+          {!loading && error && (
+            <div className="py-16 text-center">
+              <div className="text-4xl mb-4" aria-hidden>⚠️</div>
+              <div className="text-display-sm text-exp-navy font-black mb-2">Unable to load fixtures</div>
+              <p className="text-body-md text-exp-muted">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && activeTab === 'live' && live.length === 0 && (
             <div className="py-16 text-center">
               <div className="text-4xl mb-4" aria-hidden>⚽</div>
               <div className="text-display-sm text-exp-navy font-black mb-2">
@@ -203,7 +159,7 @@ export default function MatchesPage() {
             </div>
           )}
 
-          {activeTab !== 'live' && activeFixtures.length === 0 && (
+          {!loading && !error && activeTab !== 'live' && activeFixtures.length === 0 && (
             <div className="py-16 text-center">
               <div className="text-4xl mb-4" aria-hidden>📅</div>
               <div className="text-display-sm text-exp-navy font-black mb-2">
@@ -215,19 +171,7 @@ export default function MatchesPage() {
             </div>
           )}
 
-          {/* Live: show full MatchHeader cards */}
-          {activeTab === 'live' && live.length > 0 && (
-            <div className="space-y-4">
-              {live.map((f) => (
-                <Link key={f.id} href={`/matches/${f.id}`} className="block focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2 rounded-card">
-                  <MatchHeader fixture={f} compact />
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Results & Fixtures: grouped by date */}
-          {activeTab !== 'live' && grouped.size > 0 && (
+          {!loading && !error && grouped.size > 0 && (
             <div className="space-y-6">
               {Array.from(grouped.entries()).map(([dateLabel, dayFixtures]) => (
                 <section key={dateLabel} aria-label={dateLabel}>
@@ -239,7 +183,18 @@ export default function MatchesPage() {
                   </div>
                   <div className="space-y-2">
                     {dayFixtures.map((f) => (
-                      <FixtureRow key={f.id} fixture={f} />
+                      <WcFixtureCard
+                        key={f.id}
+                        id={f.id}
+                        kickoffAt={f.kickoffAt}
+                        status={f.status}
+                        homeTeam={f.homeTeam}
+                        awayTeam={f.awayTeam}
+                        homeScore={f.homeScore}
+                        awayScore={f.awayScore}
+                        round={getRound(f)}
+                        variant={f.status === 'LIVE' || f.status === 'HALF_TIME' ? 'live' : 'default'}
+                      />
                     ))}
                   </div>
                 </section>

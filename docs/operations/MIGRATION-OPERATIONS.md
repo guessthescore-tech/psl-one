@@ -2,14 +2,14 @@
 
 **Purpose:** How database migrations are created, reviewed, and applied  
 **Audience:** Backend engineers, DevOps  
-**Status:** Current as of STORY-39  
-**Last verified:** 2026-06-14  
+**Status:** Current as of Sprint 42B  
+**Last verified:** 2026-06-26  
 
 ---
 
 ## Migration State
 
-- **Total migrations:** 38 (as of STORY-39)
+- **Total migrations:** 46 (as of Sprint 42B)
 - **Location:** `apps/api/prisma/migrations/`
 - **Schema:** `apps/api/prisma/schema.prisma`
 - **ORM:** Prisma 5.22
@@ -93,6 +93,14 @@ This task runs before API service rollout. It does not seed, reset, push schema,
 | `20260613000001_social_prediction_match_centre` | STORY-38 | Match Centre, Social Prediction gaming tables |
 | `20260613000002_direct_challenges_campaign_triggers` | STORY-38 | Direct challenges, idempotency, campaign triggers |
 | `20260614000001_beta_launch_readiness` | STORY-39 | BetaCohort, BetaCohortMember, SeasonActivationApproval |
+| `20260615000001_security_performance_hardening` | S3-INFRA-00 | Additive performance indexes (match_events, fantasy_points_ledger, prediction_points_ledger) |
+| `20260621000001_account_security_trust` | Sprint 5 | AuditEvent extensions; AccountDeletionRequest |
+| `20260621000002_prediction_challenge_token` | Sprint 6 | PredictionChallengeStatus; prediction_challenges |
+| `20260621000003_challenge_settlement` | Sprint 7 | Challenge settlement columns |
+| `20260623000001_club_sponsor_memberships` | Sprint 28 | ClubMembership, SponsorMembership |
+| `20260624120000_audience_segment` | Sprint 32 | AudienceSegment (POPIA-safe, aggregate only) |
+| `20260625000001_email_verification` | Sprint 41 | EmailVerificationToken; AuditEvent extensions |
+| `20260626000001_replay_ledger_idempotency` | Sprint 42B | Partial unique index on `prediction_points_ledger(prediction_id) WHERE NOT NULL`; composite unique on `fantasy_points_ledger(fantasy_team_id, player_id, fixture_id)`; duplicate audit DO blocks |
 
 ---
 

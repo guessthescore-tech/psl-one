@@ -1,15 +1,15 @@
 # PSL One — Migration Reference
 
-**Purpose:** Ordered list of all 45 database migrations
+**Purpose:** Ordered list of all 46 database migrations
 **Audience:** Backend engineers
-**Status:** Current as of Sprint 7 (Provider Trial Activation & Challenge Settlement)
-**Last verified:** 2026-06-21
+**Status:** Current as of replay ledger idempotency migration (20260626000001)
+**Last verified:** 2026-06-26
 
 ---
 
 ## Migration Count
 
-**Total migrations:** 45 (as of Sprint 41)
+**Total migrations:** 46 (as of Sprint 41 + replay_ledger_idempotency)
 
 ---
 

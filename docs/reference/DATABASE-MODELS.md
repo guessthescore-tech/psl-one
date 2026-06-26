@@ -339,4 +339,4 @@ ChallengeMatch ──1:1──> ChallengeScore
 
 ## Schema File
 
-`apps/api/prisma/schema.prisma` — 105 models, 45 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership, Sprint 32 AudienceSegment, Sprint 41 EmailVerificationToken)
+`apps/api/prisma/schema.prisma` — 105 models, 46 migrations applied (includes Sprint 28 ClubMembership + SponsorMembership, Sprint 32 AudienceSegment, Sprint 41 EmailVerificationToken, 20260626 replay_ledger_idempotency)

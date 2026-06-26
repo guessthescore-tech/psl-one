@@ -26,6 +26,15 @@ export class DataProviderController {
   getWorldCupLiveReadiness() { return this.service.getWorldCupLiveReadiness(); }
 
   /**
+   * Read-only WC beta provider capability matrix.
+   * Reports which providers are configured and what each covers.
+   * Key values are never included in the response — presence only.
+   * PSL production use of Sportmonks is not authorised.
+   */
+  @Get('wc-beta-capability')
+  getWcBetaCapability() { return this.service.getWcBetaCapability(); }
+
+  /**
    * WC2026 fixture import — dry-run by default, write requires safety flags.
    *
    * Write-mode safety:

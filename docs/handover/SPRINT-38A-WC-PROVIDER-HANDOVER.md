@@ -15,7 +15,7 @@
 - `GET /admin/data-provider/world-cup/scorebat-widget-config` — embed config
 
 ### New Frontend
-- `/world-cup/live` — live match page with ScoreBat widget slot
+- `/world-cup/live` — live match hub; ScoreBat is video/highlights only, not live match data
 - `ScoreBatWorldCupWidget` — iframe component with server-side token handling
 
 ### Staging Tools (6)

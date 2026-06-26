@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { FixtureStatus, MatchEventType, Prisma, PlayerPosition } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ManualLiveMatchProviderAdapter } from './live-match-provider.interface';
+import type { LiveMatchProviderAdapter } from './live-match-provider.interface';
+import { SportmonksLiveMatchAdapter } from './sportmonks-live-match.adapter';
 import { UpdateLiveStateDto } from './dto/update-live-state.dto';
 import { AddMatchEventDto } from './dto/add-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
@@ -30,9 +32,25 @@ const SCORE_EVENTS = new Set<MatchEventType>([
 
 @Injectable()
 export class LiveMatchService {
-  private readonly provider = new ManualLiveMatchProviderAdapter();
+  private readonly provider: LiveMatchProviderAdapter;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {
+    this.provider = LiveMatchService.resolveProvider();
+  }
+
+  /**
+   * Selects the live-match provider at startup via env vars.
+   * WC_LIVE_PROVIDER=sportmonks + SPORTMONKS_API_KEY → SportmonksLiveMatchAdapter
+   * Anything else → ManualLiveMatchProviderAdapter (safe default, no network calls).
+   * PSL production use of Sportmonks is not authorised — see ADR-037.
+   */
+  static resolveProvider(): LiveMatchProviderAdapter {
+    const env = process.env['WC_LIVE_PROVIDER'];
+    if (env === 'sportmonks' && process.env['SPORTMONKS_API_KEY']) {
+      return new SportmonksLiveMatchAdapter();
+    }
+    return new ManualLiveMatchProviderAdapter();
+  }
 
   private async requireFixture(fixtureId: string) {
     const fixture = await this.prisma.fixture.findUnique({ where: { id: fixtureId }, select: { id: true } });

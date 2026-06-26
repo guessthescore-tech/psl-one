@@ -16,7 +16,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "replay:world-cup-fixture": "tsx src/scripts/replay-world-cup-fixture.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
