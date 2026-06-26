@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
@@ -53,6 +53,7 @@ export class NullEmailProvider extends EmailProvider {
  */
 @Injectable()
 export class SmtpEmailProvider extends EmailProvider {
+  private readonly logger = new Logger(SmtpEmailProvider.name);
   private transporter: nodemailer.Transporter | null = null;
 
   constructor(private config: ConfigService) {
@@ -84,42 +85,60 @@ export class SmtpEmailProvider extends EmailProvider {
 
   async sendEmailVerification(to: string, verifyUrl: string): Promise<void> {
     const transport = this.getTransporter();
-    await transport.sendMail({
-      from: this.from,
-      to,
-      subject: 'Verify your PSL One account',
-      text: [
-        'Welcome to PSL One — The Digital Operating System of South African Football.',
-        '',
-        'Please verify your email address by clicking the link below:',
-        verifyUrl,
-        '',
-        'This link expires in 24 hours. If you did not create an account, you can safely ignore this email.',
-        '',
-        '— PSL One Team',
-      ].join('\n'),
-      html: verificationEmailHtml(verifyUrl),
-    });
+    try {
+      const info = await transport.sendMail({
+        from: this.from,
+        to,
+        subject: 'Verify your PSL One account',
+        text: [
+          'Welcome to PSL One — The Digital Operating System of South African Football.',
+          '',
+          'Please verify your email address by clicking the link below:',
+          verifyUrl,
+          '',
+          'This link expires in 24 hours. If you did not create an account, you can safely ignore this email.',
+          '',
+          '— PSL One Team',
+        ].join('\n'),
+        html: verificationEmailHtml(verifyUrl),
+      });
+      this.logger.log(
+        `SMTP verification sent: to=${to} messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)}`,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`SMTP verification failed: to=${to} error=${msg}`);
+      throw err;
+    }
   }
 
   async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
     const transport = this.getTransporter();
-    await transport.sendMail({
-      from: this.from,
-      to,
-      subject: 'Reset your PSL One password',
-      text: [
-        'You requested a password reset for your PSL One account.',
-        '',
-        'Click the link below to set a new password:',
-        resetUrl,
-        '',
-        'This link expires in 1 hour. If you did not request a reset, please ignore this email.',
-        '',
-        '— PSL One Team',
-      ].join('\n'),
-      html: passwordResetEmailHtml(resetUrl),
-    });
+    try {
+      const info = await transport.sendMail({
+        from: this.from,
+        to,
+        subject: 'Reset your PSL One password',
+        text: [
+          'You requested a password reset for your PSL One account.',
+          '',
+          'Click the link below to set a new password:',
+          resetUrl,
+          '',
+          'This link expires in 1 hour. If you did not request a reset, please ignore this email.',
+          '',
+          '— PSL One Team',
+        ].join('\n'),
+        html: passwordResetEmailHtml(resetUrl),
+      });
+      this.logger.log(
+        `SMTP password-reset sent: to=${to} messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)}`,
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`SMTP password-reset failed: to=${to} error=${msg}`);
+      throw err;
+    }
   }
 }
 

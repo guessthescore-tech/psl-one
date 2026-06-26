@@ -78,6 +78,8 @@ services:
       DATA_PROVIDER: ${DATA_PROVIDER:-NoOp}
       # World Cup write import gate — must be explicitly enabled per-deploy
       ALLOW_WORLD_CUP_WRITE: ${ALLOW_WORLD_CUP_WRITE:-false}
+      # App base URL — used in email verification links
+      APP_BASE_URL: ${APP_BASE_URL:-https://beta.pslone.co.za}
       # Email delivery — set in .env.beta, pulled from SSM at deploy time
       EMAIL_PROVIDER: ${EMAIL_PROVIDER:-null}
       SMTP_HOST: ${SMTP_HOST:-}

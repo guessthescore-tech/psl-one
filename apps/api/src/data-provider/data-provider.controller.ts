@@ -61,6 +61,14 @@ export class DataProviderController {
   @Get('world-cup/fixture-status')
   getWorldCupFixtureStatus() { return this.wcDbStatus.getFixtureStatus(); }
 
+  /**
+   * Provider sync status — whether WC fixtures are static seed data or provider-synced.
+   * Use this to verify refreshFixtureStatuses has run and scores are present.
+   * Read-only, no writes, no PSL activation.
+   */
+  @Get('world-cup/sync-status')
+  getWorldCupProviderSyncStatus() { return this.wcDbStatus.getProviderSyncStatus(); }
+
   /** Read-only ScoreBat widget embed config — no key values in response. */
   @Get('world-cup/scorebat-widget-config')
   getScoreBatWidgetConfig() {

@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { AuditEvent, ConsentPurpose, UserRole } from '@prisma/client';
@@ -21,8 +21,10 @@ const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 type SafeUser = { id: string; email: string; role: UserRole };
 
+type EmailDeliveryStatus = 'SENT' | 'FAILED' | 'SKIPPED';
+
 type RegisterResult =
-  | { enumerable: true; accessToken: string; user: SafeUser & { emailVerified: boolean } }
+  | { enumerable: true; accessToken: string; user: SafeUser & { emailVerified: boolean }; emailDeliveryStatus: EmailDeliveryStatus }
   | { enumerable: false };
 
 type LoginResult = { accessToken: string; user: SafeUser & { emailVerified: boolean } };
@@ -39,6 +41,8 @@ export type UserProfile = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private authProvider: LocalJwtProvider,
@@ -121,10 +125,14 @@ export class AuthService {
     await this.writeAuditLog(user.id, AuditEvent.REGISTER, true, userAgent);
 
     // Trigger email verification — failure must not block registration
+    let emailDeliveryStatus: EmailDeliveryStatus = 'SKIPPED';
     try {
       await this.requestEmailVerification(user.id, user.email, userAgent);
-    } catch {
-      // Email delivery failure is non-fatal. The fan can re-request from their account.
+      emailDeliveryStatus = 'SENT';
+    } catch (err: unknown) {
+      emailDeliveryStatus = 'FAILED';
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`auth.register: email verification send failed for user=${user.id} error=${msg}`);
     }
 
     const accessToken = await this.authProvider.signToken({
@@ -137,6 +145,7 @@ export class AuthService {
       enumerable: true,
       accessToken,
       user: { id: user.id, email: user.email, role: user.role, emailVerified: false },
+      emailDeliveryStatus,
     };
   }
 

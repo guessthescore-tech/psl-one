@@ -51,6 +51,7 @@ export function SignUpForm() {
   const [success, setSuccess] = useState<SuccessState | null>(null);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
 
   function ageFromDob(dob: string): number {
     const born = new Date(dob);
@@ -110,8 +111,9 @@ export function SignUpForm() {
   async function handleResend() {
     if (!success) return;
     setResendLoading(true);
+    setResendError(null);
     try {
-      await fetch(`${API_BASE}/auth/email/verify/request`, {
+      const res = await fetch(`${API_BASE}/auth/email/verify/request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,9 +121,13 @@ export function SignUpForm() {
         },
         body: JSON.stringify({ email: success.email }),
       });
+      if (!res.ok) {
+        setResendError('Failed to resend verification email. Please try again.');
+        return;
+      }
       setResendSent(true);
     } catch {
-      // silent fail — user can retry
+      setResendError('Unable to connect to the server. Please try again.');
     } finally {
       setResendLoading(false);
     }
@@ -145,6 +151,11 @@ export function SignUpForm() {
         </div>
 
         <div className="w-full border-t border-exp-border-dk pt-4">
+          {resendError && (
+            <p role="alert" className="text-body-sm text-exp-live text-center mb-3">
+              {resendError}
+            </p>
+          )}
           {resendSent ? (
             <p className="text-body-sm text-exp-green text-center">
               Verification email resent!

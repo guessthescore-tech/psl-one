@@ -521,8 +521,8 @@ export function getExperienceData(): ExperienceData {
   };
 
   if (mode === 'LIVE_BETA_DATA') {
-    /* TODO: replace with real API calls when LIVE_BETA_DATA is wired. */
-    /* Showing WC mock data with LIVE banner until API integration. */
+    /* LIVE_BETA_DATA is not yet wired — returns design mock data. */
+    /* Sections using this data must be visibly labelled as editorial preview. */
     return base;
   }
 

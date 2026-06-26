@@ -39,7 +39,18 @@ export default async function HomePage() {
       {/* Live API-backed fixtures — no hardcoded match data */}
       <HomepageFixtureSection />
 
-      {/* Editorial preview sections — clearly labelled design-review content */}
+      {/* Editorial preview sections — mock design data, not live provider data */}
+      {(mode === 'WC_BETA' || mode === 'DESIGN_REVIEW_DATA') && (
+        <div
+          role="note"
+          aria-label="Editorial beta preview notice"
+          className="mx-auto max-w-6xl px-4 py-2 mb-0"
+        >
+          <p className="text-xs text-white/40 text-center border border-white/10 rounded px-3 py-1.5">
+            Sections below are editorial beta previews — design data, not live provider data
+          </p>
+        </div>
+      )}
       <LeagueTableSection data={editorialData} />
       <FantasyGameweekSection data={editorialData} />
       <PlayerSpotlightSection data={editorialData} />
