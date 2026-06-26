@@ -1,8 +1,5 @@
 import { getExperienceData, getDataMode } from '@/lib/data';
-import { MatchweekHeroSection } from '@/sections/MatchweekHeroSection';
-import { FixtureCarouselSection } from '@/sections/FixtureCarouselSection';
-import { FeaturedMatchSection } from '@/sections/FeaturedMatchSection';
-import { GuessTheScoreSection } from '@/sections/GuessTheScoreSection';
+import { HomepageFixtureSection } from '@/sections/HomepageFixtureSection';
 import { LeagueTableSection } from '@/sections/LeagueTableSection';
 import { FantasyGameweekSection } from '@/sections/FantasyGameweekSection';
 import { PlayerSpotlightSection } from '@/sections/PlayerSpotlightSection';
@@ -13,13 +10,22 @@ import { SponsorSection } from '@/sections/SponsorSection';
 import { FanValueSection } from '@/sections/FanValueSection';
 import { MyClubSection } from '@/sections/MyClubSection';
 
-export default function HomePage() {
-  const data = getExperienceData();
+/**
+ * Homepage — World Cup 2026 Beta.
+ * Hero fixtures come from the live API (GET /football/fixtures?seasonSlug=fifa-world-cup-2026).
+ * Falls back to "API unavailable" state — no hardcoded match data shown as live.
+ * Editorial sections (fantasy preview, articles, video) use design-review data clearly labelled.
+ *
+ * WC_BETA · NO_REAL_MONEY
+ */
+export default async function HomePage() {
+  // Editorial/preview data — not presented as live match data
+  const editorialData = getExperienceData();
   const mode = getDataMode();
 
   return (
     <>
-      {/* Data mode banner */}
+      {/* Development-only mode banner */}
       {mode === 'DESIGN_REVIEW_DATA' && (
         <div
           role="banner"
@@ -30,19 +36,19 @@ export default function HomePage() {
         </div>
       )}
 
-      <MatchweekHeroSection data={data} />
-      <FixtureCarouselSection data={data} />
-      <FeaturedMatchSection data={data} />
-      <GuessTheScoreSection data={data} />
-      <LeagueTableSection data={data} />
-      <FantasyGameweekSection data={data} />
-      <PlayerSpotlightSection data={data} />
-      <EditorialGridSection data={data} />
-      <VideoRailSection data={data} />
-      <ClubIdentitySection data={data} />
+      {/* Live API-backed fixtures — no hardcoded match data */}
+      <HomepageFixtureSection />
+
+      {/* Editorial preview sections — clearly labelled design-review content */}
+      <LeagueTableSection data={editorialData} />
+      <FantasyGameweekSection data={editorialData} />
+      <PlayerSpotlightSection data={editorialData} />
+      <EditorialGridSection data={editorialData} />
+      <VideoRailSection data={editorialData} />
+      <ClubIdentitySection data={editorialData} />
       <SponsorSection />
-      <FanValueSection data={data} />
-      <MyClubSection data={data} />
+      <FanValueSection data={editorialData} />
+      <MyClubSection data={editorialData} />
     </>
   );
 }
