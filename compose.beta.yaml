@@ -78,6 +78,14 @@ services:
       DATA_PROVIDER: ${DATA_PROVIDER:-NoOp}
       # World Cup write import gate — must be explicitly enabled per-deploy
       ALLOW_WORLD_CUP_WRITE: ${ALLOW_WORLD_CUP_WRITE:-false}
+      # Email delivery — set in .env.beta, pulled from SSM at deploy time
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-null}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
     depends_on:
       postgres:
         condition: service_healthy
