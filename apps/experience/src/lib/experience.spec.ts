@@ -7259,6 +7259,93 @@ describe('Sprint 42B: news page upgraded', () => {
   });
 });
 
+// ─── Hotfix: API-backed homepage / email delivery ────────────────────────────
+
+describe('Hotfix: homepage — no hardcoded old South Africa fixture', () => {
+  const homePage = read('app/page.tsx');
+
+  it('homepage imports HomepageFixtureSection', () => {
+    expect(homePage).toContain('HomepageFixtureSection');
+  });
+
+  it('homepage does not render MatchweekHeroSection', () => {
+    expect(homePage).not.toContain('<MatchweekHeroSection');
+  });
+
+  it('homepage does not render FixtureCarouselSection with static data as live', () => {
+    expect(homePage).not.toContain('<FixtureCarouselSection');
+  });
+
+  it('homepage does not render FeaturedMatchSection', () => {
+    expect(homePage).not.toContain('<FeaturedMatchSection');
+  });
+
+  it('homepage does not render GuessTheScoreSection with static fixture data', () => {
+    expect(homePage).not.toContain('<GuessTheScoreSection');
+  });
+
+  it('homepage uses async function (server fetch)', () => {
+    expect(homePage).toContain('async function HomePage');
+  });
+});
+
+describe('Hotfix: HomepageFixtureSection — API-backed, no static fixture data', () => {
+  const section = read('sections/HomepageFixtureSection.tsx');
+
+  it('HomepageFixtureSection exists', () => {
+    expect(exists('sections/HomepageFixtureSection.tsx')).toBe(true);
+  });
+
+  it('fetches /football/fixtures from INTERNAL_API_URL', () => {
+    expect(section).toContain('/football/fixtures');
+    expect(section).toContain('INTERNAL_API_URL');
+  });
+
+  it('shows API unavailable state instead of static data', () => {
+    expect(section).toContain('Live beta API unavailable');
+  });
+
+  it('shows no upcoming fixtures empty state', () => {
+    expect(section).toContain('No upcoming World Cup fixtures currently available from API.');
+  });
+
+  it('does not contain hardcoded South Africa vs South Korea fixture', () => {
+    // Should not have static ids like 'rsa' or 'kor' fixture definitions
+    expect(section).not.toContain("id: 'rsa'");
+    expect(section).not.toContain("id: 'kor'");
+  });
+
+  it('does not import getExperienceData (no static mock injection)', () => {
+    expect(section).not.toContain('getExperienceData');
+  });
+
+  it('uses WcFixtureCard for consistent fixture display', () => {
+    expect(section).toContain('WcFixtureCard');
+  });
+
+  it('has World Cup Beta label', () => {
+    expect(section).toContain('FIFA World Cup 2026');
+  });
+
+  it('revalidates at 300s (5 min cache)', () => {
+    expect(section).toContain('revalidate: 300');
+  });
+});
+
+describe('Hotfix: email delivery — resend verification', () => {
+  it('sign-up form has resend verification email button', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('Resend verification email');
+  });
+
+  it('sign-up form posts to /auth/email/verify/request', () => {
+    expect(read('app/sign-up/SignUpForm.tsx')).toContain('/auth/email/verify/request');
+  });
+
+  it('account security page has resend verification email link', () => {
+    expect(read('app/account/security/page.tsx')).toContain('Resend verification email');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {
