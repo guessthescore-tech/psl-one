@@ -14,9 +14,10 @@ export interface PlayerPriceInfo {
 export class FantasyPriceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getPlayerPrices(seasonId: string): Promise<PlayerPriceInfo[]> {
+  async getPlayerPrices(seasonId?: string): Promise<PlayerPriceInfo[]> {
+    const resolvedId = seasonId ?? await this.resolveActiveSeasonId();
     const prices = await this.prisma.fantasyPlayerPrice.findMany({
-      where: { seasonId },
+      where: { seasonId: resolvedId },
       include: { player: { select: { id: true, name: true } } },
       orderBy: { price: 'desc' },
     });
@@ -27,6 +28,12 @@ export class FantasyPriceService {
       seasonId: p.seasonId,
       currentPrice: p.price,
     }));
+  }
+
+  private async resolveActiveSeasonId(): Promise<string> {
+    const season = await this.prisma.season.findFirst({ where: { isActive: true }, select: { id: true } });
+    if (!season) throw new NotFoundException('No active season found');
+    return season.id;
   }
 
   async getPlayerPrice(playerId: string, seasonId: string): Promise<PlayerPriceInfo> {

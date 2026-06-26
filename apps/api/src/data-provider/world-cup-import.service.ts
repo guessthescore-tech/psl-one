@@ -251,9 +251,52 @@ export class WorldCupImportService {
     return candidates;
   }
 
+  /**
+   * Maps football-data.org team names to the canonical names stored in the DB.
+   * Keys are lowercase, apostrophes normalised. Values are DB-canonical.
+   */
+  private static readonly TEAM_ALIASES: Record<string, string> = {
+    // Bosnia
+    'bosnia-herzegovina': 'Bosnia and Herzegovina',
+    'bosnia herzegovina': 'Bosnia and Herzegovina',
+    'bih': 'Bosnia and Herzegovina',
+    // Turkey / Türkiye
+    'turkey': 'Türkiye',
+    'turkiye': 'Türkiye',
+    'tur': 'Türkiye',
+    // Cape Verde
+    'cape verde islands': 'Cape Verde',
+    'cabo verde': 'Cape Verde',
+    'cpv': 'Cape Verde',
+    // DR Congo
+    'congo dr': 'DR Congo',
+    'democratic republic of congo': 'DR Congo',
+    'democratic republic of the congo': 'DR Congo',
+    'cod': 'DR Congo',
+    // South Korea
+    'korea republic': 'South Korea',
+    'republic of korea': 'South Korea',
+    'kor': 'South Korea',
+    // Ivory Coast
+    "ivory coast": "Côte d'Ivoire",
+    "cote d'ivoire": "Côte d'Ivoire",
+    "civ": "Côte d'Ivoire",
+  };
+
   private async resolveTeam(name: string): Promise<{ id: string } | null> {
+    // 1. Exact match
     const exact = await this.prisma.team.findFirst({ where: { name }, select: { id: true } });
     if (exact) return exact;
+
+    // 2. Alias lookup — normalise input to lowercase + straighten apostrophes
+    const normalised = name.toLowerCase().replace(/['']/g, "'").trim();
+    const aliasedName = WorldCupImportService.TEAM_ALIASES[normalised];
+    if (aliasedName) {
+      const aliasMatch = await this.prisma.team.findFirst({ where: { name: aliasedName }, select: { id: true } });
+      if (aliasMatch) return aliasMatch;
+    }
+
+    // 3. Contains fallback (insensitive)
     return this.prisma.team.findFirst({
       where: { name: { contains: name, mode: 'insensitive' } },
       select: { id: true },
