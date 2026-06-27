@@ -10,6 +10,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'SENT' | 'FAILED' | 'SKIPPED' | null>(null);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -40,8 +41,14 @@ export default function RegisterPage() {
 
       if ('accessToken' in result) {
         setToken(result.accessToken);
-        router.push('/account');
+        setEmailDeliveryStatus(result.emailDeliveryStatus ?? 'SKIPPED');
+        if (result.emailDeliveryStatus === 'SENT') {
+          router.push('/account');
+        } else {
+          setSuccess(true);
+        }
       } else {
+        setEmailDeliveryStatus('SKIPPED');
         setSuccess(true);
       }
     } catch (err) {
@@ -56,8 +63,11 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center bg-psl-navy">
         <div className="bg-white rounded-lg p-8 max-w-md w-full text-center">
           <h1 className="text-2xl font-bold text-psl-navy mb-4">Check your inbox</h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 mb-2">
             If your email was not already registered, your account has been created.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Verification email status: {emailDeliveryStatus ?? 'SKIPPED'}.
           </p>
           <Link href="/login" className="text-psl-navy font-semibold underline">
             Sign in

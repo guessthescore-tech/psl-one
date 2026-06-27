@@ -237,6 +237,8 @@ jobs:
               "SMTP_PASSWORD=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/SMTP_PASSWORD --with-decryption --query Parameter.Value --output text 2>/dev/null || echo '')",
               "SMTP_FROM=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/smtp-from --query Parameter.Value --output text 2>/dev/null || echo '')",
               "APP_BASE_URL=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/app-base-url --query Parameter.Value --output text 2>/dev/null || echo 'https://beta.pslone.co.za')",
+              "WC_LIVE_PROVIDER=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/wc-live-provider --query Parameter.Value --output text 2>/dev/null || echo 'manual')",
+              "SPORTMONKS_API_KEY=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/sportmonks-api-key --with-decryption --query Parameter.Value --output text 2>/dev/null || echo '')",
               "sed -i 's|^      - node_modules/.bin/prisma$|      - apps/api/node_modules/.bin/prisma|' compose.beta.yaml",
               "sed -i \"s|^API_IMAGE_URI=.*|API_IMAGE_URI=${API_IMAGE_URI}|\" .env.beta",
               "sed -i \"s|^MIGRATION_IMAGE_URI=.*|MIGRATION_IMAGE_URI=${MIGRATION_IMAGE_URI}|\" .env.beta",
@@ -251,6 +253,8 @@ jobs:
               "grep -q '^SMTP_PASSWORD=' .env.beta && sed -i \"s|^SMTP_PASSWORD=.*|SMTP_PASSWORD=${SMTP_PASSWORD}|\" .env.beta || echo \"SMTP_PASSWORD=${SMTP_PASSWORD}\" >> .env.beta",
               "grep -q '^SMTP_FROM=' .env.beta && sed -i \"s|^SMTP_FROM=.*|SMTP_FROM=${SMTP_FROM}|\" .env.beta || echo \"SMTP_FROM=${SMTP_FROM}\" >> .env.beta",
               "grep -q '^APP_BASE_URL=' .env.beta && sed -i \"s|^APP_BASE_URL=.*|APP_BASE_URL=${APP_BASE_URL}|\" .env.beta || echo \"APP_BASE_URL=${APP_BASE_URL}\" >> .env.beta",
+              "grep -q '^WC_LIVE_PROVIDER=' .env.beta && sed -i \"s|^WC_LIVE_PROVIDER=.*|WC_LIVE_PROVIDER=${WC_LIVE_PROVIDER}|\" .env.beta || echo \"WC_LIVE_PROVIDER=${WC_LIVE_PROVIDER}\" >> .env.beta",
+              "grep -q '^SPORTMONKS_API_KEY=' .env.beta && sed -i \"s|^SPORTMONKS_API_KEY=.*|SPORTMONKS_API_KEY=${SPORTMONKS_API_KEY}|\" .env.beta || echo \"SPORTMONKS_API_KEY=${SPORTMONKS_API_KEY}\" >> .env.beta",
               "docker compose -f compose.beta.yaml --env-file .env.beta pull api migrate web",
               "docker compose -f compose.beta.yaml --env-file .env.beta stop api web caddy",
           ]

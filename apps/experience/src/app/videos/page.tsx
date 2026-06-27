@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getServerApiBase } from '../../lib/server-api-base';
 
 /**
  * Videos & Highlights hub — server component.
@@ -9,12 +10,15 @@ import Link from 'next/link';
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
 
-const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+const API_BASE = getServerApiBase();
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 async function fetchWidgetConfig(): Promise<{ available: boolean; embedUrl: string | null }> {
   try {
     const res = await fetch(`${API_BASE}/football/world-cup/scorebat-widget`, {
-      next: { revalidate: 3600 },
+      cache: 'no-store',
     });
     if (!res.ok) return { available: false, embedUrl: null };
     return res.json() as Promise<{ available: boolean; embedUrl: string | null }>;

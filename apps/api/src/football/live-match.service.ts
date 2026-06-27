@@ -9,6 +9,7 @@ import { AddMatchEventDto } from './dto/add-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
 import { UpsertPlayerStatDto } from './dto/upsert-player-stat.dto';
 import { BulkUpsertPlayerStatsDto } from './dto/bulk-upsert-player-stats.dto';
+import { SyncProviderPlayerStatsDto } from './dto/sync-provider-player-stats.dto';
 
 const EVENT_INCLUDE = {
   team: { select: { id: true, name: true, slug: true, shortName: true } },
@@ -29,13 +30,17 @@ const LINEUP_INCLUDE = {
 const SCORE_EVENTS = new Set<MatchEventType>([
   MatchEventType.GOAL, MatchEventType.PENALTY_SCORED, MatchEventType.OWN_GOAL,
 ]);
+const SYNC_PROVIDER_PLAYER_STATS_CONFIRM = 'SYNC_PROVIDER_PLAYER_STATS';
 
 @Injectable()
 export class LiveMatchService {
   private readonly provider: LiveMatchProviderAdapter;
 
-  constructor(private readonly prisma: PrismaService) {
-    this.provider = LiveMatchService.resolveProvider();
+  constructor(
+    private readonly prisma: PrismaService,
+    provider?: LiveMatchProviderAdapter,
+  ) {
+    this.provider = provider ?? LiveMatchService.resolveProvider();
   }
 
   /**
@@ -438,7 +443,229 @@ export class LiveMatchService {
     return { synced: true, fixtureId, provider: this.provider.providerName };
   }
 
+  async syncProviderPlayerStats(
+    fixtureId: string,
+    dto: SyncProviderPlayerStatsDto = {},
+    actorUserId?: string | null,
+  ) {
+    const dryRun = dto.dryRun !== false;
+    if (!dryRun && dto.confirm !== SYNC_PROVIDER_PLAYER_STATS_CONFIRM) {
+      throw new BadRequestException(`Confirmed provider player-stat sync requires confirm=${SYNC_PROVIDER_PLAYER_STATS_CONFIRM}`);
+    }
+
+    const fixture = await this.prisma.fixture.findUnique({
+      where: { id: fixtureId },
+      select: {
+        id: true,
+        providerFixtureId: true,
+        homeTeamId: true,
+        awayTeamId: true,
+      },
+    });
+    if (!fixture) throw new NotFoundException(`Fixture '${fixtureId}' not found`);
+
+    if (!fixture.providerFixtureId) {
+      return {
+        synced: false,
+        dryRun,
+        fixtureId,
+        provider: this.provider.providerName,
+        fetched: 0,
+        mapped: 0,
+        wouldWrite: 0,
+        written: 0,
+        unmapped: [],
+        reason: 'No providerFixtureId configured for this fixture',
+        safety: this.playerStatSyncSafety(),
+      };
+    }
+
+    const providerStats = await this.provider.fetchFixturePlayerStats(fixture.providerFixtureId);
+    if (providerStats.length === 0) {
+      return {
+        synced: false,
+        dryRun,
+        fixtureId,
+        provider: this.provider.providerName,
+        providerFixtureId: fixture.providerFixtureId,
+        fetched: 0,
+        mapped: 0,
+        wouldWrite: 0,
+        written: 0,
+        unmapped: [],
+        reason: 'Provider returned no player stats',
+        safety: this.playerStatSyncSafety(),
+      };
+    }
+
+    const playerRefs = unique(providerStats.map(s => s.playerProviderRef));
+    const teamRefs = unique(providerStats.map(s => s.teamProviderRef));
+
+    const [players, teams] = await Promise.all([
+      this.prisma.player.findMany({
+        where: { externalId: { in: playerRefs } },
+        select: { id: true, externalId: true },
+      }),
+      this.prisma.team.findMany({
+        where: {
+          id: { in: [fixture.homeTeamId, fixture.awayTeamId] },
+          externalId: { in: teamRefs },
+        },
+        select: { id: true, externalId: true },
+      }),
+    ]);
+
+    const playersByExternalId = singleByExternalId(players);
+    const teamsByExternalId = singleByExternalId(teams);
+    const ambiguousPlayerRefs = ambiguousExternalIds(players);
+    const ambiguousTeamRefs = ambiguousExternalIds(teams);
+    const mappedStats: UpsertPlayerStatDto[] = [];
+    const unmapped: Array<{ playerProviderRef: string; teamProviderRef: string; reason: string }> = [];
+
+    for (const stat of providerStats) {
+      const player = playersByExternalId.get(stat.playerProviderRef);
+      const team = teamsByExternalId.get(stat.teamProviderRef);
+      if (ambiguousPlayerRefs.has(stat.playerProviderRef)) {
+        unmapped.push({
+          playerProviderRef: stat.playerProviderRef,
+          teamProviderRef: stat.teamProviderRef,
+          reason: 'Multiple local players share this provider externalId',
+        });
+        continue;
+      }
+      if (ambiguousTeamRefs.has(stat.teamProviderRef)) {
+        unmapped.push({
+          playerProviderRef: stat.playerProviderRef,
+          teamProviderRef: stat.teamProviderRef,
+          reason: 'Multiple local fixture teams share this provider externalId',
+        });
+        continue;
+      }
+      if (!player) {
+        unmapped.push({
+          playerProviderRef: stat.playerProviderRef,
+          teamProviderRef: stat.teamProviderRef,
+          reason: 'No local player found for provider externalId',
+        });
+        continue;
+      }
+      if (!team) {
+        unmapped.push({
+          playerProviderRef: stat.playerProviderRef,
+          teamProviderRef: stat.teamProviderRef,
+          reason: 'No local fixture team found for provider externalId',
+        });
+        continue;
+      }
+
+      mappedStats.push({
+        playerId: player.id,
+        teamId: team.id,
+        minutesPlayed: stat.minutesPlayed,
+        goals: stat.goals,
+        assists: stat.assists,
+        ownGoals: stat.ownGoals,
+        yellowCards: stat.yellowCards,
+        redCards: stat.redCards,
+        penaltiesMissed: 0,
+        penaltiesSaved: 0,
+        saves: stat.saves,
+        goalsConceded: stat.goalsConceded,
+        cleanSheet: stat.cleanSheet,
+        started: stat.started,
+        ...(stat.cameOnMinute !== null ? { cameOnMinute: stat.cameOnMinute } : {}),
+        ...(stat.subbedOffMinute !== null ? { subbedOffMinute: stat.subbedOffMinute } : {}),
+        didNotPlay: stat.minutesPlayed === 0,
+        source: this.provider.providerName,
+        providerStatId: `${this.provider.providerName}:${fixture.providerFixtureId}:${stat.playerProviderRef}`,
+      });
+    }
+
+    if (dryRun) {
+      return {
+        synced: false,
+        dryRun: true,
+        fixtureId,
+        provider: this.provider.providerName,
+        providerFixtureId: fixture.providerFixtureId,
+        fetched: providerStats.length,
+        mapped: mappedStats.length,
+        wouldWrite: mappedStats.length,
+        written: 0,
+        unmapped,
+        safety: this.playerStatSyncSafety(),
+      };
+    }
+
+    const writtenRows = await Promise.all(
+      mappedStats.map(stat => this.upsertPlayerStat(fixtureId, stat)),
+    );
+    await this.prisma.fixture.update({
+      where: { id: fixtureId },
+      data: { lastSyncedAt: new Date(), lastUpdatedAt: new Date() },
+    });
+    await this.writeAdminAuditLog(actorUserId ?? null, 'PROVIDER_PLAYER_STATS_SYNCED', 'Fixture', fixtureId, {
+      provider: this.provider.providerName,
+      providerFixtureId: fixture.providerFixtureId,
+      fetched: providerStats.length,
+      mapped: mappedStats.length,
+      written: writtenRows.length,
+      unmapped: unmapped.length,
+    });
+
+    return {
+      synced: true,
+      dryRun: false,
+      fixtureId,
+      provider: this.provider.providerName,
+      providerFixtureId: fixture.providerFixtureId,
+      fetched: providerStats.length,
+      mapped: mappedStats.length,
+      wouldWrite: 0,
+      written: writtenRows.length,
+      unmapped,
+      safety: this.playerStatSyncSafety(),
+    };
+  }
+
   // ── Internal helpers ──────────────────────────────────────────────────────
+
+  private playerStatSyncSafety() {
+    return {
+      primaryDataWrites: ['FantasyPlayerMatchStat'],
+      metadataWrites: ['Fixture.lastSyncedAt', 'Fixture.lastUpdatedAt', 'AdminAuditLog'],
+      dryRunDefault: true,
+      confirmedWritesRequireToken: SYNC_PROVIDER_PLAYER_STATS_CONFIRM,
+      idempotentByPlayerFixture: true,
+      doesNotModifyHistoricalFixtureFacts: true,
+      doesNotSettleFantasyPoints: true,
+      doesNotSettlePredictions: true,
+      doesNotActivatePsl: true,
+    };
+  }
+
+  private async writeAdminAuditLog(
+    actorUserId: string | null,
+    action: string,
+    entityType: string,
+    entityId: string,
+    metadata: Record<string, unknown>,
+  ) {
+    try {
+      await this.prisma.adminAuditLog.create({
+        data: {
+          actorUserId,
+          action,
+          entityType,
+          entityId,
+          route: '/football/admin/fixtures/:id/player-stats/sync-provider',
+          metadata: metadata as Prisma.InputJsonValue,
+        },
+      });
+    } catch {
+      // Audit failures should not block the primary idempotent provider sync.
+    }
+  }
 
   private async updateScoreFromEvent(fixtureId: string, eventType: MatchEventType, teamId: string) {
     const fixture = await this.prisma.fixture.findUnique({
@@ -526,4 +753,33 @@ function computeLivePoints(s: FantasyStatRow): number {
   const reds = s.redCards * -3;
   const ownGoals = s.ownGoals * -2;
   return appearance + goals + assists + cleanSheet + saves + penaltySaves + penaltyMisses + yellows + reds + ownGoals;
+}
+
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function singleByExternalId<T extends { id: string; externalId: string | null }>(rows: T[]): Map<string, T> {
+  const counts = countByExternalId(rows);
+  const map = new Map<string, T>();
+  for (const row of rows) {
+    if (row.externalId && counts.get(row.externalId) === 1) {
+      map.set(row.externalId, row);
+    }
+  }
+  return map;
+}
+
+function ambiguousExternalIds(rows: Array<{ externalId: string | null }>): Set<string> {
+  const counts = countByExternalId(rows);
+  return new Set(Array.from(counts.entries()).filter(([, count]) => count > 1).map(([externalId]) => externalId));
+}
+
+function countByExternalId(rows: Array<{ externalId: string | null }>): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    if (!row.externalId) continue;
+    counts.set(row.externalId, (counts.get(row.externalId) ?? 0) + 1);
+  }
+  return counts;
 }

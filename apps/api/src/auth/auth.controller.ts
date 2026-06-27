@@ -35,7 +35,11 @@ export class AuthController {
     if (!result.enumerable) {
       return { message: 'Registration processed. Please check your inbox to confirm your account.' };
     }
-    return { accessToken: result.accessToken, user: result.user };
+    return {
+      accessToken: result.accessToken,
+      user: result.user,
+      emailDeliveryStatus: result.emailDeliveryStatus,
+    };
   }
 
   @Post('login')

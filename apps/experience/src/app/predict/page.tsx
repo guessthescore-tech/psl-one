@@ -11,6 +11,8 @@ import { getDataMode, WC_FIXTURES, type ExpFixture } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
 import { getFixtures, type Fixture } from '@/lib/football-api';
+import { getToken } from '@/lib/auth';
+import { createScorePrediction, getMyFixturePrediction } from '@/lib/predictions-api';
 
 function toExpFixture(f: Fixture): ExpFixture {
   return {
@@ -45,6 +47,8 @@ interface StoredPrediction {
   homeScore: number;
   awayScore: number;
   submittedAt: string;
+  predictionId?: string;
+  status?: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -272,10 +276,12 @@ function ShareSheet({
 function FixturePredictionCard({
   fixture,
   stored,
+  liveMode,
   onPredicted,
 }: {
   fixture: ExpFixture;
   stored: StoredPrediction | null;
+  liveMode: boolean;
   onPredicted: (p: StoredPrediction) => void;
 }) {
   const reduce = useReducedMotion();
@@ -284,17 +290,58 @@ function FixturePredictionCard({
   const [awayScore, setAwayScore] = useState(stored?.awayScore ?? 1);
   const [submitted, setSubmitted] = useState(!!stored);
   const [showShare, setShowShare] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  function handleSubmit() {
-    const prediction: StoredPrediction = {
-      fixtureId: fixture.id,
-      homeScore,
-      awayScore,
-      submittedAt: new Date().toISOString(),
-    };
-    savePrediction(prediction);
+  useEffect(() => {
+    if (!stored) return;
+    setHomeScore(stored.homeScore);
+    setAwayScore(stored.awayScore);
     setSubmitted(true);
-    onPredicted(prediction);
+  }, [stored]);
+
+  async function handleSubmit() {
+    setSubmitError(null);
+    setSubmitting(true);
+    try {
+      let prediction: StoredPrediction = {
+        fixtureId: fixture.id,
+        homeScore,
+        awayScore,
+        submittedAt: new Date().toISOString(),
+      };
+
+      if (liveMode) {
+        const result = await createScorePrediction({
+          fixtureId: fixture.id,
+          predictedHomeScore: homeScore,
+          predictedAwayScore: awayScore,
+        });
+        prediction = {
+          fixtureId: result.fixtureId,
+          homeScore: result.predictedHomeScore,
+          awayScore: result.predictedAwayScore,
+          submittedAt: result.submittedAt,
+          predictionId: result.id,
+          status: result.status,
+        };
+      }
+
+      savePrediction(prediction);
+      setSubmitted(true);
+      onPredicted(prediction);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Prediction failed';
+      if (message === 'UNAUTHORIZED') {
+        setSubmitError('Sign in to lock predictions to your account.');
+      } else if (/already exists|already/i.test(message)) {
+        setSubmitError('You already locked a prediction for this fixture.');
+      } else {
+        setSubmitError(message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -421,11 +468,25 @@ function FixturePredictionCard({
                   <ScoreStepper value={awayScore} onChange={setAwayScore} label={fixture.awayClub.shortName} />
                 </div>
                 <button
-                  onClick={handleSubmit}
+                  onClick={() => { void handleSubmit(); }}
+                  disabled={submitting}
                   className="w-full bg-exp-gold text-exp-void font-black py-3.5 rounded-pill hover:bg-exp-gold-2 active:scale-[0.97] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold min-h-[44px]"
                 >
-                  Lock in prediction
+                  {submitting ? 'Locking in...' : 'Lock in prediction'}
                 </button>
+                {submitError && (
+                  <div className="mt-3 rounded-card-sm border border-exp-live/40 bg-exp-live/10 px-3 py-2 text-center">
+                    <p role="alert" className="text-label-sm text-exp-live">{submitError}</p>
+                    {submitError.includes('Sign in') && (
+                      <Link
+                        href={`/sign-in?redirect=${encodeURIComponent('/predict')}`}
+                        className="mt-1 inline-block text-label-sm text-exp-gold underline"
+                      >
+                        Sign in
+                      </Link>
+                    )}
+                  </div>
+                )}
                 <p className="text-label-xs text-white/30 text-center mt-2">
                   Points only · no real money · no financial value
                 </p>
@@ -455,10 +516,16 @@ export default function PredictPage() {
   const mode = getDataMode();
   const [fixtures, setFixtures] = useState<ExpFixture[]>([]);
   const [predictions, setPredictions] = useState<StoredPrediction[]>([]);
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadFixtures = useCallback(async () => {
+    const requestedFixtureId = typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('fixtureId')
+      : null;
+    setSelectedFixtureId(requestedFixtureId);
+
     if (mode === 'DESIGN_REVIEW_DATA') {
       setFixtures(WC_FIXTURES);
       setPredictions(loadPredictions());
@@ -467,12 +534,42 @@ export default function PredictPage() {
     }
 
     try {
-      const data = await getFixtures({ status: 'SCHEDULED' });
-      setFixtures(data.map(toExpFixture));
+      const data = await getFixtures({ seasonSlug: 'fifa-world-cup-2026', status: 'SCHEDULED' });
+      const mapped = data.map(toExpFixture).sort((a, b) => {
+        if (a.id === requestedFixtureId) return -1;
+        if (b.id === requestedFixtureId) return 1;
+        return new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime();
+      });
+      setFixtures(mapped);
+
+      if (getToken()) {
+        const settled = await Promise.allSettled(
+          mapped.map(async f => {
+            const p = await getMyFixturePrediction(f.id);
+            return p
+              ? {
+                  fixtureId: p.fixtureId,
+                  homeScore: p.predictedHomeScore,
+                  awayScore: p.predictedAwayScore,
+                  submittedAt: p.submittedAt,
+                  predictionId: p.id,
+                  status: p.status,
+                } satisfies StoredPrediction
+              : null;
+          }),
+        );
+        const serverPredictions = settled.flatMap(r => {
+          if (r.status !== 'fulfilled' || !r.value) return [];
+          return [r.value];
+        });
+        if (serverPredictions.length > 0) setPredictions(serverPredictions);
+        else setPredictions(loadPredictions());
+      } else {
+        setPredictions(loadPredictions());
+      }
     } catch {
       setError('Could not load fixtures. Check your connection.');
     } finally {
-      setPredictions(loadPredictions());
       setLoading(false);
     }
   }, [mode]);
@@ -541,6 +638,11 @@ export default function PredictPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            {selectedFixtureId && (
+              <p className="text-label-sm text-exp-gold text-center">
+                Selected fixture is shown first.
+              </p>
+            )}
             <div className="flex gap-4 bg-white/5 border border-white/8 rounded-card-sm p-4">
               <div className="text-center flex-1">
                 <p className="text-display-sm font-black text-exp-gold">
@@ -569,6 +671,7 @@ export default function PredictPage() {
                 key={fixture.id}
                 fixture={fixture}
                 stored={predictions.find(p => p.fixtureId === fixture.id) ?? null}
+                liveMode={mode !== 'DESIGN_REVIEW_DATA'}
                 onPredicted={handlePredicted}
               />
             ))}

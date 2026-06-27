@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
@@ -15,6 +15,8 @@ import { BudgetIndicator } from '@/components/fantasy/core/BudgetIndicator';
 import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
+import { getPlayerPool } from '@/lib/fantasy-api';
+import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
 
 const TOTAL_BUDGET = 100;
 const STEP_LABELS = ['Name Team', 'Formation', 'Build Squad', 'Review'];
@@ -75,7 +77,35 @@ export default function OnboardingPage() {
   });
   const [poolOpen, setPoolOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ isStarter: boolean; idx: number } | null>(null);
+  const [playerPool, setPlayerPool] = useState<ExpFantasyPlayer[]>(
+    mode === 'DESIGN_REVIEW_DATA' ? FANTASY_MOCK_PLAYERS : [],
+  );
+  const [poolLoading, setPoolLoading] = useState(mode !== 'DESIGN_REVIEW_DATA');
+  const [poolError, setPoolError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'DESIGN_REVIEW_DATA') {
+      setPlayerPool(FANTASY_MOCK_PLAYERS);
+      setPoolLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPoolLoading(true);
+    getPlayerPool()
+      .then(players => {
+        if (!cancelled) setPlayerPool(players.map(p => toExpFantasyPlayer(p)));
+      })
+      .catch(() => {
+        if (!cancelled) setPoolError('Could not load the live World Cup player pool.');
+      })
+      .finally(() => {
+        if (!cancelled) setPoolLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [mode]);
 
   const allPlayers = [...squad.starters, ...squad.bench].filter(Boolean) as ExpFantasyPlayer[];
   const pickedIds = allPlayers.map(p => p.id);
@@ -123,13 +153,20 @@ export default function OnboardingPage() {
 
   const handlePlayerSelect = useCallback((player: ExpFantasyPlayer) => {
     if (!selectedSlot) return;
+    const selectedPlayer: ExpFantasyPlayer = {
+      ...player,
+      squadRole: selectedSlot.isStarter ? 'STARTER' : 'SUBSTITUTE',
+      benchSlot: selectedSlot.isStarter ? null : selectedSlot.idx + 1,
+      isCaptain: false,
+      isViceCaptain: false,
+    };
     setSquad(prev => {
       const starters = [...prev.starters];
       const bench = [...prev.bench];
       if (selectedSlot.isStarter) {
-        starters[selectedSlot.idx] = player;
+        starters[selectedSlot.idx] = selectedPlayer;
       } else {
-        bench[selectedSlot.idx] = player;
+        bench[selectedSlot.idx] = selectedPlayer;
       }
       return { starters, bench };
     });
@@ -150,13 +187,11 @@ export default function OnboardingPage() {
       const { createTeam } = await import('@/lib/fantasy-api');
       await createTeam({
         name: teamName,
-        players: allPlayers.map(p => ({
-          playerId: p.id,
-          squadRole: p.squadRole,
-          benchSlot: p.benchSlot ?? undefined,
+        players: allPlayers.map((p, i) => toFantasySlot({
+          ...p,
           isCaptain: p.id === captainId,
           isViceCaptain: p.id === viceCaptainId,
-        })),
+        }, i)),
       });
       router.push('/fantasy/team');
     } catch {
@@ -360,11 +395,17 @@ export default function OnboardingPage() {
         snapHeight="three-quarters"
         title="Add Player"
       >
-        <PlayerPool
-          players={FANTASY_MOCK_PLAYERS}
-          onSelect={handlePlayerSelect}
-          pickedIds={pickedIds}
-        />
+        {poolLoading ? (
+          <div className="py-10 text-center text-exp-muted text-body-sm">Loading World Cup player pool...</div>
+        ) : poolError ? (
+          <div className="px-4 py-10 text-center text-exp-live text-body-sm">{poolError}</div>
+        ) : (
+          <PlayerPool
+            players={playerPool}
+            onSelect={handlePlayerSelect}
+            pickedIds={pickedIds}
+          />
+        )}
       </FantasyBottomSheet>
 
       {/* Action bar */}

@@ -1,7 +1,15 @@
-const BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
+function resolveApiBase(): string {
+  if (process.env['NEXT_PUBLIC_API_BASE_URL']) return process.env['NEXT_PUBLIC_API_BASE_URL'];
+  if (typeof window === 'undefined') return 'http://localhost:4000';
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:4000'
+    : 'https://api.beta.pslone.co.za';
+}
+
+const AUTH_BASE = resolveApiBase();
 
 function apiUrl(path: string) {
-  return `${BASE}${path}`;
+  return `${AUTH_BASE}${path}`;
 }
 
 export function getToken(): string | null {
@@ -33,7 +41,7 @@ function authedHeaders(): HeadersInit {
 export type AuthUser = { id: string; email: string; role: string };
 
 export type RegisterResponse =
-  | { accessToken: string; user: AuthUser }
+  | { accessToken: string; user: AuthUser; emailDeliveryStatus?: 'SENT' | 'FAILED' | 'SKIPPED' }
   | { message: string };
 
 export type LoginResponse = { accessToken: string; user: AuthUser };

@@ -12,10 +12,16 @@
 
 const TOKEN_KEY = 'psl_access_token';
 
-const BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
+const AUTH_BASE =
+  process.env['NEXT_PUBLIC_API_BASE_URL'] ??
+  (typeof window === 'undefined'
+    ? 'http://localhost:4000'
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+        ? 'http://localhost:4000'
+        : 'https://api.beta.pslone.co.za'));
 
 function authUrl(path: string): string {
-  return `${BASE}${path}`;
+  return `${AUTH_BASE}${path}`;
 }
 
 // ── Token helpers ─────────────────────────────────────────────────────────────
@@ -53,7 +59,7 @@ export type LoginResponse = {
 };
 
 export type RegisterResponse =
-  | { accessToken: string; user: AuthUser }
+  | { accessToken: string; user: AuthUser; emailDeliveryStatus?: 'SENT' | 'FAILED' | 'SKIPPED' }
   | { message: string };
 
 // ── Auth API calls ────────────────────────────────────────────────────────────

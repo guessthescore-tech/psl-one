@@ -1,5 +1,6 @@
 import { ScoreBatWorldCupWidget } from '../../../components/world-cup/ScoreBatWorldCupWidget';
 import { WcFixtureCard } from '../../../components/world-cup/WcFixtureCard';
+import { getServerApiBase } from '../../../lib/server-api-base';
 
 /**
  * World Cup 2026 Live page — server component.
@@ -9,7 +10,10 @@ import { WcFixtureCard } from '../../../components/world-cup/WcFixtureCard';
  * World Cup beta context only.
  */
 
-const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+const API_BASE = getServerApiBase();
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 interface WcFixture {
   id: string;
@@ -24,7 +28,7 @@ interface WcFixture {
 async function fetchWcFixtures(): Promise<{ fixtures: WcFixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     if (!res.ok) return { fixtures: [], isLive: false };
     const data = await res.json() as WcFixture[] | { data?: WcFixture[] };
@@ -40,7 +44,7 @@ async function fetchWcFixtures(): Promise<{ fixtures: WcFixture[]; isLive: boole
 async function fetchWidgetConfig(): Promise<{ available: boolean; embedUrl: string | null }> {
   try {
     const res = await fetch(`${API_BASE}/football/world-cup/scorebat-widget`, {
-      next: { revalidate: 3600 },
+      cache: 'no-store',
     });
     if (!res.ok) return { available: false, embedUrl: null };
     return res.json() as Promise<{ available: boolean; embedUrl: string | null }>;
@@ -169,4 +173,3 @@ export default async function WorldCupLivePage() {
     </main>
   );
 }
-

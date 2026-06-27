@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FixtureStatus, MatchEventType, PlayerPosition } from '@prisma/client';
 import { LiveMatchService } from './live-match.service';
+import type { LiveMatchProviderAdapter } from './live-match-provider.interface';
 import { FootballController } from './football.controller';
 
 const mockPrisma = {
@@ -22,22 +23,39 @@ const mockPrisma = {
     findMany: vi.fn(),
     upsert: vi.fn(),
   },
+  adminAuditLog: {
+    create: vi.fn(),
+  },
   team: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
   },
   player: {
     findUnique: vi.fn(),
+    findMany: vi.fn(),
   },
 };
 
-function makeService() {
-  return new LiveMatchService(mockPrisma as any);
+function makeService(provider?: LiveMatchProviderAdapter) {
+  return new LiveMatchService(mockPrisma as any, provider);
 }
 
 const FIXTURE_ID = 'fixture-1';
 const EVENT_ID = 'event-1';
 const PLAYER_ID = 'player-1';
 const TEAM_ID = 'team-1';
+const PROVIDER_FIXTURE_ID = 'sm-fixture-1';
+
+function makeProvider(overrides: Partial<LiveMatchProviderAdapter> = {}): LiveMatchProviderAdapter {
+  return {
+    providerName: 'sportmonks',
+    fetchFixtureState: vi.fn().mockResolvedValue(null),
+    fetchFixtureEvents: vi.fn().mockResolvedValue([]),
+    fetchFixtureLineups: vi.fn().mockResolvedValue([]),
+    fetchFixturePlayerStats: vi.fn().mockResolvedValue([]),
+    ...overrides,
+  };
+}
 
 const baseFixture = {
   id: FIXTURE_ID,
@@ -532,6 +550,174 @@ describe('LiveMatchService', () => {
     });
   });
 
+  // ── syncProviderPlayerStats ───────────────────────────────────────────────
+
+  describe('syncProviderPlayerStats', () => {
+    const providerStats = [
+      {
+        playerProviderRef: 'sm-player-1',
+        teamProviderRef: 'sm-team-home',
+        minutesPlayed: 90,
+        goals: 1,
+        assists: 0,
+        ownGoals: 0,
+        yellowCards: 1,
+        redCards: 0,
+        saves: 0,
+        goalsConceded: 0,
+        cleanSheet: true,
+        started: true,
+        cameOnMinute: null,
+        subbedOffMinute: null,
+      },
+    ];
+
+    it('dry-runs by default and does not write FantasyPlayerMatchStat rows', async () => {
+      const provider = makeProvider({
+        fetchFixturePlayerStats: vi.fn().mockResolvedValue(providerStats),
+      });
+      service = makeService(provider);
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce({
+        id: FIXTURE_ID,
+        providerFixtureId: PROVIDER_FIXTURE_ID,
+        homeTeamId: 'home-team',
+        awayTeamId: 'away-team',
+      });
+      mockPrisma.player.findMany.mockResolvedValueOnce([{ id: PLAYER_ID, externalId: 'sm-player-1' }]);
+      mockPrisma.team.findMany.mockResolvedValueOnce([{ id: 'home-team', externalId: 'sm-team-home' }]);
+
+      const result = await service.syncProviderPlayerStats(FIXTURE_ID);
+
+      expect(result.dryRun).toBe(true);
+      expect(result.fetched).toBe(1);
+      expect(result.mapped).toBe(1);
+      expect(result.wouldWrite).toBe(1);
+      expect(result.written).toBe(0);
+      expect(mockPrisma.fantasyPlayerMatchStat.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.adminAuditLog.create).not.toHaveBeenCalled();
+    });
+
+    it('requires explicit confirmation for writes', async () => {
+      await expect(
+        service.syncProviderPlayerStats(FIXTURE_ID, { dryRun: false, confirm: 'WRONG' }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.fixture.findUnique).not.toHaveBeenCalled();
+      expect(mockPrisma.fantasyPlayerMatchStat.upsert).not.toHaveBeenCalled();
+    });
+
+    it('confirmed mode upserts mapped provider stats and writes audit log', async () => {
+      const provider = makeProvider({
+        fetchFixturePlayerStats: vi.fn().mockResolvedValue(providerStats),
+      });
+      service = makeService(provider);
+      mockPrisma.fixture.findUnique
+        .mockResolvedValueOnce({
+          id: FIXTURE_ID,
+          providerFixtureId: PROVIDER_FIXTURE_ID,
+          homeTeamId: 'home-team',
+          awayTeamId: 'away-team',
+        })
+        .mockResolvedValue({ id: FIXTURE_ID });
+      mockPrisma.player.findMany.mockResolvedValueOnce([{ id: PLAYER_ID, externalId: 'sm-player-1' }]);
+      mockPrisma.team.findMany.mockResolvedValueOnce([{ id: 'home-team', externalId: 'sm-team-home' }]);
+      mockPrisma.player.findUnique.mockResolvedValue({ id: PLAYER_ID });
+      mockPrisma.fantasyPlayerMatchStat.upsert.mockResolvedValue({ playerId: PLAYER_ID, fixtureId: FIXTURE_ID });
+      mockPrisma.fixture.update.mockResolvedValue({});
+      mockPrisma.adminAuditLog.create.mockResolvedValue({});
+
+      const result = await service.syncProviderPlayerStats(
+        FIXTURE_ID,
+        { dryRun: false, confirm: 'SYNC_PROVIDER_PLAYER_STATS' },
+        'admin-1',
+      );
+
+      expect(result.synced).toBe(true);
+      expect(result.written).toBe(1);
+      expect(mockPrisma.fantasyPlayerMatchStat.upsert).toHaveBeenCalledOnce();
+      const upsertCall = mockPrisma.fantasyPlayerMatchStat.upsert.mock.calls[0]![0];
+      expect(upsertCall.where).toEqual({ playerId_fixtureId: { playerId: PLAYER_ID, fixtureId: FIXTURE_ID } });
+      expect(upsertCall.create).toMatchObject({
+        playerId: PLAYER_ID,
+        teamId: 'home-team',
+        fixtureId: FIXTURE_ID,
+        goals: 1,
+        yellowCards: 1,
+        cleanSheet: true,
+        source: 'sportmonks',
+        providerStatId: 'sportmonks:sm-fixture-1:sm-player-1',
+      });
+      expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorUserId: 'admin-1',
+            action: 'PROVIDER_PLAYER_STATS_SYNCED',
+            entityType: 'Fixture',
+            entityId: FIXTURE_ID,
+          }),
+        }),
+      );
+    });
+
+    it('reports unmapped provider rows and writes only mapped rows', async () => {
+      const provider = makeProvider({
+        fetchFixturePlayerStats: vi.fn().mockResolvedValue([
+          ...providerStats,
+          { ...providerStats[0]!, playerProviderRef: 'missing-player' },
+        ]),
+      });
+      service = makeService(provider);
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce({
+        id: FIXTURE_ID,
+        providerFixtureId: PROVIDER_FIXTURE_ID,
+        homeTeamId: 'home-team',
+        awayTeamId: 'away-team',
+      });
+      mockPrisma.player.findMany.mockResolvedValueOnce([{ id: PLAYER_ID, externalId: 'sm-player-1' }]);
+      mockPrisma.team.findMany.mockResolvedValueOnce([{ id: 'home-team', externalId: 'sm-team-home' }]);
+
+      const result = await service.syncProviderPlayerStats(FIXTURE_ID, { dryRun: true });
+
+      expect(result.fetched).toBe(2);
+      expect(result.mapped).toBe(1);
+      expect(result.unmapped).toHaveLength(1);
+      expect(result.unmapped[0]!.reason).toMatch(/No local player/);
+      expect(mockPrisma.fantasyPlayerMatchStat.upsert).not.toHaveBeenCalled();
+    });
+
+    it('returns synced=false when fixture has no providerFixtureId', async () => {
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce({
+        id: FIXTURE_ID,
+        providerFixtureId: null,
+        homeTeamId: 'home-team',
+        awayTeamId: 'away-team',
+      });
+      const result = await service.syncProviderPlayerStats(FIXTURE_ID);
+      expect(result.synced).toBe(false);
+      expect(result.reason).toMatch(/providerFixtureId/);
+    });
+
+    it('returns synced=false when provider returns no player stats', async () => {
+      const provider = makeProvider({
+        fetchFixturePlayerStats: vi.fn().mockResolvedValue([]),
+      });
+      service = makeService(provider);
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce({
+        id: FIXTURE_ID,
+        providerFixtureId: PROVIDER_FIXTURE_ID,
+        homeTeamId: 'home-team',
+        awayTeamId: 'away-team',
+      });
+      const result = await service.syncProviderPlayerStats(FIXTURE_ID);
+      expect(result.synced).toBe(false);
+      expect(result.reason).toMatch(/Provider returned no player stats/);
+    });
+
+    it('throws NotFoundException for unknown fixture', async () => {
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce(null);
+      await expect(service.syncProviderPlayerStats('bad')).rejects.toThrow(NotFoundException);
+    });
+  });
+
   // ── Live fantasy preview scoring ──────────────────────────────────────────
 
   describe('live fantasy point calculation', () => {
@@ -647,6 +833,7 @@ describe('RBAC — admin live routes require PSL_ADMIN', () => {
     'adminDeleteMatchEvent',
     'adminUpsertPlayerStat',
     'adminBulkUpsertPlayerStats',
+    'adminSyncProviderPlayerStats',
     'adminRecalculateState',
     'adminFinaliseFixture',
     'adminReopenFixture',

@@ -3,11 +3,15 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react';
+import { setToken } from '@/lib/auth';
 
 const API_BASE =
-  typeof process !== 'undefined'
+  typeof window === 'undefined'
     ? (process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000')
-    : 'http://localhost:4000';
+    : (process.env['NEXT_PUBLIC_API_BASE_URL'] ??
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? 'http://localhost:4000'
+          : 'https://api.beta.pslone.co.za'));
 
 interface FormState {
   email: string;
@@ -21,6 +25,7 @@ interface FormState {
 interface SuccessState {
   email: string;
   token?: string;
+  emailDeliveryStatus: 'SENT' | 'FAILED' | 'SKIPPED';
 }
 
 function inputClass(hasError?: boolean) {
@@ -95,8 +100,16 @@ export function SignUpForm() {
       });
 
       if (res.status === 201) {
-        const data = await res.json().catch(() => ({}));
-        setSuccess({ email: form.email, token: data.accessToken });
+        const data = await res.json().catch(() => ({})) as {
+          accessToken?: string;
+          emailDeliveryStatus?: 'SENT' | 'FAILED' | 'SKIPPED';
+        };
+        if (data.accessToken) setToken(data.accessToken);
+        setSuccess({
+          email: form.email,
+          token: data.accessToken,
+          emailDeliveryStatus: data.emailDeliveryStatus ?? 'SKIPPED',
+        });
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.message ?? 'Registration failed. Please try again.');
@@ -126,6 +139,7 @@ export function SignUpForm() {
         return;
       }
       setResendSent(true);
+      setSuccess(prev => prev ? { ...prev, emailDeliveryStatus: 'SENT' } : prev);
     } catch {
       setResendError('Unable to connect to the server. Please try again.');
     } finally {
@@ -135,6 +149,7 @@ export function SignUpForm() {
 
   /* ── Success state ── */
   if (success) {
+    const emailSent = success.emailDeliveryStatus === 'SENT' || resendSent;
     return (
       <div className="flex flex-col items-center gap-6 py-4 text-center">
         <div className="w-16 h-16 rounded-full bg-exp-green/15 flex items-center justify-center">
@@ -143,14 +158,26 @@ export function SignUpForm() {
 
         <div>
           <h2 className="text-display-sm text-white mb-2">Account created!</h2>
-          <p className="text-body-md text-white/70">
-            {"We've sent a verification email to "}
-            <strong className="text-white">{success.email}</strong>
-            {". Click the link in the email to verify your account."}
-          </p>
+          {emailSent ? (
+            <p className="text-body-md text-white/70">
+              {"We've sent a verification email to "}
+              <strong className="text-white">{success.email}</strong>
+              {". Click the link in the email to verify your account."}
+            </p>
+          ) : (
+            <p className="text-body-md text-white/70">
+              Your account was created, but the verification email could not be sent right now.
+              Use resend below, or sign in later once email delivery is restored.
+            </p>
+          )}
         </div>
 
         <div className="w-full border-t border-exp-border-dk pt-4">
+          {!emailSent && (
+            <p role="status" className="text-body-sm text-exp-gold text-center mb-3">
+              Email delivery status: {success.emailDeliveryStatus.toLowerCase()}.
+            </p>
+          )}
           {resendError && (
             <p role="alert" className="text-body-sm text-exp-live text-center mb-3">
               {resendError}

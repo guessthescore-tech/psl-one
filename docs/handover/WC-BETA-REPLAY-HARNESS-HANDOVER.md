@@ -38,23 +38,50 @@
 
 ## Running Replay
 
-### Dry run (default — safe, no writes)
+### Local development (uses tsx + source)
 
 ```bash
+# Dry-run (safe, no writes)
 pnpm --filter @psl-one/api replay:world-cup-fixture -- --fixtureId=<fixture-uuid> --dry-run
-```
 
-The `--dry-run` flag is the default. This always returns a preview of what would be settled without writing any rows.
-
-### Confirmed replay (writes to DB)
-
-```bash
+# Confirmed write
 pnpm --filter @psl-one/api replay:world-cup-fixture -- \
   --fixtureId=<fixture-uuid> \
   --confirm=REPLAY_WORLD_CUP_BETA
 ```
 
-The literal string `REPLAY_WORLD_CUP_BETA` is required. Any other value or omission keeps the service in dry-run mode.
+### Beta / production container (compiled JS)
+
+The replay script is compiled into the API image at build time (`nest build` compiles all files under `src/`). It is available inside the running API container without exposing PostgreSQL or adding a public endpoint.
+
+Access via SSM then `docker exec`:
+
+```bash
+# 1. Open SSM session on beta EC2
+aws ssm start-session --target i-0a5f16539c9626f90
+
+# 2. Exec into the running API container
+docker exec -it $(docker ps -qf name=psl-one-beta-api-1) sh
+
+# 3. Inside the container — dry-run (safe, no writes)
+node apps/api/dist/scripts/replay-world-cup-fixture.js \
+  --fixtureId=<fixture-uuid> --dry-run
+
+# 4. Inside the container — confirmed write (only after reviewing dry-run)
+node apps/api/dist/scripts/replay-world-cup-fixture.js \
+  --fixtureId=<fixture-uuid> \
+  --confirm=REPLAY_WORLD_CUP_BETA
+```
+
+**Known beta fixture (FINISHED, score 0-1):** `d1d125ab-a186-4412-9228-e3c9ed4071f4`
+
+Or use the package script alias (requires pnpm — not available in the production runner image):
+
+```bash
+pnpm --filter @psl-one/api replay:world-cup-fixture:prod -- --fixtureId=<id> --dry-run
+```
+
+The literal string `REPLAY_WORLD_CUP_BETA` is required for confirmed mode. Any other value or omission keeps the service in dry-run mode.
 
 **Always run dry-run first on any FINISHED WC fixture before running confirmed mode.**
 
@@ -105,6 +132,14 @@ Prisma cannot express partial (`WHERE`) unique indexes in `@@unique`. The migrat
 | `SPORTMONKS_API_KEY` | Sportmonks v3 API key | Required when `WC_LIVE_PROVIDER=sportmonks` |
 | `SCOREBAT_WIDGET_TOKEN` | ScoreBat iframe attribution token | Embedded video/highlights widget only — unrelated to live match scoring |
 | `DATA_PROVIDER` | Global data provider flag | Fixture import |
+
+Beta EC2 reads these values from SSM into `.env.beta` during bootstrap/deploy:
+
+| SSM parameter | Runtime variable |
+|---------------|------------------|
+| `/psl-one/beta/wc-live-provider` | `WC_LIVE_PROVIDER` |
+| `/psl-one/beta/sportmonks-api-key` | `SPORTMONKS_API_KEY` |
+| `/psl-one/beta/scorebat-widget-token` | `SCOREBAT_WIDGET_TOKEN` |
 
 **ScoreBat note:** ScoreBat is an embedded video widget provider only. It does not supply live match scores or events. Its widget token is contractually public for iframe attribution purposes. Do not generalise this exception to any other provider credential.
 
@@ -195,7 +230,7 @@ Do not use `prisma migrate reset` — it is destructive. Do not use `prisma migr
 
 These steps are pending explicit owner authorisation:
 
-1. **Set provider env vars on target environment** — `SPORTMONKS_API_KEY` and/or `SCOREBAT_WIDGET_TOKEN` must be configured in the EC2 SSM parameter store before live data flows.
+1. **Set provider env vars on target environment** — `/psl-one/beta/wc-live-provider`, `/psl-one/beta/sportmonks-api-key`, and/or `/psl-one/beta/scorebat-widget-token` must be configured in the EC2 SSM parameter store before live data flows.
 
 2. **Deploy** — run the deployment workflow only when explicitly approved. The API build passes locally; EC2 staging deploy is a separate owner-authorised step.
 

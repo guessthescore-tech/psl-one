@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyActionBar } from '@/components/fantasy/shared/FantasyActionBar';
@@ -14,6 +14,8 @@ import { TransferConfirmation } from '@/components/fantasy/core/TransferConfirma
 import { PlayerPool } from '@/components/fantasy/core/PlayerPool';
 import { FANTASY_MOCK_TEAM, FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
+import { getPlayerPool } from '@/lib/fantasy-api';
+import { toExpFantasyPlayer } from '@/lib/fantasy-player-mapper';
 
 const MOCK_DEADLINE_LOCKED = false;
 
@@ -25,6 +27,11 @@ export default function TransfersPage() {
   const [teamPlayers, setTeamPlayers] = useState<ExpFantasyPlayer[]>(FANTASY_MOCK_TEAM.players);
   const [freeTransfers] = useState(FANTASY_MOCK_TEAM.transfersRemaining);
   const [isWildcard] = useState(false);
+  const [playerPool, setPlayerPool] = useState<ExpFantasyPlayer[]>(
+    mode === 'DESIGN_REVIEW_DATA' ? FANTASY_MOCK_PLAYERS : [],
+  );
+  const [poolLoading, setPoolLoading] = useState(mode !== 'DESIGN_REVIEW_DATA');
+  const [poolError, setPoolError] = useState<string | null>(null);
 
   const [transferOut, setTransferOut] = useState<ExpFantasyPlayer | null>(null);
   const [transferIn, setTransferIn] = useState<ExpFantasyPlayer | null>(null);
@@ -38,6 +45,29 @@ export default function TransfersPage() {
   const pickedIds = teamPlayers.map(p => p.id);
 
   const isHit = !isWildcard && freeTransfers <= 0;
+
+  useEffect(() => {
+    if (mode === 'DESIGN_REVIEW_DATA') {
+      setPlayerPool(FANTASY_MOCK_PLAYERS);
+      setPoolLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPoolLoading(true);
+    getPlayerPool()
+      .then(players => {
+        if (!cancelled) setPlayerPool(players.map(p => toExpFantasyPlayer(p)));
+      })
+      .catch(() => {
+        if (!cancelled) setPoolError('Could not load the live World Cup player pool.');
+      })
+      .finally(() => {
+        if (!cancelled) setPoolLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [mode]);
 
   function handlePlayerClick(player: ExpFantasyPlayer | null) {
     if (!player) return;
@@ -190,12 +220,18 @@ export default function TransfersPage() {
         snapHeight="three-quarters"
         title="Select Replacement"
       >
-        <PlayerPool
-          players={FANTASY_MOCK_PLAYERS}
-          onSelect={handlePoolSelect}
-          pickedIds={pickedIds.filter(id => id !== transferOut?.id)}
-          filterPosition={transferOut?.position ?? 'ALL'}
-        />
+        {poolLoading ? (
+          <div className="py-10 text-center text-exp-muted text-body-sm">Loading World Cup player pool...</div>
+        ) : poolError ? (
+          <div className="px-4 py-10 text-center text-exp-live text-body-sm">{poolError}</div>
+        ) : (
+          <PlayerPool
+            players={playerPool}
+            onSelect={handlePoolSelect}
+            pickedIds={pickedIds.filter(id => id !== transferOut?.id)}
+            filterPosition={transferOut?.position ?? 'ALL'}
+          />
+        )}
       </FantasyBottomSheet>
 
       {/* Confirmation modal */}

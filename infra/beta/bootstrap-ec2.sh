@@ -107,6 +107,8 @@ GIT_SHA=$(ssm_get "/psl-one/beta/git-sha"                 2>/dev/null || echo "u
 API_DOMAIN=$(ssm_get "/psl-one/beta/api-domain"           2>/dev/null || echo "api.staging.pslone.co.za")
 WEB_DOMAIN=$(ssm_get "/psl-one/beta/web-domain"           2>/dev/null || echo "staging.pslone.co.za")
 CORS_ORIGINS=$(ssm_get "/psl-one/beta/cors-origins"       2>/dev/null || echo "http://${API_DOMAIN},http://${WEB_DOMAIN}")
+WC_LIVE_PROVIDER=$(ssm_get "/psl-one/beta/wc-live-provider" 2>/dev/null || echo "manual")
+SPORTMONKS_API_KEY=$(ssm_get "/psl-one/beta/sportmonks-api-key" 2>/dev/null || echo "")
 
 ENCODED_POSTGRES_PASSWORD=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1], safe=''))" "${POSTGRES_PASSWORD}")
 DATABASE_URL="postgresql://${POSTGRES_USER}:${ENCODED_POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
@@ -170,6 +172,8 @@ DATABASE_URL=${DATABASE_URL}
 JWT_SECRET=${JWT_SECRET}
 JWT_EXPIRES_IN=7d
 CORS_ORIGINS=${CORS_ORIGINS}
+WC_LIVE_PROVIDER=${WC_LIVE_PROVIDER}
+SPORTMONKS_API_KEY=${SPORTMONKS_API_KEY}
 API_IMAGE_URI=${API_IMAGE_URI}
 WEB_IMAGE_URI=${WEB_IMAGE_URI}
 MIGRATION_IMAGE_URI=${MIGRATION_IMAGE_URI}

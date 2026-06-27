@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getServerApiBase } from '@/lib/server-api-base';
 
 /**
  * Guess the Score hub — server component.
@@ -8,7 +9,10 @@ import Link from 'next/link';
  * PSL_INACTIVE · GTS_POINTS_ONLY · NO_REAL_MONEY · WC_BETA
  */
 
-const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const API_BASE = getServerApiBase();
 
 interface OpenMarket {
   id: string;
@@ -29,8 +33,8 @@ interface ApiFixture {
 
 async function fetchOpenMarkets(): Promise<{ markets: OpenMarket[]; isLive: boolean }> {
   try {
-    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
-      next: { revalidate: 120 },
+    const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026&status=SCHEDULED`, {
+      cache: 'no-store',
     });
     if (!res.ok) return { markets: [], isLive: false };
     const data = await res.json() as ApiFixture[] | { data?: ApiFixture[] };

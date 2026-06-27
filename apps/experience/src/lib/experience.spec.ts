@@ -7192,6 +7192,44 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
     expect(read('app/guess-the-score/page.tsx')).toContain('/football/fixtures');
   });
 
+  it('guess-the-score is dynamic and never prerenders stale open markets', () => {
+    const content = read('app/guess-the-score/page.tsx');
+    expect(content).toContain("dynamic = 'force-dynamic'");
+    expect(content).toContain('revalidate = 0');
+    expect(content).toContain("cache: 'no-store'");
+    expect(content).toContain('getServerApiBase');
+  });
+
+  it('predict page submits score predictions to the API instead of localStorage only', () => {
+    const content = read('app/predict/page.tsx');
+    const api = read('lib/predictions-api.ts');
+    expect(content).toContain('createScorePrediction');
+    expect(api).toContain('/predictions');
+    expect(content).toContain('getMyFixturePrediction');
+    expect(content).toContain("seasonSlug: 'fifa-world-cup-2026'");
+  });
+
+  it('fantasy onboarding loads live player pool in LIVE_BETA_DATA mode', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('getPlayerPool');
+    expect(content).toContain('toExpFantasyPlayer');
+    expect(content).toContain('Loading World Cup player pool');
+  });
+
+  it('fantasy transfers load live player pool in LIVE_BETA_DATA mode', () => {
+    const content = read('app/fantasy/team/transfers/page.tsx');
+    expect(content).toContain('getPlayerPool');
+    expect(content).toContain('toExpFantasyPlayer');
+    expect(content).toContain('Loading World Cup player pool');
+  });
+
+  it('sign-up page displays emailDeliveryStatus honestly', () => {
+    const content = read('app/sign-up/SignUpForm.tsx');
+    expect(content).toContain('emailDeliveryStatus');
+    expect(content).toContain('Email delivery status');
+    expect(content).toContain('setToken');
+  });
+
   it('guess-the-score shows explicit error when API unavailable', () => {
     const content = read('app/guess-the-score/page.tsx');
     expect(content).toContain('Fixture data unavailable');
@@ -7215,6 +7253,12 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
   it('world-cup/live page shows explicit error state', () => {
     const content = read('app/world-cup/live/page.tsx');
     expect(content).toContain('Fixtures unavailable');
+  });
+
+  it('world-cup/live is dynamic so deployed pages do not bake stale widget/API placeholders', () => {
+    const content = read('app/world-cup/live/page.tsx');
+    expect(content).toContain("dynamic = 'force-dynamic'");
+    expect(content).toContain("cache: 'no-store'");
   });
 });
 
@@ -7498,10 +7542,27 @@ describe('Video page — ScoreBat token safety and empty state', () => {
     expect(content).toContain('/football/world-cup/scorebat-widget');
   });
 
-  it('/videos page uses INTERNAL_API_URL (server-side only, not NEXT_PUBLIC)', () => {
+  it('/videos page uses server API resolver so EC2 and Vercel can both render', () => {
     const content = read('app/videos/page.tsx');
+    expect(content).toContain('getServerApiBase');
+  });
+
+  it('/videos page is dynamic so the widget config is read at request time', () => {
+    const content = read('app/videos/page.tsx');
+    expect(content).toContain("dynamic = 'force-dynamic'");
+    expect(content).toContain("cache: 'no-store'");
+  });
+
+  it('server API resolver supports INTERNAL_API_URL and public Vercel fallback', () => {
+    const content = read('lib/server-api-base.ts');
     expect(content).toContain("process.env['INTERNAL_API_URL']");
-    expect(content).not.toContain('NEXT_PUBLIC_API');
+    expect(content).toContain("process.env['NEXT_PUBLIC_API_BASE_URL']");
+    expect(content).toContain('https://api.beta.pslone.co.za');
+  });
+
+  it('browser API client falls back to public beta API when no env is set', () => {
+    expect(read('lib/api.ts')).toContain('https://api.beta.pslone.co.za');
+    expect(read('lib/auth.ts')).toContain('https://api.beta.pslone.co.za');
   });
 
   it('/videos page has explicit placeholder/empty state when widget token not configured', () => {

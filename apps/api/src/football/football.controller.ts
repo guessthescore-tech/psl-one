@@ -2,6 +2,8 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { TokenPayload } from '../auth/providers/auth.provider.interface';
 import { FootballService } from './football.service';
 import { LiveMatchService } from './live-match.service';
 import { UpdateFixtureStatusDto } from './dto/update-fixture-status.dto';
@@ -12,6 +14,7 @@ import { AddMatchEventDto } from './dto/add-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
 import { UpsertPlayerStatDto } from './dto/upsert-player-stat.dto';
 import { BulkUpsertPlayerStatsDto } from './dto/bulk-upsert-player-stats.dto';
+import { SyncProviderPlayerStatsDto } from './dto/sync-provider-player-stats.dto';
 import { ScoreBatWidgetAdapter } from '../data-provider/scorebat-widget.adapter';
 
 @Controller('football')
@@ -247,6 +250,17 @@ export class FootballController {
   @Roles('PSL_ADMIN')
   adminBulkUpsertPlayerStats(@Param('id') id: string, @Body() dto: BulkUpsertPlayerStatsDto) {
     return this.liveMatchService.bulkUpsertPlayerStats(id, dto);
+  }
+
+  @Post('admin/fixtures/:id/player-stats/sync-provider')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('PSL_ADMIN')
+  adminSyncProviderPlayerStats(
+    @Param('id') id: string,
+    @Body() dto: SyncProviderPlayerStatsDto,
+    @CurrentUser() user: TokenPayload,
+  ) {
+    return this.liveMatchService.syncProviderPlayerStats(id, dto, user.sub);
   }
 
   @Post('admin/fixtures/:id/recalculate-state')
