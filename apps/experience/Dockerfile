@@ -21,6 +21,7 @@ COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @psl-one/experience...
 
 FROM deps AS builder
+ENV NODE_OPTIONS=--max-old-space-size=768
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_ENVIRONMENT_LABEL
