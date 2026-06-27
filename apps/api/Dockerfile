@@ -18,7 +18,7 @@ COPY packages ./packages
 RUN pnpm install --frozen-lockfile --filter @psl-one/api...
 
 FROM deps AS builder
-ENV NODE_OPTIONS=--max-old-space-size=768
+ENV NODE_OPTIONS=--max-old-space-size=1536
 COPY apps/api ./apps/api
 RUN pnpm --filter @psl-one/api db:generate
 RUN pnpm --filter @psl-one/api build
