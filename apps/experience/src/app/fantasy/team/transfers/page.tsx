@@ -12,26 +12,22 @@ import { BenchPanel } from '@/components/fantasy/core/BenchPanel';
 import { TransferPanel } from '@/components/fantasy/core/TransferPanel';
 import { TransferConfirmation } from '@/components/fantasy/core/TransferConfirmation';
 import { PlayerPool } from '@/components/fantasy/core/PlayerPool';
-import { FANTASY_MOCK_TEAM, FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
+import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
-import { getPlayerPool } from '@/lib/fantasy-api';
-import { toExpFantasyPlayer } from '@/lib/fantasy-player-mapper';
-
-const MOCK_DEADLINE_LOCKED = false;
+import { getDeadline, getPlayerPool, getTeam, getTransferStatus, makeTransfers } from '@/lib/fantasy-api';
+import { toExpFantasyPlayer, toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 
 export default function TransfersPage() {
   const reduce = useReducedMotion();
   const mode = getDataMode();
 
-  // Use mock team for all modes (LIVE_BETA_DATA would fetch from API)
-  const [teamPlayers, setTeamPlayers] = useState<ExpFantasyPlayer[]>(FANTASY_MOCK_TEAM.players);
-  const [freeTransfers] = useState(FANTASY_MOCK_TEAM.transfersRemaining);
+  const [teamPlayers, setTeamPlayers] = useState<ExpFantasyPlayer[]>([]);
+  const [freeTransfers, setFreeTransfers] = useState(0);
   const [isWildcard] = useState(false);
-  const [playerPool, setPlayerPool] = useState<ExpFantasyPlayer[]>(
-    mode === 'DESIGN_REVIEW_DATA' ? FANTASY_MOCK_PLAYERS : [],
-  );
-  const [poolLoading, setPoolLoading] = useState(mode !== 'DESIGN_REVIEW_DATA');
+  const [playerPool, setPlayerPool] = useState<ExpFantasyPlayer[]>([]);
+  const [poolLoading, setPoolLoading] = useState(true);
   const [poolError, setPoolError] = useState<string | null>(null);
+  const [deadlineLocked, setDeadlineLocked] = useState(false);
 
   const [transferOut, setTransferOut] = useState<ExpFantasyPlayer | null>(null);
   const [transferIn, setTransferIn] = useState<ExpFantasyPlayer | null>(null);
@@ -40,40 +36,58 @@ export default function TransfersPage() {
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
-  const starters = teamPlayers.filter(p => p.squadRole === 'STARTER');
-  const bench = teamPlayers.filter(p => p.squadRole === 'SUBSTITUTE');
-  const pickedIds = teamPlayers.map(p => p.id);
+  const starters = teamPlayers.filter((p) => p.squadRole === 'STARTER');
+  const bench = teamPlayers.filter((p) => p.squadRole === 'SUBSTITUTE');
+  const pickedIds = teamPlayers.map((p) => p.id);
 
   const isHit = !isWildcard && freeTransfers <= 0;
 
   useEffect(() => {
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      setPlayerPool(FANTASY_MOCK_PLAYERS);
-      setPoolLoading(false);
-      return;
+    let cancelled = false;
+
+    async function load() {
+      try {
+        if (!isLiveDataMode(mode)) {
+          const { FANTASY_MOCK_TEAM, FANTASY_MOCK_PLAYERS } = await import('@/lib/data');
+          if (cancelled) return;
+          setTeamPlayers(FANTASY_MOCK_TEAM.players);
+          setFreeTransfers(FANTASY_MOCK_TEAM.transfersRemaining);
+          setPlayerPool(FANTASY_MOCK_PLAYERS);
+          setPoolLoading(false);
+          return;
+        }
+
+        const [team, transferStatus, deadline, pool] = await Promise.all([
+          getTeam(),
+          getTransferStatus(),
+          getDeadline().catch(() => null),
+          getPlayerPool().catch(() => []),
+        ]);
+
+        if (cancelled) return;
+        const squad = toExpFantasySquad(team);
+        setTeamPlayers(squad.players);
+        setFreeTransfers(transferStatus.freeTransfersAvailable);
+        setDeadlineLocked(Boolean(transferStatus.isDeadlineLocked || deadline?.isLocked));
+        setPlayerPool(pool.map((p) => toExpFantasyPlayer(p)));
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Could not load the live transfer screen.';
+        setPoolError(message);
+      } finally {
+        if (!cancelled) setPoolLoading(false);
+      }
     }
 
-    let cancelled = false;
-    setPoolLoading(true);
-    getPlayerPool()
-      .then(players => {
-        if (!cancelled) setPlayerPool(players.map(p => toExpFantasyPlayer(p)));
-      })
-      .catch(() => {
-        if (!cancelled) setPoolError('Could not load the live World Cup player pool.');
-      })
-      .finally(() => {
-        if (!cancelled) setPoolLoading(false);
-      });
-
-    return () => { cancelled = true; };
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [mode]);
 
   function handlePlayerClick(player: ExpFantasyPlayer | null) {
-    if (!player) return;
-    if (MOCK_DEADLINE_LOCKED) return;
+    if (!player || deadlineLocked) return;
     if (transferOut?.id === player.id) {
-      // Deselect
       setTransferOut(null);
       setTransferIn(null);
     } else {
@@ -92,32 +106,17 @@ export default function TransfersPage() {
   async function handleConfirm() {
     if (!transferOut || !transferIn) return;
 
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      setSubmitting(true);
-      await new Promise(r => setTimeout(r, 600));
-      // Apply transfer in mock state
-      setTeamPlayers(prev =>
-        prev.map(p => {
-          if (p.id === transferOut.id) {
-            return { ...transferIn, squadRole: transferOut.squadRole, benchSlot: transferOut.benchSlot };
-          }
-          return p;
-        })
-      );
-      setTransferOut(null);
-      setTransferIn(null);
-      setConfirmOpen(false);
-      setSubmitting(false);
-      setToast('Transfer confirmed!');
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-
-    // LIVE_BETA_DATA
     setSubmitting(true);
     try {
-      const { makeTransfers } = await import('@/lib/fantasy-api');
-      await makeTransfers({ removePlayerId: transferOut.id, addPlayerId: transferIn.id });
+      if (!isLiveDataMode(mode)) {
+        setTeamPlayers((prev) =>
+          prev.map((p) => (p.id === transferOut.id ? { ...transferIn, squadRole: transferOut.squadRole, benchSlot: transferOut.benchSlot } : p)),
+        );
+      } else {
+        const updated = await makeTransfers({ removePlayerId: transferOut.id, addPlayerId: transferIn.id });
+        setTeamPlayers(toExpFantasySquad(updated).players);
+      }
+
       setConfirmOpen(false);
       setTransferOut(null);
       setTransferIn(null);
@@ -131,13 +130,21 @@ export default function TransfersPage() {
     }
   }
 
-  if (MOCK_DEADLINE_LOCKED) {
+  if (poolLoading) {
+    return (
+      <FantasyShell title="Transfers" back={{ href: '/fantasy/team', label: 'Back to Team' }}>
+        <div className="px-4 py-6 text-exp-muted">Loading live transfer data...</div>
+      </FantasyShell>
+    );
+  }
+
+  if (poolError) {
     return (
       <FantasyShell title="Transfers" back={{ href: '/fantasy/team', label: 'Back to Team' }}>
         <FantasyEmptyState
-          icon="🔒"
-          title="Transfers Locked"
-          message="The deadline has passed. Transfers open again at the start of the next gameweek."
+          icon="⚠️"
+          title="Could not load transfers"
+          message={poolError}
           action={{ label: 'Back to Team', href: '/fantasy/team' }}
         />
       </FantasyShell>
@@ -147,7 +154,6 @@ export default function TransfersPage() {
   return (
     <FantasyShell title="Transfers" back={{ href: '/fantasy/team', label: 'Back to Team' }}>
       <div className="pb-32">
-        {/* Transfer info bar */}
         <motion.div
           className="px-4 py-3 bg-exp-navy border-b border-exp-border-dk"
           initial={reduce ? false : { opacity: 0 }}
@@ -168,7 +174,6 @@ export default function TransfersPage() {
           </p>
         </motion.div>
 
-        {/* Active transfer panel */}
         {(transferOut || transferIn) && (
           <div className="px-4 pt-4">
             <TransferPanel
@@ -180,7 +185,6 @@ export default function TransfersPage() {
           </div>
         )}
 
-        {/* Pitch */}
         <div className="px-3 py-4">
           <FantasyPitchView
             players={starters}
@@ -190,15 +194,13 @@ export default function TransfersPage() {
           />
         </div>
 
-        {/* Bench */}
         <BenchPanel
           players={bench}
-          onPlayerClick={player => handlePlayerClick(player)}
+          onPlayerClick={(player) => handlePlayerClick(player)}
           selectedPlayerId={transferOut?.id}
         />
       </div>
 
-      {/* Action bar */}
       <FantasyActionBar
         primary={{
           label: transferOut && transferIn ? 'Confirm Transfer' : 'Select player to transfer',
@@ -213,28 +215,20 @@ export default function TransfersPage() {
         hint={isHit ? 'Transfer hit: -4 points' : undefined}
       />
 
-      {/* Player pool sheet */}
       <FantasyBottomSheet
         open={poolOpen}
         onClose={() => setPoolOpen(false)}
         snapHeight="three-quarters"
         title="Select Replacement"
       >
-        {poolLoading ? (
-          <div className="py-10 text-center text-exp-muted text-body-sm">Loading World Cup player pool...</div>
-        ) : poolError ? (
-          <div className="px-4 py-10 text-center text-exp-live text-body-sm">{poolError}</div>
-        ) : (
-          <PlayerPool
-            players={playerPool}
-            onSelect={handlePoolSelect}
-            pickedIds={pickedIds.filter(id => id !== transferOut?.id)}
-            filterPosition={transferOut?.position ?? 'ALL'}
-          />
-        )}
+        <PlayerPool
+          players={playerPool}
+          onSelect={handlePoolSelect}
+          pickedIds={pickedIds.filter((id) => id !== transferOut?.id)}
+          filterPosition={transferOut?.position ?? 'ALL'}
+        />
       </FantasyBottomSheet>
 
-      {/* Confirmation modal */}
       <FantasyModal
         open={confirmOpen}
         onClose={() => !submitting && setConfirmOpen(false)}
@@ -252,16 +246,12 @@ export default function TransfersPage() {
         )}
       </FantasyModal>
 
-      {/* Toast notification */}
       {toast && (
         <motion.div
           className="fixed bottom-24 left-4 right-4 z-50 bg-exp-green text-white text-body-sm font-semibold text-center py-3 rounded-card shadow-card-lg"
           initial={reduce ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
-          transition={{ duration: 0.3 }}
-          role="status"
-          aria-live="polite"
         >
           {toast}
         </motion.div>

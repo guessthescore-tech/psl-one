@@ -1,13 +1,13 @@
-import type { ExperienceData } from '@/lib/data';
+import type { ExpStory } from '@/lib/data';
 import { EditorialStory } from '@/components/ui/EditorialStory';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 
 interface EditorialGridSectionProps {
-  data: ExperienceData;
+  stories: ExpStory[];
 }
 
-export function EditorialGridSection({ data }: EditorialGridSectionProps) {
-  const [featured, ...rest] = data.stories;
+export function EditorialGridSection({ stories }: EditorialGridSectionProps) {
+  const [featured, ...rest] = stories;
   if (!featured) return null;
 
   return (

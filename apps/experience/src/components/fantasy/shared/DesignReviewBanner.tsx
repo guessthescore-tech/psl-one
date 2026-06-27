@@ -1,11 +1,11 @@
 'use client';
 
-import { getDataMode } from '../../../lib/data';
+import { getDataMode, isLiveDataMode } from '../../../lib/data';
 
 export function DesignReviewBanner() {
   const mode = getDataMode();
 
-  if (mode === 'LIVE_BETA_DATA') {
+  if (isLiveDataMode(mode)) {
     return null;
   }
 

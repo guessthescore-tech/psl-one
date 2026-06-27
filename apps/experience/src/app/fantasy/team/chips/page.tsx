@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';
@@ -9,6 +9,7 @@ import { ChipSelector } from '@/components/fantasy/core/ChipSelector';
 import { FANTASY_MOCK_CHIPS, getDataMode } from '@/lib/data';
 import type { ExpChip } from '@/lib/data';
 import type { ChipType } from '@/lib/fantasy-api';
+import { getChips } from '@/lib/fantasy-api';
 
 const MOCK_DEADLINE_LOCKED = false;
 
@@ -16,11 +17,35 @@ export default function ChipsPage() {
   const reduce = useReducedMotion();
   const mode = getDataMode();
 
-  const [chips, setChips] = useState<ExpChip[]>(FANTASY_MOCK_CHIPS);
+  const [chips, setChips] = useState<ExpChip[]>(mode === 'DESIGN_REVIEW_DATA' ? FANTASY_MOCK_CHIPS : []);
   const [pendingChip, setPendingChip] = useState<ChipType | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (mode === 'DESIGN_REVIEW_DATA') return;
+
+    let cancelled = false;
+    void getChips()
+      .then((data) => {
+        if (cancelled) return;
+        setChips(
+          data.map((chip) => ({
+            type: chip.type,
+            status: chip.status === 'USED' ? 'USED' : chip.status === 'ACTIVE' ? 'ACTIVE' : 'AVAILABLE',
+            usedInGameweek: chip.gameweekId ? null : null,
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setChips([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const availableCount = chips.filter(c => c.status === 'AVAILABLE').length;
   const activeChip = chips.find(c => c.status === 'ACTIVE');

@@ -1,20 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
+import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
 import { FantasyPitchView } from '@/components/fantasy/core/FantasyPitchView';
 import { BenchPanel } from '@/components/fantasy/core/BenchPanel';
 import { DeadlineCountdown } from '@/components/fantasy/core/DeadlineCountdown';
 import { FantasyModal } from '@/components/fantasy/shared/FantasyModal';
 import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
-import { FANTASY_MOCK_TEAM, getDataMode } from '@/lib/data';
+import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
+import type { ExpFantasySquad } from '@/lib/data';
+import { getDeadline, getGameweekScore, getTeam, getTransferStatus } from '@/lib/fantasy-api';
+import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 
-// Deadline 3 days from now for design review
-const MOCK_DEADLINE = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+type TeamState =
+  | { status: 'loading' }
+  | { status: 'ready'; team: ExpFantasySquad; deadlineAt: string; isLocked: boolean }
+  | { status: 'empty'; message: string }
+  | { status: 'error'; message: string };
 
 export default function TeamPage() {
   const reduce = useReducedMotion();
@@ -22,10 +29,81 @@ export default function TeamPage() {
 
   const [selectedPlayer, setSelectedPlayer] = useState<ExpFantasyPlayer | null>(null);
   const [playerModalOpen, setPlayerModalOpen] = useState(false);
+  const [state, setState] = useState<TeamState>({ status: 'loading' });
 
-  const team = FANTASY_MOCK_TEAM;
-  const starters = team.players.filter(p => p.squadRole === 'STARTER');
-  const bench = team.players.filter(p => p.squadRole === 'SUBSTITUTE');
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!isLiveDataMode(mode)) {
+      import('@/lib/data').then(({ FANTASY_MOCK_TEAM }) => {
+        if (cancelled) return;
+        setState({
+          status: 'ready',
+          team: FANTASY_MOCK_TEAM,
+          deadlineAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+          isLocked: false,
+        });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    async function load() {
+      try {
+        const [team, transferStatus, deadline] = await Promise.all([
+          getTeam(),
+          getTransferStatus(),
+          getDeadline().catch(() => null),
+        ]);
+
+        const liveTeam = toExpFantasySquad(team);
+        if (transferStatus.gameweekId) {
+          getGameweekScore(transferStatus.gameweekId)
+            .then((score) => {
+              if (cancelled) return;
+              setState({
+                status: 'ready',
+                team: { ...liveTeam, gameweekPoints: score.netPoints },
+                deadlineAt: deadline?.transferDeadlineAt ?? new Date().toISOString(),
+                isLocked: transferStatus.isDeadlineLocked || (deadline?.isLocked ?? false),
+              });
+            })
+            .catch(() => {
+              if (cancelled) return;
+              setState({
+                status: 'ready',
+                team: liveTeam,
+                deadlineAt: deadline?.transferDeadlineAt ?? new Date().toISOString(),
+                isLocked: transferStatus.isDeadlineLocked || (deadline?.isLocked ?? false),
+              });
+            });
+          return;
+        }
+
+        if (cancelled) return;
+        setState({
+          status: 'ready',
+          team: liveTeam,
+          deadlineAt: deadline?.transferDeadlineAt ?? new Date().toISOString(),
+          isLocked: transferStatus.isDeadlineLocked || (deadline?.isLocked ?? false),
+        });
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'Could not load your fantasy team.';
+        if (message.includes('not found')) {
+          setState({ status: 'empty', message: 'You do not have a fantasy team yet.' });
+          return;
+        }
+        setState({ status: 'error', message });
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   function handlePlayerClick(player: ExpFantasyPlayer | null) {
     if (!player) return;
@@ -33,8 +111,7 @@ export default function TeamPage() {
     setPlayerModalOpen(true);
   }
 
-  if (mode === 'LIVE_BETA_DATA') {
-    // Show loading skeleton until API wired
+  if (state.status === 'loading') {
     return (
       <FantasyShell title="My Team" back={{ href: '/fantasy', label: 'Back to Fantasy' }}>
         <div className="px-4 py-6">
@@ -44,10 +121,39 @@ export default function TeamPage() {
     );
   }
 
+  if (state.status === 'empty') {
+    return (
+      <FantasyShell title="My Team" back={{ href: '/fantasy', label: 'Back to Fantasy' }}>
+        <FantasyEmptyState
+          icon="⚽"
+          title="No fantasy team yet"
+          message={state.message}
+          action={{ label: 'Build Team', href: '/fantasy/onboarding' }}
+        />
+      </FantasyShell>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <FantasyShell title="My Team" back={{ href: '/fantasy', label: 'Back to Fantasy' }}>
+        <FantasyEmptyState
+          icon="⚠️"
+          title="Could not load fantasy team"
+          message={state.message}
+          action={{ label: 'Retry', href: '/fantasy/team' }}
+        />
+      </FantasyShell>
+    );
+  }
+
+  const { team, deadlineAt, isLocked } = state;
+  const starters = team.players.filter((p) => p.squadRole === 'STARTER');
+  const bench = team.players.filter((p) => p.squadRole === 'SUBSTITUTE');
+
   return (
     <FantasyShell title={team.teamName} back={{ href: '/fantasy', label: 'Back to Fantasy' }}>
       <div className="pb-24">
-        {/* Stats bar */}
         <motion.div
           className="px-4 pt-4 pb-3 bg-exp-navy border-b border-exp-border-dk"
           initial={reduce ? false : { opacity: 0 }}
@@ -59,7 +165,7 @@ export default function TeamPage() {
               { label: 'Total Points', value: team.totalPoints, color: 'text-exp-gold' },
               { label: 'This GW', value: team.gameweekPoints, color: 'text-white' },
               { label: 'Transfers', value: team.transfersRemaining, color: 'text-white' },
-            ].map(stat => (
+            ].map((stat) => (
               <div key={stat.label} className="text-center bg-exp-ink rounded-card-xs py-2.5">
                 <p className={`text-stat-md font-mono ${stat.color}`}>{stat.value}</p>
                 <p className="text-label-sm text-exp-muted">{stat.label}</p>
@@ -67,37 +173,25 @@ export default function TeamPage() {
             ))}
           </div>
 
-          {/* Deadline countdown */}
-          <DeadlineCountdown deadlineAt={MOCK_DEADLINE} isLocked={false} />
+          <DeadlineCountdown deadlineAt={deadlineAt} isLocked={isLocked} />
 
-          {/* Transfer info */}
           <p className="text-label-sm text-exp-muted text-center mt-2">
             {team.transfersRemaining} free transfer{team.transfersRemaining !== 1 ? 's' : ''} remaining
           </p>
         </motion.div>
 
-        {/* Pitch */}
         <div className="px-3 py-4">
-          <FantasyPitchView
-            players={starters}
-            formation="4-3-3"
-            onPlayerClick={handlePlayerClick}
-          />
+          <FantasyPitchView players={starters} formation="4-3-3" onPlayerClick={handlePlayerClick} />
         </div>
 
-        {/* Bench */}
-        <BenchPanel
-          players={bench}
-          onPlayerClick={player => handlePlayerClick(player)}
-        />
+        <BenchPanel players={bench} onPlayerClick={(player) => handlePlayerClick(player)} />
 
-        {/* Quick action bar */}
         <div className="px-4 py-4 grid grid-cols-3 gap-3">
           {[
             { label: 'Transfers', emoji: '🔄', href: '/fantasy/team/transfers', highlight: true },
             { label: 'Chips', emoji: '⚡', href: '/fantasy/team/chips', highlight: false },
             { label: 'FDR', emoji: '📊', href: '/fantasy/fixture-difficulty', highlight: false },
-          ].map(action => (
+          ].map((action) => (
             <Link
               key={action.label}
               href={action.href}
@@ -118,7 +212,6 @@ export default function TeamPage() {
         </p>
       </div>
 
-      {/* Player management modal */}
       <FantasyModal
         open={playerModalOpen}
         onClose={() => setPlayerModalOpen(false)}
@@ -128,7 +221,7 @@ export default function TeamPage() {
           <div className="space-y-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-14 h-14 rounded-full bg-exp-navy-2 border border-exp-border-dk flex items-center justify-center text-display-sm text-white font-bold">
-                {selectedPlayer.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                {selectedPlayer.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -136,7 +229,9 @@ export default function TeamPage() {
                   {selectedPlayer.isCaptain && <CaptainMarker type="C" />}
                   {selectedPlayer.isViceCaptain && <CaptainMarker type="VC" />}
                 </div>
-                <p className="text-body-sm text-exp-muted">{selectedPlayer.club.shortName} · £{selectedPlayer.fantasyPrice}m</p>
+                <p className="text-body-sm text-exp-muted">
+                  {selectedPlayer.club.shortName} · £{selectedPlayer.fantasyPrice}m
+                </p>
               </div>
             </div>
 
@@ -145,7 +240,7 @@ export default function TeamPage() {
                 { label: 'Points', value: selectedPlayer.fantasyPoints },
                 { label: 'Goals', value: selectedPlayer.goalsThisTournament },
                 { label: 'Assists', value: selectedPlayer.assistsThisTournament },
-              ].map(s => (
+              ].map((s) => (
                 <div key={s.label} className="bg-exp-ink rounded-card-xs py-2">
                   <p className="text-stat-md text-exp-gold font-mono">{s.value}</p>
                   <p className="text-label-sm text-exp-muted">{s.label}</p>

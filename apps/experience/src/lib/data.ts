@@ -4,7 +4,12 @@ export function getDataMode(): DataMode {
   const mode = process.env['NEXT_PUBLIC_DATA_MODE'];
   if (mode === 'LIVE_BETA_DATA') return 'LIVE_BETA_DATA';
   if (mode === 'WC_BETA') return 'WC_BETA';
+  if (process.env['NODE_ENV'] === 'production') return 'WC_BETA';
   return 'DESIGN_REVIEW_DATA';
+}
+
+export function isLiveDataMode(mode: DataMode = getDataMode()): boolean {
+  return mode !== 'DESIGN_REVIEW_DATA';
 }
 
 /* ── Shared types ──────────────────────────────────────────────────── */

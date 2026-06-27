@@ -162,6 +162,7 @@ export default function HomePage() {
   const [fixtures,  setFixtures]  = useState<Fixture[]>([]);
   const [teams,     setTeams]     = useState<Team[]>([]);
   const [media,     setMedia]     = useState<MediaAsset[]>([]);
+  const [mediaLoading, setMediaLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading,   setLoading]   = useState(true);
   const meta = getWebRuntimeMetadata();
@@ -184,7 +185,10 @@ export default function HomePage() {
         const arr = Array.isArray(d) ? (d as MediaAsset[]) : ((d as { assets?: MediaAsset[] }).assets ?? []);
         setMedia(arr.slice(0, 4));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        setMediaLoading(false);
+      });
 
     if (token) {
       listPublicCampaigns(token)
@@ -198,6 +202,7 @@ export default function HomePage() {
 
   const liveFixtures = fixtures.filter(f => f.status === 'LIVE' || f.status === 'HALF_TIME');
   const hasLive = liveFixtures.length > 0;
+  const latestStories = media.filter(item => item.mediaType === 'ARTICLE').slice(0, 4);
 
   return (
     <main>
@@ -277,6 +282,58 @@ export default function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ── Latest stories ─────────────────────────────────────── */}
+      {(latestStories.length > 0 || mediaLoading) && (
+        <section className="py-10 sm:py-12 px-4 bg-white" aria-label="Latest stories">
+          <div className="mx-auto max-w-7xl">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-display-sm text-psl-navy">Latest Stories</h2>
+              <Link href="/media" className="text-xs font-semibold text-psl-muted hover:text-psl-navy motion-safe:transition-colors">
+                All stories →
+              </Link>
+            </div>
+
+            {mediaLoading && latestStories.length === 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="rounded-card overflow-hidden border border-[#e8eaf0]">
+                    <div className="h-36 bg-gray-100 motion-safe:animate-shimmer bg-shimmer-base bg-[length:200%_100%]" />
+                    <div className="p-3 space-y-2">
+                      <div className="h-3 bg-gray-100 rounded motion-safe:animate-shimmer bg-shimmer-base bg-[length:200%_100%]" />
+                      <div className="h-3 bg-gray-100 rounded w-3/4 motion-safe:animate-shimmer bg-shimmer-base bg-[length:200%_100%]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {latestStories.map(item => (
+                  <Link
+                    key={item.id}
+                    href={`/media/${item.slug}`}
+                    className="block rounded-card border border-[#e8eaf0] overflow-hidden hover:shadow-card-md motion-safe:transition-shadow group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-navy focus-visible:ring-offset-1"
+                  >
+                    <MediaThumbnail
+                      title={item.title}
+                      mediaType={item.mediaType}
+                      className="rounded-none"
+                    />
+                    <div className="p-3">
+                      <h3 className="text-xs font-semibold text-psl-navy group-hover:text-psl-green motion-safe:transition-colors leading-snug line-clamp-2">
+                        {item.title}
+                      </h3>
+                      {item.description && (
+                        <p className="text-[11px] text-psl-muted mt-1 line-clamp-2">{item.description}</p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── Fixtures ─────────────────────────────────────────────── */}
       <section className="py-10 sm:py-12 px-4 bg-psl-surface" aria-label="Upcoming fixtures">

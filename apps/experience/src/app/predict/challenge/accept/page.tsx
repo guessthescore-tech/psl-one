@@ -12,6 +12,8 @@ import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
 import { apiFetch, apiPost } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
+import { getFixture, type Fixture as ApiFixture } from '@/lib/football-api';
+import { liveTeamToExpClub } from '@/lib/live-mappers';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,6 +67,25 @@ type ChallengeResult = {
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+function mapFixture(fixture: ApiFixture): ExpFixture {
+  return {
+    id: fixture.id,
+    homeClub: liveTeamToExpClub(fixture.homeTeam),
+    awayClub: liveTeamToExpClub(fixture.awayTeam),
+    homeScore: fixture.homeScore,
+    awayScore: fixture.awayScore,
+    status:
+      fixture.status === 'LIVE' || fixture.status === 'HALF_TIME' || fixture.status === 'FINISHED'
+        ? fixture.status
+        : 'SCHEDULED',
+    minute: fixture.currentMinute,
+    kickoffAt: fixture.kickoffAt,
+    venue: fixture.venue?.name ?? 'Venue TBD',
+    competition: fixture.season.competition.name,
+    group: fixture.group?.name ?? undefined,
+  };
+}
 
 function ScoreStepper({
   value,
@@ -625,9 +646,11 @@ function LegacyAcceptInner() {
       setFixture(found);
       return;
     }
-    const found = WC_FIXTURES.find(f => f.id === fixtureId) ?? null;
-    setFixture(found);
-    if (!found) setLoadError(true);
+    void getFixture(fixtureId)
+      .then((data) => setFixture(mapFixture(data)))
+      .catch(() => {
+        setLoadError(true);
+      });
   }, [fixtureId, mode]);
 
   useEffect(() => { load(); }, [load]);

@@ -184,6 +184,98 @@ export type LiveFixtureFantasyPreview = {
   players: LiveFantasyPlayerPreview[];
 };
 
+export type LiveMatchDashboard = {
+  fixture: Fixture;
+  homeTeam: Pick<Team, 'id' | 'name' | 'slug' | 'shortName'>;
+  awayTeam: Pick<Team, 'id' | 'name' | 'slug' | 'shortName'>;
+  venue: Venue | null;
+  events: MatchEvent[];
+  lineups: FixtureLineup[];
+  playerStats: Array<{
+    id: string;
+    playerId: string;
+    fixtureId: string;
+    teamId: string | null;
+    minutesPlayed: number;
+    goals: number;
+    assists: number;
+    ownGoals: number;
+    yellowCards: number;
+    redCards: number;
+    penaltiesMissed: number;
+    penaltiesSaved: number;
+    saves: number;
+    goalsConceded: number;
+    cleanSheet: boolean;
+    started: boolean;
+    cameOnMinute: number | null;
+    subbedOffMinute: number | null;
+    didNotPlay: boolean;
+    player: Pick<Player, 'id' | 'name' | 'position' | 'number'>;
+    team: Pick<Team, 'id' | 'name' | 'slug' | 'shortName'> | null;
+  }>;
+  liveFantasyPreview: LiveFixtureFantasyPreview;
+};
+
+export type MatchCentre = {
+  fixture: {
+    id: string;
+    kickoffAt: string;
+    status: FixtureStatus;
+    homeScore: number | null;
+    awayScore: number | null;
+    currentMinute: number | null;
+    period: string | null;
+    startedAt: string | null;
+    finishedAt: string | null;
+    venue: Venue | null;
+    gameweek: { id: string; name: string; slug: string } | null;
+    season: { id: string; name: string; competition: { id: string; name: string } };
+  };
+  homeTeam: Pick<Team, 'id' | 'name' | 'slug' | 'shortName' | 'logoUrl'>;
+  awayTeam: Pick<Team, 'id' | 'name' | 'slug' | 'shortName' | 'logoUrl'>;
+  events: MatchEvent[];
+  lineups: {
+    home: Array<FixtureLineup & { isStarter: boolean; isSubstitute: boolean }>;
+    away: Array<FixtureLineup & { isStarter: boolean; isSubstitute: boolean }>;
+  };
+  playerStats: Array<{
+    id: string;
+    playerId: string;
+    fixtureId: string;
+    teamId: string | null;
+    minutesPlayed: number;
+    goals: number;
+    assists: number;
+    ownGoals: number;
+    yellowCards: number;
+    redCards: number;
+    saves: number;
+    goalsConceded: number;
+    cleanSheet: boolean;
+    shotsOnTarget: number;
+    tacklesWon: number;
+    interceptions: number;
+    blockedShots: number;
+    player: Pick<Player, 'id' | 'name' | 'position' | 'number'>;
+    team: Pick<Team, 'id' | 'name' | 'slug' | 'shortName'> | null;
+  }>;
+  playerRatings: Array<{
+    id: string;
+    playerId: string;
+    performanceRating: number;
+    player: Pick<Player, 'id' | 'name' | 'position' | 'number'>;
+  }>;
+  dataProvenance: {
+    sourceType: string;
+    dataStatus: string;
+    freshnessStatus: string;
+    lastUpdatedAt: string;
+    providerKey: string | null;
+    officialFeed: string;
+  };
+};
+
 // ── Context ───────────────────────────────────────────────────────────────────
 
 /**
@@ -235,6 +327,14 @@ export function getFixtureLiveFantasyPreview(id: string): Promise<LiveFixtureFan
   return publicFetch<LiveFixtureFantasyPreview>(
     `/football/fixtures/${encodeURIComponent(id)}/live-fantasy-preview`,
   );
+}
+
+export function getLiveMatchDashboard(id: string): Promise<LiveMatchDashboard> {
+  return publicFetch<LiveMatchDashboard>(`/football/fixtures/${encodeURIComponent(id)}/live-dashboard`);
+}
+
+export function getMatchCentre(id: string): Promise<MatchCentre> {
+  return publicFetch<MatchCentre>(`/match-centre/fixture/${encodeURIComponent(id)}`);
 }
 
 // ── Teams ─────────────────────────────────────────────────────────────────────

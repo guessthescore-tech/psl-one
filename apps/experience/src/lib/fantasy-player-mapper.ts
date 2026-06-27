@@ -1,5 +1,5 @@
 import type { ExpClub, ExpFantasyPlayer } from './data';
-import type { PlayerSummary } from './fantasy-api';
+import type { FantasyTeam, PlayerSummary } from './fantasy-api';
 
 const POSITION_ABBR: Record<PlayerSummary['position'], ExpFantasyPlayer['position']> = {
   GOALKEEPER: 'GK',
@@ -63,5 +63,48 @@ export function toFantasySlot(player: ExpFantasyPlayer, index: number) {
     benchSlot: player.squadRole === 'SUBSTITUTE' ? player.benchSlot ?? index + 1 : undefined,
     isCaptain: player.isCaptain,
     isViceCaptain: player.isViceCaptain,
+  };
+}
+
+export function toExpFantasySquad(team: FantasyTeam) {
+  const players = team.players.map((tp, index) => {
+    const position = POSITION_ABBR[tp.player.position];
+    return {
+      id: tp.player.id,
+      name: tp.player.name,
+      position,
+      club: {
+        id: tp.player.team.id,
+        name: tp.player.team.name,
+        shortName: tp.player.team.shortName,
+        abbr: tp.player.team.shortName || tp.player.team.name.slice(0, 3).toUpperCase(),
+        city: '',
+        country: '',
+        primaryColor: '#1E3A5F',
+        secondaryColor: '#C8A84B',
+        textColor: '#FFFFFF',
+        founded: 0,
+      },
+      nationality: '',
+      imageKey: `wc-player-${tp.player.id}`,
+      goalsThisTournament: 0,
+      assistsThisTournament: 0,
+      fantasyPoints: 0,
+      fantasyPrice: 0,
+      squadRole: tp.squadRole,
+      benchSlot: tp.benchSlot ?? null,
+      isCaptain: tp.isCaptain,
+      isViceCaptain: tp.isViceCaptain,
+      gameweekPoints: 0,
+      isUnavailable: false,
+    } satisfies ExpFantasyPlayer;
+  });
+
+  return {
+    teamName: team.name,
+    totalPoints: team.totalPoints,
+    gameweekPoints: 0,
+    transfersRemaining: 0,
+    players,
   };
 }

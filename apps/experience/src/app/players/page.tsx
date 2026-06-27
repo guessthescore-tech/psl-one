@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { WC_PLAYERS, getDataMode } from '@/lib/data';
+import { WC_PLAYERS, getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpPlayer } from '@/lib/data';
 import { PlayerProfileHero } from '@/components/football/PlayerProfileHero';
+import { getContext } from '@/lib/football-api';
+import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
+import { getTopPerformers } from '@/lib/players-api';
+import { playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
 
 type PositionFilter = 'ALL' | 'GK' | 'DEF' | 'MID' | 'FWD';
 type SortOption = 'name' | 'points' | 'price' | 'goals';
 
 const SORT_LABELS: Record<SortOption, string> = {
-  name:   'A–Z',
+  name: 'A–Z',
   points: 'Points ↓',
-  price:  'Price ↓',
-  goals:  'Goals ↓',
+  price: 'Price ↓',
+  goals: 'Goals ↓',
 };
 
 export default function PlayersPage() {
@@ -22,13 +26,55 @@ export default function PlayersPage() {
   const [search, setSearch] = useState('');
   const [posFilter, setPosFilter] = useState<PositionFilter>('ALL');
   const [sort, setSort] = useState<SortOption>('points');
+  const [players, setPlayers] = useState<ExpPlayer[]>(mode === 'DESIGN_REVIEW_DATA' ? WC_PLAYERS : []);
+  const [loading, setLoading] = useState(isLiveDataMode(mode));
 
-  const players = WC_PLAYERS;
+  useEffect(() => {
+    if (!isLiveDataMode(mode)) {
+      setPlayers(WC_PLAYERS);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    async function load() {
+      try {
+        const season = await getContext();
+        const [pool, prices, topPerformers] = await Promise.all([
+          getPlayerPool(),
+          getPlayerPrices(),
+          getTopPerformers(season.id, 50).catch(() => []),
+        ]);
+
+        if (cancelled) return;
+        const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
+        const performerMap = new Map(topPerformers.map((p) => [p.playerId, p]));
+        const livePlayers = pool.map((player) => {
+          const perf = performerMap.get(player.id);
+          return playerSummaryToExpPlayer(player, {
+            goalsThisTournament: perf?.goals ?? 0,
+            assistsThisTournament: perf?.assists ?? 0,
+            fantasyPoints: perf?.fantasyPoints ?? 0,
+            fantasyPrice: priceMap.get(player.id) ?? 0,
+          });
+        });
+
+        setPlayers(livePlayers);
+      } catch {
+        if (!cancelled) setPlayers([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   const filtered = useMemo(() => {
     let list = [...players];
-
-    // Search
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -38,20 +84,21 @@ export default function PlayersPage() {
           p.nationality.toLowerCase().includes(q),
       );
     }
-
-    // Position filter
-    if (posFilter !== 'ALL') {
-      list = list.filter((p) => p.position === posFilter);
-    }
-
-    // Sort
+    if (posFilter !== 'ALL') list = list.filter((p) => p.position === posFilter);
     switch (sort) {
-      case 'name':   list.sort((a, b) => a.name.localeCompare(b.name));              break;
-      case 'points': list.sort((a, b) => b.fantasyPoints - a.fantasyPoints);         break;
-      case 'price':  list.sort((a, b) => b.fantasyPrice - a.fantasyPrice);           break;
-      case 'goals':  list.sort((a, b) => b.goalsThisTournament - a.goalsThisTournament); break;
+      case 'name':
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'points':
+        list.sort((a, b) => b.fantasyPoints - a.fantasyPoints);
+        break;
+      case 'price':
+        list.sort((a, b) => b.fantasyPrice - a.fantasyPrice);
+        break;
+      case 'goals':
+        list.sort((a, b) => b.goalsThisTournament - a.goalsThisTournament);
+        break;
     }
-
     return list;
   }, [players, search, posFilter, sort]);
 
@@ -59,23 +106,17 @@ export default function PlayersPage() {
 
   return (
     <div className="min-h-[100dvh] bg-exp-surface">
-      {/* Design review banner */}
       {mode === 'DESIGN_REVIEW_DATA' && (
-        <div
-          role="banner"
-          className="bg-purple-700 text-white text-center text-xs py-1.5 px-4 font-mono sticky top-0 z-50"
-        >
+        <div role="banner" className="bg-purple-700 text-white text-center text-xs py-1.5 px-4 font-mono sticky top-0 z-50">
           DESIGN_REVIEW_DATA — {players.length} mock players
         </div>
       )}
 
-      {/* Page header */}
       <div className="bg-exp-navy border-b border-exp-border-dk px-4 pt-6 pb-5">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-display-lg text-white font-black mb-1">Players</h1>
           <p className="text-body-sm text-exp-muted mb-4">FIFA World Cup 2026</p>
 
-          {/* Search */}
           <div className="relative mb-4">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-exp-muted" aria-hidden>🔍</span>
             <input
@@ -88,7 +129,6 @@ export default function PlayersPage() {
             />
           </div>
 
-          {/* Position pills */}
           <div className="flex gap-2 flex-wrap mb-3" role="group" aria-label="Filter by position">
             {positions.map((pos) => (
               <button
@@ -112,7 +152,6 @@ export default function PlayersPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-4">
-        {/* Sort */}
         <div className="flex items-center gap-2 mb-4" role="group" aria-label="Sort players">
           <span className="text-label-sm text-exp-muted">Sort:</span>
           {(Object.keys(SORT_LABELS) as SortOption[]).map((opt) => (
@@ -134,19 +173,18 @@ export default function PlayersPage() {
           ))}
         </div>
 
-        {/* Player list — 2-column grid on desktop */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="py-16 text-center">
+            <div className="text-exp-muted text-sm">Loading live player pool…</div>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <div className="text-4xl mb-4" aria-hidden>🔍</div>
             <div className="text-display-sm text-exp-navy font-black mb-2">No players found</div>
             <p className="text-body-md text-exp-muted">Try adjusting your search or filters.</p>
           </div>
         ) : (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"
-            role="list"
-            aria-label={`${filtered.length} players`}
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" role="list" aria-label={`${filtered.length} players`}>
             {filtered.map((player: ExpPlayer) => (
               <Link
                 key={player.id}
@@ -157,11 +195,8 @@ export default function PlayersPage() {
               >
                 <div className="bg-exp-card border border-exp-border rounded-card-sm px-4 py-3 flex items-center gap-3 hover:border-exp-gold/40 hover:shadow-card transition-all min-h-[44px] h-full">
                   <PlayerProfileHero player={player} compact />
-                  {/* Key stat */}
                   <div className="ml-auto flex-shrink-0 text-right">
-                    <div className="text-stat-md font-black text-exp-gold tabular-nums">
-                      {player.fantasyPoints}
-                    </div>
+                    <div className="text-stat-md font-black text-exp-gold tabular-nums">{player.fantasyPoints}</div>
                     <div className="text-label-sm text-exp-muted">pts</div>
                   </div>
                 </div>

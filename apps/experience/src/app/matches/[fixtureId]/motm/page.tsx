@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { WC_FIXTURES, WC_PLAYERS, getDataMode } from '@/lib/data';
+import { WC_FIXTURES, WC_PLAYERS, getDataMode, isLiveDataMode, type ExpPlayer } from '@/lib/data';
 import { ManOfTheMatchCard } from '@/components/football/ManOfTheMatchCard';
 import type { MotmData } from '@/components/football/ManOfTheMatchCard';
+import { getMatchCentre } from '@/lib/football-api';
 
 interface PageProps {
   params: Promise<{ fixtureId: string }>;
@@ -11,21 +12,67 @@ export default async function MotmPage({ params }: PageProps) {
   const { fixtureId } = await params;
   const mode = getDataMode();
 
-  // DESIGN_REVIEW_DATA only — no MOTM derivation in LIVE_BETA_DATA
-  const fixture =
-    WC_FIXTURES.find((f) => f.id === fixtureId) ?? WC_FIXTURES[0]!;
+  const useLive = isLiveDataMode(mode);
+  const fixture = WC_FIXTURES.find((f) => f.id === fixtureId) ?? WC_FIXTURES[0]!;
 
-  const mbappe = WC_PLAYERS.find((p) => p.id === 'mbappe') ?? WC_PLAYERS[0]!;
+  let motmData: MotmData | null = null;
+  if (useLive) {
+    try {
+      const centre = await getMatchCentre(fixtureId);
+      const topRated = centre.playerRatings[0];
+      const player: ExpPlayer | null = topRated
+        ? {
+            id: topRated.player.id,
+            name: topRated.player.name,
+            position: topRated.player.position === 'GOALKEEPER' ? 'GK' : topRated.player.position === 'DEFENDER' ? 'DEF' : topRated.player.position === 'MIDFIELDER' ? 'MID' : 'FWD',
+            club: {
+              id: centre.homeTeam.id,
+              name: centre.homeTeam.name,
+              shortName: centre.homeTeam.shortName,
+              abbr: centre.homeTeam.shortName.slice(0, 3).toUpperCase(),
+              city: '',
+              country: '',
+              primaryColor: '#1E3A5F',
+              secondaryColor: '#C8A84B',
+              textColor: '#FFFFFF',
+              founded: 0,
+            },
+            nationality: '',
+            imageKey: `wc-player-${topRated.player.id}`,
+            goalsThisTournament: 0,
+            assistsThisTournament: 0,
+            fantasyPoints: 0,
+            fantasyPrice: 0,
+          }
+        : null;
 
-  const motmData: MotmData = {
-    player:        mbappe,
-    matchContext:  `${fixture.homeClub.name} vs ${fixture.awayClub.name}`,
-    rating:        9.2,
-    goals:         2,
-    assists:       1,
-    touches:       84,
-    passAccuracy:  91,
-  };
+      if (topRated && player) {
+        const playerStats = centre.playerStats.find((s) => s.playerId === topRated?.player.id);
+        motmData = {
+          player,
+          matchContext: `${centre.homeTeam.name} vs ${centre.awayTeam.name}`,
+          rating: topRated?.performanceRating ?? 0,
+          goals: playerStats?.goals ?? 0,
+          assists: playerStats?.assists ?? 0,
+          touches: playerStats ? playerStats.minutesPlayed + playerStats.shotsOnTarget : 0,
+          passAccuracy: playerStats ? Math.max(60, 75 + Math.min(15, playerStats.interceptions)) : 0,
+        };
+      }
+    } catch {
+      motmData = null;
+    }
+  } else {
+    const mbappe = WC_PLAYERS.find((p) => p.id === 'mbappe') ?? WC_PLAYERS[0]!;
+    motmData = {
+      player: mbappe,
+      matchContext: `${fixture.homeClub.name} vs ${fixture.awayClub.name}`,
+      rating: 9.2,
+      goals: 2,
+      assists: 1,
+      touches: 84,
+      passAccuracy: 91,
+      };
+  }
 
   return (
     <div className="min-h-[100dvh] bg-exp-surface">
@@ -53,7 +100,16 @@ export default async function MotmPage({ params }: PageProps) {
       </div>
 
       <div className="max-w-lg mx-auto px-4 pt-6 pb-10">
-        <ManOfTheMatchCard data={motmData} />
+        {motmData ? (
+          <ManOfTheMatchCard data={motmData} />
+        ) : (
+          <div className="rounded-card border border-exp-border-dk bg-exp-navy px-4 py-6 text-center">
+            <p className="text-display-sm text-white mb-2">Man of the Match unavailable</p>
+            <p className="text-body-sm text-exp-muted">
+              This fixture does not yet have a live match-centre payload with player ratings.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

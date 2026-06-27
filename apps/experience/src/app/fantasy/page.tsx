@@ -5,28 +5,60 @@ import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
-import { getDataMode, FANTASY_MOCK_TEAM } from '@/lib/data';
+import { getDataMode, isLiveDataMode, FANTASY_MOCK_TEAM } from '@/lib/data';
 import { isAuthenticated } from '@/lib/auth';
+import { getTeam, getTransferStatus } from '@/lib/fantasy-api';
+import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
+import type { ExpFantasySquad } from '@/lib/data';
 
-type PageState = 'loading' | 'unauthenticated' | 'no-team' | 'has-team';
+type PageState = 'loading' | 'unauthenticated' | 'no-team' | 'has-team' | 'error';
 
 export default function FantasyLandingPage() {
   const reduce = useReducedMotion();
   const mode = getDataMode();
   const [pageState, setPageState] = useState<PageState>('loading');
+  const [team, setTeam] = useState<ExpFantasySquad | null>(null);
 
   useEffect(() => {
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      // Always show authenticated + has-team in design review
-      setPageState('has-team');
-      return;
+    let cancelled = false;
+
+    async function load() {
+      if (!isLiveDataMode(mode)) {
+        setTeam(FANTASY_MOCK_TEAM);
+        setPageState('has-team');
+        return;
+      }
+      if (!isAuthenticated()) {
+        setPageState('unauthenticated');
+        return;
+      }
+      try {
+        const [liveTeam, transferStatus] = await Promise.all([
+          getTeam(),
+          getTransferStatus(),
+        ]);
+        if (cancelled) return;
+        const squad = toExpFantasySquad(liveTeam);
+        setTeam({
+          ...squad,
+          transfersRemaining: transferStatus.freeTransfersAvailable,
+        });
+        setPageState('has-team');
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : '';
+        if (message.toLowerCase().includes('not found')) {
+          setPageState('no-team');
+        } else {
+          setPageState('error');
+        }
+      }
     }
-    if (!isAuthenticated()) {
-      setPageState('unauthenticated');
-      return;
-    }
-    // TODO: check if user has a team via API
-    setPageState('has-team');
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [mode]);
 
   if (pageState === 'loading') {
@@ -55,27 +87,34 @@ export default function FantasyLandingPage() {
     );
   }
 
-  // Has team
+  if (pageState === 'error') {
+    return (
+      <FantasyShell title="Fantasy">
+        <div className="px-4 py-8 text-exp-muted text-center">Could not load fantasy data.</div>
+      </FantasyShell>
+    );
+  }
+
   return (
     <FantasyShell title="My Fantasy Team">
-      <HasTeamState reduce={reduce} />
+      {team ? (
+        <HasTeamState reduce={reduce} team={team} />
+      ) : (
+        <div className="px-4 py-8 text-exp-muted text-center">Could not load fantasy data.</div>
+      )}
     </FantasyShell>
   );
 }
 
-/* ── Unauthenticated splash ─────────────────────────────────────────── */
-
 function UnauthenticatedState({ reduce }: { reduce: boolean | null }) {
   return (
     <div className="min-h-[100dvh] bg-navy-gradient">
-      {/* Hero */}
       <motion.div
         className="px-4 pt-16 pb-8 text-center"
         initial={reduce ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* Animated pitch preview */}
         <div className="relative w-40 h-24 mx-auto mb-8 rounded-card overflow-hidden opacity-60"
           style={{ background: 'repeating-linear-gradient(180deg,#145c2e 0px,#145c2e 12px,#115228 12px,#115228 24px)' }}
           aria-hidden="true"
@@ -114,54 +153,9 @@ function UnauthenticatedState({ reduce }: { reduce: boolean | null }) {
           </a>
         </div>
       </motion.div>
-
-      {/* Feature highlights */}
-      <motion.div
-        className="px-4 py-8 grid grid-cols-1 gap-4 sm:grid-cols-3"
-        initial={reduce ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-      >
-        {[
-          { emoji: '⚡', title: 'Points Engine', desc: 'Live-scoring from real WC 2026 match data' },
-          { emoji: '🔴', title: 'Real-Time Updates', desc: 'Scores update as goals are scored' },
-          { emoji: '🏆', title: 'Private Leagues', desc: 'Compete with friends in your own league' },
-        ].map(feat => (
-          <div key={feat.title} className="bg-exp-navy border border-exp-border-dk rounded-card px-4 py-5 text-center">
-            <span className="text-3xl mb-3 block">{feat.emoji}</span>
-            <h3 className="text-display-sm text-white mb-1">{feat.title}</h3>
-            <p className="text-body-sm text-exp-muted">{feat.desc}</p>
-          </div>
-        ))}
-      </motion.div>
-
-      {/* How to play */}
-      <section id="how-to-play" className="px-4 py-8 border-t border-exp-border-dk">
-        <h2 className="text-display-md text-white mb-6 text-center">How to Play</h2>
-        <div className="space-y-4 max-w-sm mx-auto">
-          {[
-            { step: '1', title: 'Name your team', desc: 'Create your manager identity' },
-            { step: '2', title: 'Pick your formation', desc: 'Choose from 7 formations' },
-            { step: '3', title: 'Build your squad', desc: '15 players, £100m budget, max 3 per team' },
-            { step: '4', title: 'Score points', desc: 'Earn points from goals, assists, clean sheets and more' },
-          ].map(item => (
-            <div key={item.step} className="flex items-center gap-4">
-              <div className="w-9 h-9 rounded-full bg-exp-gold flex-shrink-0 flex items-center justify-center text-exp-void text-label-lg font-bold">
-                {item.step}
-              </div>
-              <div>
-                <p className="text-body-md text-white font-semibold">{item.title}</p>
-                <p className="text-body-sm text-exp-muted">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }
-
-/* ── No team state ──────────────────────────────────────────────────── */
 
 function NoTeamState({ reduce }: { reduce: boolean | null }) {
   return (
@@ -187,11 +181,7 @@ function NoTeamState({ reduce }: { reduce: boolean | null }) {
   );
 }
 
-/* ── Has team state ─────────────────────────────────────────────────── */
-
-function HasTeamState({ reduce }: { reduce: boolean | null }) {
-  const team = FANTASY_MOCK_TEAM;
-
+function HasTeamState({ reduce, team }: { reduce: boolean | null; team: ExpFantasySquad }) {
   return (
     <motion.div
       className="pb-24"
@@ -199,7 +189,6 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.35 }}
     >
-      {/* Team summary card */}
       <div className="px-4 py-4 bg-navy-gradient">
         <div className="bg-exp-navy border border-exp-border-dk rounded-card px-5 py-4">
           <div className="flex items-start justify-between mb-4">
@@ -216,8 +205,8 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'GW Points', value: team.gameweekPoints },
-              { label: 'Rank', value: '#88,403' },
-              { label: 'Free transfers', value: team.transfersRemaining },
+              { label: 'Transfers', value: team.transfersRemaining },
+              { label: 'Squad', value: team.players.length },
             ].map(stat => (
               <div key={stat.label} className="text-center bg-exp-ink rounded-card-xs py-2">
                 <p className="text-stat-md text-white font-mono">{stat.value}</p>
@@ -235,7 +224,6 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
         </div>
       </div>
 
-      {/* Quick actions */}
       <div className="px-4 py-4">
         <h3 className="text-display-sm text-white mb-3">Quick Actions</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -256,28 +244,6 @@ function HasTeamState({ reduce }: { reduce: boolean | null }) {
           ))}
         </div>
       </div>
-
-      {/* Captain highlight */}
-      {team.players.find(p => p.isCaptain) && (
-        <div className="px-4 pb-4">
-          <div className="bg-exp-navy border border-exp-gold/20 rounded-card px-4 py-3 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-exp-gold/10 border border-exp-gold/40 flex items-center justify-center text-exp-gold text-label-lg font-bold">
-              C
-            </div>
-            <div>
-              <p className="text-label-sm text-exp-gold uppercase tracking-widest">Captain this GW</p>
-              <p className="text-body-md text-white font-semibold">{team.players.find(p => p.isCaptain)?.name}</p>
-              <p className="text-label-sm text-exp-muted">
-                {team.players.find(p => p.isCaptain)?.fantasyPoints}pts this tournament
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <p className="px-4 pb-4 text-label-sm text-exp-muted text-center">
-        Points only — no real money or financial value
-      </p>
     </motion.div>
   );
 }

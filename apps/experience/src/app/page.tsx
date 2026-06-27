@@ -9,6 +9,7 @@ import { ClubIdentitySection } from '@/sections/ClubIdentitySection';
 import { SponsorSection } from '@/sections/SponsorSection';
 import { FanValueSection } from '@/sections/FanValueSection';
 import { MyClubSection } from '@/sections/MyClubSection';
+import { getLiveWorldCupStories } from '@/lib/live-world-cup-feed';
 
 /**
  * Homepage — World Cup 2026 Beta.
@@ -19,9 +20,12 @@ import { MyClubSection } from '@/sections/MyClubSection';
  * WC_BETA · NO_REAL_MONEY
  */
 export default async function HomePage() {
-  // Editorial/preview data — not presented as live match data
-  const editorialData = getExperienceData();
   const mode = getDataMode();
+  const editorialData = mode === 'DESIGN_REVIEW_DATA' ? getExperienceData() : null;
+  const stories =
+    mode === 'DESIGN_REVIEW_DATA'
+      ? editorialData?.stories ?? []
+      : await getLiveWorldCupStories();
 
   return (
     <>
@@ -36,11 +40,16 @@ export default async function HomePage() {
         </div>
       )}
 
+      {/* FIFA-style stories directive — design review should lead with editorial content */}
+      {stories.length > 0 && (
+        <EditorialGridSection stories={stories} />
+      )}
+
       {/* Live API-backed fixtures — no hardcoded match data */}
       <HomepageFixtureSection />
 
-      {/* Editorial preview sections — mock design data, not live provider data */}
-      {(mode === 'WC_BETA' || mode === 'DESIGN_REVIEW_DATA') && (
+      {/* Editorial preview sections — design review only */}
+      {mode === 'DESIGN_REVIEW_DATA' && editorialData && (
         <div
           role="note"
           aria-label="Editorial beta preview notice"
@@ -51,15 +60,18 @@ export default async function HomePage() {
           </p>
         </div>
       )}
-      <LeagueTableSection data={editorialData} />
-      <FantasyGameweekSection data={editorialData} />
-      <PlayerSpotlightSection data={editorialData} />
-      <EditorialGridSection data={editorialData} />
-      <VideoRailSection data={editorialData} />
-      <ClubIdentitySection data={editorialData} />
-      <SponsorSection />
-      <FanValueSection data={editorialData} />
-      <MyClubSection data={editorialData} />
+      {editorialData && (
+        <>
+          <LeagueTableSection data={editorialData} />
+          <FantasyGameweekSection data={editorialData} />
+          <PlayerSpotlightSection data={editorialData} />
+          <VideoRailSection data={editorialData} />
+          <ClubIdentitySection data={editorialData} />
+          <SponsorSection />
+          <FanValueSection data={editorialData} />
+          <MyClubSection data={editorialData} />
+        </>
+      )}
     </>
   );
 }

@@ -1,6 +1,10 @@
+import Link from 'next/link';
+import { expImg } from '../../../lib/data';
+import { NewsHeroCard } from '../../../components/design/NewsHeroCard';
 import { ScoreBatWorldCupWidget } from '../../../components/world-cup/ScoreBatWorldCupWidget';
 import { WcFixtureCard } from '../../../components/world-cup/WcFixtureCard';
 import { getServerApiBase } from '../../../lib/server-api-base';
+import { getLiveWorldCupStories } from '../../../lib/live-world-cup-feed';
 
 /**
  * World Cup 2026 Live page — server component.
@@ -58,6 +62,7 @@ export default async function WorldCupLivePage() {
     fetchWcFixtures(),
     fetchWidgetConfig(),
   ]);
+  const liveStories = await getLiveWorldCupStories().catch(() => []);
 
   const liveFixtures = fixtures.filter(f => f.status === 'LIVE' || f.status === 'IN_PLAY' || f.status === 'HALF_TIME');
   const upcomingFixtures = fixtures.filter(f => f.status === 'SCHEDULED' || f.status === 'not_started');
@@ -88,6 +93,41 @@ export default async function WorldCupLivePage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-6 py-10 space-y-12">
+
+        {/* Stories */}
+        {liveStories.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm font-bold uppercase tracking-widest text-white/60">Latest Stories</h2>
+              <Link href="/media" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+                All stories →
+              </Link>
+            </div>
+            <div className="grid gap-4 md:grid-cols-[1.15fr_1fr]">
+              <NewsHeroCard
+                title={liveStories[0]!.title}
+                category={liveStories[0]!.category}
+                excerpt={liveStories[0]!.summary}
+                publishedAt={liveStories[0]!.publishedAt}
+                imageUrl={expImg(liveStories[0]!.imageKey, 800, 450)}
+                href={`/media/${liveStories[0]!.id}`}
+              />
+              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1">
+                {liveStories.slice(1, 5).map((story) => (
+                  <Link
+                    key={story.id}
+                    href={`/media/${story.id}`}
+                    className="rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] p-4 transition-colors"
+                  >
+                    <span className="text-xs font-medium text-emerald-400 uppercase tracking-wide">{story.category}</span>
+                    <h3 className="mt-2 text-sm font-semibold text-white leading-snug line-clamp-2">{story.title}</h3>
+                    <p className="mt-2 text-xs text-white/45 line-clamp-3">{story.summary}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Live now */}
         {liveFixtures.length > 0 && (

@@ -2,13 +2,28 @@
 
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';
+import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
 import { FixtureDifficultyMatrix } from '@/components/fantasy/core/FixtureDifficultyMatrix';
 import { FANTASY_MOCK_FDR } from '@/lib/data';
+import { getDataMode } from '@/lib/data';
 
-// FDR page is DESIGN_REVIEW_DATA only — backend API not yet available
-// FantasyShell automatically renders the purple design review banner
+// FDR is mock-only in design review mode. Live mode shows an honest unavailable state.
 
 export default function FixtureDifficultyPage() {
+  const mode = getDataMode();
+
+  if (mode !== 'DESIGN_REVIEW_DATA') {
+    return (
+      <FantasyShell title="Fixture Difficulty" back={{ href: '/fantasy/team', label: 'Back to Team' }}>
+        <FantasyEmptyState
+          icon="📊"
+          title="Fixture difficulty not available yet"
+          message="This view still depends on a design-review dataset. It will be replaced by a live fixture difficulty source when the backend is ready."
+        />
+      </FantasyShell>
+    );
+  }
+
   return (
     <FantasyShell
       title="Fixture Difficulty"

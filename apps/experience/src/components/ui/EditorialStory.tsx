@@ -6,12 +6,13 @@ import type { ExpStory } from '@/lib/data';
 interface EditorialStoryProps {
   story: ExpStory;
   featured?: boolean;
+  href?: string;
 }
 
-export function EditorialStory({ story, featured = false }: EditorialStoryProps) {
+export function EditorialStory({ story, featured = false, href }: EditorialStoryProps) {
   return (
     <Link
-      href={`/news/${story.id}`}
+      href={href ?? `/media/${story.id}`}
       className={clsx(
         'group block rounded-card overflow-hidden bg-exp-card border border-exp-border shadow-card',
         'hover:shadow-card-md transition-shadow duration-200',

@@ -328,7 +328,8 @@ describe('Fantasy Core pages', () => {
     expect(exists('app/fantasy/page.tsx')).toBe(true);
     const content = read('app/fantasy/page.tsx');
     expect(content).toContain('FantasyLandingPage');
-    expect(content).toContain('DESIGN_REVIEW_DATA');
+    expect(content).toContain('getTeam');
+    expect(content).toContain('getTransferStatus');
   });
 
   it('fantasy team page shows pitch view', () => {
@@ -661,14 +662,16 @@ describe('Football Context pages', () => {
     expect(content).toContain('PlayerComparison');
     expect(content).toContain('selectedA');
     expect(content).toContain('selectedB');
-    expect(content).toContain('mbappe');
-    expect(content).toContain('vinicius');
+    expect(content).toContain('getTopPerformers');
+    expect(content).toContain('topPerformerToExpPlayer');
   });
 
   it('awards page renders award cards', () => {
     expect(exists('app/stats/awards/page.tsx')).toBe(true);
     const content = read('app/stats/awards/page.tsx');
     expect(content).toContain('AwardCard');
+    expect(content).toContain('getTopPerformers');
+    expect(content).toContain('topPerformerToExpPlayer');
     expect(content).toContain('Goal of the Tournament');
     expect(content).toContain('Golden Boot');
   });
@@ -910,6 +913,15 @@ describe('account pages exist', () => {
   for (const p of pages) {
     it(p, () => expect(exists(p)).toBe(true));
   }
+});
+
+describe('account page live fallback safety', () => {
+  it('account overview does not fall back to mock profile on API failure', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain('FantasyErrorState');
+    expect(content).not.toContain('show mock data if API unavailable');
+    expect(content).toContain("setLoadError('Could not load your account summary.');");
+  });
 });
 
 describe('auth lib exists', () => {
@@ -7213,14 +7225,14 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
     expect(content).toContain('getPlayerPool');
     expect(content).toContain('toExpFantasyPlayer');
-    expect(content).toContain('Loading World Cup player pool');
+    expect(content).toContain('Could not load the live World Cup player pool.');
   });
 
   it('fantasy transfers load live player pool in LIVE_BETA_DATA mode', () => {
     const content = read('app/fantasy/team/transfers/page.tsx');
     expect(content).toContain('getPlayerPool');
     expect(content).toContain('toExpFantasyPlayer');
-    expect(content).toContain('Loading World Cup player pool');
+    expect(content).toContain('Could not load the live transfer screen.');
   });
 
   it('sign-up page displays emailDeliveryStatus honestly', () => {
@@ -7332,6 +7344,18 @@ describe('Hotfix: homepage — no hardcoded old South Africa fixture', () => {
   it('homepage uses async function (server fetch)', () => {
     expect(homePage).toContain('async function HomePage');
   });
+
+  it('homepage leads with stories in design-review mode', () => {
+    const storiesIndex = homePage.indexOf('<EditorialGridSection');
+    const fixturesIndex = homePage.indexOf('<HomepageFixtureSection');
+    expect(storiesIndex).toBeGreaterThan(-1);
+    expect(fixturesIndex).toBeGreaterThan(-1);
+    expect(storiesIndex).toBeLessThan(fixturesIndex);
+  });
+
+  it('homepage uses live world cup story feed in beta mode', () => {
+    expect(homePage).toContain('getLiveWorldCupStories');
+  });
 });
 
 describe('Hotfix: HomepageFixtureSection — API-backed, no static fixture data', () => {
@@ -7439,8 +7463,13 @@ describe('Hotfix: editorial mock sections labelled on homepage', () => {
 
   it('homepage editorial notice is only shown in WC_BETA or DESIGN_REVIEW_DATA mode', () => {
     const content = home();
-    // must be conditional on mode
-    expect(content).toContain("mode === 'WC_BETA'");
+    // editorial preview is now design-review only
+    expect(content).toContain("mode === 'DESIGN_REVIEW_DATA'");
+  });
+
+  it('homepage renders EditorialGridSection before live fixtures in design review', () => {
+    const content = home();
+    expect(content.indexOf('<EditorialGridSection')).toBeLessThan(content.indexOf('<HomepageFixtureSection'));
   });
 
   it('data.ts does not have TODO claiming LIVE_BETA_DATA is wired', () => {
@@ -7518,6 +7547,10 @@ describe('News Centre — editorial scope and safety', () => {
     // Grid is conditional: {remaining.length > 0 && ...}
     expect(content).toContain('remaining.length > 0');
   });
+
+  it('news page uses live world cup story feed helper', () => {
+    expect(read('app/news/page.tsx')).toContain('getLiveWorldCupStories');
+  });
 });
 
 // ─── A+ Gap-Close: Video / ScoreBat token safety ──────────────────────────
@@ -7593,6 +7626,20 @@ describe('Video page — ScoreBat token safety and empty state', () => {
     // Confirm the spec has a test that health message does not contain the token
     expect(specContent).toContain('not.toContain');
     expect(specContent).toContain('sb-test-token');
+  });
+});
+
+describe('Live story routing', () => {
+  it('EditorialStory links to media detail route', () => {
+    expect(read('components/ui/EditorialStory.tsx')).toContain('href ?? `/media/${story.id}`');
+  });
+
+  it('live world cup feed helper exists', () => {
+    expect(exists('lib/live-world-cup-feed.ts')).toBe(true);
+  });
+
+  it('world cup live page uses live story feed', () => {
+    expect(read('app/world-cup/live/page.tsx')).toContain('getLiveWorldCupStories');
   });
 });
 

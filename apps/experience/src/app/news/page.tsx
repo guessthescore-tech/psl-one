@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { WC_STORIES, WC_VIDEOS, expImg } from '@/lib/data';
-import type { ExpStory, ExpVideo } from '@/lib/data';
+import type { ExpStory } from '@/lib/data';
 import { NewsHeroCard } from '@/components/design/NewsHeroCard';
 import { VideoTile } from '@/components/design/VideoTile';
+import { getDataMode } from '@/lib/data';
+import { getLiveWorldCupStories } from '@/lib/live-world-cup-feed';
+import { getMedia, type MediaItem } from '@/lib/media-api';
 
 /**
  * News — World Cup 2026 News Centre (Sprint 38C rebuild).
@@ -31,10 +34,45 @@ function formatDuration(secs: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export default function NewsPage() {
-  const featured: ExpStory | undefined = WC_STORIES.find(s => s.featured);
-  const remaining: ExpStory[] = WC_STORIES.filter(s => !s.featured);
-  const topVideos: ExpVideo[] = WC_VIDEOS.slice(0, 3);
+type NewsVideo = {
+  id: string;
+  title: string;
+  durationSeconds: number;
+  category: string;
+  thumbnailUrl?: string | null;
+};
+
+export default async function NewsPage() {
+  const mode = getDataMode();
+  const [stories, topVideos]: [ExpStory[], NewsVideo[]] =
+    mode === 'DESIGN_REVIEW_DATA'
+      ? [
+          WC_STORIES,
+          WC_VIDEOS.slice(0, 3).map((video) => ({
+            ...video,
+            thumbnailUrl: null,
+          })),
+        ]
+      : await Promise.all([
+          getLiveWorldCupStories(),
+          getMedia()
+            .then((items: MediaItem[]) =>
+              items
+                .filter((item) => item.type === 'VIDEO')
+                .map((item) => ({
+                  id: item.id,
+                  title: item.title,
+                  durationSeconds: item.durationSeconds ?? 120,
+                  category: item.tags[0] ?? 'Video',
+                  thumbnailUrl: item.thumbnailUrl,
+                }))
+                .slice(0, 3),
+            )
+            .catch(() => []),
+        ]);
+
+  const featured: ExpStory | undefined = stories.find((story) => story.featured) ?? stories[0];
+  const remaining: ExpStory[] = stories.filter((story) => story.id !== featured?.id);
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -76,6 +114,7 @@ export default function NewsPage() {
               excerpt={featured.summary}
               publishedAt={featured.publishedAt}
               imageUrl={expImg(`story-wc-${featured.id}`, 800, 450)}
+              href={`/media/${featured.id}`}
             />
           </section>
         )}
@@ -99,6 +138,12 @@ export default function NewsPage() {
                     <span>{formatDate(story.publishedAt)}</span>
                     <span>·</span>
                     <span>{formatReadTime(story.readMinutes)}</span>
+                    <Link
+                      href={`/media/${story.id}`}
+                      className="ml-auto text-emerald-400 hover:text-emerald-300 transition-colors"
+                    >
+                      Read →
+                    </Link>
                   </div>
                 </div>
               ))}
@@ -122,7 +167,7 @@ export default function NewsPage() {
                   title={video.title}
                   duration={formatDuration(video.durationSeconds)}
                   category={video.category}
-                  thumbnailUrl={expImg(`video-wc-${video.id}`, 400, 225)}
+                  thumbnailUrl={video.thumbnailUrl ?? expImg(`video-wc-${video.id}`, 400, 225)}
                 />
               ))}
             </div>

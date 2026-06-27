@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
+import { FantasyErrorState } from '@/components/fantasy/shared/FantasyErrorState';
 import { AccountNav } from '@/components/account/AccountNav';
 import { getDataMode } from '@/lib/data';
 import { isAuthenticated, logout } from '@/lib/auth';
@@ -29,11 +30,13 @@ export default function AccountPage() {
   const mode = getDataMode();
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (mode === 'DESIGN_REVIEW_DATA') {
       setProfile(MOCK_PROFILE);
       setLoading(false);
+      setLoadError(null);
       return;
     }
 
@@ -46,11 +49,12 @@ export default function AccountPage() {
       .then(m => m.getProfileSummary())
       .then(data => {
         setProfile(data);
+        setLoadError(null);
         setLoading(false);
       })
       .catch(() => {
-        // Graceful fallback: show mock data if API unavailable
-        setProfile(MOCK_PROFILE);
+        setProfile(null);
+        setLoadError('Could not load your account summary.');
         setLoading(false);
       });
   }, [mode, router]);
@@ -71,15 +75,36 @@ export default function AccountPage() {
   if (!profile) {
     return (
       <FantasyShell title="Account" hideFantasyTabs>
-        <div className="text-center py-12 flex flex-col items-center gap-4">
-          <p className="text-body-md text-exp-muted">Sign in to access your account</p>
-          <Link
-            href="/sign-in?redirect=/account"
-            className="px-6 py-3 bg-exp-green text-white font-bold rounded-card-sm min-h-[44px] flex items-center hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
-          >
-            Sign In
-          </Link>
-        </div>
+        {loadError ? (
+          <FantasyErrorState
+            message={loadError}
+            onRetry={() => {
+              setLoading(true);
+              setLoadError(null);
+              void import('@/lib/profile-api')
+                .then((m) => m.getProfileSummary())
+                .then((data) => {
+                  setProfile(data);
+                  setLoading(false);
+                })
+                .catch(() => {
+                  setProfile(null);
+                  setLoadError('Could not load your account summary.');
+                  setLoading(false);
+                });
+            }}
+          />
+        ) : (
+          <div className="text-center py-12 flex flex-col items-center gap-4">
+            <p className="text-body-md text-exp-muted">Sign in to access your account</p>
+            <Link
+              href="/sign-in?redirect=/account"
+              className="px-6 py-3 bg-exp-green text-white font-bold rounded-card-sm min-h-[44px] flex items-center hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+            >
+              Sign In
+            </Link>
+          </div>
+        )}
       </FantasyShell>
     );
   }

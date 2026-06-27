@@ -24,23 +24,63 @@ export interface PlayerProfile {
     logoUrl: string | null;
     country: string;
   };
+  playerStats?: Array<{
+    seasonId: string;
+    goals: number;
+    assists: number;
+    minutesPlayed: number;
+    yellowCards: number;
+    redCards: number;
+  }>;
 }
 
 export interface PlayerSeasonStats {
-  playerId: string;
+  player: {
+    id: string;
+    name: string;
+    position: string;
+    number: number | null;
+    team: {
+      id: string;
+      name: string;
+      shortName: string;
+      slug: string;
+    };
+  };
   seasonId: string;
-  appearances: number;
-  minutesPlayed: number;
-  goals: number;
-  assists: number;
-  yellowCards: number;
-  redCards: number;
-  cleanSheets: number;
-  saves: number;
-  ownGoals: number;
-  penaltiesMissed: number;
-  penaltiesSaved: number;
-  fantasyPoints: number;
+  totals: {
+    appearances: number;
+    minutesPlayed: number;
+    goals: number;
+    assists: number;
+    yellowCards: number;
+    redCards: number;
+    cleanSheets: number;
+    saves: number;
+    ownGoals: number;
+    penaltiesMissed: number;
+    penaltiesSaved: number;
+    fantasyPoints: number;
+  };
+  matches: Array<{
+    fixture: {
+      id: string;
+      kickoffAt: string;
+      homeScore: number | null;
+      awayScore: number | null;
+      status: string;
+      homeTeam: { id: string; name: string; shortName: string };
+      awayTeam: { id: string; name: string; shortName: string };
+    };
+    minutesPlayed: number;
+    goals: number;
+    assists: number;
+    yellowCards: number;
+    redCards: number;
+    saves: number;
+    cleanSheet: boolean;
+    fantasyPoints: number;
+  }>;
 }
 
 export interface PlayerMatchStats {

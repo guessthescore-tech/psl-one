@@ -35,7 +35,12 @@ export function emailProviderFactory(config: ConfigService): EmailProvider {
   const emailProvider = config.get<string>('EMAIL_PROVIDER');
   // EMAIL_PROVIDER=smtp enables real SMTP delivery (nodemailer).
   // Requires SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD in env.
-  if (emailProvider === 'smtp') {
+  const hasSmtpConfig =
+    Boolean(config.get<string>('SMTP_HOST')) &&
+    Boolean(config.get<string>('SMTP_USER')) &&
+    Boolean(config.get<string>('SMTP_PASSWORD'));
+
+  if (emailProvider === 'smtp' || (emailProvider === undefined && hasSmtpConfig)) {
     return new SmtpEmailProvider(config);
   }
   // ConsoleEmailProvider only in isolated local development.
