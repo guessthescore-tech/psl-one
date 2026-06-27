@@ -37,7 +37,11 @@ const mockPrisma = {
 };
 
 function makeService(provider?: LiveMatchProviderAdapter) {
-  return new LiveMatchService(mockPrisma as any, provider);
+  const service = new LiveMatchService(mockPrisma as any);
+  if (provider) {
+    (service as unknown as { provider: LiveMatchProviderAdapter }).provider = provider;
+  }
+  return service;
 }
 
 const FIXTURE_ID = 'fixture-1';

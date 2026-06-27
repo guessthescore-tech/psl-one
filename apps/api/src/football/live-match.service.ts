@@ -36,11 +36,8 @@ const SYNC_PROVIDER_PLAYER_STATS_CONFIRM = 'SYNC_PROVIDER_PLAYER_STATS';
 export class LiveMatchService {
   private readonly provider: LiveMatchProviderAdapter;
 
-  constructor(
-    private readonly prisma: PrismaService,
-    provider?: LiveMatchProviderAdapter,
-  ) {
-    this.provider = provider ?? LiveMatchService.resolveProvider();
+  constructor(private readonly prisma: PrismaService) {
+    this.provider = LiveMatchService.resolveProvider();
   }
 
   /**
