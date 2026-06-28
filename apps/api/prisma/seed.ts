@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import { PrismaClient, PlayerPosition, FixtureStatus, GameweekStatus, CompetitionFormat, StageType, SeasonStatus, AchievementCategory, AchievementTriggerType, BadgeRarity, FanValueType, RewardReadinessCategory, SeasonTeamStatus, SeasonTeamSource, ClubProfileStatus, ShopProductCategory, ShopProductAvailability, ShopProductStatus, ClubContentType, ClubContentStatus, PredictionMarketType, DataSourceType, DataStatus, FreshnessStatus, ComplianceReviewStatus, UserRole } from '@prisma/client';
 import { VENUES } from './seed-data/world-cup-2026/venues';
 import { TEAMS, TBD_TEAM } from './seed-data/world-cup-2026/teams';
@@ -8,6 +9,10 @@ import { PSL_CLUBS } from './seed-data/psl-clubs';
 import { PSL_PLACEHOLDER_PLAYERS, PROVISIONAL_PRICE } from './seed-data/psl-players';
 
 const prisma = new PrismaClient();
+const SEED_PLATFORM_USERS_PASSWORD = process.env.SEED_PLATFORM_USERS_PASSWORD ?? 'PslOneSeed!2026';
+const SEED_PLATFORM_ADMIN_EMAIL = process.env.SEED_PLATFORM_ADMIN_EMAIL ?? 'admin@pslone.co.za';
+const SEED_PLATFORM_USER_EMAIL = process.env.SEED_PLATFORM_USER_EMAIL ?? 'obe@digisphere.co.za';
+const SEED_PLATFORM_PARTNER_EMAIL = process.env.SEED_PLATFORM_PARTNER_EMAIL ?? 'guessthescore2@gmail.com';
 
 async function main() {
   console.log('Seeding FIFA World Cup 2026 full dataset…');
@@ -1055,6 +1060,8 @@ async function main() {
   console.log(`  ✓ Fan Value reward definition seeded (50 pts, non-financial, no cash value)`);
 
   // ── STORY-38: Seed system user (for market config authorship) ────────────
+  const seedPasswordHash = await bcrypt.hash(SEED_PLATFORM_USERS_PASSWORD, 12);
+
   const seedAdminUser = await prisma.user.upsert({
     where: { email: 'seed-admin@psl-one.internal' },
     update: {},
@@ -1068,6 +1075,103 @@ async function main() {
     },
   });
   console.log(`  ✓ Seed admin user upserted (seed-admin@psl-one.internal)`);
+
+  const platformAdminUser = await prisma.user.upsert({
+    where: { email: SEED_PLATFORM_ADMIN_EMAIL },
+    update: {
+      role: UserRole.PSL_ADMIN,
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      email: SEED_PLATFORM_ADMIN_EMAIL,
+      passwordHash: seedPasswordHash,
+      role: UserRole.PSL_ADMIN,
+      dateOfBirth: new Date('1985-01-01'),
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  console.log(`  ✓ Platform admin user upserted (${platformAdminUser.email})`);
+
+  const platformUser = await prisma.user.upsert({
+    where: { email: SEED_PLATFORM_USER_EMAIL },
+    update: {
+      role: UserRole.FAN,
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      email: SEED_PLATFORM_USER_EMAIL,
+      passwordHash: seedPasswordHash,
+      role: UserRole.FAN,
+      dateOfBirth: new Date('1993-01-01'),
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  await prisma.fanProfile.upsert({
+    where: { userId: platformUser.id },
+    update: {
+      displayName: 'Obe',
+      city: 'Johannesburg',
+      country: 'South Africa',
+    },
+    create: {
+      userId: platformUser.id,
+      displayName: 'Obe',
+      city: 'Johannesburg',
+      country: 'South Africa',
+    },
+  });
+  console.log(`  ✓ Platform fan user upserted (${SEED_PLATFORM_USER_EMAIL})`);
+
+  const partnerSponsor = await prisma.sponsor.upsert({
+    where: { slug: 'guess-the-score-partner' },
+    update: {
+      name: 'Guess The Score Partner',
+      primaryContactEmail: SEED_PLATFORM_PARTNER_EMAIL,
+      status: 'PROSPECT',
+    },
+    create: {
+      name: 'Guess The Score Partner',
+      slug: 'guess-the-score-partner',
+      sector: 'Media & Fan Engagement',
+      primaryContactEmail: SEED_PLATFORM_PARTNER_EMAIL,
+      status: 'PROSPECT',
+    },
+  });
+
+  const partnerUser = await prisma.user.upsert({
+    where: { email: SEED_PLATFORM_PARTNER_EMAIL },
+    update: {
+      role: UserRole.SPONSOR,
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      email: SEED_PLATFORM_PARTNER_EMAIL,
+      passwordHash: seedPasswordHash,
+      role: UserRole.SPONSOR,
+      dateOfBirth: new Date('1988-01-01'),
+      isVerified: true,
+      isActive: true,
+    },
+  });
+  await prisma.sponsorMembership.upsert({
+    where: { userId_sponsorId: { userId: partnerUser.id, sponsorId: partnerSponsor.id } },
+    update: {
+      role: 'SPONSOR',
+      isActive: true,
+    },
+    create: {
+      userId: partnerUser.id,
+      sponsorId: partnerSponsor.id,
+      role: 'SPONSOR',
+      isActive: true,
+    },
+  });
+  console.log(`  ✓ Partner sponsor user upserted (${SEED_PLATFORM_PARTNER_EMAIL})`);
 
   // ── STORY-38: Compliance domain config ───────────────────────────────────
   await prisma.complianceDomainConfig.upsert({
