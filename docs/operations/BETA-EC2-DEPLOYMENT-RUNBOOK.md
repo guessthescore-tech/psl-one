@@ -60,6 +60,20 @@ aws ssm put-parameter --name /psl-one/beta/web-image-uri       --value "PLACEHOL
 aws ssm put-parameter --name /psl-one/beta/git-sha             --value "unknown"     --type String
 ```
 
+### Email verification wiring
+
+The beta `compose.beta.yaml` environment injects these values into the API container:
+
+- `EMAIL_PROVIDER` from `/psl-one/beta/email-provider`
+- `SMTP_HOST` from `/psl-one/beta/smtp-host`
+- `SMTP_PORT` from `/psl-one/beta/smtp-port`
+- `SMTP_SECURE` from `/psl-one/beta/smtp-secure`
+- `SMTP_USER` from `/psl-one/beta/smtp-user`
+- `SMTP_PASSWORD` from `/psl-one/beta/SMTP_PASSWORD`
+- `SMTP_FROM` from `/psl-one/beta/smtp-from`
+
+Current beta settings are wired for the cPanel mailbox at `mail.pslone.co.za` with `EMAIL_PROVIDER=smtp`. The API container verifies SMTP connectivity during deploy; if the mailbox changes, update the SSM values before the next `deploy-beta-ec2.yml` run.
+
 ### Step 3 — Wait for bootstrap
 
 EC2 user_data (`infra/beta/bootstrap-ec2.sh`) runs on first boot (~3–5 min).

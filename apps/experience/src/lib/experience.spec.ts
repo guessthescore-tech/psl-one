@@ -7163,17 +7163,23 @@ describe('verify-email page', () => {
 
 describe('account security page', () => {
   it('has email verification callout section', () => {
-    const content = read('app/account/security/page.tsx');
+    const content = read('components/account/EmailVerificationPanel.tsx');
     expect(content).toContain('Email verification');
   });
   it('still includes PasswordForm', () => {
     expect(read('app/account/security/page.tsx')).toContain('PasswordForm');
   });
-  it('has resend verification email link', () => {
-    expect(read('app/account/security/page.tsx')).toContain('Resend verification email');
+  it('wires the live email verification panel', () => {
+    expect(read('app/account/security/page.tsx')).toContain('EmailVerificationPanel');
   });
-  it('has min-h-[44px] on resend link', () => {
-    expect(read('app/account/security/page.tsx')).toContain('min-h-[44px]');
+  it('loads verification status from /auth/me', () => {
+    expect(read('components/account/EmailVerificationPanel.tsx')).toContain('/auth/me');
+  });
+  it('posts resend verification email to the API', () => {
+    expect(read('components/account/EmailVerificationPanel.tsx')).toContain('/auth/email/verify/request');
+  });
+  it('has min-h-[44px] on resend button', () => {
+    expect(read('components/account/EmailVerificationPanel.tsx')).toContain('min-h-[44px]');
   });
 });
 
@@ -7453,7 +7459,7 @@ describe('Hotfix: email delivery — resend verification', () => {
   });
 
   it('account security page has resend verification email link', () => {
-    expect(read('app/account/security/page.tsx')).toContain('Resend verification email');
+    expect(read('components/account/EmailVerificationPanel.tsx')).toContain('Resend verification email');
   });
 });
 
