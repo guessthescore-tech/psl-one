@@ -14,7 +14,7 @@ import { TransferConfirmation } from '@/components/fantasy/core/TransferConfirma
 import { PlayerPool } from '@/components/fantasy/core/PlayerPool';
 import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getDeadline, getPlayerPool, getPlayerPrices, getTeam, getTransferStatus, makeTransfers } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
 import { toExpFantasyPlayer, toExpFantasySquad } from '@/lib/fantasy-player-mapper';
@@ -59,7 +59,7 @@ export default function TransfersPage() {
           return;
         }
 
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [team, transferStatus, deadline, pool, prices, topPerformers] = await Promise.all([
           getTeam(),
           getTransferStatus(),

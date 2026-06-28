@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { WC_STANDINGS, getDataMode, isLiveDataMode, type ExpStanding } from '@/lib/data';
 import { StandingsTable } from '@/components/football/StandingsTable';
-import { getContext, getStandings, type StandingGroup } from '@/lib/football-api';
+import { getWorldCupSeason, getStandings, type StandingGroup } from '@/lib/football-api';
 import { liveTeamToExpClub } from '@/lib/live-mappers';
 
 function mapLiveStandings(groups: StandingGroup[]): ExpStanding[] {
@@ -47,7 +47,7 @@ export default function StandingsPage() {
     let cancelled = false;
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const groups = await getStandings({ seasonSlug: season.slug });
         if (cancelled) return;
         setStandings(mapLiveStandings(groups));

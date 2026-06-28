@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
+import { getServerApiBase } from '@/lib/server-api-base';
 
 /**
  * World Cup 2026 Hub — server component.
@@ -8,7 +9,7 @@ import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
  * PSL_INACTIVE · WC_BETA · NO_REAL_MONEY · GTS_POINTS_ONLY · FANTASY_POINTS_ONLY
  */
 
-const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+const API_BASE = getServerApiBase();
 
 interface WcFixture {
   id: string;

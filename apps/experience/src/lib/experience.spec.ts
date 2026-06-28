@@ -615,6 +615,7 @@ describe('Football Context pages', () => {
     const content = read('app/players/page.tsx');
     expect(content).toContain('WC_PLAYERS');
     expect(content).toContain('PlayerProfileHero');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('search');
     expect(content).toContain("'GK'");
     expect(content).toContain("'DEF'");
@@ -625,6 +626,7 @@ describe('Football Context pages', () => {
   it('player profile page renders stat grid and tabs', () => {
     expect(exists('app/players/[playerId]/page.tsx')).toBe(true);
     const content = read('app/players/[playerId]/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('PlayerStatGrid');
     expect(content).toContain('PlayerGameweekTable');
     expect(content).toContain("'season'");
@@ -636,6 +638,7 @@ describe('Football Context pages', () => {
   it('player stats page has radar and fantasy breakdown', () => {
     expect(exists('app/players/[playerId]/stats/page.tsx')).toBe(true);
     const content = read('app/players/[playerId]/stats/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('PlayerStatGrid');
     expect(content).toContain('PlayerGameweekTable');
     expect(content).toContain('Fantasy Points Breakdown');
@@ -645,6 +648,7 @@ describe('Football Context pages', () => {
   it('standings page renders league table', () => {
     expect(exists('app/stats/standings/page.tsx')).toBe(true);
     const content = read('app/stats/standings/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('WC_STANDINGS');
     expect(content).toContain('StandingsTable');
   });
@@ -652,6 +656,7 @@ describe('Football Context pages', () => {
   it('season stats page renders top scorers', () => {
     expect(exists('app/stats/season/page.tsx')).toBe(true);
     const content = read('app/stats/season/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('SeasonLeaderboard');
     expect(content).toContain('buildLeaderboard');
     expect(content).toContain("'goals'");
@@ -662,6 +667,7 @@ describe('Football Context pages', () => {
   it('compare page renders two player selectors', () => {
     expect(exists('app/stats/compare/page.tsx')).toBe(true);
     const content = read('app/stats/compare/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('PlayerComparison');
     expect(content).toContain('selectedA');
     expect(content).toContain('selectedB');
@@ -7226,6 +7232,7 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
 
   it('fantasy onboarding loads live player pool in LIVE_BETA_DATA mode', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('getPlayerPool');
     expect(content).toContain('toExpFantasyPlayer');
     expect(content).toContain('Could not load the live World Cup player pool.');
@@ -7233,6 +7240,7 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
 
   it('fantasy transfers load live player pool in LIVE_BETA_DATA mode', () => {
     const content = read('app/fantasy/team/transfers/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('getPlayerPool');
     expect(content).toContain('toExpFantasyPlayer');
     expect(content).toContain('Could not load the live transfer screen.');
@@ -7368,9 +7376,9 @@ describe('Hotfix: HomepageFixtureSection — API-backed, no static fixture data'
     expect(exists('sections/HomepageFixtureSection.tsx')).toBe(true);
   });
 
-  it('fetches /football/fixtures from INTERNAL_API_URL', () => {
+  it('fetches /football/fixtures from the shared server API resolver', () => {
     expect(section).toContain('/football/fixtures');
-    expect(section).toContain('INTERNAL_API_URL');
+    expect(section).toContain('getServerApiBase');
   });
 
   it('shows API unavailable state instead of static data', () => {
@@ -7401,6 +7409,37 @@ describe('Hotfix: HomepageFixtureSection — API-backed, no static fixture data'
 
   it('revalidates at 300s (5 min cache)', () => {
     expect(section).toContain('revalidate: 300');
+  });
+});
+
+describe('Hotfix: server-rendered WC pages use shared server API base', () => {
+  it('fixtures page uses getServerApiBase', () => {
+    const content = read('app/fixtures/page.tsx');
+    expect(content).toContain('getServerApiBase');
+    expect(content).not.toContain("process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001'");
+  });
+
+  it('world-cup page uses getServerApiBase', () => {
+    const content = read('app/world-cup/page.tsx');
+    expect(content).toContain('getServerApiBase');
+    expect(content).not.toContain("process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001'");
+  });
+
+  it('match-centre page uses getServerApiBase', () => {
+    const content = read('app/match-centre/page.tsx');
+    expect(content).toContain('getServerApiBase');
+    expect(content).not.toContain("process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001'");
+  });
+
+  it('verify-email page uses getServerApiBase', () => {
+    const content = read('app/verify-email/page.tsx');
+    expect(content).toContain('getServerApiBase');
+    expect(content).not.toContain("process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000'");
+  });
+
+  it('shared public API client uses getServerApiBase for server-side renders', () => {
+    const content = read('lib/api.ts');
+    expect(content).toContain('getServerApiBase');
   });
 });
 

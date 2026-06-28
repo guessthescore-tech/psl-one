@@ -8,10 +8,11 @@
  */
 
 import { getToken } from './auth';
+import { getServerApiBase } from './server-api-base';
 
 function resolveApiBase(): string {
   if (process.env['NEXT_PUBLIC_API_BASE_URL']) return process.env['NEXT_PUBLIC_API_BASE_URL'];
-  if (typeof window === 'undefined') return 'http://localhost:4000';
+  if (typeof window === 'undefined') return getServerApiBase();
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://localhost:4000'
     : 'https://api.beta.pslone.co.za';

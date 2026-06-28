@@ -173,6 +173,7 @@ These documents were created during Sprint 1 and Sprint 2 as implementation reco
 | Document | Purpose |
 |----------|---------|
 | [WC Beta Replay Harness](handover/WC-BETA-REPLAY-HARNESS-HANDOVER.md) | Replay harness, ledger idempotency migration, provider config, local DB caveat |
+| [WC Beta Runtime Gaps and Learnings](handover/SESSION-2026-06-28-WC-BETA-RUNTIME-GAPS-LEARNINGS.md) | Player pool backfill, dual-write player stats sync, live beta rendering fixes, operational lessons |
 | [WC Beta Live Story Feed](handover/SESSION-2026-06-27-WC-LIVE-STORY-FEED-HANDOVER.md) | Live story feed wiring, sitewide story rails, design-review fallback boundaries |
 | [STORY-39 Handover](history/handovers/STORY-39-HANDOVER.md) | Sprint 2 final handover |
 | [STORY-38 Handover](history/handovers/STORY-38-HANDOVER.md) | STORY-38 handover |

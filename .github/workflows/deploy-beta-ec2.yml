@@ -239,6 +239,7 @@ jobs:
               "APP_BASE_URL=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/app-base-url --query Parameter.Value --output text 2>/dev/null || echo 'https://beta.pslone.co.za')",
               "WC_LIVE_PROVIDER=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/wc-live-provider --query Parameter.Value --output text 2>/dev/null || echo 'manual')",
               "SPORTMONKS_API_KEY=$(aws ssm get-parameter --region \"${AWS_REGION}\" --name /psl-one/beta/sportmonks-api-key --with-decryption --query Parameter.Value --output text 2>/dev/null || echo '')",
+              "if [ -n \"${SPORTMONKS_API_KEY}\" ]; then WC_LIVE_PROVIDER=sportmonks; fi",
               "sed -i 's|^      - node_modules/.bin/prisma$|      - apps/api/node_modules/.bin/prisma|' compose.beta.yaml",
               "sed -i \"s|^API_IMAGE_URI=.*|API_IMAGE_URI=${API_IMAGE_URI}|\" .env.beta",
               "sed -i \"s|^MIGRATION_IMAGE_URI=.*|MIGRATION_IMAGE_URI=${MIGRATION_IMAGE_URI}|\" .env.beta",
@@ -269,6 +270,10 @@ jobs:
               cmds.append("echo '[deploy] Migration explicitly skipped by workflow input run_migrations=false'")
 
           cmds += [
+              "echo '[deploy] Running World Cup beta backfill — safe, idempotent population step'",
+              "ALLOW_WORLD_CUP_WRITE=true docker compose -f compose.beta.yaml --env-file .env.beta run --rm --no-deps api node apps/api/dist/scripts/backfill-world-cup-beta.js --confirm=BACKFILL_WORLD_CUP_BETA",
+              "echo '[deploy] World Cup beta backfill completed'",
+              "if [ \"${WC_LIVE_PROVIDER}\" = \"sportmonks\" ] && [ -n \"${SPORTMONKS_API_KEY}\" ]; then echo '[deploy] Running Sportmonks-backed player-stat sync'; docker compose -f compose.beta.yaml --env-file .env.beta run --rm --no-deps api node apps/api/dist/scripts/sync-world-cup-player-stats.js --confirm=SYNC_PROVIDER_PLAYER_STATS; echo '[deploy] Sportmonks player-stat sync completed'; else echo '[deploy] Sportmonks player-stat sync skipped — provider not configured'; fi",
               "docker compose -f compose.beta.yaml --env-file .env.beta up -d --no-deps api web caddy",
               "echo '[deploy] Services started'",
           ]

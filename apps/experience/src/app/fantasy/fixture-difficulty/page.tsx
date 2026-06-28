@@ -6,7 +6,7 @@ import { FantasyPageHero } from '@/components/fantasy/shared/FantasyPageHero';
 import { FantasyEmptyState } from '@/components/fantasy/shared/FantasyEmptyState';
 import { FixtureDifficultyMatrix } from '@/components/fantasy/core/FixtureDifficultyMatrix';
 import { FANTASY_MOCK_FDR, getDataMode, type ExpFDREntry } from '@/lib/data';
-import { getContext, getFixtures, getStandings, type Fixture, type StandingGroup } from '@/lib/football-api';
+import { getWorldCupSeason, getFixtures, getStandings, type Fixture, type StandingGroup } from '@/lib/football-api';
 import { liveTeamToExpClub } from '@/lib/live-mappers';
 
 const GAMEWEEK_COUNT = 6;
@@ -118,7 +118,7 @@ export default function FixtureDifficultyPage() {
 
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [fixtures, standings] = await Promise.all([
           getFixtures({ seasonSlug: season.slug }),
           getStandings({ seasonSlug: season.slug }),

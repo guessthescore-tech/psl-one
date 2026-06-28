@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
+import { getServerApiBase } from '@/lib/server-api-base';
 
 /**
  * Match Centre — live-score style layout, server component.
@@ -8,7 +9,7 @@ import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
  * PSL_INACTIVE · NO_REAL_MONEY · WC_BETA
  */
 
-const API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+const API_BASE = getServerApiBase();
 
 interface Fixture {
   id: string;

@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { CheckCircle, Warning, XCircle } from '@phosphor-icons/react/dist/ssr';
+import { getServerApiBase } from '@/lib/server-api-base';
 
 interface VerifyEmailPageProps {
   searchParams: Promise<{ token?: string }>;
 }
 
-const API_BASE = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
+const API_BASE = getServerApiBase();
 
 type VerifyResult =
   | { status: 'success' }

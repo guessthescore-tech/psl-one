@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { WC_PLAYERS, getDataMode, isLiveDataMode } from '@/lib/data';
 import { AwardCard } from '@/components/football/AwardCard';
 import type { Award } from '@/components/football/AwardCard';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getTopPerformers, type TopPerformer } from '@/lib/players-api';
 import { topPerformerToExpPlayer } from '@/lib/live-mappers';
 
@@ -148,7 +148,7 @@ export default function AwardsPage() {
 
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const performers = await getTopPerformers(season.id, 24);
         if (cancelled) return;
 

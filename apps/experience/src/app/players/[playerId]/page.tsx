@@ -9,7 +9,7 @@ import { PlayerProfileHero } from '@/components/football/PlayerProfileHero';
 import { PlayerStatGrid } from '@/components/football/PlayerStatGrid';
 import { PlayerGameweekTable } from '@/components/football/PlayerGameweekTable';
 import type { PlayerStat } from '@/components/football/PlayerStatGrid';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPrices } from '@/lib/fantasy-api';
 import { getPlayerProfile, getPlayerSeasonStats } from '@/lib/players-api';
 import { playerProfileToExpPlayer } from '@/lib/live-mappers';
@@ -59,7 +59,7 @@ export default function PlayerProfilePage({ params }: PageProps) {
       }
 
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [profile, seasonSummary, prices] = await Promise.all([
           getPlayerProfile(playerId),
           getPlayerSeasonStats(playerId, season.id),

@@ -7,7 +7,7 @@ import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
 import { getDataMode, isLiveDataMode, FANTASY_MOCK_TEAM } from '@/lib/data';
 import { isAuthenticated } from '@/lib/auth';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 import type { ExpFantasySquad } from '@/lib/data';
@@ -34,7 +34,7 @@ export default function FantasyLandingPage() {
         return;
       }
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [liveTeam, transferStatus, prices] = await Promise.all([
           getTeam(),
           getTransferStatus(),

@@ -10,6 +10,8 @@
 
 import { publicFetch } from './api';
 
+export const WORLD_CUP_SEASON_SLUG = 'fifa-world-cup-2026';
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type Competition = {
@@ -284,6 +286,14 @@ export type MatchCentre = {
  */
 export function getContext(): Promise<Season> {
   return publicFetch<Season>('/football/seasons/active');
+}
+
+export function getSeasonBySlug(slug: string): Promise<Season> {
+  return publicFetch<Season>(`/football/seasons/${encodeURIComponent(slug)}`);
+}
+
+export function getWorldCupSeason(): Promise<Season> {
+  return getSeasonBySlug(WORLD_CUP_SEASON_SLUG);
 }
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────

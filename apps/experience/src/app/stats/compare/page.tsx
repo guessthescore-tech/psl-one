@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { clsx } from 'clsx';
 import { WC_PLAYERS, getDataMode, isLiveDataMode, expImg, type ExpPlayer } from '@/lib/data';
 import { PlayerComparison } from '@/components/football/PlayerComparison';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getTopPerformers, type TopPerformer } from '@/lib/players-api';
 import { topPerformerToExpPlayer } from '@/lib/live-mappers';
 
@@ -33,7 +33,7 @@ export default function PlayerComparePage() {
 
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const topPerformers: TopPerformer[] = await getTopPerformers(season.id, 24);
         if (cancelled) return;
 

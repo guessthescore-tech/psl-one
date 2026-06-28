@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
+import { getServerApiBase } from '@/lib/server-api-base';
 
 /**
  * Homepage hero section — API-backed World Cup 2026 fixture data.
@@ -9,7 +10,7 @@ import { WcFixtureCard } from '@/components/world-cup/WcFixtureCard';
  * PSL_INACTIVE · WC_BETA · NO_REAL_MONEY
  */
 
-const INTERNAL_API_BASE = process.env['INTERNAL_API_URL'] ?? 'http://localhost:3001';
+const API_BASE = getServerApiBase();
 
 interface ApiFixture {
   id: string;
@@ -26,7 +27,7 @@ interface ApiFixture {
 async function fetchHomepageFixtures(): Promise<{ fixtures: ApiFixture[]; apiLive: boolean }> {
   try {
     const res = await fetch(
-      `${INTERNAL_API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`,
+      `${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`,
       { next: { revalidate: 300 } },
     );
     if (!res.ok) return { fixtures: [], apiLive: false };

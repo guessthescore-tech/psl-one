@@ -22,7 +22,7 @@ export class SportmonksAdapter implements ProviderAdapter {
   private readonly baseUrl = 'https://api.sportmonks.com/v3/football';
 
   constructor() {
-    this.apiKey = process.env['SPORTMONKS_API_KEY'];
+    this.apiKey = process.env['SPORTMONKS_API_KEY']?.trim();
     if (!this.apiKey) {
       this.logger.warn('SPORTMONKS_API_KEY not set — provider in disabled/safe mode');
     }
@@ -31,8 +31,10 @@ export class SportmonksAdapter implements ProviderAdapter {
   private async fetchSafe<T>(url: string): Promise<T | null> {
     if (!this.apiKey) return null;
     try {
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+      const requestUrl = new URL(url);
+      requestUrl.searchParams.set('api_token', this.apiKey);
+      const res = await fetch(requestUrl.toString(), {
+        headers: { Accept: 'application/json' },
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {

@@ -15,7 +15,7 @@ import { BudgetIndicator } from '@/components/fantasy/core/BudgetIndicator';
 import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
@@ -95,7 +95,7 @@ export default function OnboardingPage() {
 
     let cancelled = false;
     setPoolLoading(true);
-    getContext()
+    getWorldCupSeason()
       .then((season) =>
         Promise.all([
           getPlayerPool(undefined, season.id),

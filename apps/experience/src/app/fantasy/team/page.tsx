@@ -14,7 +14,7 @@ import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
 import type { ExpFantasySquad } from '@/lib/data';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getDeadline, getGameweekScore, getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 
@@ -52,7 +52,7 @@ export default function TeamPage() {
 
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [team, transferStatus, deadline, prices] = await Promise.all([
           getTeam(),
           getTransferStatus(),

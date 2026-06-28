@@ -90,6 +90,12 @@ describe('SportmonksAdapter', () => {
       const adapter = new SportmonksAdapter();
       const fixtures = await adapter.getFixtures('season-1');
 
+      expect(vi.mocked(fetch)).toHaveBeenCalled();
+      const [calledUrl, calledOptions] = vi.mocked(fetch).mock.calls[0]!;
+      expect(String(calledUrl)).toContain('api_token=test-key');
+      expect(calledOptions).toMatchObject({
+        headers: { Accept: 'application/json' },
+      });
       expect(fixtures).toHaveLength(1);
       expect(fixtures[0]!.externalId).toBe('1001');
       expect(fixtures[0]!.homeTeamName).toBe('Home FC');
@@ -159,6 +165,8 @@ describe('SportmonksAdapter', () => {
       const adapter = new SportmonksAdapter();
       const seasons = await adapter.getSeasons();
       expect(JSON.stringify(seasons)).not.toContain('super-secret-key');
+      const [calledUrl] = vi.mocked(fetch).mock.calls[0]!;
+      expect(String(calledUrl)).toContain('api_token=super-secret-key');
     });
   });
 });

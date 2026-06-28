@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 import { WC_PLAYERS, getDataMode, isLiveDataMode, type ExpPlayer } from '@/lib/data';
 import { SeasonLeaderboard, buildLeaderboard } from '@/components/football/SeasonLeaderboard';
 import type { LeaderboardCategory } from '@/components/football/SeasonLeaderboard';
-import { getContext } from '@/lib/football-api';
+import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
 import { playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
@@ -33,7 +33,7 @@ export default function SeasonStatsPage() {
     let cancelled = false;
     async function load() {
       try {
-        const season = await getContext();
+        const season = await getWorldCupSeason();
         const [pool, prices, topPerformers] = await Promise.all([
           getPlayerPool(undefined, season.id),
           getPlayerPrices(season.id),
