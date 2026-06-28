@@ -132,6 +132,7 @@ export interface PlayerPriceInfo {
   playerId: string;
   playerName: string;
   seasonId: string;
+  /** Current fantasy price in millions, normalized from the API's integer tenths. */
   currentPrice: number;
 }
 
@@ -292,14 +293,22 @@ export interface SeasonLeaderboardRow {
 
 // ── Player pool ───────────────────────────────────────────────────────────────
 
-export function getPlayerPool(position?: PlayerPosition): Promise<PlayerSummary[]> {
-  const qs = position ? `?position=${encodeURIComponent(position)}` : '';
+export function getPlayerPool(position?: PlayerPosition, seasonId?: string): Promise<PlayerSummary[]> {
+  const params = new URLSearchParams();
+  if (position) params.set('position', position);
+  if (seasonId) params.set('seasonId', seasonId);
+  const qs = params.toString() ? `?${params.toString()}` : '';
   return publicFetch<PlayerSummary[]>(`/fantasy/player-pool${qs}`);
 }
 
 export function getPlayerPrices(seasonId?: string): Promise<PlayerPriceInfo[]> {
   const qs = seasonId ? `?seasonId=${encodeURIComponent(seasonId)}` : '';
-  return publicFetch<PlayerPriceInfo[]>(`/fantasy/player-prices${qs}`);
+  return publicFetch<PlayerPriceInfo[]>(`/fantasy/player-prices${qs}`).then((prices) =>
+    prices.map((price) => ({
+      ...price,
+      currentPrice: price.currentPrice / 10,
+    })),
+  );
 }
 
 // ── My team ───────────────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
  *   pnpm --filter @psl-one/api sync:world-cup-player-stats -- --confirm=SYNC_PROVIDER_PLAYER_STATS
  *
  * The script reuses LiveMatchService.syncProviderPlayerStats(), which already:
- *   - maps provider player stats into FantasyPlayerMatchStat
+ *   - maps provider player stats into FantasyPlayerMatchStat and PlayerMatchStats
  *   - records AdminAuditLog entries on confirmed writes
  *   - is idempotent by player + fixture
  *   - requires explicit confirmation for writes
@@ -141,7 +141,7 @@ async function main() {
     if (isDryRun) {
       console.log(`\n[WC-SYNC] Dry-run complete. Use --confirm=${SYNC_CONFIRM} to persist results.`);
     } else {
-      console.log('\n[WC-SYNC] Confirmed sync complete. FantasyPlayerMatchStat rows updated.');
+      console.log('\n[WC-SYNC] Confirmed sync complete. FantasyPlayerMatchStat + PlayerMatchStats rows updated.');
     }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

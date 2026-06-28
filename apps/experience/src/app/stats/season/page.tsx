@@ -8,7 +8,7 @@ import type { LeaderboardCategory } from '@/components/football/SeasonLeaderboar
 import { getContext } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
-import { playerSummaryToExpPlayer } from '@/lib/live-mappers';
+import { playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
 
 const TABS: Array<{ id: LeaderboardCategory; label: string; icon: string }> = [
   { id: 'goals',       label: 'Top Scorers',  icon: '⚽' },
@@ -35,23 +35,26 @@ export default function SeasonStatsPage() {
       try {
         const season = await getContext();
         const [pool, prices, topPerformers] = await Promise.all([
-          getPlayerPool(),
-          getPlayerPrices(),
+          getPlayerPool(undefined, season.id),
+          getPlayerPrices(season.id),
           getTopPerformers(season.id, 50).catch(() => []),
         ]);
         if (cancelled) return;
 
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
         const performerMap = new Map(topPerformers.map((p) => [p.playerId, p]));
-        const livePlayers = pool.map((player) => {
-          const perf = performerMap.get(player.id);
-          return playerSummaryToExpPlayer(player, {
-            goalsThisTournament: perf?.goals ?? 0,
-            assistsThisTournament: perf?.assists ?? 0,
-            fantasyPoints: perf?.fantasyPoints ?? 0,
-            fantasyPrice: priceMap.get(player.id) ?? 0,
-          });
-        });
+        const livePlayers =
+          pool.length > 0
+            ? pool.map((player) => {
+                const perf = performerMap.get(player.id);
+                return playerSummaryToExpPlayer(player, {
+                  goalsThisTournament: perf?.goals ?? 0,
+                  assistsThisTournament: perf?.assists ?? 0,
+                  fantasyPoints: perf?.fantasyPoints ?? 0,
+                  fantasyPrice: priceMap.get(player.id),
+                });
+              })
+            : topPerformers.map((perf) => topPerformerToExpPlayer(perf));
 
         setPlayers(livePlayers);
       } catch {

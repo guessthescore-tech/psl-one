@@ -3,6 +3,7 @@ import { WC_FIXTURES, WC_PLAYERS, getDataMode, isLiveDataMode, type ExpPlayer } 
 import { ManOfTheMatchCard } from '@/components/football/ManOfTheMatchCard';
 import type { MotmData } from '@/components/football/ManOfTheMatchCard';
 import { getMatchCentre } from '@/lib/football-api';
+import { defaultFantasyPriceForPosition } from '@/lib/live-mappers';
 
 interface PageProps {
   params: Promise<{ fixtureId: string }>;
@@ -20,16 +21,35 @@ export default async function MotmPage({ params }: PageProps) {
     try {
       const centre = await getMatchCentre(fixtureId);
       const topRated = centre.playerRatings[0];
+      const playerStats = topRated
+        ? centre.playerStats.find((s) => s.playerId === topRated.player.id)
+        : null;
+      const playerTeam =
+        playerStats?.team
+        ?? (centre.lineups.home.some((entry) => entry.playerId === topRated?.player.id)
+          ? centre.homeTeam
+          : centre.lineups.away.some((entry) => entry.playerId === topRated?.player.id)
+            ? centre.awayTeam
+            : centre.homeTeam);
+      const fantasyPosition = topRated
+        ? topRated.player.position === 'GOALKEEPER'
+          ? 'GK'
+          : topRated.player.position === 'DEFENDER'
+            ? 'DEF'
+            : topRated.player.position === 'MIDFIELDER'
+              ? 'MID'
+              : 'FWD'
+        : 'MID';
       const player: ExpPlayer | null = topRated
         ? {
             id: topRated.player.id,
             name: topRated.player.name,
             position: topRated.player.position === 'GOALKEEPER' ? 'GK' : topRated.player.position === 'DEFENDER' ? 'DEF' : topRated.player.position === 'MIDFIELDER' ? 'MID' : 'FWD',
             club: {
-              id: centre.homeTeam.id,
-              name: centre.homeTeam.name,
-              shortName: centre.homeTeam.shortName,
-              abbr: centre.homeTeam.shortName.slice(0, 3).toUpperCase(),
+              id: playerTeam.id,
+              name: playerTeam.name,
+              shortName: playerTeam.shortName,
+              abbr: playerTeam.shortName.slice(0, 3).toUpperCase(),
               city: '',
               country: '',
               primaryColor: '#1E3A5F',
@@ -42,12 +62,11 @@ export default async function MotmPage({ params }: PageProps) {
             goalsThisTournament: 0,
             assistsThisTournament: 0,
             fantasyPoints: 0,
-            fantasyPrice: 0,
+            fantasyPrice: defaultFantasyPriceForPosition(fantasyPosition),
           }
         : null;
 
       if (topRated && player) {
-        const playerStats = centre.playerStats.find((s) => s.playerId === topRated?.player.id);
         motmData = {
           player,
           matchContext: `${centre.homeTeam.name} vs ${centre.awayTeam.name}`,

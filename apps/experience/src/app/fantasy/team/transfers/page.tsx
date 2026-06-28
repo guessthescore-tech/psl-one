@@ -14,7 +14,9 @@ import { TransferConfirmation } from '@/components/fantasy/core/TransferConfirma
 import { PlayerPool } from '@/components/fantasy/core/PlayerPool';
 import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
-import { getDeadline, getPlayerPool, getTeam, getTransferStatus, makeTransfers } from '@/lib/fantasy-api';
+import { getContext } from '@/lib/football-api';
+import { getDeadline, getPlayerPool, getPlayerPrices, getTeam, getTransferStatus, makeTransfers } from '@/lib/fantasy-api';
+import { getTopPerformers } from '@/lib/players-api';
 import { toExpFantasyPlayer, toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 
 export default function TransfersPage() {
@@ -57,19 +59,47 @@ export default function TransfersPage() {
           return;
         }
 
-        const [team, transferStatus, deadline, pool] = await Promise.all([
+        const season = await getContext();
+        const [team, transferStatus, deadline, pool, prices, topPerformers] = await Promise.all([
           getTeam(),
           getTransferStatus(),
-          getDeadline().catch(() => null),
-          getPlayerPool().catch(() => []),
+          getDeadline(season.id).catch(() => null),
+          getPlayerPool(undefined, season.id).catch(() => []),
+          getPlayerPrices(season.id).catch(() => []),
+          getTopPerformers(season.id, 50).catch(() => []),
         ]);
 
         if (cancelled) return;
-        const squad = toExpFantasySquad(team);
+        const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
+        const squad = toExpFantasySquad(team, priceMap);
         setTeamPlayers(squad.players);
         setFreeTransfers(transferStatus.freeTransfersAvailable);
         setDeadlineLocked(Boolean(transferStatus.isDeadlineLocked || deadline?.isLocked));
-        setPlayerPool(pool.map((p) => toExpFantasyPlayer(p)));
+        setPlayerPool(
+          pool.length > 0
+            ? pool.map((p) => toExpFantasyPlayer(p, { fantasyPrice: priceMap.get(p.id) }))
+            : topPerformers.map((perf) =>
+                toExpFantasyPlayer({
+                  id: perf.playerId,
+                  name: perf.playerName,
+                  position:
+                    perf.position === 'Goalkeeper'
+                      ? 'GOALKEEPER'
+                      : perf.position === 'Defender'
+                        ? 'DEFENDER'
+                        : perf.position === 'Midfielder'
+                          ? 'MIDFIELDER'
+                          : 'FORWARD',
+                  number: null,
+                  team: {
+                    id: perf.teamName,
+                    name: perf.teamName,
+                    shortName: perf.teamName,
+                    externalId: null,
+                  },
+                }),
+              ),
+        );
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : 'Could not load the live transfer screen.';
@@ -114,7 +144,10 @@ export default function TransfersPage() {
         );
       } else {
         const updated = await makeTransfers({ removePlayerId: transferOut.id, addPlayerId: transferIn.id });
-        setTeamPlayers(toExpFantasySquad(updated).players);
+        const priceMap = new Map(
+          playerPool.map((player) => [player.id, player.fantasyPrice]),
+        );
+        setTeamPlayers(toExpFantasySquad(updated, priceMap).players);
       }
 
       setConfirmOpen(false);

@@ -33,7 +33,7 @@ function clubFromPlayer(player: PlayerSummary): ExpClub {
 
 export function toExpFantasyPlayer(
   player: PlayerSummary,
-  overrides: Partial<Pick<ExpFantasyPlayer, 'squadRole' | 'benchSlot' | 'isCaptain' | 'isViceCaptain'>> = {},
+  overrides: Partial<Pick<ExpFantasyPlayer, 'squadRole' | 'benchSlot' | 'isCaptain' | 'isViceCaptain' | 'fantasyPrice'>> = {},
 ): ExpFantasyPlayer {
   const position = POSITION_ABBR[player.position];
   return {
@@ -46,7 +46,7 @@ export function toExpFantasyPlayer(
     goalsThisTournament: 0,
     assistsThisTournament: 0,
     fantasyPoints: 0,
-    fantasyPrice: DEFAULT_PRICE[position],
+    fantasyPrice: overrides.fantasyPrice ?? DEFAULT_PRICE[position],
     squadRole: overrides.squadRole ?? 'STARTER',
     benchSlot: overrides.benchSlot ?? null,
     isCaptain: overrides.isCaptain ?? false,
@@ -66,7 +66,7 @@ export function toFantasySlot(player: ExpFantasyPlayer, index: number) {
   };
 }
 
-export function toExpFantasySquad(team: FantasyTeam) {
+export function toExpFantasySquad(team: FantasyTeam, priceMap?: Map<string, number>) {
   const players = team.players.map((tp, index) => {
     const position = POSITION_ABBR[tp.player.position];
     return {
@@ -90,7 +90,7 @@ export function toExpFantasySquad(team: FantasyTeam) {
       goalsThisTournament: 0,
       assistsThisTournament: 0,
       fantasyPoints: 0,
-      fantasyPrice: 0,
+      fantasyPrice: priceMap?.get(tp.player.id) ?? DEFAULT_PRICE[position],
       squadRole: tp.squadRole,
       benchSlot: tp.benchSlot ?? null,
       isCaptain: tp.isCaptain,

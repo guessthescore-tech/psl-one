@@ -800,7 +800,7 @@ describe('Fantasy team management — deadline locks', () => {
 describe('FantasyService.getPlayerPool — active season scope', () => {
   const makePrismaMock = () =>
     ({
-      season: { findFirst: vi.fn() },
+      season: { findFirst: vi.fn(), findUnique: vi.fn() },
       player: { findMany: vi.fn() },
     }) as unknown as PrismaService;
 
@@ -842,8 +842,74 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
       where: { prices?: { some?: { seasonId?: string } }; team?: { externalId?: unknown } };
     };
     expect(call.where.prices?.some?.seasonId).toBe(wcSeasonId);
+    expect(call.where.team).toEqual({ externalId: { not: 'TBD' } });
     expect(result).toHaveLength(1);
     expect(result[0]!.name).toBe('WC Player');
+  });
+
+  it('returns World Cup players even when price rows are missing', async () => {
+    const wcSeasonId = 'wc-season-789';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: wcSeasonId,
+      slug: 'fifa-world-cup-2026',
+      name: 'FIFA World Cup 2026',
+      competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
+    });
+
+    const wcPlayer = {
+      id: 'wc-p2',
+      name: 'WC Player Two',
+      position: PlayerPosition.FORWARD,
+      team: { id: 'team-2', name: 'Mexico', shortName: 'MEX', externalId: 'mexico' },
+      source: 'fifa-wc2026',
+    };
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([wcPlayer]);
+
+    const result = await service.getPlayerPool();
+
+    const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      where: { team: { externalId: { not: string } }; OR: Array<Record<string, unknown>> };
+    };
+    expect(call.where.team).toEqual({ externalId: { not: 'TBD' } });
+    expect(call.where.OR).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ source: 'fifa-wc2026' }),
+        expect.objectContaining({ prices: { some: { seasonId: wcSeasonId } } }),
+      ]),
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.name).toBe('WC Player Two');
+  });
+
+  it('uses explicit seasonId when provided and keeps the World Cup source fallback', async () => {
+    const wcSeasonId = 'wc-season-999';
+    (prisma.season.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: wcSeasonId,
+      slug: 'fifa-world-cup-2026',
+      name: 'FIFA World Cup 2026',
+      competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
+    });
+
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await service.getPlayerPool(undefined, wcSeasonId);
+
+    expect(prisma.season.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: wcSeasonId },
+      }),
+    );
+    expect(prisma.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          team: { externalId: { not: 'TBD' } },
+          OR: expect.arrayContaining([
+            expect.objectContaining({ source: 'fifa-wc2026' }),
+            expect.objectContaining({ prices: { some: { seasonId: wcSeasonId } } }),
+          ]),
+        }),
+      }),
+    );
   });
 
   it('includes position filter when provided', async () => {

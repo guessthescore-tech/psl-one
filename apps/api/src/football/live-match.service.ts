@@ -1,5 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { FixtureStatus, MatchEventType, Prisma, PlayerPosition } from '@prisma/client';
+import {
+  FixtureStatus,
+  MatchEventType,
+  Prisma,
+  PlayerMatchStatsSource,
+  PlayerMatchStatsStatus,
+  PlayerPosition,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ManualLiveMatchProviderAdapter } from './live-match-provider.interface';
 import type { LiveMatchProviderAdapter } from './live-match-provider.interface';
@@ -55,7 +62,10 @@ export class LiveMatchService {
   }
 
   private async requireFixture(fixtureId: string) {
-    const fixture = await this.prisma.fixture.findUnique({ where: { id: fixtureId }, select: { id: true } });
+    const fixture = await this.prisma.fixture.findUnique({
+      where: { id: fixtureId },
+      select: { id: true, seasonId: true, gameweekId: true },
+    });
     if (!fixture) throw new NotFoundException(`Fixture '${fixtureId}' not found`);
     return fixture;
   }
@@ -270,55 +280,119 @@ export class LiveMatchService {
   }
 
   async upsertPlayerStat(fixtureId: string, dto: UpsertPlayerStatDto) {
-    await this.requireFixture(fixtureId);
+    const fixture = await this.requireFixture(fixtureId);
     const player = await this.prisma.player.findUnique({ where: { id: dto.playerId }, select: { id: true } });
     if (!player) throw new BadRequestException(`playerId '${dto.playerId}' not found`);
+    const publicSource = (dto.source ?? '').toLowerCase() === 'manual'
+      ? PlayerMatchStatsSource.MANUAL
+      : PlayerMatchStatsSource.PROVIDER;
+    const publicStatus =
+      publicSource === PlayerMatchStatsSource.PROVIDER
+        ? PlayerMatchStatsStatus.PUBLISHED
+        : PlayerMatchStatsStatus.DRAFT;
+    const publicPublishedAt = publicStatus === PlayerMatchStatsStatus.PUBLISHED ? new Date() : null;
 
-    return this.prisma.fantasyPlayerMatchStat.upsert({
-      where: { playerId_fixtureId: { playerId: dto.playerId, fixtureId } },
-      create: {
-        playerId: dto.playerId,
-        fixtureId,
-        ...(dto.teamId ? { teamId: dto.teamId } : {}),
-        minutesPlayed: dto.minutesPlayed ?? 0,
-        goals: dto.goals ?? 0,
-        assists: dto.assists ?? 0,
-        ownGoals: dto.ownGoals ?? 0,
-        yellowCards: dto.yellowCards ?? 0,
-        redCards: dto.redCards ?? 0,
-        penaltiesMissed: dto.penaltiesMissed ?? 0,
-        penaltiesSaved: dto.penaltiesSaved ?? 0,
-        saves: dto.saves ?? 0,
-        goalsConceded: dto.goalsConceded ?? 0,
-        cleanSheet: dto.cleanSheet ?? false,
-        started: dto.started ?? false,
-        ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
-        ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
-        didNotPlay: dto.didNotPlay ?? false,
-        ...(dto.source ? { source: dto.source } : {}),
-        ...(dto.providerStatId ? { providerStatId: dto.providerStatId } : {}),
-      },
-      update: {
-        ...(dto.teamId !== undefined ? { teamId: dto.teamId } : {}),
-        ...(dto.minutesPlayed !== undefined ? { minutesPlayed: dto.minutesPlayed } : {}),
-        ...(dto.goals !== undefined ? { goals: dto.goals } : {}),
-        ...(dto.assists !== undefined ? { assists: dto.assists } : {}),
-        ...(dto.ownGoals !== undefined ? { ownGoals: dto.ownGoals } : {}),
-        ...(dto.yellowCards !== undefined ? { yellowCards: dto.yellowCards } : {}),
-        ...(dto.redCards !== undefined ? { redCards: dto.redCards } : {}),
-        ...(dto.penaltiesMissed !== undefined ? { penaltiesMissed: dto.penaltiesMissed } : {}),
-        ...(dto.penaltiesSaved !== undefined ? { penaltiesSaved: dto.penaltiesSaved } : {}),
-        ...(dto.saves !== undefined ? { saves: dto.saves } : {}),
-        ...(dto.goalsConceded !== undefined ? { goalsConceded: dto.goalsConceded } : {}),
-        ...(dto.cleanSheet !== undefined ? { cleanSheet: dto.cleanSheet } : {}),
-        ...(dto.started !== undefined ? { started: dto.started } : {}),
-        ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
-        ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
-        ...(dto.didNotPlay !== undefined ? { didNotPlay: dto.didNotPlay } : {}),
-        ...(dto.source !== undefined ? { source: dto.source } : {}),
-        ...(dto.providerStatId !== undefined ? { providerStatId: dto.providerStatId } : {}),
-      },
-      include: STAT_INCLUDE,
+    return this.prisma.$transaction(async (tx) => {
+      const fantasyStat = await tx.fantasyPlayerMatchStat.upsert({
+        where: { playerId_fixtureId: { playerId: dto.playerId, fixtureId } },
+        create: {
+          playerId: dto.playerId,
+          fixtureId,
+          ...(dto.teamId ? { teamId: dto.teamId } : {}),
+          minutesPlayed: dto.minutesPlayed ?? 0,
+          goals: dto.goals ?? 0,
+          assists: dto.assists ?? 0,
+          ownGoals: dto.ownGoals ?? 0,
+          yellowCards: dto.yellowCards ?? 0,
+          redCards: dto.redCards ?? 0,
+          penaltiesMissed: dto.penaltiesMissed ?? 0,
+          penaltiesSaved: dto.penaltiesSaved ?? 0,
+          saves: dto.saves ?? 0,
+          goalsConceded: dto.goalsConceded ?? 0,
+          cleanSheet: dto.cleanSheet ?? false,
+          started: dto.started ?? false,
+          ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
+          ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
+          didNotPlay: dto.didNotPlay ?? false,
+          ...(dto.source ? { source: dto.source } : {}),
+          ...(dto.providerStatId ? { providerStatId: dto.providerStatId } : {}),
+        },
+        update: {
+          ...(dto.teamId !== undefined ? { teamId: dto.teamId } : {}),
+          ...(dto.minutesPlayed !== undefined ? { minutesPlayed: dto.minutesPlayed } : {}),
+          ...(dto.goals !== undefined ? { goals: dto.goals } : {}),
+          ...(dto.assists !== undefined ? { assists: dto.assists } : {}),
+          ...(dto.ownGoals !== undefined ? { ownGoals: dto.ownGoals } : {}),
+          ...(dto.yellowCards !== undefined ? { yellowCards: dto.yellowCards } : {}),
+          ...(dto.redCards !== undefined ? { redCards: dto.redCards } : {}),
+          ...(dto.penaltiesMissed !== undefined ? { penaltiesMissed: dto.penaltiesMissed } : {}),
+          ...(dto.penaltiesSaved !== undefined ? { penaltiesSaved: dto.penaltiesSaved } : {}),
+          ...(dto.saves !== undefined ? { saves: dto.saves } : {}),
+          ...(dto.goalsConceded !== undefined ? { goalsConceded: dto.goalsConceded } : {}),
+          ...(dto.cleanSheet !== undefined ? { cleanSheet: dto.cleanSheet } : {}),
+          ...(dto.started !== undefined ? { started: dto.started } : {}),
+          ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
+          ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
+          ...(dto.didNotPlay !== undefined ? { didNotPlay: dto.didNotPlay } : {}),
+          ...(dto.source !== undefined ? { source: dto.source } : {}),
+          ...(dto.providerStatId !== undefined ? { providerStatId: dto.providerStatId } : {}),
+        },
+        include: STAT_INCLUDE,
+      });
+
+      await tx.playerMatchStats.upsert({
+        where: { playerId_fixtureId: { playerId: dto.playerId, fixtureId } },
+        create: {
+          playerId: dto.playerId,
+          fixtureId,
+          seasonId: fixture.seasonId,
+          ...(fixture.gameweekId ? { gameweekId: fixture.gameweekId } : {}),
+          ...(dto.teamId ? { teamId: dto.teamId } : {}),
+          status: publicStatus,
+          source: publicSource,
+          minutesPlayed: dto.minutesPlayed ?? 0,
+          goals: dto.goals ?? 0,
+          assists: dto.assists ?? 0,
+          ownGoals: dto.ownGoals ?? 0,
+          yellowCards: dto.yellowCards ?? 0,
+          redCards: dto.redCards ?? 0,
+          penaltiesMissed: dto.penaltiesMissed ?? 0,
+          penaltiesSaved: dto.penaltiesSaved ?? 0,
+          saves: dto.saves ?? 0,
+          goalsConceded: dto.goalsConceded ?? 0,
+          cleanSheet: dto.cleanSheet ?? false,
+          started: dto.started ?? false,
+          ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
+          ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
+          didNotPlay: dto.didNotPlay ?? false,
+          ...(dto.providerStatId ? { providerStatId: dto.providerStatId } : {}),
+          ...(publicPublishedAt ? { verifiedAt: publicPublishedAt, publishedAt: publicPublishedAt } : {}),
+        },
+        update: {
+          ...(dto.teamId !== undefined ? { teamId: dto.teamId } : {}),
+          ...(dto.minutesPlayed !== undefined ? { minutesPlayed: dto.minutesPlayed } : {}),
+          ...(dto.goals !== undefined ? { goals: dto.goals } : {}),
+          ...(dto.assists !== undefined ? { assists: dto.assists } : {}),
+          ...(dto.ownGoals !== undefined ? { ownGoals: dto.ownGoals } : {}),
+          ...(dto.yellowCards !== undefined ? { yellowCards: dto.yellowCards } : {}),
+          ...(dto.redCards !== undefined ? { redCards: dto.redCards } : {}),
+          ...(dto.penaltiesMissed !== undefined ? { penaltiesMissed: dto.penaltiesMissed } : {}),
+          ...(dto.penaltiesSaved !== undefined ? { penaltiesSaved: dto.penaltiesSaved } : {}),
+          ...(dto.saves !== undefined ? { saves: dto.saves } : {}),
+          ...(dto.goalsConceded !== undefined ? { goalsConceded: dto.goalsConceded } : {}),
+          ...(dto.cleanSheet !== undefined ? { cleanSheet: dto.cleanSheet } : {}),
+          ...(dto.started !== undefined ? { started: dto.started } : {}),
+          ...(dto.cameOnMinute !== undefined ? { cameOnMinute: dto.cameOnMinute } : {}),
+          ...(dto.subbedOffMinute !== undefined ? { subbedOffMinute: dto.subbedOffMinute } : {}),
+          ...(dto.didNotPlay !== undefined ? { didNotPlay: dto.didNotPlay } : {}),
+          source: publicSource,
+          status: publicStatus,
+          ...(dto.providerStatId !== undefined ? { providerStatId: dto.providerStatId } : {}),
+          ...(publicPublishedAt ? { verifiedAt: publicPublishedAt, publishedAt: publicPublishedAt } : {}),
+        },
+      });
+
+      return fantasyStat;
     });
   }
 
@@ -629,7 +703,7 @@ export class LiveMatchService {
 
   private playerStatSyncSafety() {
     return {
-      primaryDataWrites: ['FantasyPlayerMatchStat'],
+      primaryDataWrites: ['FantasyPlayerMatchStat', 'PlayerMatchStats'],
       metadataWrites: ['Fixture.lastSyncedAt', 'Fixture.lastUpdatedAt', 'AdminAuditLog'],
       dryRunDefault: true,
       confirmedWritesRequireToken: SYNC_PROVIDER_PLAYER_STATS_CONFIRM,

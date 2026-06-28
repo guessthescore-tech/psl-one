@@ -61,8 +61,8 @@ export class FantasyController {
   // ── Player pool ───────────────────────────────────────────────────────────
 
   @Get('player-pool')
-  getPlayerPool(@Query('position') position?: string) {
-    return this.fantasy.getPlayerPool(position as PlayerPosition | undefined);
+  getPlayerPool(@Query('position') position?: string, @Query('seasonId') seasonId?: string) {
+    return this.fantasy.getPlayerPool(position as PlayerPosition | undefined, seasonId);
   }
 
   @Get('player-pool/:fixtureId')

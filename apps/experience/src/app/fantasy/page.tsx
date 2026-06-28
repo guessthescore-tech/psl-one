@@ -7,7 +7,8 @@ import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
 import { getDataMode, isLiveDataMode, FANTASY_MOCK_TEAM } from '@/lib/data';
 import { isAuthenticated } from '@/lib/auth';
-import { getTeam, getTransferStatus } from '@/lib/fantasy-api';
+import { getContext } from '@/lib/football-api';
+import { getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 import type { ExpFantasySquad } from '@/lib/data';
 
@@ -33,12 +34,15 @@ export default function FantasyLandingPage() {
         return;
       }
       try {
-        const [liveTeam, transferStatus] = await Promise.all([
+        const season = await getContext();
+        const [liveTeam, transferStatus, prices] = await Promise.all([
           getTeam(),
           getTransferStatus(),
+          getPlayerPrices(season.id).catch(() => []),
         ]);
         if (cancelled) return;
-        const squad = toExpFantasySquad(liveTeam);
+        const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
+        const squad = toExpFantasySquad(liveTeam, priceMap);
         setTeam({
           ...squad,
           transfersRemaining: transferStatus.freeTransfersAvailable,

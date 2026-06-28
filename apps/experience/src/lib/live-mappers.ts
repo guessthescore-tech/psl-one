@@ -4,6 +4,13 @@ import type { TopPerformer } from './players-api';
 import type { Team as FootballTeam } from './football-api';
 import type { PlayerProfile } from './players-api';
 
+const DEFAULT_FANTASY_PRICE_BY_POSITION: Record<ExpPlayer['position'], number> = {
+  GK: 4.5,
+  DEF: 5.0,
+  MID: 7.0,
+  FWD: 8.0,
+};
+
 const PALETTE = [
   ['#002395', '#4060cc'],
   ['#1a1a1a', '#3a3a3a'],
@@ -23,6 +30,10 @@ function hashIndex(seed: string): number {
 
 function clubColors(seed: string): [string, string] {
   return (PALETTE[hashIndex(seed)] ?? ['#1E3A5F', '#C8A84B']) as [string, string];
+}
+
+export function defaultFantasyPriceForPosition(position: ExpPlayer['position']): number {
+  return DEFAULT_FANTASY_PRICE_BY_POSITION[position];
 }
 
 export function liveTeamToExpClub(team: Pick<FootballTeam, 'id' | 'name' | 'shortName'>): ExpClub {
@@ -45,27 +56,29 @@ export function playerSummaryToExpPlayer(
   player: PlayerSummary,
   overrides: Partial<Pick<ExpPlayer, 'goalsThisTournament' | 'assistsThisTournament' | 'fantasyPoints' | 'fantasyPrice'>> = {},
 ): ExpPlayer {
+  const position = player.position === 'GOALKEEPER' ? 'GK' : player.position === 'DEFENDER' ? 'DEF' : player.position === 'MIDFIELDER' ? 'MID' : 'FWD';
   return {
     id: player.id,
     name: player.name,
-    position: player.position === 'GOALKEEPER' ? 'GK' : player.position === 'DEFENDER' ? 'DEF' : player.position === 'MIDFIELDER' ? 'MID' : 'FWD',
+    position,
     club: liveTeamToExpClub(player.team),
     nationality: '',
     imageKey: `wc-player-${player.id}`,
     goalsThisTournament: overrides.goalsThisTournament ?? 0,
     assistsThisTournament: overrides.assistsThisTournament ?? 0,
     fantasyPoints: overrides.fantasyPoints ?? 0,
-    fantasyPrice: overrides.fantasyPrice ?? 0,
+    fantasyPrice: overrides.fantasyPrice ?? defaultFantasyPriceForPosition(position),
   };
 }
 
 export function topPerformerToExpPlayer(
   player: TopPerformer,
 ): ExpPlayer {
+  const position = player.position === 'Goalkeeper' ? 'GK' : player.position === 'Defender' ? 'DEF' : player.position === 'Midfielder' ? 'MID' : 'FWD';
   return {
     id: player.playerId,
     name: player.playerName,
-    position: player.position === 'Goalkeeper' ? 'GK' : player.position === 'Defender' ? 'DEF' : player.position === 'Midfielder' ? 'MID' : 'FWD',
+    position,
     club: {
       id: player.teamName,
       name: player.teamName,
@@ -83,15 +96,16 @@ export function topPerformerToExpPlayer(
     goalsThisTournament: player.goals,
     assistsThisTournament: player.assists,
     fantasyPoints: player.fantasyPoints,
-    fantasyPrice: 0,
+    fantasyPrice: defaultFantasyPriceForPosition(position),
   };
 }
 
-export function playerProfileToExpPlayer(profile: PlayerProfile): ExpPlayer {
+export function playerProfileToExpPlayer(profile: PlayerProfile, fantasyPrice?: number): ExpPlayer {
+  const position = profile.position === 'GOALKEEPER' ? 'GK' : profile.position === 'DEFENDER' ? 'DEF' : profile.position === 'MIDFIELDER' ? 'MID' : 'FWD';
   return {
     id: profile.id,
     name: profile.name,
-    position: profile.position === 'GOALKEEPER' ? 'GK' : profile.position === 'DEFENDER' ? 'DEF' : profile.position === 'MIDFIELDER' ? 'MID' : 'FWD',
+    position,
     club: liveTeamToExpClub({
       id: profile.team.id,
       name: profile.team.name,
@@ -102,6 +116,6 @@ export function playerProfileToExpPlayer(profile: PlayerProfile): ExpPlayer {
     goalsThisTournament: profile.playerStats?.[0]?.goals ?? 0,
     assistsThisTournament: profile.playerStats?.[0]?.assists ?? 0,
     fantasyPoints: 0,
-    fantasyPrice: 0,
+    fantasyPrice: fantasyPrice ?? defaultFantasyPriceForPosition(position),
   };
 }

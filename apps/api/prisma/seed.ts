@@ -232,6 +232,30 @@ async function main() {
   await prisma.player.createMany({ data: playersBatch });
   console.log(`  ✓ Players: ${playersBatch.length}`);
 
+  // ── World Cup SeasonTeam registrations ───────────────────────────────────
+  // Keep the World Cup player pool and club experience season-scoped even when
+  // the beta seed is run on a fresh database.
+  let wcSeasonTeamCount = 0;
+  for (const team of TEAMS) {
+    const teamId = teamMap.get(team.externalId);
+    if (!teamId) continue;
+    await prisma.seasonTeam.upsert({
+      where: { seasonId_teamId: { seasonId: season.id, teamId } },
+      create: {
+        seasonId: season.id,
+        teamId,
+        status: SeasonTeamStatus.ACTIVE,
+        source: SeasonTeamSource.IMPORT,
+      },
+      update: {
+        status: SeasonTeamStatus.ACTIVE,
+        source: SeasonTeamSource.IMPORT,
+      },
+    });
+    wcSeasonTeamCount++;
+  }
+  console.log(`  ✓ World Cup season teams: ${wcSeasonTeamCount} (ACTIVE, IMPORT)`);
+
   // ── Groups ────────────────────────────────────────────────────────────────
   const groupMap = new Map<string, string>(); // name → id
   for (const g of GROUPS) {

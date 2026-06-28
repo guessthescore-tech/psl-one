@@ -41,23 +41,26 @@ export default function PlayersPage() {
       try {
         const season = await getContext();
         const [pool, prices, topPerformers] = await Promise.all([
-          getPlayerPool(),
-          getPlayerPrices(),
+          getPlayerPool(undefined, season.id),
+          getPlayerPrices(season.id),
           getTopPerformers(season.id, 50).catch(() => []),
         ]);
 
         if (cancelled) return;
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
         const performerMap = new Map(topPerformers.map((p) => [p.playerId, p]));
-        const livePlayers = pool.map((player) => {
-          const perf = performerMap.get(player.id);
-          return playerSummaryToExpPlayer(player, {
-            goalsThisTournament: perf?.goals ?? 0,
-            assistsThisTournament: perf?.assists ?? 0,
-            fantasyPoints: perf?.fantasyPoints ?? 0,
-            fantasyPrice: priceMap.get(player.id) ?? 0,
-          });
-        });
+        const livePlayers =
+          pool.length > 0
+            ? pool.map((player) => {
+                const perf = performerMap.get(player.id);
+                return playerSummaryToExpPlayer(player, {
+                  goalsThisTournament: perf?.goals ?? 0,
+                  assistsThisTournament: perf?.assists ?? 0,
+                  fantasyPoints: perf?.fantasyPoints ?? 0,
+                  fantasyPrice: priceMap.get(player.id),
+                });
+              })
+            : topPerformers.map((perf) => topPerformerToExpPlayer(perf));
 
         setPlayers(livePlayers);
       } catch {

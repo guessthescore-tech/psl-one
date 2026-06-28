@@ -5,6 +5,7 @@ import { PlayerStatGrid } from '@/components/football/PlayerStatGrid';
 import { PlayerGameweekTable } from '@/components/football/PlayerGameweekTable';
 import type { PlayerStat } from '@/components/football/PlayerStatGrid';
 import { getContext } from '@/lib/football-api';
+import { getPlayerPrices } from '@/lib/fantasy-api';
 import { getPlayerProfile, getPlayerSeasonStats } from '@/lib/players-api';
 import { playerProfileToExpPlayer } from '@/lib/live-mappers';
 
@@ -137,11 +138,13 @@ export default async function PlayerStatsPage({ params }: PageProps) {
   }
 
   const season = await getContext();
-  const [profile, seasonSummary] = await Promise.all([
+  const [profile, seasonSummary, prices] = await Promise.all([
     getPlayerProfile(playerId),
     getPlayerSeasonStats(playerId, season.id),
+    getPlayerPrices(season.id).catch(() => []),
   ]);
-  const player = playerProfileToExpPlayer(profile);
+  const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
+  const player = playerProfileToExpPlayer(profile, priceMap.get(profile.id));
 
   const allStats: PlayerStat[] = [
     { label: 'Goals', value: seasonSummary.totals.goals, highlight: true },

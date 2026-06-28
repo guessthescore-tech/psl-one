@@ -358,6 +358,8 @@ describe('Fantasy Core pages', () => {
     const content = read('app/fantasy/fixture-difficulty/page.tsx');
     expect(content).toContain('FixtureDifficultyMatrix');
     expect(content).toContain('FANTASY_MOCK_FDR');
+    expect(content).toContain('getFixtures');
+    expect(content).toContain('getStandings');
   });
 
   it('fantasy onboarding page shows step 1', () => {
@@ -605,6 +607,7 @@ describe('Football Context pages', () => {
     const content = read('app/matches/[fixtureId]/motm/page.tsx');
     expect(content).toContain('ManOfTheMatchCard');
     expect(content).toContain('mbappe');
+    expect(content).toContain('playerStats.find');
   });
 
   it('player directory renders player rows', () => {

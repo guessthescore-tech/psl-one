@@ -25,14 +25,6 @@ export function FixtureDifficultyMatrix({
 
   return (
     <div className="space-y-4">
-      {/* Missing API notice */}
-      <div className="bg-purple-900/40 border border-purple-600/40 rounded-card-xs px-4 py-3">
-        <p className="text-label-md text-purple-300 font-semibold">⚠️ Backend API not yet available</p>
-        <p className="text-label-sm text-purple-400 mt-1">
-          The FDR endpoint is pending backend implementation. This view uses design review mock data only.
-        </p>
-      </div>
-
       {/* Matrix table */}
       <div className="overflow-x-auto rounded-card border border-exp-border-dk">
         <table className="w-full border-collapse text-sm" aria-label="Fixture Difficulty Rating matrix">

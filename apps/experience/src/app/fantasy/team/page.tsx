@@ -14,7 +14,8 @@ import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
 import type { ExpFantasySquad } from '@/lib/data';
-import { getDeadline, getGameweekScore, getTeam, getTransferStatus } from '@/lib/fantasy-api';
+import { getContext } from '@/lib/football-api';
+import { getDeadline, getGameweekScore, getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 
 type TeamState =
@@ -51,13 +52,16 @@ export default function TeamPage() {
 
     async function load() {
       try {
-        const [team, transferStatus, deadline] = await Promise.all([
+        const season = await getContext();
+        const [team, transferStatus, deadline, prices] = await Promise.all([
           getTeam(),
           getTransferStatus(),
-          getDeadline().catch(() => null),
+          getDeadline(season.id).catch(() => null),
+          getPlayerPrices(season.id).catch(() => []),
         ]);
 
-        const liveTeam = toExpFantasySquad(team);
+        const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
+        const liveTeam = toExpFantasySquad(team, priceMap);
         if (transferStatus.gameweekId) {
           getGameweekScore(transferStatus.gameweekId)
             .then((score) => {

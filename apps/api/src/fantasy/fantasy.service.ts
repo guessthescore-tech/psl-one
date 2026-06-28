@@ -22,6 +22,8 @@ import { UpdatePlayerSlotDto } from './dto/update-player-slot.dto';
 // ── Validation ────────────────────────────────────────────────────────────────
 
 const ALLOWED_FORMATIONS = ['3-4-3', '3-5-2', '4-3-3', '4-4-2', '4-5-1', '5-3-2', '5-4-1'] as const;
+const WC_SEASON_SLUG = 'fifa-world-cup-2026';
+const WC_PLAYER_SOURCE = 'fifa-wc2026';
 
 export interface SquadValidationResult {
   isValid: boolean;
@@ -289,13 +291,40 @@ export class FantasyService {
 
   // ── Player pool ───────────────────────────────────────────────────────────
 
-  async getPlayerPool(position?: PlayerPosition) {
-    const season = await this.getActiveSeason();
+  async getPlayerPool(position?: PlayerPosition, seasonId?: string) {
+    const season = seasonId
+      ? await this.prisma.season.findUnique({
+          where: { id: seasonId },
+          include: {
+            competition: { select: { id: true, name: true, slug: true } },
+          },
+        })
+      : await this.getActiveSeason();
+    if (!season) throw new NotFoundException('Season not found');
+    const competitionName = season.competition?.name?.toLowerCase() ?? '';
+    const competitionSlug = season.competition?.slug ?? '';
+    const isWorldCupSeason =
+      season.slug === WC_SEASON_SLUG ||
+      (season.name?.toLowerCase() ?? '').includes('world cup') ||
+      competitionSlug === WC_SEASON_SLUG ||
+      competitionName.includes('world cup');
+    const seasonScopedFilter = isWorldCupSeason
+      ? {
+          OR: [
+            { source: WC_PLAYER_SOURCE },
+            { prices: { some: { seasonId: season.id } } },
+            { team: { seasonTeams: { some: { seasonId: season.id } } } },
+          ],
+        }
+      : {
+          prices: { some: { seasonId: season.id } },
+        };
+
     return this.prisma.player.findMany({
       where: {
         ...(position ? { position } : {}),
         team: { externalId: { not: 'TBD' } },
-        prices: { some: { seasonId: season.id } },
+        ...seasonScopedFilter,
       },
       include: {
         team: { select: { id: true, name: true, shortName: true, externalId: true } },
@@ -754,7 +783,12 @@ export class FantasyService {
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async getActiveSeason() {
-    const season = await this.prisma.season.findFirst({ where: { isActive: true } });
+    const season = await this.prisma.season.findFirst({
+      where: { isActive: true },
+      include: {
+        competition: { select: { id: true, name: true, slug: true } },
+      },
+    });
     if (!season) throw new NotFoundException('No active season found');
     return season;
   }
