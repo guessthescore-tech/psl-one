@@ -3,6 +3,7 @@ import { CampaignStatus, CampaignActionType, ActionValidationStatus, Notificatio
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ActivityFeedService } from '../activity-feed/activity-feed.service';
+import { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 
 export interface CreateCampaignDto {
   title: string;
@@ -90,6 +91,7 @@ export class CampaignsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly activityFeedService: ActivityFeedService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {}
 
   private assertTransition(current: string, target: string) {
@@ -168,6 +170,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return campaign;
   }
 
@@ -208,6 +211,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -239,6 +243,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return action;
   }
 
@@ -263,6 +268,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -292,6 +298,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -316,6 +323,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -345,6 +353,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -370,6 +379,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -394,6 +404,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -419,6 +430,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -444,6 +456,7 @@ export class CampaignsService {
       },
     });
 
+    this.cacheInvalidationService.invalidateCampaigns();
     return updated;
   }
 
@@ -523,6 +536,8 @@ export class CampaignsService {
     const participation = await this.prisma.fanCampaignParticipation.create({
       data: { campaignId, fanUserId },
     });
+
+    this.cacheInvalidationService.invalidateCampaigns();
 
     void this.notificationsService.createInAppNotification({
       userId: fanUserId,
@@ -608,6 +623,8 @@ export class CampaignsService {
         ...(dto.metadataJson !== undefined ? { metadataJson: dto.metadataJson as never } : {}),
       },
     });
+
+    this.cacheInvalidationService.invalidateCampaigns();
 
     const [requiredActions, validCompletions] = await Promise.all([
       this.prisma.campaignAction.findMany({

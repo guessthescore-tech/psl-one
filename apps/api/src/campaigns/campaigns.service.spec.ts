@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
+import type { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 
 const makeNotifications = () => ({
   createInAppNotification: vi.fn().mockResolvedValue(undefined),
@@ -9,6 +10,10 @@ const makeNotifications = () => ({
 const makeActivityFeed = () => ({
   createUserActivity: vi.fn().mockResolvedValue(undefined),
 });
+
+const makeCacheInvalidation = () => ({
+  invalidateCampaigns: vi.fn(),
+}) as unknown as CacheInvalidationService;
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -100,12 +105,19 @@ describe('CampaignsService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   let notifications: ReturnType<typeof makeNotifications>;
   let activityFeed: ReturnType<typeof makeActivityFeed>;
+  let cacheInvalidation: ReturnType<typeof makeCacheInvalidation>;
 
   beforeEach(() => {
     prisma = makePrisma();
     notifications = makeNotifications();
     activityFeed = makeActivityFeed();
-    service = new CampaignsService(prisma as any, notifications as any, activityFeed as any);
+    cacheInvalidation = makeCacheInvalidation();
+    service = new CampaignsService(
+      prisma as any,
+      notifications as any,
+      activityFeed as any,
+      cacheInvalidation,
+    );
     vi.useFakeTimers();
     vi.setSystemTime(NOW);
   });
@@ -135,6 +147,7 @@ describe('CampaignsService', () => {
       expect(prisma.adminAuditLog.create).toHaveBeenCalledOnce();
       const auditCall = prisma.adminAuditLog.create.mock.calls[0]![0]!;
       expect(auditCall.data.action).toBe('CAMPAIGN_CREATED');
+      expect(cacheInvalidation.invalidateCampaigns).toHaveBeenCalledOnce();
       expect(result).toEqual(CAMPAIGN);
     });
 
@@ -246,6 +259,7 @@ describe('CampaignsService', () => {
       expect(updateCall.data.status).toBe('PUBLISHED');
       expect(updateCall.data.publishedAt).toBeInstanceOf(Date);
       expect(result.status).toBe('PUBLISHED');
+      expect(cacheInvalidation.invalidateCampaigns).toHaveBeenCalledOnce();
     });
 
     it('throws BadRequestException when current time is past endsAt', async () => {
@@ -310,6 +324,7 @@ describe('CampaignsService', () => {
       expect(updateCall.data.status).toBe('ARCHIVED');
       expect(updateCall.data.archivedAt).toBeInstanceOf(Date);
       expect(result.status).toBe('ARCHIVED');
+      expect(cacheInvalidation.invalidateCampaigns).toHaveBeenCalledOnce();
     });
   });
 

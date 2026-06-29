@@ -11,14 +11,14 @@ export class FixtureEventPublisher implements IFixtureEventPublisher {
   private readonly logger = new Logger(FixtureEventPublisher.name);
 
   publishFixtureStatusChanged(fixtureId: string, status: string): void {
-    this.logger.log(`[fixture.status_changed] fixtureId=${fixtureId} status=${status}`);
+    this.logger.log({ action: 'fixture.status_changed', fixtureId, status });
   }
 
   publishFixtureScoreChanged(fixtureId: string, homeScore: number, awayScore: number): void {
-    this.logger.log(`[fixture.score_changed] fixtureId=${fixtureId} score=${homeScore}-${awayScore}`);
+    this.logger.log({ action: 'fixture.score_changed', fixtureId, homeScore, awayScore });
   }
 
   publishMatchEventCreated(fixtureId: string, eventType: string, minute: number): void {
-    this.logger.log(`[match_event.created] fixtureId=${fixtureId} type=${eventType} minute=${minute}`);
+    this.logger.log({ action: 'match_event.created', fixtureId, eventType, minute });
   }
 }

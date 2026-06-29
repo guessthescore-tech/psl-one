@@ -2,14 +2,14 @@
 
 **Purpose:** What monitoring, logging, and alerting must exist before and after production  
 **Audience:** Engineers, DevOps  
-**Status:** Current as of STORY-39 — requirements defined, nothing yet implemented  
+**Status:** Current as of S3-INFRA-00 — API request logging implemented, cloud observability pending  
 **Last verified:** 2026-06-14  
 
 ---
 
 ## Current State
 
-No production observability. Local development uses console logs only.
+Structured JSON request logging is implemented in the API with request and correlation IDs. Cache stampede protection is implemented for HTTP response caching. CloudWatch, metric export, and distributed tracing remain pending.
 
 ---
 
@@ -94,7 +94,7 @@ ALB health checks for the API target group use `/health/ready`. Liveness remains
 
 | Tool | Purpose |
 |------|---------|
-| NestJS Logger | Structured request logging |
+| NestJS Logger | Structured request logging (implemented in API) |
 | CloudWatch Logs | Log aggregation |
 | CloudWatch Metrics | Custom metric ingestion |
 | CloudWatch Alarms | Threshold-based alerting |

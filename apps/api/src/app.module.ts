@@ -4,6 +4,7 @@ import { HealthModule } from './health/health.module';
 import { VersionController } from './version/version.controller';
 import { validateEnv } from './env';
 import { PrismaModule } from './prisma/prisma.module';
+import { ApiCacheModule } from './api-cache/api-cache.module';
 import { AuthModule } from './auth/auth.module';
 import { FootballModule } from './football/football.module';
 import { ProfileModule } from './profile/profile.module';
@@ -47,11 +48,14 @@ import { PreviewAnalyticsModule } from './preview-analytics/preview-analytics.mo
 import { ClubPortalModule } from './club-portal/club-portal.module';
 import { SponsorPortalModule } from './sponsor-portal/sponsor-portal.module';
 import { PortalScopeModule } from './portal-scope/portal-scope.module';
+import { ObservabilityModule } from './observability/observability.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     PrismaModule,
+    ApiCacheModule,
+    ObservabilityModule,
     AuthModule,
     FootballModule,
     ProfileModule,

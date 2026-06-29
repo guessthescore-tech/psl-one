@@ -70,13 +70,13 @@ export class WhenIsKickoffAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (!res.ok) {
-        this.logger.warn(`wheniskickoff returned ${res.status} for ${path}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       return (await res.json()) as T;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`wheniskickoff fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, path, error: msg });
       return null;
     }
   }

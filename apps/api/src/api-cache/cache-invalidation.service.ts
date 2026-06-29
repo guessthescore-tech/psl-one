@@ -20,6 +20,11 @@ export class CacheInvalidationService {
     this.cache.deleteByPrefix('clubs:');
   }
 
+  invalidateProfile(userId: string): void {
+    this.cache.deleteByPrefix(`profile:${userId}`);
+    this.cache.deleteByPrefix(`summary:${userId}`);
+  }
+
   invalidateSponsor(sponsorId: string): void {
     this.cache.deleteByPrefix(`sponsor:${sponsorId}`);
   }
@@ -28,6 +33,13 @@ export class CacheInvalidationService {
     this.cache.deleteByPrefix('media:');
     this.cache.deleteByPrefix('news:');
     this.cache.deleteByPrefix('video:');
+  }
+
+  invalidateCampaigns(): void {
+    this.cache.deleteByPrefix('campaign:');
+    this.cache.deleteByPrefix('campaigns:');
+    this.cache.deleteByPrefix('campaign-participation:');
+    this.cache.deleteByPrefix('campaign-progress:');
   }
 
   invalidateAll(): void {

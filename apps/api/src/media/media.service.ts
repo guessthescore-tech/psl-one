@@ -12,6 +12,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 
 export interface CreateMediaDto {
   title: string;
@@ -50,7 +51,10 @@ export interface AdminListMediaFilters {
 
 @Injectable()
 export class MediaService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
+  ) {}
 
   async listPublicMedia(filters: ListPublicMediaFilters) {
     const where: Prisma.MediaAssetWhereInput = {
@@ -138,6 +142,7 @@ export class MediaService {
     });
 
     await this.writeAuditLog('MEDIA_CREATED', 'MediaAsset', asset.id, actorUserId);
+    this.cacheInvalidationService.invalidateMedia();
 
     return {
       ...asset,
@@ -161,6 +166,7 @@ export class MediaService {
     const updated = await this.prisma.mediaAsset.update({ where: { id }, data });
 
     await this.writeAuditLog('MEDIA_UPDATED', 'MediaAsset', id, actorUserId);
+    this.cacheInvalidationService.invalidateMedia();
     return updated;
   }
 
@@ -182,6 +188,7 @@ export class MediaService {
     });
 
     await this.writeAuditLog('MEDIA_PUBLISHED', 'MediaAsset', id, actorUserId);
+    this.cacheInvalidationService.invalidateMedia();
     return updated;
   }
 
@@ -197,6 +204,7 @@ export class MediaService {
     });
 
     await this.writeAuditLog('MEDIA_ARCHIVED', 'MediaAsset', id, actorUserId);
+    this.cacheInvalidationService.invalidateMedia();
     return updated;
   }
 

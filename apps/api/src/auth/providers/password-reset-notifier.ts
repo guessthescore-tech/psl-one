@@ -10,13 +10,15 @@ export abstract class PasswordResetNotifier {
 }
 
 /**
- * Local-development sink. Writes the token to stdout only in NODE_ENV=development.
+ * Local-development sink. Emits a non-sensitive breadcrumb only in NODE_ENV=development.
  * Must never be registered in staging or production.
  */
 @Injectable()
 export class ConsolePasswordResetNotifier extends PasswordResetNotifier {
   async sendPasswordResetEmail(email: string, rawToken: string): Promise<void> {
-    console.log(`[DEV] Password reset token for ${email}: ${rawToken}`);
+    void email;
+    void rawToken;
+    console.log('[DEV] Password reset email queued');
   }
 }
 

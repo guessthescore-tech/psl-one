@@ -3,7 +3,7 @@
 **Purpose:** Verified point-in-time platform state  
 **Audience:** Product owners, programme managers, architects, QA leads  
 **Status:** Current  
-**Last verified:** 2026-06-15 (S3-INFRA-01 implementation authored, not deployed)
+**Last verified:** 2026-06-29 (S3-INFRA-00 observability and cache hardening verified)
 **Source of truth:** git log, test output, prisma migrate status  
 
 ---
@@ -42,9 +42,9 @@ Full recent history (newest first):
 
 | Metric | Count | Source |
 |--------|-------|--------|
-| API unit test files | 63 | `find apps/api/src -name "*.spec.ts" \| wc -l` (after S3-INFRA-01 remediation) |
-| API tests passing | 1,652 | `pnpm --filter @psl-one/api test` (verified S3-INFRA-01 gate run 2026-06-15) |
-| Web spec files | 4 | `find apps/web/src -name "*.spec.ts" \| wc -l` |
+| API unit test files | 107 | `find apps/api/src -name "*.spec.ts" \| wc -l` (verified S3-INFRA-00 gate run 2026-06-29) |
+| API tests passing | 2,389 | `pnpm --filter @psl-one/api test` (verified S3-INFRA-00 gate run 2026-06-29) |
+| Web spec files | 9 | `find apps/web/src -name "*.spec.ts" \| wc -l` |
 | Web pages (`page.tsx`) | 337 | `find apps/web/src/app -name "page.tsx" \| wc -l` |
 | Prisma migrations | 39 | `find apps/api/prisma/migrations -maxdepth 1 -type d \| wc -l` minus root |
 | NestJS modules | 25+ | `find apps/api/src -name "*.module.ts" \| wc -l` |
@@ -128,7 +128,7 @@ Full recent history (newest first):
 | Seed data uses provisional PSL players (96 placeholders) | MEDIUM | STORY-40 |
 | No database backup strategy | HIGH | Sprint 3 |
 | Deploy workflow targets old microservices (services/) not apps/api | MEDIUM | Sprint 3 CI/CD |
-| No structured logging in API | MEDIUM | Sprint 3 observability |
+| No managed log backend / distributed tracing | MEDIUM | Sprint 3 observability |
 | S3-INFRA-01 Terraform not planned/applied | HIGH | Approval required before AWS deployment |
 | Sprint 0 IAM deny guardrail conflicts with ECS Fargate | HIGH | ADR-028 / IAM review |
 

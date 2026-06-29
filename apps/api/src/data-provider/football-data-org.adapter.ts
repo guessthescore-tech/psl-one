@@ -36,7 +36,7 @@ export class FootballDataOrgAdapter implements ProviderAdapter {
   constructor() {
     this.apiKey = process.env['FOOTBALL_DATA_API_KEY'] || undefined;
     if (!this.apiKey) {
-      this.logger.warn('FOOTBALL_DATA_API_KEY not set — adapter in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'FOOTBALL_DATA_API_KEY' });
     }
   }
 
@@ -48,21 +48,21 @@ export class FootballDataOrgAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`football-data.org auth error ${res.status}`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('football-data.org rate limit hit');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.name, path, statusCode: res.status });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`football-data.org returned ${res.status}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       return (await res.json()) as T;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`football-data.org fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, path, error: msg });
       return null;
     }
   }

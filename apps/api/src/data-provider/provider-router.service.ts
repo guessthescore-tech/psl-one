@@ -41,34 +41,34 @@ export class ProviderRouterService {
     if (ProviderRouterService.WC_CODES.has(code)) {
       const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
       if (fdKey) {
-        this.logger.log(`ProviderRouterService: routing "${competitionCode}" → FootballDataOrgAdapter`);
+        this.logger.log({ action: 'provider.route_selected', competitionCode, adapter: 'FootballDataOrgAdapter' });
         return new FootballDataOrgAdapter();
       }
       const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'];
       if (srKey) {
-        this.logger.log(`ProviderRouterService: routing "${competitionCode}" → SportRadarSoccerAdapter (FD.org key absent — fallback)`);
+        this.logger.log({ action: 'provider.route_selected', competitionCode, adapter: 'SportRadarSoccerAdapter', fallbackReason: 'FOOTBALL_DATA_API_KEY absent' });
         return new SportRadarSoccerAdapter();
       }
-      this.logger.warn(`ProviderRouterService: WC route requested but no WC key set — NoOpAdapter fallback`);
+      this.logger.warn({ action: 'provider.route_missing_key', competitionCode, adapter: 'NoOpAdapter' });
       return new NoOpAdapter();
     }
 
     if (ProviderRouterService.PSL_CODES.has(code)) {
       const parseKey = process.env['PARSE_API_KEY'];
       if (parseKey) {
-        this.logger.log(`ProviderRouterService: routing "${competitionCode}" → ParsePslAdapter`);
+        this.logger.log({ action: 'provider.route_selected', competitionCode, adapter: 'ParsePslAdapter' });
         return new ParsePslAdapter();
       }
       const afKey = process.env['API_FOOTBALL_KEY'];
       if (afKey) {
-        this.logger.log(`ProviderRouterService: routing "${competitionCode}" → ApiFootballAdapter (Parse key absent — fallback)`);
+        this.logger.log({ action: 'provider.route_selected', competitionCode, adapter: 'ApiFootballAdapter', fallbackReason: 'PARSE_API_KEY absent' });
         return new ApiFootballAdapter();
       }
-      this.logger.warn(`ProviderRouterService: PSL route requested but no PSL key set — NoOpAdapter`);
+      this.logger.warn({ action: 'provider.route_missing_key', competitionCode, adapter: 'NoOpAdapter' });
       return new NoOpAdapter();
     }
 
-    this.logger.log(`ProviderRouterService: unknown competition "${competitionCode}" — NoOpAdapter default`);
+    this.logger.log({ action: 'provider.route_defaulted', competitionCode, adapter: 'NoOpAdapter' });
     return new NoOpAdapter();
   }
 

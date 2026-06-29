@@ -189,6 +189,16 @@ describe('CacheInvalidationService', () => {
     expect(cache.get('clubs:all')).toBeUndefined();
   });
 
+  it('invalidateProfile clears profile summary keys for a fan', () => {
+    cache.set('profile:user-1', 'profile', { ttlSeconds: 60 });
+    cache.set('summary:user-1', 'summary', { ttlSeconds: 60 });
+    cache.set('profile:user-2', 'other', { ttlSeconds: 60 });
+    service.invalidateProfile('user-1');
+    expect(cache.get('profile:user-1')).toBeUndefined();
+    expect(cache.get('summary:user-1')).toBeUndefined();
+    expect(cache.get('profile:user-2')).toBe('other');
+  });
+
   it('invalidateMedia clears media, news, video keys', () => {
     cache.set('media:asset-1', 'm', { ttlSeconds: 60 });
     cache.set('news:latest', 'n', { ttlSeconds: 60 });
@@ -199,6 +209,20 @@ describe('CacheInvalidationService', () => {
     expect(cache.get('news:latest')).toBeUndefined();
     expect(cache.get('video:highlights')).toBeUndefined();
     expect(cache.get('club:club-1')).toBe('c');
+  });
+
+  it('invalidateCampaigns clears campaign-scoped keys', () => {
+    cache.set('campaign:campaign-1', 'campaign', { ttlSeconds: 60 });
+    cache.set('campaigns:list', 'list', { ttlSeconds: 60 });
+    cache.set('campaign-participation:user-1', 'participation', { ttlSeconds: 60 });
+    cache.set('campaign-progress:user-1', 'progress', { ttlSeconds: 60 });
+    cache.set('media:asset-1', 'media', { ttlSeconds: 60 });
+    service.invalidateCampaigns();
+    expect(cache.get('campaign:campaign-1')).toBeUndefined();
+    expect(cache.get('campaigns:list')).toBeUndefined();
+    expect(cache.get('campaign-participation:user-1')).toBeUndefined();
+    expect(cache.get('campaign-progress:user-1')).toBeUndefined();
+    expect(cache.get('media:asset-1')).toBe('media');
   });
 
   it('invalidateAll flushes everything', () => {

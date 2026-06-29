@@ -76,13 +76,14 @@ describe('NullPasswordResetNotifier', () => {
 // ── ConsolePasswordResetNotifier — dev only ────────────────────────────────
 
 describe('ConsolePasswordResetNotifier', () => {
-  it('logs in development (the expected local-dev behaviour)', async () => {
+  it('does not log the raw token in development', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
     const notifier = new ConsolePasswordResetNotifier();
 
     await notifier.sendPasswordResetEmail('dev@local.co.za', 'dev-raw-token');
 
-    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('dev-raw-token'));
+    const combined = consoleSpy.mock.calls.flat().join(' ');
+    expect(combined).not.toContain('dev-raw-token');
     consoleSpy.mockRestore();
   });
 

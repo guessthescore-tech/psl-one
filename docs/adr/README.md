@@ -57,6 +57,7 @@ Created 2026-06-14 documenting decisions made and validated during Sprint 2 deli
 | [ADR-027](ADR-027.md) | Durable Event Processing Deferred Pending Measured Requirement | PROPOSED | S3-INFRA-00 |
 | [ADR-028](ADR-028.md) | ECS Fargate Runtime and Immutable Container Image Strategy | ACCEPTED | S3-INFRA-01 |
 | [ADR-029](ADR-029-FREE-PLAN-BETA-STAGING-PROFILE.md) | Free Plan Beta Staging Profile (EC2 + Docker Compose) | ACCEPTED | S3-INFRA-02A |
+| [ADR-030](ADR-030.md) | Structured API Logging, Request Correlation, and Cache Coherence | ACCEPTED | S3-INFRA-00 |
 
 ---
 

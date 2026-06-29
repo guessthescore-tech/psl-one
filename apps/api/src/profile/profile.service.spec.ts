@@ -6,10 +6,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { LocalJwtProvider } from '../auth/providers/local-jwt.provider';
 import type { AchievementsService } from '../achievements/achievements.service';
+import type { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 
 const makeAchievementsMock = () => ({
   safeEvaluate: vi.fn().mockResolvedValue(undefined),
 }) as unknown as AchievementsService;
+
+const makeCacheInvalidationMock = () => ({
+  invalidateProfile: vi.fn(),
+}) as unknown as CacheInvalidationService;
 
 const MOCK_TEAM = { id: 'team-usa', name: 'United States', slug: 'usa', shortName: 'USA' };
 
@@ -41,11 +46,17 @@ const makePrismaMock = () => ({
 describe('ProfileService', () => {
   let service: ProfileService;
   let prisma: ReturnType<typeof makePrismaMock>;
+  let cacheInvalidation: ReturnType<typeof makeCacheInvalidationMock>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrismaMock();
-    service = new ProfileService(prisma as unknown as PrismaService, makeAchievementsMock());
+    cacheInvalidation = makeCacheInvalidationMock();
+    service = new ProfileService(
+      prisma as unknown as PrismaService,
+      makeAchievementsMock(),
+      cacheInvalidation,
+    );
   });
 
   // ── 1. getProfile creates on first access ─────────────────────────────────
@@ -80,6 +91,7 @@ describe('ProfileService', () => {
         data: expect.objectContaining({ displayName: 'New Name', city: 'Joburg' }),
       }),
     );
+    expect(cacheInvalidation.invalidateProfile).toHaveBeenCalledWith('user-1');
     expect(result.displayName).toBe('New Name');
   });
 

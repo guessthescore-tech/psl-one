@@ -99,10 +99,13 @@ export class CampaignTriggerService {
       });
     } catch (err) {
       // Failure isolation: never propagate — campaign triggers must not break match ingestion
-      this.logger.error(
-        `Campaign trigger fire failed: ${triggerType} campaign=${campaignId} fixture=${fixtureId ?? 'n/a'}`,
-        err,
-      );
+      this.logger.error({
+        action: 'campaign_trigger.fire_failed',
+        triggerType,
+        campaignId,
+        fixtureId: fixtureId ?? 'n/a',
+        error: err instanceof Error ? err.message : String(err),
+      }, err instanceof Error ? err.stack : undefined);
     }
   }
 }

@@ -4,6 +4,9 @@ import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { parseCorsOrigins } from './env';
+import { RequestContextService } from './observability/request-context.service';
+import { RequestLoggingInterceptor } from './observability/request-logging.interceptor';
+import { StructuredLoggerService } from './observability/structured-logger.service';
 
 async function bootstrap() {
   const nodeEnv = process.env['NODE_ENV'] ?? 'development';
@@ -13,6 +16,13 @@ async function bootstrap() {
   // leave it false so req.ip is always the socket address.
   const trustProxy = nodeEnv !== 'development' && nodeEnv !== 'test';
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, new FastifyAdapter({ trustProxy }));
+  const structuredLogger = app.get(StructuredLoggerService);
+  const requestContext = app.get(RequestContextService);
+  const requestLogger = app.get(RequestLoggingInterceptor);
+
+  app.useLogger(structuredLogger);
+  app.use(requestContext.middleware());
+  app.useGlobalInterceptors(requestLogger);
 
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
@@ -37,7 +47,7 @@ async function bootstrap() {
 
   const port = parseInt(process.env['PORT'] ?? '4000', 10);
   await app.listen(port, '0.0.0.0');
-  console.log(`API listening on http://localhost:${port}`);
+  structuredLogger.log({ action: 'api.startup', port, nodeEnv, trustProxy, corsOriginsCount: corsOrigins.length });
 }
 
 bootstrap();

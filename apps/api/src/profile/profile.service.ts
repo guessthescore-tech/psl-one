@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 
@@ -20,6 +21,7 @@ export class ProfileService {
   constructor(
     private prisma: PrismaService,
     private readonly achievementsService: AchievementsService,
+    private readonly cacheInvalidationService: CacheInvalidationService,
   ) {}
 
   async getOrCreateProfile(userId: string) {
@@ -59,6 +61,7 @@ export class ProfileService {
       include: PROFILE_INCLUDE,
     });
 
+    this.cacheInvalidationService.invalidateProfile(userId);
     this.achievementsService.safeEvaluate(userId, ['profile-completed']).catch(() => null);
     return profile;
   }

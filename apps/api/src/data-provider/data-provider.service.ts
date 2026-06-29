@@ -20,38 +20,38 @@ export class DataProviderService {
       const key = process.env['API_FOOTBALL_KEY'];
       if (key) {
         this.adapter = new ApiFootballAdapter();
-        this.logger.log('DataProviderService: using ApiFootballAdapter (DATA_PROVIDER=api-football)');
+        this.logger.log({ action: 'data_provider.selected', provider: 'api-football', adapter: 'ApiFootballAdapter' });
       } else {
         this.adapter = new NoOpAdapter();
-        this.logger.warn('DataProviderService: DATA_PROVIDER=api-football but API_FOOTBALL_KEY not set — NoOpAdapter fallback');
+        this.logger.warn({ action: 'data_provider.missing_key', provider: 'api-football', adapter: 'NoOpAdapter', requiredKey: 'API_FOOTBALL_KEY' });
       }
     } else if (provider === 'football-data-org') {
       const key = process.env['FOOTBALL_DATA_API_KEY'];
       if (key) {
         this.adapter = new FootballDataOrgAdapter();
-        this.logger.log('DataProviderService: using FootballDataOrgAdapter (DATA_PROVIDER=football-data-org)');
+        this.logger.log({ action: 'data_provider.selected', provider: 'football-data-org', adapter: 'FootballDataOrgAdapter' });
       } else {
         this.adapter = new NoOpAdapter();
-        this.logger.warn('DataProviderService: DATA_PROVIDER=football-data-org but FOOTBALL_DATA_API_KEY not set — NoOpAdapter fallback');
+        this.logger.warn({ action: 'data_provider.missing_key', provider: 'football-data-org', adapter: 'NoOpAdapter', requiredKey: 'FOOTBALL_DATA_API_KEY' });
       }
     } else if (provider === 'parse-psl') {
       const key = process.env['PARSE_API_KEY'];
       if (key) {
         this.adapter = new ParsePslAdapter();
-        this.logger.log('DataProviderService: using ParsePslAdapter (DATA_PROVIDER=parse-psl)');
+        this.logger.log({ action: 'data_provider.selected', provider: 'parse-psl', adapter: 'ParsePslAdapter' });
       } else {
         this.adapter = new NoOpAdapter();
-        this.logger.warn('DataProviderService: DATA_PROVIDER=parse-psl but PARSE_API_KEY not set — NoOpAdapter fallback');
+        this.logger.warn({ action: 'data_provider.missing_key', provider: 'parse-psl', adapter: 'NoOpAdapter', requiredKey: 'PARSE_API_KEY' });
       }
     } else if (provider === 'wheniskickoff') {
       this.adapter = new WhenIsKickoffAdapter();
-      this.logger.log('DataProviderService: using WhenIsKickoffAdapter (DATA_PROVIDER=wheniskickoff)');
+      this.logger.log({ action: 'data_provider.selected', provider: 'wheniskickoff', adapter: 'WhenIsKickoffAdapter' });
     } else {
       this.adapter = new NoOpAdapter();
       if (provider) {
-        this.logger.warn(`DataProviderService: unknown DATA_PROVIDER="${provider}" — NoOpAdapter fallback`);
+        this.logger.warn({ action: 'data_provider.unknown', provider, adapter: 'NoOpAdapter' });
       } else {
-        this.logger.log('DataProviderService: DATA_PROVIDER not set — NoOpAdapter default');
+        this.logger.log({ action: 'data_provider.defaulted', adapter: 'NoOpAdapter' });
       }
     }
   }

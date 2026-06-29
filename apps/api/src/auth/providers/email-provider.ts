@@ -13,17 +13,20 @@ export abstract class EmailProvider {
 
 /**
  * Local-development sink. Logs only to console — never used in staging/beta/prod.
- * verifyUrl is logged because it contains the raw token; acceptable only when
- * NODE_ENV=development with no shared log sink.
+ * No URLs or tokens are written to logs.
  */
 @Injectable()
 export class ConsoleEmailProvider extends EmailProvider {
   async sendEmailVerification(to: string, verifyUrl: string): Promise<void> {
-    console.log(`[DEV] Email verification link for ${to}: ${verifyUrl}`);
+    void to;
+    void verifyUrl;
+    console.log('[DEV] Email verification email queued');
   }
 
   async sendPasswordReset(to: string, resetUrl: string): Promise<void> {
-    console.log(`[DEV] Password reset link for ${to}: ${resetUrl}`);
+    void to;
+    void resetUrl;
+    console.log('[DEV] Password reset email queued');
   }
 }
 
@@ -102,12 +105,16 @@ export class SmtpEmailProvider extends EmailProvider {
         ].join('\n'),
         html: verificationEmailHtml(verifyUrl),
       });
-      this.logger.log(
-        `SMTP verification sent: to=${to} messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)}`,
-      );
+      this.logger.log({
+        action: 'auth.email.verification_sent',
+        transport: 'smtp',
+        messageId: info.messageId,
+        acceptedCount: info.accepted.length,
+        rejectedCount: info.rejected.length,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`SMTP verification failed: to=${to} error=${msg}`);
+      this.logger.error({ action: 'auth.email.verification_failed', transport: 'smtp', error: msg }, err instanceof Error ? err.stack : undefined);
       throw err;
     }
   }
@@ -131,12 +138,16 @@ export class SmtpEmailProvider extends EmailProvider {
         ].join('\n'),
         html: passwordResetEmailHtml(resetUrl),
       });
-      this.logger.log(
-        `SMTP password-reset sent: to=${to} messageId=${info.messageId} accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)}`,
-      );
+      this.logger.log({
+        action: 'auth.email.password_reset_sent',
+        transport: 'smtp',
+        messageId: info.messageId,
+        acceptedCount: info.accepted.length,
+        rejectedCount: info.rejected.length,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`SMTP password-reset failed: to=${to} error=${msg}`);
+      this.logger.error({ action: 'auth.email.password_reset_failed', transport: 'smtp', error: msg }, err instanceof Error ? err.stack : undefined);
       throw err;
     }
   }

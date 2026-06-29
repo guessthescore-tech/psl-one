@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { MediaService } from './media.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { CacheInvalidationService } from '../api-cache/cache-invalidation.service';
 
 const MEDIA_ASSET = {
   id: 'media-1',
@@ -38,14 +39,20 @@ const makePrisma = () => ({
   adminAuditLog: { create: vi.fn().mockResolvedValue({ id: 'audit-1' }) },
 });
 
+const makeCacheInvalidation = () => ({
+  invalidateMedia: vi.fn(),
+}) as unknown as CacheInvalidationService;
+
 describe('MediaService', () => {
   let service: MediaService;
   let prisma: ReturnType<typeof makePrisma>;
+  let cacheInvalidation: ReturnType<typeof makeCacheInvalidation>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrisma();
-    service = new MediaService(prisma as unknown as PrismaService);
+    cacheInvalidation = makeCacheInvalidation();
+    service = new MediaService(prisma as unknown as PrismaService, cacheInvalidation);
   });
 
   // ── listPublicMedia ───────────────────────────────────────────────────
@@ -145,6 +152,11 @@ describe('MediaService', () => {
       );
     });
 
+    it('invalidates media caches after create', async () => {
+      await service.adminCreateMedia(createDto, 'admin-1');
+      expect(cacheInvalidation.invalidateMedia).toHaveBeenCalledOnce();
+    });
+
     it('includes mediaRightsNotice in the response', async () => {
       const result = await service.adminCreateMedia(createDto);
       expect(result).toHaveProperty('mediaRightsNotice');
@@ -190,6 +202,12 @@ describe('MediaService', () => {
       );
     });
 
+    it('invalidates media caches after publish', async () => {
+      prisma.mediaAsset.findUnique.mockResolvedValue({ ...MEDIA_ASSET, rightsStatus: 'CLEAR' });
+      await service.adminPublishMedia('media-1', 'admin-1');
+      expect(cacheInvalidation.invalidateMedia).toHaveBeenCalledOnce();
+    });
+
     it('throws BadRequestException when rightsStatus is not CLEAR', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue({
         ...MEDIA_ASSET,
@@ -231,6 +249,12 @@ describe('MediaService', () => {
           data: expect.objectContaining({ action: 'MEDIA_ARCHIVED' }),
         }),
       );
+    });
+
+    it('invalidates media caches after archive', async () => {
+      prisma.mediaAsset.findUnique.mockResolvedValue(MEDIA_ASSET);
+      await service.adminArchiveMedia('media-1', 'admin-1');
+      expect(cacheInvalidation.invalidateMedia).toHaveBeenCalledOnce();
     });
   });
 

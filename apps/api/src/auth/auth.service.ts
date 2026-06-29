@@ -132,7 +132,7 @@ export class AuthService {
     } catch (err: unknown) {
       emailDeliveryStatus = 'FAILED';
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`auth.register: email verification send failed for user=${user.id} error=${msg}`);
+      this.logger.warn({ action: 'auth.register.email_verification_failed', userId: user.id, error: msg });
     }
 
     const accessToken = await this.authProvider.signToken({
