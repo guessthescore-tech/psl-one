@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { playerSummaryToExpPlayer, topPerformerToExpPlayer, playerProfileToExpPlayer, defaultFantasyPriceForPosition } from './live-mappers';
+import { playerSummaryToExpPlayer, topPerformerToExpPlayer, playerProfileToExpPlayer, footballPlayerToExpPlayer, defaultFantasyPriceForPosition } from './live-mappers';
 
 describe('live-mappers fantasy price fallback', () => {
   it('defaults playerSummary fantasy price by position when no override is provided', () => {
@@ -61,5 +61,23 @@ describe('live-mappers fantasy price fallback', () => {
 
     expect(topPerformer.fantasyPrice).toBe(defaultFantasyPriceForPosition('DEF'));
     expect(profile.fantasyPrice).toBe(defaultFantasyPriceForPosition('GK'));
+  });
+
+  it('maps football player records into exp player cards', () => {
+    const player = footballPlayerToExpPlayer({
+      id: 'fp1',
+      teamId: 'team-1',
+      name: 'Football Player',
+      position: 'MIDFIELDER',
+      nationality: 'South African',
+      dateOfBirth: null,
+      number: 7,
+      team: { id: 'team-1', name: 'Test United', slug: 'test-united' },
+    });
+
+    expect(player.position).toBe('MID');
+    expect(player.club.name).toBe('Test United');
+    expect(player.nationality).toBe('South African');
+    expect(player.fantasyPrice).toBe(defaultFantasyPriceForPosition('MID'));
   });
 });

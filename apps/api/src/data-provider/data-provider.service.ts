@@ -51,6 +51,7 @@ export class DataProviderService {
       if (provider) {
         this.logger.warn({ action: 'data_provider.unknown', provider, adapter: 'NoOpAdapter' });
       } else {
+        // DATA_PROVIDER not set: default to NoOpAdapter until an explicit provider is configured.
         this.logger.log({ action: 'data_provider.defaulted', adapter: 'NoOpAdapter' });
       }
     }

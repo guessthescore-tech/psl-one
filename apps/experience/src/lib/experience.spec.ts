@@ -614,6 +614,8 @@ describe('Football Context pages', () => {
     expect(exists('app/players/page.tsx')).toBe(true);
     const content = read('app/players/page.tsx');
     expect(content).toContain('WC_PLAYERS');
+    expect(content).toContain('getPlayers');
+    expect(content).toContain('footballPlayerToExpPlayer');
     expect(content).toContain('PlayerProfileHero');
     expect(content).toContain('getWorldCupSeason');
     expect(content).toContain('search');
@@ -7639,6 +7641,12 @@ describe('Video page — ScoreBat token safety and empty state', () => {
     expect(content).toContain("process.env['INTERNAL_API_URL']");
     expect(content).toContain("process.env['NEXT_PUBLIC_API_BASE_URL']");
     expect(content).toContain('https://api.beta.pslone.co.za');
+  });
+
+  it('football API exposes public player list for live beta rendering', () => {
+    const content = read('lib/football-api.ts');
+    expect(content).toContain('getPlayers');
+    expect(content).toContain('/football/players');
   });
 
   it('browser API client falls back to public beta API when no env is set', () => {

@@ -6,10 +6,10 @@ import { clsx } from 'clsx';
 import { WC_PLAYERS, getDataMode, isLiveDataMode } from '@/lib/data';
 import type { ExpPlayer } from '@/lib/data';
 import { PlayerProfileHero } from '@/components/football/PlayerProfileHero';
-import { getWorldCupSeason } from '@/lib/football-api';
+import { getPlayers, getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
-import { playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
+import { footballPlayerToExpPlayer, playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
 
 type PositionFilter = 'ALL' | 'GK' | 'DEF' | 'MID' | 'FWD';
 type SortOption = 'name' | 'points' | 'price' | 'goals';
@@ -40,9 +40,10 @@ export default function PlayersPage() {
     async function load() {
       try {
         const season = await getWorldCupSeason();
-        const [pool, prices, topPerformers] = await Promise.all([
-          getPlayerPool(undefined, season.id),
-          getPlayerPrices(season.id),
+        const [footballPlayers, pool, prices, topPerformers] = await Promise.all([
+          getPlayers().catch(() => []),
+          getPlayerPool(undefined, season.id).catch(() => []),
+          getPlayerPrices(season.id).catch(() => []),
           getTopPerformers(season.id, 50).catch(() => []),
         ]);
 
@@ -50,7 +51,17 @@ export default function PlayersPage() {
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
         const performerMap = new Map(topPerformers.map((p) => [p.playerId, p]));
         const livePlayers =
-          pool.length > 0
+          footballPlayers.length > 0
+            ? footballPlayers.map((player) => {
+                const perf = performerMap.get(player.id);
+                return footballPlayerToExpPlayer(player, {
+                  goalsThisTournament: perf?.goals ?? 0,
+                  assistsThisTournament: perf?.assists ?? 0,
+                  fantasyPoints: perf?.fantasyPoints ?? 0,
+                  fantasyPrice: priceMap.get(player.id),
+                });
+              })
+            : pool.length > 0
             ? pool.map((player) => {
                 const perf = performerMap.get(player.id);
                 return playerSummaryToExpPlayer(player, {

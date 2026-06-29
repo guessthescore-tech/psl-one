@@ -296,6 +296,11 @@ export function getWorldCupSeason(): Promise<Season> {
   return getSeasonBySlug(WORLD_CUP_SEASON_SLUG);
 }
 
+export function getPlayers(teamSlug?: string): Promise<Player[]> {
+  const qs = teamSlug ? `?teamSlug=${encodeURIComponent(teamSlug)}` : '';
+  return publicFetch<Player[]>(`/football/players${qs}`);
+}
+
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 export function getFixtures(params?: {
