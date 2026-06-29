@@ -3,11 +3,17 @@ import { parseCorsOrigins } from './env';
 
 describe('parseCorsOrigins', () => {
   it('returns localhost in development when CORS_ORIGINS not set', () => {
-    expect(parseCorsOrigins(undefined, 'development')).toEqual(['http://localhost:3001']);
+    expect(parseCorsOrigins(undefined, 'development')).toEqual([
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+    ]);
   });
 
   it('returns localhost in test when CORS_ORIGINS not set', () => {
-    expect(parseCorsOrigins(undefined, 'test')).toEqual(['http://localhost:3001']);
+    expect(parseCorsOrigins(undefined, 'test')).toEqual([
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+    ]);
   });
 
   it('throws in staging when CORS_ORIGINS not set', () => {

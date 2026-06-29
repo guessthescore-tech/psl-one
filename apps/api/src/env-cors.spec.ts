@@ -35,11 +35,17 @@ class PingModule {}
 
 describe('parseCorsOrigins()', () => {
   it('returns localhost:3001 fallback in development when CORS_ORIGINS not set', () => {
-    expect(parseCorsOrigins(undefined, 'development')).toEqual(['http://localhost:3001']);
+    expect(parseCorsOrigins(undefined, 'development')).toEqual([
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+    ]);
   });
 
   it('returns localhost:3001 fallback in test when CORS_ORIGINS not set', () => {
-    expect(parseCorsOrigins(undefined, 'test')).toEqual(['http://localhost:3001']);
+    expect(parseCorsOrigins(undefined, 'test')).toEqual([
+      'http://localhost:3001',
+      'http://127.0.0.1:3001',
+    ]);
   });
 
   it('throws in staging when CORS_ORIGINS not set', () => {
@@ -81,7 +87,7 @@ describe('Security headers on API responses', () => {
       new FastifyAdapter({ trustProxy: false }),
     );
 
-    app.enableCors({ origin: ['http://localhost:3001'], credentials: true });
+    app.enableCors({ origin: ['http://localhost:3001', 'http://127.0.0.1:3001'], credentials: true });
 
     app.getHttpAdapter().getInstance().addHook(
       'onSend',
@@ -113,6 +119,15 @@ describe('Security headers on API responses', () => {
       headers: { Origin: 'http://localhost:3001' },
     });
     expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3001');
+  });
+
+  it('loopback IP origin also receives Access-Control-Allow-Origin header', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/ping',
+      headers: { Origin: 'http://127.0.0.1:3001' },
+    });
+    expect(res.headers['access-control-allow-origin']).toBe('http://127.0.0.1:3001');
   });
 
   it('unlisted origin does not receive permissive CORS headers', async () => {

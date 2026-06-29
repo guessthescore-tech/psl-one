@@ -78,6 +78,7 @@ const makePrisma = () => ({
     findUnique: vi.fn().mockResolvedValue(TEAM),
   },
   season: {
+    findFirst: vi.fn().mockResolvedValue(SEASON),
     findUnique: vi.fn().mockResolvedValue(SEASON),
   },
   gameweek: {
@@ -116,6 +117,16 @@ describe('PlayerStatsService', () => {
       expect(result.player.id).toBe('player-1');
       expect(result.totals).toBeDefined();
       expect(result.matches).toHaveLength(1);
+    });
+
+    it('resolves season slug and returns player stats', async () => {
+      const result = await service.getPlayerSeasonStats('player-1', 'psl-2026-27');
+      expect(result.seasonId).toBe('season-1');
+      expect(prisma.season.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { OR: [{ id: 'psl-2026-27' }, { slug: 'psl-2026-27' }] },
+        }),
+      );
     });
 
     it('throws NotFoundException for unknown player', async () => {
@@ -168,8 +179,13 @@ describe('PlayerStatsService', () => {
       expect(result.topAssists).toBeDefined();
     });
 
+    it('resolves season slug', async () => {
+      const result = await service.listSeasonTopPerformers('psl-2026-27', 10);
+      expect(result.season.id).toBe('season-1');
+    });
+
     it('throws NotFoundException for unknown season', async () => {
-      prisma.season.findUnique.mockResolvedValue(null);
+      prisma.season.findFirst.mockResolvedValue(null);
       await expect(service.listSeasonTopPerformers('bad', 10)).rejects.toThrow(NotFoundException);
     });
   });
@@ -210,6 +226,11 @@ describe('PlayerStatsService', () => {
       const result = await service.listSeasonSquadStats('season-1', 'team-1');
       expect(result.team.id).toBe('team-1');
       expect(result.squadStats).toBeDefined();
+    });
+
+    it('resolves season slug', async () => {
+      const result = await service.listSeasonSquadStats('psl-2026-27', 'team-1');
+      expect(result.seasonId).toBe('season-1');
     });
 
     it('throws NotFoundException for unknown team', async () => {
@@ -398,7 +419,7 @@ describe('PlayerStatsService', () => {
     });
 
     it('throws NotFoundException for unknown season', async () => {
-      prisma.season.findUnique.mockResolvedValue(null);
+      prisma.season.findFirst.mockResolvedValue(null);
       await expect(service.adminGetSeasonReadiness('bad')).rejects.toThrow(NotFoundException);
     });
   });

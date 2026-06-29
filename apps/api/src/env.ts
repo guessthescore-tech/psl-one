@@ -26,7 +26,7 @@ export function validateEnv(config: Record<string, unknown>): Env {
 export function parseCorsOrigins(raw: string | undefined, nodeEnv: string): string[] {
   if (!raw) {
     if (nodeEnv === 'development' || nodeEnv === 'test') {
-      return ['http://localhost:3001'];
+      return ['http://localhost:3001', 'http://127.0.0.1:3001'];
     }
     throw new Error(
       'CORS_ORIGINS must be set in staging and production environments. ' +

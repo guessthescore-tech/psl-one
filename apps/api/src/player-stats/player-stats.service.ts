@@ -55,6 +55,19 @@ const PUBLISHED_STATUSES: PlayerMatchStatsStatus[] = [
 export class PlayerStatsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveSeason(identifier: string) {
+    const season = await this.prisma.season.findFirst({
+      where: {
+        OR: [{ id: identifier }, { slug: identifier }],
+      },
+      select: { id: true, name: true, slug: true, status: true },
+    });
+    if (!season) {
+      throw new NotFoundException(`Season '${identifier}' not found`);
+    }
+    return season;
+  }
+
   // ── Fan-facing helpers ────────────────────────────────────────────────
 
   async getPlayerSeasonStats(playerId: string, seasonId: string) {
@@ -64,8 +77,10 @@ export class PlayerStatsService {
     });
     if (!player) throw new NotFoundException(`Player '${playerId}' not found`);
 
+    const season = await this.resolveSeason(seasonId);
+
     const stats = await this.prisma.playerMatchStats.findMany({
-      where: { playerId, seasonId, status: { in: PUBLISHED_STATUSES } },
+      where: { playerId, seasonId: season.id, status: { in: PUBLISHED_STATUSES } },
       include: {
         fixture: {
           select: {
@@ -79,7 +94,7 @@ export class PlayerStatsService {
     });
 
     const totals = this._aggregateTotals(stats);
-    return { player, seasonId, totals, matches: stats };
+    return { player, seasonId: season.id, totals, matches: stats };
   }
 
   async getPlayerMatchStat(playerId: string, fixtureId: string) {
@@ -128,14 +143,10 @@ export class PlayerStatsService {
   }
 
   async listSeasonTopPerformers(seasonId: string, limit = 10) {
-    const season = await this.prisma.season.findUnique({
-      where: { id: seasonId },
-      select: { id: true, name: true, slug: true },
-    });
-    if (!season) throw new NotFoundException(`Season '${seasonId}' not found`);
+    const season = await this.resolveSeason(seasonId);
 
     const stats = await this.prisma.playerMatchStats.findMany({
-      where: { seasonId, status: { in: PUBLISHED_STATUSES } },
+      where: { seasonId: season.id, status: { in: PUBLISHED_STATUSES } },
       include: {
         player: { select: { id: true, name: true, position: true, team: { select: { id: true, name: true, shortName: true } } } },
       },
@@ -187,14 +198,16 @@ export class PlayerStatsService {
     const team = await this.prisma.team.findUnique({ where: { id: teamId }, select: { id: true, name: true, shortName: true, slug: true } });
     if (!team) throw new NotFoundException(`Team '${teamId}' not found`);
 
+    const season = await this.resolveSeason(seasonId);
+
     const stats = await this.prisma.playerMatchStats.findMany({
-      where: { seasonId, teamId, status: { in: PUBLISHED_STATUSES } },
+      where: { seasonId: season.id, teamId, status: { in: PUBLISHED_STATUSES } },
       include: {
         player: { select: { id: true, name: true, position: true, number: true } },
       },
     });
 
-    return { team, seasonId, squadStats: this._groupByPlayer(stats) };
+    return { team, seasonId: season.id, squadStats: this._groupByPlayer(stats) };
   }
 
   // ── Admin helpers ─────────────────────────────────────────────────────
@@ -379,21 +392,17 @@ export class PlayerStatsService {
   }
 
   async adminGetSeasonReadiness(seasonId: string) {
-    const season = await this.prisma.season.findUnique({
-      where: { id: seasonId },
-      select: { id: true, name: true, slug: true, status: true },
-    });
-    if (!season) throw new NotFoundException(`Season '${seasonId}' not found`);
+    const season = await this.resolveSeason(seasonId);
 
     const [total, draft, verified, published, locked] = await Promise.all([
-      this.prisma.playerMatchStats.count({ where: { seasonId } }),
-      this.prisma.playerMatchStats.count({ where: { seasonId, status: PlayerMatchStatsStatus.DRAFT } }),
-      this.prisma.playerMatchStats.count({ where: { seasonId, status: PlayerMatchStatsStatus.VERIFIED } }),
-      this.prisma.playerMatchStats.count({ where: { seasonId, status: PlayerMatchStatsStatus.PUBLISHED } }),
-      this.prisma.playerMatchStats.count({ where: { seasonId, status: PlayerMatchStatsStatus.LOCKED } }),
+      this.prisma.playerMatchStats.count({ where: { seasonId: season.id } }),
+      this.prisma.playerMatchStats.count({ where: { seasonId: season.id, status: PlayerMatchStatsStatus.DRAFT } }),
+      this.prisma.playerMatchStats.count({ where: { seasonId: season.id, status: PlayerMatchStatsStatus.VERIFIED } }),
+      this.prisma.playerMatchStats.count({ where: { seasonId: season.id, status: PlayerMatchStatsStatus.PUBLISHED } }),
+      this.prisma.playerMatchStats.count({ where: { seasonId: season.id, status: PlayerMatchStatsStatus.LOCKED } }),
     ]);
 
-    const fixtureCount = await this.prisma.fixture.count({ where: { seasonId, status: 'FINISHED' } });
+    const fixtureCount = await this.prisma.fixture.count({ where: { seasonId: season.id, status: 'FINISHED' } });
 
     let readiness: 'NO_DATA' | 'PROVISIONAL' | 'PARTIAL' | 'VERIFIED' | 'PUBLISHED' = 'NO_DATA';
     if (total > 0) readiness = 'PROVISIONAL';
@@ -413,7 +422,8 @@ export class PlayerStatsService {
   // ── Season switching check ────────────────────────────────────────────
 
   async checkPlayerStatsReadiness(seasonId: string) {
-    const fixtureCount = await this.prisma.fixture.count({ where: { seasonId, status: 'FINISHED' } });
+    const season = await this.resolveSeason(seasonId);
+    const fixtureCount = await this.prisma.fixture.count({ where: { seasonId: season.id, status: 'FINISHED' } });
     if (fixtureCount === 0) {
       return {
         check: 'PLAYER_STATS_READINESS',
@@ -423,7 +433,7 @@ export class PlayerStatsService {
       };
     }
 
-    const statsCount = await this.prisma.playerMatchStats.count({ where: { seasonId } });
+    const statsCount = await this.prisma.playerMatchStats.count({ where: { seasonId: season.id } });
     if (statsCount === 0) {
       return {
         check: 'PLAYER_STATS_READINESS',
@@ -433,7 +443,7 @@ export class PlayerStatsService {
       };
     }
 
-    const draftCount = await this.prisma.playerMatchStats.count({ where: { seasonId, status: PlayerMatchStatsStatus.DRAFT } });
+    const draftCount = await this.prisma.playerMatchStats.count({ where: { seasonId: season.id, status: PlayerMatchStatsStatus.DRAFT } });
     if (draftCount > 0) {
       return {
         check: 'PLAYER_STATS_READINESS',
