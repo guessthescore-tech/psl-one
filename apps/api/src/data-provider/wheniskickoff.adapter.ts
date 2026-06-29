@@ -15,12 +15,23 @@ type WhenIsKickoffMatch = {
   id?: string | number;
   externalId?: string | number;
   matchId?: string | number;
+  num?: number;
+  slug?: string;
+  date?: string;
+  time_utc?: string;
+  datetime_utc?: string;
   homeTeam?: unknown;
   awayTeam?: unknown;
+  home?: string;
+  away?: string;
+  home_name?: string;
+  away_name?: string;
   kickoffAt?: string;
   utcDate?: string;
   startTime?: string;
   status?: string;
+  score_home?: number | null;
+  score_away?: number | null;
   homeScore?: number | null;
   awayScore?: number | null;
   score?: {
@@ -93,7 +104,7 @@ export class WhenIsKickoffAdapter implements ProviderAdapter {
   }
 
   private pickMatchId(match: WhenIsKickoffMatch, index: number): string {
-    const id = match.id ?? match.externalId ?? match.matchId;
+    const id = match.id ?? match.externalId ?? match.matchId ?? match.slug ?? match.num;
     return id != null ? String(id) : `wheniskickoff-${index + 1}`;
   }
 
@@ -144,12 +155,18 @@ export class WhenIsKickoffAdapter implements ProviderAdapter {
     const list = this.unwrapArray<WhenIsKickoffMatch>(matches, ['matches', 'data', 'fixtures']);
     return list
       .map((match, index) => {
-        const kickoffAt = match.kickoffAt ?? match.utcDate ?? match.startTime ?? '';
-        const homeTeamName = this.pickTeamName(match.homeTeam);
-        const awayTeamName = this.pickTeamName(match.awayTeam);
+        const kickoffAt =
+          match.kickoffAt ??
+          match.datetime_utc ??
+          (match.date && match.time_utc ? `${match.date}T${match.time_utc}:00Z` : '') ??
+          match.utcDate ??
+          match.startTime ??
+          '';
+        const homeTeamName = match.home_name ?? match.home ?? this.pickTeamName(match.homeTeam);
+        const awayTeamName = match.away_name ?? match.away ?? this.pickTeamName(match.awayTeam);
         const fullTime = match.score?.fullTime;
-        const homeScore = match.homeScore ?? fullTime?.home ?? match.score?.home ?? undefined;
-        const awayScore = match.awayScore ?? fullTime?.away ?? match.score?.away ?? undefined;
+        const homeScore = match.homeScore ?? match.score_home ?? fullTime?.home ?? match.score?.home ?? undefined;
+        const awayScore = match.awayScore ?? match.score_away ?? fullTime?.away ?? match.score?.away ?? undefined;
         return {
           externalId: this.pickMatchId(match, index),
           homeTeamName,

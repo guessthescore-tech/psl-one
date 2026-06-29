@@ -11,7 +11,7 @@ describe('WhenIsKickoffAdapter', () => {
     vi.stubGlobal('fetch', async () => ({
       ok: true,
       json: async () => ({
-        matches: [
+        data: [
           { id: 'wk-1', homeTeam: { name: 'Brazil' }, awayTeam: { name: 'France' }, kickoffAt: '2026-06-14T18:00:00Z', status: 'SCHEDULED' },
         ],
       }),
@@ -29,14 +29,15 @@ describe('WhenIsKickoffAdapter', () => {
     vi.stubGlobal('fetch', async () => ({
       ok: true,
       json: async () => ({
-        matches: [
+        data: [
           {
-            id: 101,
-            homeTeam: { name: 'Brazil' },
-            awayTeam: { name: 'France' },
-            utcDate: '2026-06-14T18:00:00Z',
+            num: 101,
+            home_name: 'Brazil',
+            away_name: 'France',
+            datetime_utc: '2026-06-14T18:00:00Z',
             status: 'FINISHED',
-            score: { fullTime: { home: 2, away: 1 } },
+            score_home: 2,
+            score_away: 1,
           },
         ],
       }),
