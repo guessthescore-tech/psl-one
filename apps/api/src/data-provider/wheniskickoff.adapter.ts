@@ -155,13 +155,10 @@ export class WhenIsKickoffAdapter implements ProviderAdapter {
     const list = this.unwrapArray<WhenIsKickoffMatch>(matches, ['matches', 'data', 'fixtures']);
     return list
       .map((match, index) => {
-        const kickoffAt =
-          match.kickoffAt ??
-          match.datetime_utc ??
-          (match.date && match.time_utc ? `${match.date}T${match.time_utc}:00Z` : '') ??
-          match.utcDate ??
-          match.startTime ??
-          '';
+        let kickoffAt = match.kickoffAt ?? match.datetime_utc ?? match.utcDate ?? match.startTime ?? '';
+        if (!kickoffAt && match.date && match.time_utc) {
+          kickoffAt = `${match.date}T${match.time_utc}:00Z`;
+        }
         const homeTeamName = match.home_name ?? match.home ?? this.pickTeamName(match.homeTeam);
         const awayTeamName = match.away_name ?? match.away ?? this.pickTeamName(match.awayTeam);
         const fullTime = match.score?.fullTime;
