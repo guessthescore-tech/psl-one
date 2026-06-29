@@ -1,5 +1,31 @@
 const API = process.env['NEXT_PUBLIC_API_BASE_URL'] ?? 'http://localhost:4000';
 
+type ApiMediaAsset = {
+  id: string;
+  title: string;
+  slug: string;
+  mediaType: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  playbackUrl?: string | null;
+  durationSeconds: number | null;
+};
+
+type UiMediaAsset = ApiMediaAsset & {
+  contentUrl: string | null;
+  viewCount: number;
+  completionCount: number;
+};
+
+function normalizeMediaAsset(asset: ApiMediaAsset): UiMediaAsset {
+  return {
+    ...asset,
+    contentUrl: asset.playbackUrl ?? null,
+    viewCount: 0,
+    completionCount: 0,
+  };
+}
+
 async function apiFetch(path: string, options?: RequestInit) {
   const res = await fetch(`${API}${path}`, {
     ...options,
@@ -35,15 +61,21 @@ export function listPublicMedia(params?: { clubId?: string; type?: string }) {
   if (params?.clubId) q.set('clubId', params.clubId);
   if (params?.type) q.set('type', params.type);
   const qs = q.toString() ? `?${q.toString()}` : '';
-  return apiFetch(`/fan/media${qs}`);
+  return apiFetch(`/fan/media${qs}`).then((data: ApiMediaAsset[] | { assets?: ApiMediaAsset[] }) => {
+    const assets = Array.isArray(data) ? data : data.assets ?? [];
+    return { assets: assets.map(normalizeMediaAsset) };
+  });
 }
 
 export function getPublicMedia(slug: string) {
-  return apiFetch(`/fan/media/${slug}`);
+  return apiFetch(`/fan/media/${slug}`).then((asset: ApiMediaAsset) => normalizeMediaAsset(asset));
 }
 
 export function getClubMedia(clubId: string) {
-  return apiFetch(`/fan/clubs/${clubId}/media`);
+  return apiFetch(`/fan/clubs/${clubId}/media`).then((data: ApiMediaAsset[] | { assets?: ApiMediaAsset[] }) => {
+    const assets = Array.isArray(data) ? data : data.assets ?? [];
+    return { assets: assets.map(normalizeMediaAsset) };
+  });
 }
 
 export function recordMediaView(token: string, id: string, idempotencyKey: string) {

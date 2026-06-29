@@ -1008,6 +1008,65 @@ async function main() {
   });
   console.log(`  ✓ Test Media Asset seeded (DRAFT, no copyrighted content)`);
 
+  const publicMediaAssets = [
+    {
+      slug: 'world-cup-2026-kickoff-guide',
+      title: 'World Cup 2026 Kickoff Guide',
+      description: 'A short guide to the beta World Cup fixture feed, schedule navigation, and points-only gameplay surfaces.',
+      mediaType: 'ARTICLE',
+      contentCategory: 'EDUCATION',
+      isFeatured: true,
+    },
+    {
+      slug: 'world-cup-2026-fixtures-explainer',
+      title: 'How the World Cup Fixture Schedule Is Wired',
+      description: 'Notes on the public feed import, schedule population, and how the platform keeps provisional seed data in sync.',
+      mediaType: 'ARTICLE',
+      contentCategory: 'CLUB_NEWS',
+      isFeatured: false,
+    },
+    {
+      slug: 'world-cup-2026-fan-value-primer',
+      title: 'Fan Value Primer',
+      description: 'A quick explainer for points-based loyalty, campaigns, and the non-financial reward model.',
+      mediaType: 'ARTICLE',
+      contentCategory: 'SPONSOR_BRANDED',
+      isFeatured: false,
+    },
+  ] as const;
+
+  const publicMediaBySlug = new Map<string, string>();
+  for (const asset of publicMediaAssets) {
+    const created = await prisma.mediaAsset.upsert({
+      where: { slug: asset.slug },
+      create: {
+        title: asset.title,
+        slug: asset.slug,
+        description: asset.description,
+        mediaType: asset.mediaType,
+        contentCategory: asset.contentCategory,
+        visibility: 'PUBLIC',
+        rightsStatus: 'CLEAR',
+        isFeatured: asset.isFeatured,
+        isLowDataAvailable: true,
+        publishedAt: new Date('2026-06-29T00:00:00Z'),
+      },
+      update: {
+        title: asset.title,
+        description: asset.description,
+        mediaType: asset.mediaType,
+        contentCategory: asset.contentCategory,
+        visibility: 'PUBLIC',
+        rightsStatus: 'CLEAR',
+        isFeatured: asset.isFeatured,
+        isLowDataAvailable: true,
+        publishedAt: new Date('2026-06-29T00:00:00Z'),
+      },
+    });
+    publicMediaBySlug.set(asset.slug, created.id);
+  }
+  console.log(`  ✓ Public media assets seeded: ${publicMediaAssets.length}`);
+
   // ── STORY-37: Draft campaign with one action ──────────────────────────────
   const draftCampaign = await prisma.sponsorCampaign.upsert({
     where: { slug: 'sandbox-campaign' },
@@ -1040,6 +1099,94 @@ async function main() {
     });
   }
   console.log(`  ✓ Sandbox Campaign seeded (DRAFT) with one CLICK_CTA action`);
+
+  const worldCupCampaign = await prisma.sponsorCampaign.upsert({
+    where: { slug: 'world-cup-fan-quest' },
+    create: {
+      title: 'World Cup Fan Quest',
+      slug: 'world-cup-fan-quest',
+      description: 'A points-only fan campaign that surfaces the public World Cup guide content and keeps the campaign rail populated.',
+      sponsorId: demoSponsor.id,
+      seasonId: season.id,
+      campaignType: 'CONTENT_UNLOCK',
+      status: 'PUBLISHED',
+      startsAt: new Date('2026-06-20T00:00:00Z'),
+      endsAt: new Date('2026-07-31T23:59:59Z'),
+      audienceScope: 'SEASON',
+      callToActionLabel: 'Open guide',
+      callToActionUrl: '/media/world-cup-2026-kickoff-guide',
+      termsAndConditions: 'Points-only campaign. No cash value, no wagering, no real-money rewards.',
+      maxParticipationsPerFan: 1,
+      requiresContentWatch: true,
+      publishedAt: new Date('2026-06-29T00:00:00Z'),
+    },
+    update: {
+      title: 'World Cup Fan Quest',
+      description: 'A points-only fan campaign that surfaces the public World Cup guide content and keeps the campaign rail populated.',
+      sponsorId: demoSponsor.id,
+      seasonId: season.id,
+      campaignType: 'CONTENT_UNLOCK',
+      status: 'PUBLISHED',
+      startsAt: new Date('2026-06-20T00:00:00Z'),
+      endsAt: new Date('2026-07-31T23:59:59Z'),
+      audienceScope: 'SEASON',
+      callToActionLabel: 'Open guide',
+      callToActionUrl: '/media/world-cup-2026-kickoff-guide',
+      termsAndConditions: 'Points-only campaign. No cash value, no wagering, no real-money rewards.',
+      maxParticipationsPerFan: 1,
+      requiresContentWatch: true,
+      publishedAt: new Date('2026-06-29T00:00:00Z'),
+    },
+  });
+
+  const campaignActions = [
+    {
+      title: 'Open the World Cup kickoff guide',
+      actionType: 'CLICK_CTA',
+      pointsAwarded: 5,
+      displayOrder: 1,
+      isRequired: true,
+    },
+    {
+      title: 'Read the public World Cup guide',
+      actionType: 'WATCH_MEDIA',
+      requiredMediaAssetSlug: 'world-cup-2026-kickoff-guide',
+      pointsAwarded: 10,
+      displayOrder: 2,
+      isRequired: true,
+    },
+  ] as const;
+
+  for (const action of campaignActions) {
+    const existing = await prisma.campaignAction.findFirst({
+      where: { campaignId: worldCupCampaign.id, title: action.title },
+    });
+    const data = {
+      campaignId: worldCupCampaign.id,
+      title: action.title,
+      actionType: action.actionType,
+      pointsAwarded: action.pointsAwarded,
+      displayOrder: action.displayOrder,
+      isRequired: action.isRequired,
+      ...(action.requiredMediaAssetSlug ? { requiredMediaAssetId: publicMediaBySlug.get(action.requiredMediaAssetSlug) } : {}),
+    };
+
+    if (existing) {
+      await prisma.campaignAction.update({
+        where: { id: existing.id },
+        data: {
+          actionType: action.actionType,
+          pointsAwarded: action.pointsAwarded,
+          displayOrder: action.displayOrder,
+          isRequired: action.isRequired,
+          ...(action.requiredMediaAssetSlug ? { requiredMediaAssetId: publicMediaBySlug.get(action.requiredMediaAssetSlug) } : {}),
+        },
+      });
+    } else {
+      await prisma.campaignAction.create({ data });
+    }
+  }
+  console.log(`  ✓ Public campaign seeded: ${worldCupCampaign.slug} (${campaignActions.length} actions)`);
 
   // ── STORY-37: Fan Value reward definition ─────────────────────────────────
   await prisma.rewardDefinition.upsert({
