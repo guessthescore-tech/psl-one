@@ -25,6 +25,7 @@ interface WcLiveReadinessResponse {
   competition: 'WC2026';
   worldCupActive: true;
   activeProviders: {
+    whenIsKickoff: { configured: boolean; envVar: string; status: ProviderStatus };
     footballDataOrg: { configured: boolean; envVar: string; status: ProviderStatus };
     sportRadar: { configured: boolean; envVar: string; status: ProviderStatus };
     scoreBat: { configured: boolean; envVar: string; status: ProviderStatus };

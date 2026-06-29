@@ -294,6 +294,45 @@ describe('WorldCupImportService — cascade lookup for seeded fixtures', () => {
   });
 });
 
+describe('WorldCupImportService — wheniskickoff schedule feed', () => {
+  let svc: WorldCupImportService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    svc = new WorldCupImportService(prisma as unknown as PrismaService);
+    vi.stubGlobal('fetch', async () => ({
+      ok: true,
+      json: async () => ({
+        matches: [
+          {
+            id: 9001,
+            homeTeam: { name: 'Brazil' },
+            awayTeam: { name: 'France' },
+            utcDate: '2026-06-14T18:00:00Z',
+            status: 'SCHEDULED',
+          },
+        ],
+      }),
+    }));
+  });
+
+  it('uses wheniskickoff as the default public schedule source', async () => {
+    (prisma.team.findFirst as Mock)
+      .mockResolvedValueOnce({ id: 'team-bra' })
+      .mockResolvedValueOnce({ id: 'team-fra' });
+
+    const result = await svc.importFixtures({ dryRun: true });
+
+    expect(result.provider).toBe('wheniskickoff');
+    expect(result.sourceStatus).toBe('SOURCE_AVAILABLE');
+    expect(result.discovered).toBe(1);
+    expect(result.normalized).toBe(1);
+    expect(result.candidates).toHaveLength(1);
+    expect(prisma.adminAuditLog.create).toHaveBeenCalled();
+  });
+});
+
 // ── Team alias resolution ────────────────────────────────────────────────────
 
 describe('WorldCupImportService — team alias resolution', () => {

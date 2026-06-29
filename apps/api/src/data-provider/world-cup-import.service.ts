@@ -3,6 +3,7 @@ import { FixtureStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import { SportRadarSoccerAdapter } from './sportradar-soccer.adapter';
+import { WhenIsKickoffAdapter } from './wheniskickoff.adapter';
 import type { ProviderFixture } from './provider-adapter.interface';
 import type {
   WorldCupImportCandidateDto,
@@ -10,7 +11,7 @@ import type {
   WorldCupImportResponseDto,
 } from './dto/world-cup-import.dto';
 
-const WC_PROVIDER_SOURCE = 'football-data-org';
+const WC_PROVIDER_SOURCE = 'wheniskickoff';
 const WC_COMPETITION_CODES = ['WC', 'WORLD_CUP_2026', 'FIFA_WORLD_CUP', 'WC2026'];
 const WRITE_CONFIRM_VALUE = 'IMPORT_WORLD_CUP_BETA';
 const WRITE_ENV_FLAG = 'ALLOW_WORLD_CUP_WRITE';
@@ -18,7 +19,8 @@ const WRITE_ENV_FLAG = 'ALLOW_WORLD_CUP_WRITE';
 /**
  * World Cup 2026 fixture import service.
  *
- * Imports WC fixtures from football-data.org (primary) or SportRadar (fallback).
+ * Imports WC fixtures from wheniskickoff.com (primary) with football-data.org
+ * and SportRadar as fallbacks.
  * Default mode is dryRun=true — no DB writes occur unless:
  *   1. dryRun=false in request body
  *   2. confirmWorldCupWrite='IMPORT_WORLD_CUP_BETA' in request body
@@ -101,8 +103,7 @@ export class WorldCupImportService {
         const wc2026Season = seasons.find(s => s.name.includes('2026')) ?? seasons[0]!;
         providerFixtures = await adapter.getFixtures(wc2026Season.externalId);
         result.provider = 'sportradar-soccer';
-      } else {
-        // Default: football-data-org
+      } else if (source === 'football-data-org') {
         const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
         if (!fdKey) {
           result.sourceStatus = 'AUTH_FAILED';
@@ -113,6 +114,36 @@ export class WorldCupImportService {
         const adapter = new FootballDataOrgAdapter();
         providerFixtures = await adapter.getFixtures('WC');
         result.provider = 'football-data-org';
+      } else if (source === 'wheniskickoff') {
+        const adapter = new WhenIsKickoffAdapter();
+        providerFixtures = await adapter.getFixtures('wheniskickoff-world-cup-2026');
+        result.provider = WC_PROVIDER_SOURCE;
+      } else {
+        const publicAdapter = new WhenIsKickoffAdapter();
+        providerFixtures = await publicAdapter.getFixtures('wheniskickoff-world-cup-2026');
+        result.provider = WC_PROVIDER_SOURCE;
+
+        if (providerFixtures.length === 0) {
+          const fdKey = process.env['FOOTBALL_DATA_API_KEY'];
+          if (fdKey) {
+            const fdAdapter = new FootballDataOrgAdapter();
+            providerFixtures = await fdAdapter.getFixtures('WC');
+            result.provider = 'football-data-org';
+          }
+        }
+
+        if (providerFixtures.length === 0) {
+          const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'];
+          if (srKey) {
+            const srAdapter = new SportRadarSoccerAdapter();
+            const seasons = await srAdapter.getSeasons();
+            if (seasons.length > 0) {
+              const wc2026Season = seasons.find(s => s.name.includes('2026')) ?? seasons[0]!;
+              providerFixtures = await srAdapter.getFixtures(wc2026Season.externalId);
+              result.provider = 'sportradar-soccer';
+            }
+          }
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);

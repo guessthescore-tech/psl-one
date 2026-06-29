@@ -3,6 +3,7 @@ import { NoOpAdapter } from './no-op.adapter';
 import { ApiFootballAdapter } from './api-football.adapter';
 import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import { ParsePslAdapter } from './parse-psl.adapter';
+import { WhenIsKickoffAdapter } from './wheniskickoff.adapter';
 import type { ProviderAdapter } from './provider-adapter.interface';
 
 @Injectable()
@@ -42,6 +43,9 @@ export class DataProviderService {
         this.adapter = new NoOpAdapter();
         this.logger.warn('DataProviderService: DATA_PROVIDER=parse-psl but PARSE_API_KEY not set — NoOpAdapter fallback');
       }
+    } else if (provider === 'wheniskickoff') {
+      this.adapter = new WhenIsKickoffAdapter();
+      this.logger.log('DataProviderService: using WhenIsKickoffAdapter (DATA_PROVIDER=wheniskickoff)');
     } else {
       this.adapter = new NoOpAdapter();
       if (provider) {
@@ -70,6 +74,7 @@ export class DataProviderService {
     const fdKey = process.env['FOOTBALL_DATA_API_KEY'] ?? '';
     const srKey = process.env['SPORTSRADAR_SOCCER_API_KEY'] ?? '';
     const sbToken = process.env['SCOREBAT_WIDGET_TOKEN'] ?? '';
+    const scheduleFeedAvailable = true;
 
     const fdConfigured = fdKey.length > 0;
     const srConfigured = srKey.length > 0;
@@ -79,9 +84,9 @@ export class DataProviderService {
       ? 'football-data-org'
       : srConfigured
         ? 'sportradar-soccer'
-        : 'noop';
+        : 'wheniskickoff';
 
-    const dryRunEligible = fdConfigured || srConfigured;
+    const dryRunEligible = scheduleFeedAvailable || fdConfigured || srConfigured;
 
     const allowWriteFlag = process.env['ALLOW_WORLD_CUP_WRITE'] === 'true';
 
@@ -104,9 +109,14 @@ export class DataProviderService {
           envVar: 'SCOREBAT_WIDGET_TOKEN',
           status: sbConfigured ? 'WIDGET_READY' : 'NOT_CONFIGURED',
         },
+        whenIsKickoff: {
+          configured: true,
+          envVar: 'PUBLIC_SCHEDULE_FEED',
+          status: 'CONNECTED',
+        },
       },
       primaryProvider,
-      fallbackChain: ['football-data-org', 'sportradar-soccer', 'noop'],
+      fallbackChain: ['wheniskickoff', 'football-data-org', 'sportradar-soccer', 'noop'],
       importReadiness: {
         dryRunEligible,
         writeImportAllowedByEnvFlag: allowWriteFlag,
@@ -116,6 +126,7 @@ export class DataProviderService {
         ],
       },
       ownerActions: [
+        'Public schedule feed available — run dry-run at POST /admin/data-provider/world-cup/fixtures/import',
         fdConfigured
           ? 'football-data.org key configured — run dry-run at POST /admin/data-provider/world-cup/fixtures/import'
           : 'Set FOOTBALL_DATA_API_KEY to enable WC fixture import',

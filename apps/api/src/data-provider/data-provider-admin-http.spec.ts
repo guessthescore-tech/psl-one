@@ -50,6 +50,7 @@ beforeAll(async () => {
       competition: 'WC2026' as const,
       worldCupActive: true as const,
       activeProviders: {
+        whenIsKickoff: { configured: true, envVar: 'PUBLIC_SCHEDULE_FEED', status: 'CONNECTED' },
         footballDataOrg: { configured: true, envVar: 'FOOTBALL_DATA_API_KEY', status: 'CONFIGURED' },
         sportRadar: { configured: false, envVar: 'SPORTSRADAR_SOCCER_API_KEY', status: 'NOT_CONFIGURED' },
         scoreBat: { configured: false, envVar: 'SCOREBAT_WIDGET_TOKEN', status: 'NOT_CONFIGURED' },

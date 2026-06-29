@@ -1,5 +1,5 @@
 export interface WorldCupImportRequestDto {
-  /** Source: 'football-data-org' | 'sportradar-soccer' | 'auto' (default: auto = football-data-org first) */
+  /** Source: 'wheniskickoff' | 'football-data-org' | 'sportradar-soccer' | 'auto' (default: auto = wheniskickoff first) */
   source?: string;
   /** Dry-run mode — no DB writes. Defaults to true. */
   dryRun?: boolean;
