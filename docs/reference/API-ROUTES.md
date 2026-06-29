@@ -106,6 +106,33 @@
 
 ---
 
+## Data Provider
+
+**Controller:** `data-provider.controller.ts` — prefix: `admin/data-provider`
+
+| Method | Route | Auth | Class | Description |
+|--------|-------|------|-------|-------------|
+| GET | `/admin/data-provider/world-cup-live-readiness` | ADMIN | READ | WC live readiness |
+| GET | `/admin/data-provider/wc-beta-capability` | ADMIN | READ | WC beta capability matrix |
+| POST | `/admin/data-provider/world-cup/fixtures/import` | ADMIN | DRY_RUN | WC fixture import |
+| GET | `/admin/data-provider/world-cup/player-pool-status` | ADMIN | READ | WC player pool status |
+| GET | `/admin/data-provider/world-cup/fixture-status` | ADMIN | READ | WC fixture status |
+| GET | `/admin/data-provider/world-cup/sync-status` | ADMIN | READ | WC provider sync status |
+| GET | `/admin/data-provider/world-cup/scorebat-widget-config` | ADMIN | READ | ScoreBat embed config |
+| POST | `/admin/data-provider/world-cup/fixtures/refresh-status` | ADMIN | MUTATION | Refresh WC fixture status |
+| GET | `/admin/data-provider/world-cup/gts-status` | ADMIN | READ | WC GTS status |
+| GET | `/admin/data-provider/world-cup/media-status` | ADMIN | READ | WC media status |
+| GET | `/admin/data-provider/psl-fixture-readiness` | ADMIN | READ | PSL fixture readiness |
+| GET | `/admin/data-provider/health` | ADMIN | READ | Provider health |
+| GET | `/admin/data-provider/discovery/seasons` | ADMIN | READ | Discovery seasons |
+| GET | `/admin/data-provider/discovery/fixtures/:seasonId` | ADMIN | READ | Discovery fixtures |
+| GET | `/admin/data-provider/discovery/teams/:seasonId` | ADMIN | READ | Discovery teams |
+| GET | `/admin/data-provider/discovery/players/:teamId` | ADMIN | READ | Discovery players |
+| GET | `/admin/data-provider/discovery/standings/:seasonId` | ADMIN | READ | Discovery standings |
+| POST | `/admin/data-provider/parse-psl/fixtures/ingest` | ADMIN | DRY_RUN | Parse PSL fixture ingest |
+
+---
+
 ## Admin — Competitions & Seasons
 
 **Controller:** `admin-competitions.controller.ts` — prefixes: `admin/competitions`, `admin/seasons`

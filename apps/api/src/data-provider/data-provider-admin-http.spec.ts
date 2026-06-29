@@ -46,6 +46,7 @@ beforeAll(async () => {
     health: async () => { throw new NotFoundException('no provider'); },
     getSeasons: async () => { throw new NotFoundException('no seasons'); },
     getFixtures: async () => { throw new NotFoundException('no fixtures'); },
+    getPlayers: async () => { throw new NotFoundException('no players'); },
     getWorldCupLiveReadiness: () => ({
       competition: 'WC2026' as const,
       worldCupActive: true as const,
@@ -228,6 +229,31 @@ describe('GET /admin/data-provider/discovery/seasons', () => {
   it('PSL_ADMIN passes guards and reaches service layer (404)', async () => {
     const res = await app.inject({
       method: 'GET', url: '/admin/data-provider/discovery/seasons',
+      headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(404);
+  });
+});
+
+// ── GET /admin/data-provider/discovery/players/:teamId ────────────────────
+
+describe('GET /admin/data-provider/discovery/players/:teamId', () => {
+  it('returns 401 with no token', async () => {
+    const res = await app.inject({ method: 'GET', url: '/admin/data-provider/discovery/players/team-1' });
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('returns 403 for FAN role', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/discovery/players/team-1',
+      headers: { Authorization: `Bearer ${FAN_TOKEN}` },
+    });
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('PSL_ADMIN passes guards and reaches service layer (404)', async () => {
+    const res = await app.inject({
+      method: 'GET', url: '/admin/data-provider/discovery/players/team-1',
       headers: { Authorization: `Bearer ${ADMIN_TOKEN}` },
     });
     expect(res.statusCode).toBe(404);

@@ -35,12 +35,12 @@
 **Resolution**: Add to `next.config.js` or `vercel.json` CSP headers before going live
 **Workaround**: Browser will block iframe until CSP updated
 
-## GAP-38A-06: No Player Discovery Endpoint on Backend
+## GAP-38A-06: Player Discovery Endpoint on Backend
 
-**Severity**: INFO
-**Description**: `squad-import` tool calls `/discovery/players/:teamId` but route not wired
-**Resolution**: Sprint 38B can add `@Get('discovery/players/:teamId')` to controller
-**Workaround**: Tool gracefully handles 404 with informative message
+**Severity**: RESOLVED
+**Description**: `squad-import` tool previously called `/discovery/players/:teamId` but the route was not wired.
+**Resolution**: Added `@Get('discovery/players/:teamId')` to `DataProviderController` and documented it in `docs/reference/API-ROUTES.md`.
+**Workaround**: None required; the discovery contract now includes players.
 
 ## Not Gaps
 
