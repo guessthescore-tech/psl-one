@@ -1,6 +1,12 @@
 import type { ExpClub, ExpFantasyPlayer } from './data';
 import type { FantasyTeam, PlayerSummary } from './fantasy-api';
 
+export interface PlayerStatsSummary {
+  goals: number;
+  assists: number;
+  fantasyPoints: number;
+}
+
 const POSITION_ABBR: Record<PlayerSummary['position'], ExpFantasyPlayer['position']> = {
   GOALKEEPER: 'GK',
   DEFENDER: 'DEF',
@@ -66,9 +72,14 @@ export function toFantasySlot(player: ExpFantasyPlayer, index: number) {
   };
 }
 
-export function toExpFantasySquad(team: FantasyTeam, priceMap?: Map<string, number>) {
+export function toExpFantasySquad(
+  team: FantasyTeam,
+  priceMap?: Map<string, number>,
+  statsMap?: Map<string, PlayerStatsSummary>,
+) {
   const players = team.players.map((tp, index) => {
     const position = POSITION_ABBR[tp.player.position];
+    const stats = statsMap?.get(tp.player.id);
     return {
       id: tp.player.id,
       name: tp.player.name,
@@ -87,9 +98,9 @@ export function toExpFantasySquad(team: FantasyTeam, priceMap?: Map<string, numb
       },
       nationality: '',
       imageKey: `wc-player-${tp.player.id}`,
-      goalsThisTournament: 0,
-      assistsThisTournament: 0,
-      fantasyPoints: 0,
+      goalsThisTournament: stats?.goals ?? 0,
+      assistsThisTournament: stats?.assists ?? 0,
+      fantasyPoints: stats?.fantasyPoints ?? 0,
       fantasyPrice: priceMap?.get(tp.player.id) ?? DEFAULT_PRICE[position],
       squadRole: tp.squadRole,
       benchSlot: tp.benchSlot ?? null,

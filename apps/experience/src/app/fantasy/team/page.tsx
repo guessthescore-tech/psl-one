@@ -17,6 +17,7 @@ import type { ExpFantasySquad } from '@/lib/data';
 import { getWorldCupSeason } from '@/lib/football-api';
 import { getDeadline, getGameweekScore, getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
+import { getPlayerSeasonStats } from '@/lib/players-api';
 
 type TeamState =
   | { status: 'loading' }
@@ -61,7 +62,21 @@ export default function TeamPage() {
         ]);
 
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
-        const liveTeam = toExpFantasySquad(team, priceMap);
+
+        // Fetch per-player season stats in parallel; silently skip failures.
+        const playerIds = team.players.map((tp) => tp.player.id);
+        const statsResults = await Promise.allSettled(
+          playerIds.map((id) => getPlayerSeasonStats(id, season.id)),
+        );
+        const statsMap = new Map(
+          statsResults.flatMap((r, i) => {
+            if (r.status !== 'fulfilled') return [];
+            const { totals } = r.value;
+            return [[playerIds[i]!, { goals: totals.goals, assists: totals.assists, fantasyPoints: totals.fantasyPoints }]];
+          }),
+        );
+
+        const liveTeam = toExpFantasySquad(team, priceMap, statsMap);
         if (transferStatus.gameweekId) {
           getGameweekScore(transferStatus.gameweekId)
             .then((score) => {

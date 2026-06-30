@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { toExpFantasyPlayer, toExpFantasySquad } from './fantasy-player-mapper';
+import type { PlayerStatsSummary } from './fantasy-player-mapper';
 
 describe('fantasy-player-mapper pricing', () => {
   const playerSummary = {
@@ -51,5 +52,59 @@ describe('fantasy-player-mapper pricing', () => {
 
     const fallback = toExpFantasySquad(squad);
     expect(fallback.players[0]!.fantasyPrice).toBeGreaterThan(0);
+  });
+});
+
+describe('fantasy-player-mapper stats hydration', () => {
+  const makeSquad = () => ({
+    id: 'team-1',
+    name: 'My Team',
+    formation: '4-3-3',
+    totalPoints: 42,
+    players: [
+      {
+        id: 'slot-1',
+        playerId: 'p1',
+        squadRole: 'STARTER' as const,
+        position: 'FORWARD' as const,
+        benchSlot: null,
+        isCaptain: false,
+        isViceCaptain: false,
+        player: {
+          id: 'p1',
+          name: 'Star Forward',
+          position: 'FORWARD' as const,
+          number: 9,
+          team: { id: 't1', name: 'Cape Town City', shortName: 'CTC', externalId: 'ctc' },
+        },
+      },
+    ],
+  });
+
+  it('populates goals, assists, and fantasyPoints from the statsMap', () => {
+    const statsMap = new Map<string, PlayerStatsSummary>([
+      ['p1', { goals: 5, assists: 3, fantasyPoints: 72 }],
+    ]);
+    const result = toExpFantasySquad(makeSquad(), undefined, statsMap);
+    const player = result.players[0]!;
+    expect(player.goalsThisTournament).toBe(5);
+    expect(player.assistsThisTournament).toBe(3);
+    expect(player.fantasyPoints).toBe(72);
+  });
+
+  it('falls back to zero when the player is absent from the statsMap', () => {
+    const result = toExpFantasySquad(makeSquad(), undefined, new Map());
+    const player = result.players[0]!;
+    expect(player.goalsThisTournament).toBe(0);
+    expect(player.assistsThisTournament).toBe(0);
+    expect(player.fantasyPoints).toBe(0);
+  });
+
+  it('falls back to zero when no statsMap is provided (backward-compat)', () => {
+    const result = toExpFantasySquad(makeSquad());
+    const player = result.players[0]!;
+    expect(player.goalsThisTournament).toBe(0);
+    expect(player.assistsThisTournament).toBe(0);
+    expect(player.fantasyPoints).toBe(0);
   });
 });
