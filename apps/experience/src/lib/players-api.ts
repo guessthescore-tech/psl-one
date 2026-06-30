@@ -104,6 +104,16 @@ export interface PlayerMatchStats {
   didNotPlay: boolean;
 }
 
+export interface BatchPlayerSeasonStats {
+  seasonId: string;
+  players: Array<{
+    playerId: string;
+    goals: number;
+    assists: number;
+    fantasyPoints: number;
+  }>;
+}
+
 export interface TopPerformer {
   playerId: string;
   playerName: string;
@@ -112,6 +122,12 @@ export interface TopPerformer {
   goals: number;
   assists: number;
   minutesPlayed: number;
+  /**
+   * Fantasy points from settled gameweeks via FantasyGameweekScoringService
+   * (sum of FantasyPlayerGameweekScore.basePoints for settled gameweeks).
+   * Zero is the explicit empty-state when no gameweeks have been scored yet.
+   * This value is NOT computed from PlayerMatchStats.
+   */
   fantasyPoints: number;
   cleanSheets: number;
 }
@@ -125,6 +141,16 @@ export function getPlayerProfile(playerId: string): Promise<PlayerProfile> {
 export function getPlayerSeasonStats(playerId: string, seasonId: string): Promise<PlayerSeasonStats> {
   return publicFetch<PlayerSeasonStats>(
     `/players/${encodeURIComponent(playerId)}/season/${encodeURIComponent(seasonId)}/stats`,
+  );
+}
+
+export function getBatchPlayerSeasonStats(
+  playerIds: string[],
+  seasonId: string,
+): Promise<BatchPlayerSeasonStats> {
+  const qs = `playerIds=${encodeURIComponent(playerIds.join(','))}`;
+  return publicFetch<BatchPlayerSeasonStats>(
+    `/players/season/${encodeURIComponent(seasonId)}/stats/batch?${qs}`,
   );
 }
 

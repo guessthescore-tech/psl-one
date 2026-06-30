@@ -7731,18 +7731,217 @@ describe('/matches route contract', () => {
   });
 });
 
-// ─── Season-scoping regression guards ─────────────────────────────────────
+// ─── Data-mode guard regression guards ────────────────────────────────────
 
-describe('season-scoping: players page', () => {
-  it('passes seasonSlug to getPlayers() call', () => {
-    const content = read('app/players/page.tsx');
-    expect(content).toContain('seasonSlug');
-    expect(content).toContain('getPlayers');
+describe('data-mode guards: mock data must not appear in live path', () => {
+  it('motm page only accesses WC_FIXTURES inside the design-review else branch', () => {
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    // Isolate the component function body (skip import lines)
+    const bodyStart = content.indexOf('export default async function');
+    const body = content.substring(bodyStart);
+    const firstWcFixtureInBody = body.indexOf('WC_FIXTURES');
+    const firstElse = body.indexOf('} else {');
+    // WC_FIXTURES must not appear before the design-review else branch
+    expect(firstWcFixtureInBody).toBeGreaterThan(firstElse);
   });
 
-  it('fetches world-cup season before loading players', () => {
+  it('matches page does not use WC_FIXTURES at all — only live API', () => {
+    const content = read('app/matches/page.tsx');
+    expect(content).not.toContain('WC_FIXTURES');
+  });
+
+  it('fixtures page does not use WC_FIXTURES at all — only live API', () => {
+    const content = read('app/fixtures/page.tsx');
+    expect(content).not.toContain('WC_FIXTURES');
+  });
+});
+
+// ─── Live-path contract: /players, /stats/season, /matches/motm ───────────
+//
+// These tests lock three invariants that have caused beta drift before:
+//   1. Full-WC player views use getPlayers({seasonSlug}) as PRIMARY, not getPlayerPool.
+//   2. getPlayerPool is only a fallback (appears AFTER getPlayers in the Promise.all).
+//   3. WC_FIXTURES is confined to the design-review else branch in the motm page.
+//
+// If any invariant breaks these tests fail before the drift reaches beta.
+
+describe('live-path contract: /players page', () => {
+  it('calls getPlayers() with seasonSlug from the WC season', () => {
     const content = read('app/players/page.tsx');
+    expect(content).toContain('getPlayers');
+    expect(content).toContain('seasonSlug');
     expect(content).toContain('getWorldCupSeason');
+  });
+
+  it('getPlayers() appears before getPlayerPool() — pool is fallback, not primary', () => {
+    const content = read('app/players/page.tsx');
+    const getPlayersIdx = content.indexOf('getPlayers(');
+    const getPoolIdx = content.indexOf('getPlayerPool(');
+    expect(getPlayersIdx).toBeGreaterThan(-1);
+    expect(getPoolIdx).toBeGreaterThan(-1);
+    expect(getPlayersIdx).toBeLessThan(getPoolIdx);
+  });
+
+  it('uses footballPlayerToExpPlayer to map the full player list', () => {
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('footballPlayerToExpPlayer');
+  });
+
+  it('each fallback call in the Promise.all has .catch(() => [])', () => {
+    const content = read('app/players/page.tsx');
+    // Every individual call must be guarded so a single-source failure cannot blank the page
+    const poolCall = content.indexOf('getPlayerPool(');
+    const afterPool = content.substring(poolCall, poolCall + 60);
+    expect(afterPool).toContain('.catch');
+  });
+});
+
+describe('live-path contract: /stats/season page', () => {
+  it('calls getPlayers() with seasonSlug from the WC season', () => {
+    const content = read('app/stats/season/page.tsx');
+    expect(content).toContain('getPlayers');
+    expect(content).toContain('seasonSlug');
+    expect(content).toContain('getWorldCupSeason');
+  });
+
+  it('getPlayers() appears before getPlayerPool() — pool is fallback, not primary', () => {
+    const content = read('app/stats/season/page.tsx');
+    const getPlayersIdx = content.indexOf('getPlayers(');
+    const getPoolIdx = content.indexOf('getPlayerPool(');
+    expect(getPlayersIdx).toBeGreaterThan(-1);
+    expect(getPoolIdx).toBeGreaterThan(-1);
+    expect(getPlayersIdx).toBeLessThan(getPoolIdx);
+  });
+
+  it('footballPlayers.length guard appears before pool.length guard', () => {
+    const content = read('app/stats/season/page.tsx');
+    const footballGuard = content.indexOf('footballPlayers.length');
+    const poolGuard = content.indexOf('pool.length');
+    expect(footballGuard).toBeGreaterThan(-1);
+    expect(poolGuard).toBeGreaterThan(-1);
+    expect(footballGuard).toBeLessThan(poolGuard);
+  });
+
+  it('uses footballPlayerToExpPlayer for the full WC player list', () => {
+    const content = read('app/stats/season/page.tsx');
+    expect(content).toContain('footballPlayerToExpPlayer');
+  });
+
+  it('getPlayerPool call has .catch(() => []) so it cannot blank the page alone', () => {
+    const content = read('app/stats/season/page.tsx');
+    const poolCallIdx = content.indexOf('getPlayerPool(');
+    expect(poolCallIdx).toBeGreaterThan(-1);
+    const afterPoolCall = content.substring(poolCallIdx, poolCallIdx + 60);
+    expect(afterPoolCall).toContain('.catch');
+  });
+});
+
+describe('live-path contract: /matches/[fixtureId]/motm page', () => {
+  it('WC_FIXTURES is confined to the design-review else branch', () => {
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    const bodyStart = content.indexOf('export default async function');
+    const body = content.substring(bodyStart);
+    const firstWcFixture = body.indexOf('WC_FIXTURES');
+    const firstElse = body.indexOf('} else {');
+    expect(firstWcFixture).toBeGreaterThan(firstElse);
+  });
+
+  it('getMatchCentre is called in the live branch — before the design-review else', () => {
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    const bodyStart = content.indexOf('export default async function');
+    const body = content.substring(bodyStart);
+    const matchCentreIdx = body.indexOf('getMatchCentre(');
+    const firstElse = body.indexOf('} else {');
+    expect(matchCentreIdx).toBeGreaterThan(-1);
+    expect(matchCentreIdx).toBeLessThan(firstElse);
+  });
+
+  it('live path shows a graceful empty state when match-centre data is unavailable', () => {
+    const content = read('app/matches/[fixtureId]/motm/page.tsx');
+    expect(content).toContain('Man of the Match unavailable');
+  });
+});
+
+// ─── fantasyPoints product-definition contract ────────────────────────────────
+//
+// These tests lock the explicit product decision that `fantasyPoints` in the
+// fan-facing leaderboard comes from settled fantasy scoring (not match stats),
+// and that every consumer labels it correctly so it is not mistaken for a
+// football-performance metric.
+
+describe('fantasyPoints product-definition contract', () => {
+  it('stats/season tab that sorts by fantasyPoints is labelled "Fantasy Pts" — not "Best Ratings" or "Avg Rating"', () => {
+    const content = read('app/stats/season/page.tsx');
+    expect(content).toContain('Fantasy Pts');
+    expect(content).not.toContain('Best Ratings');
+    expect(content).not.toContain('Avg Rating');
+  });
+
+  it('players page SORT_LABELS entry for the fantasyPoints sort is "Fantasy Pts ↓" — not plain "Points ↓"', () => {
+    const content = read('app/players/page.tsx');
+    // Pin the exact SORT_LABELS entry so a rename to 'Points ↓' fails immediately.
+    expect(content).toContain("points: 'Fantasy Pts ↓'");
+    expect(content).not.toContain("points: 'Points ↓'");
+  });
+
+  it('SeasonLeaderboard helpers CATEGORY_LABELS["ratings"] is "Fantasy Pts"', () => {
+    const content = read('components/football/SeasonLeaderboard.helpers.ts');
+    // The key line must contain 'Fantasy Pts', not any rating label.
+    expect(content).toContain("ratings:     'Fantasy Pts'");
+    expect(content).not.toContain("'Avg Rating'");
+    expect(content).not.toContain("'Best Ratings'");
+    expect(content).not.toContain("'Ratings'");
+  });
+
+  it('buildLeaderboard ratings case does NOT divide fantasyPoints by 10', () => {
+    const content = read('components/football/SeasonLeaderboard.helpers.ts');
+    expect(content).not.toContain('fantasyPoints / 10');
+  });
+
+  it('buildLeaderboard cleanSheets case uses p.cleanSheets — not Math.floor(fantasyPoints / 20)', () => {
+    const content = read('components/football/SeasonLeaderboard.helpers.ts');
+    expect(content).toContain('p.cleanSheets');
+    expect(content).not.toContain('fantasyPoints / 20');
+  });
+
+  it('ExpPlayer interface carries cleanSheets as a real number field', () => {
+    const content = read('lib/data.ts');
+    const interfaceStart = content.indexOf('export interface ExpPlayer');
+    const interfaceEnd = content.indexOf('\n}', interfaceStart);
+    const block = content.slice(interfaceStart, interfaceEnd + 2);
+    expect(block).toContain('cleanSheets: number');
+  });
+
+  it('TopPerformer cleanSheets flows through live-mappers to ExpPlayer', () => {
+    const mappers = read('lib/live-mappers.ts');
+    // topPerformerToExpPlayer must use player.cleanSheets, not a hardcoded 0.
+    const fnStart = mappers.indexOf('export function topPerformerToExpPlayer');
+    const fnEnd = mappers.indexOf('\n}', fnStart);
+    const fn = mappers.slice(fnStart, fnEnd + 2);
+    expect(fn).toContain('cleanSheets');
+    expect(fn).not.toMatch(/cleanSheets:\s*0/);
+  });
+
+  it('TopPerformer.fantasyPoints JSDoc states settled scoring source and names FantasyGameweekScoringService', () => {
+    const content = read('lib/players-api.ts');
+    // Narrow to the TopPerformer interface block so the assertions prove the
+    // JSDoc is on the right field, not just present somewhere in the file.
+    const interfaceStart = content.indexOf('export interface TopPerformer');
+    const interfaceEnd = content.indexOf('\n}', interfaceStart);
+    const interfaceBlock = content.slice(interfaceStart, interfaceEnd + 2);
+    expect(interfaceBlock).toContain('FantasyGameweekScoringService');
+    expect(interfaceBlock).toContain('settled');
+    expect(interfaceBlock).toContain('fantasyPoints');
+    // Must not claim the value comes from PlayerMatchStats directly.
+    expect(interfaceBlock).not.toContain('PlayerMatchStats.rating');
+  });
+
+  it('listSeasonTopPerformers returns fantasyPoints in a flat TopPerformer[] — not nested topScorers/topAssists', () => {
+    // Shape guard re-stated here as a cross-file anchor to the backend contract.
+    const content = read('lib/players-api.ts');
+    expect(content).toContain("Promise<TopPerformer[]>");
+    expect(content).not.toContain('topScorers');
+    expect(content).not.toContain('topAssists');
   });
 });
 

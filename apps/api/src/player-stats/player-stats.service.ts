@@ -5,6 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FantasyGameweekScoringService } from '../fantasy/fantasy-gameweek-scoring.service';
 import {
   PlayerMatchStatsSource,
   PlayerMatchStatsStatus,
@@ -53,7 +54,10 @@ const PUBLISHED_STATUSES: PlayerMatchStatsStatus[] = [
 
 @Injectable()
 export class PlayerStatsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fantasyGameweekScoringService: FantasyGameweekScoringService,
+  ) {}
 
   private async resolveSeason(identifier: string) {
     const season = await this.prisma.season.findFirst({
@@ -154,8 +158,29 @@ export class PlayerStatsService {
 
     const aggregated = this._groupByPlayer(stats);
     const sorted = aggregated.sort((a, b) => b.goals - a.goals || b.assists - a.assists);
+    const top = sorted.slice(0, limit);
 
-    return { season, topScorers: sorted.slice(0, limit), topAssists: [...aggregated].sort((a, b) => b.assists - a.assists).slice(0, limit) };
+    const playerIds = top.map((r) => r.playerId);
+    const fantasyPointsMap = await this.fantasyGameweekScoringService.getPlayerSeasonFantasyPoints(
+      playerIds,
+      season.id,
+    );
+
+    // Return flat TopPerformer[] so the frontend can call .map() directly.
+    // Returning { season, topScorers, topAssists } caused topPerformers.map is not
+    // a function inside the outer try/catch, blanking the entire players and
+    // stats/season pages even when the football players endpoint had real data.
+    return top.map((row) => ({
+      playerId: row.playerId,
+      playerName: row.player?.name ?? '',
+      teamName: row.player?.team?.name ?? '',
+      position: row.player?.position ?? 'MIDFIELDER',
+      goals: row.goals,
+      assists: row.assists,
+      minutesPlayed: row.minutesPlayed,
+      fantasyPoints: fantasyPointsMap.get(row.playerId) ?? 0,
+      cleanSheets: row.cleanSheets,
+    }));
   }
 
   async listGameweekStats(gameweekId: string) {
@@ -416,6 +441,49 @@ export class PlayerStatsService {
       counts: { total, draft, verified, published, locked },
       finishedFixtures: fixtureCount,
       coveragePercent: fixtureCount > 0 ? Math.round((published + locked) / Math.max(fixtureCount * 22, 1) * 100) : 0,
+    };
+  }
+
+  // ── Batch fan-facing helpers ──────────────────────────────────────────
+
+  async batchGetPlayerSeasonStats(playerIds: string[], seasonId: string) {
+    const season = await this.resolveSeason(seasonId);
+
+    // Both queries are independent — run in parallel.
+    const [matchStatRows, fantasyPointsMap] = await Promise.all([
+      this.prisma.playerMatchStats.findMany({
+        where: {
+          playerId: { in: playerIds },
+          seasonId: season.id,
+          status: { in: PUBLISHED_STATUSES },
+        },
+        select: { playerId: true, goals: true, assists: true },
+      }),
+      this.fantasyGameweekScoringService.getPlayerSeasonFantasyPoints(playerIds, season.id),
+    ]);
+
+    // Aggregate match stats per player.
+    const matchMap = new Map<string, { goals: number; assists: number }>();
+    for (const s of matchStatRows) {
+      const acc = matchMap.get(s.playerId);
+      if (acc) {
+        acc.goals += s.goals;
+        acc.assists += s.assists;
+      } else {
+        matchMap.set(s.playerId, { goals: s.goals, assists: s.assists });
+      }
+    }
+
+    // Union: include players present in either source.
+    const allPlayerIds = new Set([...matchMap.keys(), ...fantasyPointsMap.keys()]);
+    return {
+      seasonId: season.id,
+      players: Array.from(allPlayerIds).map((playerId) => ({
+        playerId,
+        goals: matchMap.get(playerId)?.goals ?? 0,
+        assists: matchMap.get(playerId)?.assists ?? 0,
+        fantasyPoints: fantasyPointsMap.get(playerId) ?? 0,
+      })),
     };
   }
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, ParseIntPipe, DefaultValuePipe } from '@nestjs/common';
+import { Controller, Get, Param, Query, ParseIntPipe, DefaultValuePipe, BadRequestException } from '@nestjs/common';
 import { PlayerStatsService } from './player-stats.service';
 
 @Controller('players')
@@ -33,6 +33,18 @@ export class PlayerStatsController {
   @Get('fixtures/:fixtureId/stats')
   listFixtureStats(@Param('fixtureId') fixtureId: string) {
     return this.service.listFixtureStats(fixtureId);
+  }
+
+  // GET /players/season/:seasonId/stats/batch?playerIds=id1,id2,...
+  @Get('season/:seasonId/stats/batch')
+  batchGetPlayerSeasonStats(
+    @Param('seasonId') seasonId: string,
+    @Query('playerIds') rawIds: string,
+  ) {
+    if (!rawIds) throw new BadRequestException('playerIds query param is required');
+    const playerIds = rawIds.split(',').map((id) => id.trim()).filter(Boolean);
+    if (playerIds.length === 0) throw new BadRequestException('playerIds must contain at least one ID');
+    return this.service.batchGetPlayerSeasonStats(playerIds, seasonId);
   }
 
   // GET /players/season/:seasonId/top-performers

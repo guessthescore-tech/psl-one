@@ -4,17 +4,10 @@ import Image from 'next/image';
 import { motion, useReducedMotion } from 'framer-motion';
 import { clsx } from 'clsx';
 import { expImg } from '@/lib/data';
-import type { ExpPlayer } from '@/lib/data';
-
-export type LeaderboardCategory = 'goals' | 'assists' | 'ratings' | 'cleanSheets';
-
-interface LeaderboardEntry {
-  rank: number;
-  player: ExpPlayer;
-  value: number;
-  unit?: string;
-  trend?: 'up' | 'down' | 'same';
-}
+import { CATEGORY_LABELS } from './SeasonLeaderboard.helpers';
+import type { LeaderboardCategory, LeaderboardEntry } from './SeasonLeaderboard.helpers';
+export type { LeaderboardCategory, LeaderboardEntry } from './SeasonLeaderboard.helpers';
+export { CATEGORY_LABELS, buildLeaderboard } from './SeasonLeaderboard.helpers';
 
 interface SeasonLeaderboardProps {
   category: LeaderboardCategory;
@@ -22,13 +15,6 @@ interface SeasonLeaderboardProps {
 }
 
 const TREND_ICON: Record<string, string> = { up: '↑', down: '↓', same: '—' };
-
-const CATEGORY_LABELS: Record<LeaderboardCategory, string> = {
-  goals:       'Goals',
-  assists:     'Assists',
-  ratings:     'Avg Rating',
-  cleanSheets: 'Clean Sheets',
-};
 
 function getMedalClass(rank: number): string {
   if (rank === 1) return 'bg-yellow-400/20 text-yellow-400 border-yellow-400/40';
@@ -116,50 +102,3 @@ export function SeasonLeaderboard({ category, entries }: SeasonLeaderboardProps)
   );
 }
 
-/* ── Helper to build leaderboard entries from ExpPlayer[] ─────────── */
-export function buildLeaderboard(
-  players: ExpPlayer[],
-  category: LeaderboardCategory,
-): LeaderboardEntry[] {
-  let sorted: ExpPlayer[];
-
-  switch (category) {
-    case 'goals':
-      sorted = [...players].sort((a, b) => b.goalsThisTournament - a.goalsThisTournament);
-      return sorted.map((p, i) => ({
-        rank: i + 1,
-        player: p,
-        value: p.goalsThisTournament,
-        trend: i < 2 ? 'up' : 'same',
-      }));
-    case 'assists':
-      sorted = [...players].sort((a, b) => b.assistsThisTournament - a.assistsThisTournament);
-      return sorted.map((p, i) => ({
-        rank: i + 1,
-        player: p,
-        value: p.assistsThisTournament,
-        trend: i < 2 ? 'up' : 'same',
-      }));
-    case 'ratings':
-      sorted = [...players].sort((a, b) => b.fantasyPoints - a.fantasyPoints);
-      return sorted.map((p, i) => ({
-        rank: i + 1,
-        player: p,
-        value: Math.round((p.fantasyPoints / 10)) / 10,
-        unit: '',
-        trend: i < 2 ? 'up' : 'same',
-      }));
-    case 'cleanSheets':
-      sorted = [...players]
-        .filter((p) => p.position === 'GK' || p.position === 'DEF')
-        .sort((a, b) => b.fantasyPoints - a.fantasyPoints);
-      return sorted.map((p, i) => ({
-        rank: i + 1,
-        player: p,
-        value: Math.floor(p.fantasyPoints / 20),
-        trend: 'same',
-      }));
-    default:
-      return [];
-  }
-}

@@ -16,7 +16,7 @@ type SortOption = 'name' | 'points' | 'price' | 'goals';
 
 const SORT_LABELS: Record<SortOption, string> = {
   name: 'A–Z',
-  points: 'Points ↓',
+  points: 'Fantasy Pts ↓',
   price: 'Price ↓',
   goals: 'Goals ↓',
 };
@@ -57,6 +57,7 @@ export default function PlayersPage() {
                 return footballPlayerToExpPlayer(player, {
                   goalsThisTournament: perf?.goals ?? 0,
                   assistsThisTournament: perf?.assists ?? 0,
+                  cleanSheets: perf?.cleanSheets ?? 0,
                   fantasyPoints: perf?.fantasyPoints ?? 0,
                   fantasyPrice: priceMap.get(player.id),
                 });
@@ -67,6 +68,7 @@ export default function PlayersPage() {
                 return playerSummaryToExpPlayer(player, {
                   goalsThisTournament: perf?.goals ?? 0,
                   assistsThisTournament: perf?.assists ?? 0,
+                  cleanSheets: perf?.cleanSheets ?? 0,
                   fantasyPoints: perf?.fantasyPoints ?? 0,
                   fantasyPrice: priceMap.get(player.id),
                 });

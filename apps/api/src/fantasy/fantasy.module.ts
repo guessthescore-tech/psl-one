@@ -34,6 +34,6 @@ import { ActivityFeedModule } from '../activity-feed/activity-feed.module';
     FantasyGameweekScoringService,
   ],
   controllers: [FantasyController],
-  exports: [FantasyService],
+  exports: [FantasyService, FantasyGameweekScoringService],
 })
 export class FantasyModule {}

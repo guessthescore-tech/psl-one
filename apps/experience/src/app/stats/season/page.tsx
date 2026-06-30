@@ -5,15 +5,15 @@ import { clsx } from 'clsx';
 import { WC_PLAYERS, getDataMode, isLiveDataMode, type ExpPlayer } from '@/lib/data';
 import { SeasonLeaderboard, buildLeaderboard } from '@/components/football/SeasonLeaderboard';
 import type { LeaderboardCategory } from '@/components/football/SeasonLeaderboard';
-import { getWorldCupSeason } from '@/lib/football-api';
+import { getPlayers, getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
 import { getTopPerformers } from '@/lib/players-api';
-import { playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
+import { footballPlayerToExpPlayer, playerSummaryToExpPlayer, topPerformerToExpPlayer } from '@/lib/live-mappers';
 
 const TABS: Array<{ id: LeaderboardCategory; label: string; icon: string }> = [
   { id: 'goals',       label: 'Top Scorers',  icon: '⚽' },
   { id: 'assists',     label: 'Top Assists',  icon: '🅰️' },
-  { id: 'ratings',     label: 'Best Ratings', icon: '⭐' },
+  { id: 'ratings',     label: 'Fantasy Pts',  icon: '🏆' },
   { id: 'cleanSheets', label: 'Clean Sheets', icon: '🧤' },
 ];
 
@@ -34,9 +34,10 @@ export default function SeasonStatsPage() {
     async function load() {
       try {
         const season = await getWorldCupSeason();
-        const [pool, prices, topPerformers] = await Promise.all([
-          getPlayerPool(undefined, season.id),
-          getPlayerPrices(season.id),
+        const [footballPlayers, pool, prices, topPerformers] = await Promise.all([
+          getPlayers({ seasonSlug: season.slug }).catch(() => []),
+          getPlayerPool(undefined, season.id).catch(() => []),
+          getPlayerPrices(season.id).catch(() => []),
           getTopPerformers(season.id, 50).catch(() => []),
         ]);
         if (cancelled) return;
@@ -44,12 +45,24 @@ export default function SeasonStatsPage() {
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
         const performerMap = new Map(topPerformers.map((p) => [p.playerId, p]));
         const livePlayers =
-          pool.length > 0
+          footballPlayers.length > 0
+            ? footballPlayers.map((player) => {
+                const perf = performerMap.get(player.id);
+                return footballPlayerToExpPlayer(player, {
+                  goalsThisTournament: perf?.goals ?? 0,
+                  assistsThisTournament: perf?.assists ?? 0,
+                  cleanSheets: perf?.cleanSheets ?? 0,
+                  fantasyPoints: perf?.fantasyPoints ?? 0,
+                  fantasyPrice: priceMap.get(player.id),
+                });
+              })
+            : pool.length > 0
             ? pool.map((player) => {
                 const perf = performerMap.get(player.id);
                 return playerSummaryToExpPlayer(player, {
                   goalsThisTournament: perf?.goals ?? 0,
                   assistsThisTournament: perf?.assists ?? 0,
+                  cleanSheets: perf?.cleanSheets ?? 0,
                   fantasyPoints: perf?.fantasyPoints ?? 0,
                   fantasyPrice: priceMap.get(player.id),
                 });

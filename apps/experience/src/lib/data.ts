@@ -50,6 +50,8 @@ export interface ExpPlayer {
   imageKey: string;
   goalsThisTournament: number;
   assistsThisTournament: number;
+  /** Aggregated clean-sheet count from PlayerMatchStats.cleanSheet via the backend. */
+  cleanSheets: number;
   fantasyPoints: number;
   fantasyPrice: number;
 }
@@ -377,37 +379,37 @@ export const WC_PLAYERS: ExpPlayer[] = [
   {
     id: 'mbappe', name: 'Kylian Mbappe', position: 'FWD', club: FRANCE,
     nationality: 'French', imageKey: 'wc-player-mbappe-portrait',
-    goalsThisTournament: 5, assistsThisTournament: 2,
+    goalsThisTournament: 5, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 94, fantasyPrice: 12.5,
   },
   {
     id: 'vinicius', name: 'Vinicius Jr', position: 'FWD', club: BRAZIL,
     nationality: 'Brazilian', imageKey: 'wc-player-vinicius-portrait',
-    goalsThisTournament: 4, assistsThisTournament: 3,
+    goalsThisTournament: 4, assistsThisTournament: 3, cleanSheets: 0,
     fantasyPoints: 78, fantasyPrice: 11.5,
   },
   {
     id: 'bellingham', name: 'Jude Bellingham', position: 'MID', club: ENGLAND,
     nationality: 'English', imageKey: 'wc-player-bellingham-portrait',
-    goalsThisTournament: 3, assistsThisTournament: 4,
+    goalsThisTournament: 3, assistsThisTournament: 4, cleanSheets: 0,
     fantasyPoints: 72, fantasyPrice: 11.0,
   },
   {
     id: 'pedri', name: 'Pedri', position: 'MID', club: SPAIN,
     nationality: 'Spanish', imageKey: 'wc-player-pedri-portrait',
-    goalsThisTournament: 2, assistsThisTournament: 5,
+    goalsThisTournament: 2, assistsThisTournament: 5, cleanSheets: 0,
     fantasyPoints: 68, fantasyPrice: 10.0,
   },
   {
     id: 'ruben-dias', name: 'Ruben Dias', position: 'DEF', club: PORTUGAL,
     nationality: 'Portuguese', imageKey: 'wc-player-dias-portrait',
-    goalsThisTournament: 1, assistsThisTournament: 1,
+    goalsThisTournament: 1, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 55, fantasyPrice: 7.5,
   },
   {
     id: 'hakimi', name: 'Achraf Hakimi', position: 'DEF', club: MOROCCO,
     nationality: 'Moroccan', imageKey: 'wc-player-hakimi-portrait',
-    goalsThisTournament: 0, assistsThisTournament: 2,
+    goalsThisTournament: 0, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 38, fantasyPrice: 6.5,
   },
 ];
@@ -610,7 +612,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-maignan', name: 'Mike Maignan', position: 'GK', club: WC_CLUBS[0]!,
     nationality: 'French', imageKey: 'wc-player-maignan',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 22, fantasyPrice: 5.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 8, isUnavailable: false,
@@ -618,7 +620,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-neuer', name: 'Manuel Neuer', position: 'GK', club: WC_CLUBS[1]!,
     nationality: 'German', imageKey: 'wc-player-neuer',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 14, fantasyPrice: 5.0,
     squadRole: 'SUBSTITUTE', benchSlot: 1, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 2, isUnavailable: false,
@@ -626,7 +628,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-martinez', name: 'Emiliano Martinez', position: 'GK', club: WC_CLUBS[2]!,
     nationality: 'Argentine', imageKey: 'wc-player-emiliano',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 18, fantasyPrice: 5.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 6, isUnavailable: false,
@@ -634,7 +636,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-alisson', name: 'Alisson Becker', position: 'GK', club: WC_CLUBS[3]!,
     nationality: 'Brazilian', imageKey: 'wc-player-alisson',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 16, fantasyPrice: 5.0,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 4, isUnavailable: false,
@@ -642,7 +644,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-unai', name: 'Unai Simon', position: 'GK', club: WC_CLUBS[4]!,
     nationality: 'Spanish', imageKey: 'wc-player-unai',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 19, fantasyPrice: 5.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 10, isUnavailable: false,
@@ -650,7 +652,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-gk-pickford', name: 'Jordan Pickford', position: 'GK', club: WC_CLUBS[5]!,
     nationality: 'English', imageKey: 'wc-player-pickford',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 11, fantasyPrice: 4.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 1, isUnavailable: false,
@@ -659,7 +661,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-hernandez', name: 'Theo Hernandez', position: 'DEF', club: WC_CLUBS[0]!,
     nationality: 'French', imageKey: 'wc-player-hernandez',
-    goalsThisTournament: 1, assistsThisTournament: 2,
+    goalsThisTournament: 1, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 21, fantasyPrice: 7.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 9, isUnavailable: false,
@@ -667,7 +669,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-rudiger', name: 'Antonio Rudiger', position: 'DEF', club: WC_CLUBS[1]!,
     nationality: 'German', imageKey: 'wc-player-rudiger',
-    goalsThisTournament: 0, assistsThisTournament: 1,
+    goalsThisTournament: 0, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 13, fantasyPrice: 5.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 4, isUnavailable: false,
@@ -675,7 +677,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-molina', name: 'Nahuel Molina', position: 'DEF', club: WC_CLUBS[2]!,
     nationality: 'Argentine', imageKey: 'wc-player-molina',
-    goalsThisTournament: 1, assistsThisTournament: 1,
+    goalsThisTournament: 1, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 17, fantasyPrice: 6.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 7, isUnavailable: false,
@@ -683,7 +685,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-militao', name: 'Eder Militao', position: 'DEF', club: WC_CLUBS[3]!,
     nationality: 'Brazilian', imageKey: 'wc-player-militao',
-    goalsThisTournament: 0, assistsThisTournament: 0,
+    goalsThisTournament: 0, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 12, fantasyPrice: 5.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 3, isUnavailable: false,
@@ -691,7 +693,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-carvajal', name: 'Dani Carvajal', position: 'DEF', club: WC_CLUBS[4]!,
     nationality: 'Spanish', imageKey: 'wc-player-carvajal',
-    goalsThisTournament: 0, assistsThisTournament: 2,
+    goalsThisTournament: 0, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 19, fantasyPrice: 7.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 8, isUnavailable: false,
@@ -699,7 +701,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-dias', name: 'Ruben Dias', position: 'DEF', club: WC_CLUBS[6]!,
     nationality: 'Portuguese', imageKey: 'wc-player-dias-portrait',
-    goalsThisTournament: 1, assistsThisTournament: 1,
+    goalsThisTournament: 1, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 15, fantasyPrice: 7.5,
     squadRole: 'SUBSTITUTE', benchSlot: 2, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 4, isUnavailable: false,
@@ -707,7 +709,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-hakimi', name: 'Achraf Hakimi', position: 'DEF', club: WC_CLUBS[7]!,
     nationality: 'Moroccan', imageKey: 'wc-player-hakimi-portrait',
-    goalsThisTournament: 0, assistsThisTournament: 2,
+    goalsThisTournament: 0, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 14, fantasyPrice: 6.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 4, isUnavailable: false,
@@ -715,7 +717,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-def-saka', name: 'Bukayo Saka', position: 'DEF', club: WC_CLUBS[5]!,
     nationality: 'English', imageKey: 'wc-player-saka',
-    goalsThisTournament: 1, assistsThisTournament: 1,
+    goalsThisTournament: 1, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 17, fantasyPrice: 8.0,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 5, isUnavailable: false,
@@ -724,7 +726,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-griezmann', name: 'Antoine Griezmann', position: 'MID', club: WC_CLUBS[0]!,
     nationality: 'French', imageKey: 'wc-player-griezmann',
-    goalsThisTournament: 2, assistsThisTournament: 3,
+    goalsThisTournament: 2, assistsThisTournament: 3, cleanSheets: 0,
     fantasyPoints: 20, fantasyPrice: 9.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 11, isUnavailable: false,
@@ -732,7 +734,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-muller', name: 'Thomas Muller', position: 'MID', club: WC_CLUBS[1]!,
     nationality: 'German', imageKey: 'wc-player-muller',
-    goalsThisTournament: 1, assistsThisTournament: 2,
+    goalsThisTournament: 1, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 13, fantasyPrice: 8.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 5, isUnavailable: false,
@@ -740,7 +742,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-depay', name: 'Memphis Depay', position: 'MID', club: WC_CLUBS[2]!,
     nationality: 'Argentine', imageKey: 'wc-player-depay',
-    goalsThisTournament: 1, assistsThisTournament: 1,
+    goalsThisTournament: 1, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 15, fantasyPrice: 8.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 6, isUnavailable: false,
@@ -748,7 +750,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-casemiro', name: 'Casemiro', position: 'MID', club: WC_CLUBS[3]!,
     nationality: 'Brazilian', imageKey: 'wc-player-casemiro',
-    goalsThisTournament: 0, assistsThisTournament: 1,
+    goalsThisTournament: 0, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 10, fantasyPrice: 7.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 2, isUnavailable: false,
@@ -756,7 +758,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-pedri', name: 'Pedri', position: 'MID', club: WC_CLUBS[4]!,
     nationality: 'Spanish', imageKey: 'wc-player-pedri-portrait',
-    goalsThisTournament: 2, assistsThisTournament: 5,
+    goalsThisTournament: 2, assistsThisTournament: 5, cleanSheets: 0,
     fantasyPoints: 25, fantasyPrice: 10.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: true,
     gameweekPoints: 14, isUnavailable: false,
@@ -764,7 +766,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-bellingham', name: 'Jude Bellingham', position: 'MID', club: WC_CLUBS[5]!,
     nationality: 'English', imageKey: 'wc-player-bellingham-portrait',
-    goalsThisTournament: 3, assistsThisTournament: 4,
+    goalsThisTournament: 3, assistsThisTournament: 4, cleanSheets: 0,
     fantasyPoints: 23, fantasyPrice: 11.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 13, isUnavailable: false,
@@ -772,7 +774,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-bruno', name: 'Bruno Fernandes', position: 'MID', club: WC_CLUBS[6]!,
     nationality: 'Portuguese', imageKey: 'wc-player-bruno',
-    goalsThisTournament: 1, assistsThisTournament: 3,
+    goalsThisTournament: 1, assistsThisTournament: 3, cleanSheets: 0,
     fantasyPoints: 18, fantasyPrice: 9.0,
     squadRole: 'SUBSTITUTE', benchSlot: 3, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 6, isUnavailable: false,
@@ -780,7 +782,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-ziyech', name: 'Hakim Ziyech', position: 'MID', club: WC_CLUBS[7]!,
     nationality: 'Moroccan', imageKey: 'wc-player-ziyech',
-    goalsThisTournament: 0, assistsThisTournament: 2,
+    goalsThisTournament: 0, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 12, fantasyPrice: 7.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 4, isUnavailable: false,
@@ -788,7 +790,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-mid-gnabry', name: 'Serge Gnabry', position: 'MID', club: WC_CLUBS[1]!,
     nationality: 'German', imageKey: 'wc-player-gnabry',
-    goalsThisTournament: 1, assistsThisTournament: 0,
+    goalsThisTournament: 1, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 10, fantasyPrice: 7.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 3, isUnavailable: true,
@@ -797,7 +799,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-mbappe', name: 'Kylian Mbappe', position: 'FWD', club: WC_CLUBS[0]!,
     nationality: 'French', imageKey: 'wc-player-mbappe-portrait',
-    goalsThisTournament: 5, assistsThisTournament: 2,
+    goalsThisTournament: 5, assistsThisTournament: 2, cleanSheets: 0,
     fantasyPoints: 25, fantasyPrice: 13.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: true, isViceCaptain: false,
     gameweekPoints: 18, isUnavailable: false,
@@ -805,7 +807,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-vinicius', name: 'Vinicius Jr', position: 'FWD', club: WC_CLUBS[3]!,
     nationality: 'Brazilian', imageKey: 'wc-player-vinicius-portrait',
-    goalsThisTournament: 4, assistsThisTournament: 3,
+    goalsThisTournament: 4, assistsThisTournament: 3, cleanSheets: 0,
     fantasyPoints: 22, fantasyPrice: 11.5,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 15, isUnavailable: false,
@@ -813,7 +815,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-lewandowski', name: 'Robert Lewandowski', position: 'FWD', club: WC_CLUBS[4]!,
     nationality: 'Polish', imageKey: 'wc-player-lewandowski',
-    goalsThisTournament: 2, assistsThisTournament: 0,
+    goalsThisTournament: 2, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 16, fantasyPrice: 10.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 9, isUnavailable: false,
@@ -821,7 +823,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-kane', name: 'Harry Kane', position: 'FWD', club: WC_CLUBS[5]!,
     nationality: 'English', imageKey: 'wc-player-kane',
-    goalsThisTournament: 2, assistsThisTournament: 1,
+    goalsThisTournament: 2, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 17, fantasyPrice: 11.0,
     squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 10, isUnavailable: false,
@@ -829,7 +831,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-ronaldo', name: 'Cristiano Ronaldo', position: 'FWD', club: WC_CLUBS[6]!,
     nationality: 'Portuguese', imageKey: 'wc-player-ronaldo',
-    goalsThisTournament: 3, assistsThisTournament: 0,
+    goalsThisTournament: 3, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 19, fantasyPrice: 12.0,
     squadRole: 'SUBSTITUTE', benchSlot: 4, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 7, isUnavailable: false,
@@ -837,7 +839,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-lautaro', name: 'Lautaro Martinez', position: 'FWD', club: WC_CLUBS[2]!,
     nationality: 'Argentine', imageKey: 'wc-player-lautaro',
-    goalsThisTournament: 2, assistsThisTournament: 1,
+    goalsThisTournament: 2, assistsThisTournament: 1, cleanSheets: 0,
     fantasyPoints: 15, fantasyPrice: 9.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 6, isUnavailable: false,
@@ -845,7 +847,7 @@ export const FANTASY_MOCK_PLAYERS: ExpFantasyPlayer[] = [
   {
     id: 'fp-fwd-rashford', name: 'Marcus Rashford', position: 'FWD', club: WC_CLUBS[5]!,
     nationality: 'English', imageKey: 'wc-player-rashford',
-    goalsThisTournament: 1, assistsThisTournament: 0,
+    goalsThisTournament: 1, assistsThisTournament: 0, cleanSheets: 0,
     fantasyPoints: 11, fantasyPrice: 8.5,
     squadRole: 'SUBSTITUTE', benchSlot: null, isCaptain: false, isViceCaptain: false,
     gameweekPoints: 3, isUnavailable: false,

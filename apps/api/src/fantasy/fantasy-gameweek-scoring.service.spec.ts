@@ -208,6 +208,81 @@ function makeSettleService({
   );
 }
 
+// ── getPlayerSeasonFantasyPoints ─────────────────────────────────────────────
+//
+// Read-only aggregation method owned by the fantasy scoring boundary.
+// Exposes settled FantasyPlayerGameweekScore.basePoints (per player per season)
+// to other domains (e.g. player-stats) without those domains reaching into the
+// fantasy schema directly.
+
+function makePointsService(scoreRows: Array<{ playerId: string; gameweekId: string; basePoints: number }>) {
+  const mockPrisma = {
+    fantasyPlayerGameweekScore: {
+      findMany: vi.fn().mockResolvedValue(scoreRows),
+    },
+  } as unknown as PrismaService;
+
+  return new FantasyGameweekScoringService(
+    mockPrisma,
+    null as any,
+    null as any,
+    null as any,
+    null as any,
+    null as any,
+  );
+}
+
+describe('FantasyGameweekScoringService.getPlayerSeasonFantasyPoints', () => {
+  it('returns a Map of playerId → summed basePoints from settled gameweek scores', async () => {
+    const svc = makePointsService([
+      { playerId: 'p1', gameweekId: 'gw-1', basePoints: 42 },
+      { playerId: 'p2', gameweekId: 'gw-1', basePoints: 18 },
+    ]);
+    const result = await svc.getPlayerSeasonFantasyPoints(['p1', 'p2'], 'season-1');
+    expect(result.get('p1')).toBe(42);
+    expect(result.get('p2')).toBe(18);
+  });
+
+  it('sums basePoints across multiple gameweeks for the same player', async () => {
+    const svc = makePointsService([
+      { playerId: 'p1', gameweekId: 'gw-1', basePoints: 30 },
+      { playerId: 'p1', gameweekId: 'gw-2', basePoints: 18 },
+    ]);
+    const result = await svc.getPlayerSeasonFantasyPoints(['p1'], 'season-1');
+    expect(result.get('p1')).toBe(48);
+  });
+
+  it('returns an empty Map when no settled scores exist (pre-settlement)', async () => {
+    const svc = makePointsService([]);
+    const result = await svc.getPlayerSeasonFantasyPoints(['p1', 'p2'], 'season-1');
+    expect(result.size).toBe(0);
+  });
+
+  it('returns an empty Map immediately without querying when playerIds is empty', async () => {
+    const mockPrisma = {
+      fantasyPlayerGameweekScore: { findMany: vi.fn() },
+    } as unknown as PrismaService;
+    const svc = new FantasyGameweekScoringService(mockPrisma, null as any, null as any, null as any, null as any, null as any);
+    const result = await svc.getPlayerSeasonFantasyPoints([], 'season-1');
+    expect(result.size).toBe(0);
+    expect((mockPrisma as any).fantasyPlayerGameweekScore.findMany).not.toHaveBeenCalled();
+  });
+
+  it('issues a single findMany query for all player IDs combined', async () => {
+    const mockPrisma = {
+      fantasyPlayerGameweekScore: { findMany: vi.fn().mockResolvedValue([]) },
+    } as unknown as PrismaService;
+    const svc = new FantasyGameweekScoringService(mockPrisma, null as any, null as any, null as any, null as any, null as any);
+    await svc.getPlayerSeasonFantasyPoints(['p1', 'p2', 'p3'], 'season-1');
+    expect((mockPrisma as any).fantasyPlayerGameweekScore.findMany).toHaveBeenCalledOnce();
+    expect((mockPrisma as any).fantasyPlayerGameweekScore.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ playerId: { in: ['p1', 'p2', 'p3'] } }),
+      }),
+    );
+  });
+});
+
 describe('FantasyGameweekScoringService.settleGameweekFantasyScores preflight', () => {
   it('throws BadRequestException when there are no FINISHED fixtures', async () => {
     const svc = makeSettleService({ finishedFixtureIds: [], coveredFixtureIds: [] });

@@ -206,6 +206,24 @@ describe('FootballService', () => {
     expect(result[0]!.status).toBe('FINISHED');
   });
 
+  it('listFixtures always includes isPublished: true — ensures un-published drafts are never served publicly', async () => {
+    (prisma.fixture.findMany as Mock).mockResolvedValue([]);
+    await service.listFixtures({});
+    expect(prisma.fixture.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ isPublished: true }) }),
+    );
+  });
+
+  it('listFixtures with seasonSlug still includes isPublished: true', async () => {
+    (prisma.fixture.findMany as Mock).mockResolvedValue([]);
+    await service.listFixtures({ seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.fixture.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ isPublished: true }),
+      }),
+    );
+  });
+
   it('listFixtures applies status filter at query level', async () => {
     (prisma.fixture.findMany as Mock).mockResolvedValue([]);
     await service.listFixtures({ status: 'LIVE' });

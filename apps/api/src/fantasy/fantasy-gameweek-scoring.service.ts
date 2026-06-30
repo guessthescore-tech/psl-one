@@ -712,5 +712,31 @@ export class FantasyGameweekScoringService {
       return { ...r, rank };
     });
   }
+
+  // ── Cross-domain read helper ──────────────────────────────────────────
+  // Owned here because FantasyPlayerGameweekScore belongs to this boundary.
+  // Other domains call this instead of reaching into the table directly.
+
+  async getPlayerSeasonFantasyPoints(
+    playerIds: string[],
+    seasonId: string,
+  ): Promise<Map<string, number>> {
+    if (playerIds.length === 0) return new Map();
+
+    const rows = await this.prisma.fantasyPlayerGameweekScore.findMany({
+      where: {
+        playerId: { in: playerIds },
+        gameweek: { seasonId },
+      },
+      select: { playerId: true, gameweekId: true, basePoints: true },
+      distinct: ['playerId', 'gameweekId'],
+    });
+
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.playerId, (map.get(row.playerId) ?? 0) + row.basePoints);
+    }
+    return map;
+  }
 }
 

@@ -14,7 +14,6 @@ export default async function MotmPage({ params }: PageProps) {
   const mode = getDataMode();
 
   const useLive = isLiveDataMode(mode);
-  const fixture = WC_FIXTURES.find((f) => f.id === fixtureId) ?? WC_FIXTURES[0]!;
 
   let motmData: MotmData | null = null;
   if (useLive) {
@@ -61,6 +60,7 @@ export default async function MotmPage({ params }: PageProps) {
             imageKey: `wc-player-${topRated.player.id}`,
             goalsThisTournament: 0,
             assistsThisTournament: 0,
+            cleanSheets: 0,
             fantasyPoints: 0,
             fantasyPrice: defaultFantasyPriceForPosition(fantasyPosition),
           }
@@ -81,6 +81,7 @@ export default async function MotmPage({ params }: PageProps) {
       motmData = null;
     }
   } else {
+    const fixture = WC_FIXTURES.find((f) => f.id === fixtureId) ?? WC_FIXTURES[0]!;
     const mbappe = WC_PLAYERS.find((p) => p.id === 'mbappe') ?? WC_PLAYERS[0]!;
     motmData = {
       player: mbappe,

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PlayerStatsService } from './player-stats.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { FantasyGameweekScoringService } from '../fantasy/fantasy-gameweek-scoring.service';
 import { PlayerMatchStatsSource, PlayerMatchStatsStatus } from '@prisma/client';
 
 const SEASON = { id: 'season-1', name: 'PSL 2026/27', slug: 'psl-2026-27', status: 'UPCOMING' };
@@ -83,6 +84,7 @@ const makePrisma = () => ({
   },
   gameweek: {
     findUnique: vi.fn().mockResolvedValue(GAMEWEEK),
+    findMany: vi.fn().mockResolvedValue([GAMEWEEK]),
   },
   playerMatchStats: {
     findUnique: vi.fn().mockResolvedValue(makeStat()),
@@ -99,14 +101,23 @@ const makePrisma = () => ({
   },
 });
 
+const makeFantasyScoringService = () => ({
+  getPlayerSeasonFantasyPoints: vi.fn().mockResolvedValue(new Map<string, number>()),
+});
+
 describe('PlayerStatsService', () => {
   let service: PlayerStatsService;
   let prisma: ReturnType<typeof makePrisma>;
+  let fantasyScoringService: ReturnType<typeof makeFantasyScoringService>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma = makePrisma();
-    service = new PlayerStatsService(prisma as unknown as PrismaService);
+    fantasyScoringService = makeFantasyScoringService();
+    service = new PlayerStatsService(
+      prisma as unknown as PrismaService,
+      fantasyScoringService as unknown as FantasyGameweekScoringService,
+    );
   });
 
   // ── getPlayerSeasonStats ──────────────────────────────────────────────
@@ -170,23 +181,93 @@ describe('PlayerStatsService', () => {
   });
 
   // ── listSeasonTopPerformers ───────────────────────────────────────────
+  //
+  // CONTRACT: the fan-facing /players/season/:id/top-performers endpoint must
+  // return a flat TopPerformer[] array so the frontend can call .map() on it.
+  // Returning a nested object ({ season, topScorers, topAssists }) causes
+  // topPerformers.map is not a function to throw inside the outer try/catch,
+  // which blanks the entire players and stats/season pages even when
+  // footballPlayers has real data. The test below pins this contract.
 
   describe('listSeasonTopPerformers', () => {
-    it('returns season with topScorers and topAssists', async () => {
+    it('returns a flat array (not a nested object with topScorers/topAssists)', async () => {
       const result = await service.listSeasonTopPerformers('season-1', 10);
-      expect(result.season.id).toBe('season-1');
-      expect(result.topScorers).toBeDefined();
-      expect(result.topAssists).toBeDefined();
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('each element has the TopPerformer fan-facing shape', async () => {
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result.length).toBeGreaterThan(0);
+      const row = result[0]!;
+      expect(row).toHaveProperty('playerId');
+      expect(row).toHaveProperty('playerName');
+      expect(row).toHaveProperty('teamName');
+      expect(row).toHaveProperty('position');
+      expect(row).toHaveProperty('goals');
+      expect(row).toHaveProperty('assists');
+      expect(row).toHaveProperty('minutesPlayed');
+      expect(row).toHaveProperty('fantasyPoints');
+      expect(row).toHaveProperty('cleanSheets');
+    });
+
+    it('maps player data into flat string fields', async () => {
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result.length).toBeGreaterThan(0);
+      const row = result[0]!;
+      expect(row.playerId).toBe('player-1');
+      expect(row.playerName).toBe('Sipho Dlamini');
+      expect(row.teamName).toBe('Kaizer Chiefs');
+      expect(row.position).toBe('FORWARD');
+      expect(row.goals).toBe(1);
+    });
+
+    it('respects the limit parameter', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([makeStat(), makeStat({ id: 'stat-2', playerId: 'player-2' })]);
+      const result = await service.listSeasonTopPerformers('season-1', 1);
+      expect(result.length).toBeLessThanOrEqual(1);
     });
 
     it('resolves season slug', async () => {
       const result = await service.listSeasonTopPerformers('psl-2026-27', 10);
-      expect(result.season.id).toBe('season-1');
+      expect(Array.isArray(result)).toBe(true);
     });
 
     it('throws NotFoundException for unknown season', async () => {
       prisma.season.findFirst.mockResolvedValue(null);
       await expect(service.listSeasonTopPerformers('bad', 10)).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns empty array when no published stats exist', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result).toEqual([]);
+    });
+
+    it('fantasyPoints comes from FantasyGameweekScoringService — not hardcoded 0', async () => {
+      // If the scoring service returns 72 settled points for player-1, the
+      // top-performers endpoint must carry that value, not override it with 0.
+      fantasyScoringService.getPlayerSeasonFantasyPoints.mockResolvedValue(
+        new Map([['player-1', 72]]),
+      );
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.fantasyPoints).toBe(72);
+      expect(result[0]!.fantasyPoints).not.toBe(0);
+    });
+
+    it('fantasyPoints falls back to 0 when the scoring service has no entry for that player', async () => {
+      fantasyScoringService.getPlayerSeasonFantasyPoints.mockResolvedValue(new Map());
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result[0]!.fantasyPoints).toBe(0);
+    });
+
+    it('delegates fantasy-point lookup to FantasyGameweekScoringService (not a hardcoded literal)', async () => {
+      await service.listSeasonTopPerformers('season-1', 10);
+      expect(fantasyScoringService.getPlayerSeasonFantasyPoints).toHaveBeenCalledOnce();
+      expect(fantasyScoringService.getPlayerSeasonFantasyPoints).toHaveBeenCalledWith(
+        expect.arrayContaining(['player-1']),
+        'season-1',
+      );
     });
   });
 
@@ -456,6 +537,105 @@ describe('PlayerStatsService', () => {
         .mockResolvedValueOnce(0);  // draft
       const result = await service.checkPlayerStatsReadiness('season-1');
       expect(result.status).toBe('OK');
+    });
+  });
+
+  // ── batchGetPlayerSeasonStats ─────────────────────────────────────────
+
+  describe('batchGetPlayerSeasonStats', () => {
+    it('returns aggregated goals and assists for multiple players in a single query', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ playerId: 'player-1', goals: 2, assists: 1 }),
+        makeStat({ playerId: 'player-2', fixtureId: 'fixture-2', goals: 0, assists: 3 }),
+      ]);
+      const result = await service.batchGetPlayerSeasonStats(['player-1', 'player-2'], 'season-1');
+      expect(result.seasonId).toBe('season-1');
+      expect(result.players).toHaveLength(2);
+      const p1 = result.players.find((p) => p.playerId === 'player-1')!;
+      expect(p1.goals).toBe(2);
+      expect(p1.assists).toBe(1);
+      expect(p1.fantasyPoints).toBe(0);
+      const p2 = result.players.find((p) => p.playerId === 'player-2')!;
+      expect(p2.goals).toBe(0);
+      expect(p2.assists).toBe(3);
+    });
+
+    it('issues a single findMany call for all player IDs (not one per player)', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      await service.batchGetPlayerSeasonStats(['p1', 'p2', 'p3'], 'season-1');
+      expect(prisma.playerMatchStats.findMany).toHaveBeenCalledOnce();
+      expect(prisma.playerMatchStats.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            playerId: { in: ['p1', 'p2', 'p3'] },
+          }),
+        }),
+      );
+    });
+
+    it('returns an empty players array when no stats exist for the given player IDs', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      const result = await service.batchGetPlayerSeasonStats(['unknown-p1'], 'season-1');
+      expect(result.players).toHaveLength(0);
+    });
+
+    it('aggregates multiple match rows for the same player across fixtures', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ playerId: 'player-1', fixtureId: 'fix-1', goals: 1, assists: 0 }),
+        makeStat({ playerId: 'player-1', fixtureId: 'fix-2', goals: 2, assists: 1 }),
+      ]);
+      const result = await service.batchGetPlayerSeasonStats(['player-1'], 'season-1');
+      expect(result.players).toHaveLength(1);
+      expect(result.players[0]!.goals).toBe(3);
+      expect(result.players[0]!.assists).toBe(1);
+    });
+
+    it('throws NotFoundException for unknown season', async () => {
+      prisma.season.findFirst.mockResolvedValue(null);
+      await expect(service.batchGetPlayerSeasonStats(['p1'], 'bad-season')).rejects.toThrow(NotFoundException);
+    });
+
+    it('returns real fantasyPoints from settled FantasyPlayerGameweekScore.basePoints via the fantasy boundary', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ playerId: 'player-1', goals: 2, assists: 1 }),
+      ]);
+      fantasyScoringService.getPlayerSeasonFantasyPoints.mockResolvedValue(
+        new Map([['player-1', 42]]),
+      );
+      const result = await service.batchGetPlayerSeasonStats(['player-1'], 'season-1');
+      const p1 = result.players.find((p) => p.playerId === 'player-1')!;
+      expect(p1.fantasyPoints).toBe(42);
+      expect(p1.fantasyPoints).not.toBe(0);
+    });
+
+    it('sums basePoints across multiple settled gameweeks for the same player', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      fantasyScoringService.getPlayerSeasonFantasyPoints.mockResolvedValue(
+        new Map([['player-1', 48]]),
+      );
+      const result = await service.batchGetPlayerSeasonStats(['player-1'], 'season-1');
+      const p1 = result.players.find((p) => p.playerId === 'player-1')!;
+      expect(p1.fantasyPoints).toBe(48);
+    });
+
+    it('returns fantasyPoints: 0 for players with no settled gameweek scores (pre-settlement)', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ playerId: 'player-1', goals: 1, assists: 0 }),
+      ]);
+      // Default mock already returns empty Map — no fantasy scores yet
+      const result = await service.batchGetPlayerSeasonStats(['player-1'], 'season-1');
+      const p1 = result.players.find((p) => p.playerId === 'player-1')!;
+      expect(p1.fantasyPoints).toBe(0);
+    });
+
+    it('delegates fantasy point lookup to FantasyGameweekScoringService (not prisma directly)', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      await service.batchGetPlayerSeasonStats(['p1', 'p2', 'p3'], 'season-1');
+      expect(fantasyScoringService.getPlayerSeasonFantasyPoints).toHaveBeenCalledOnce();
+      expect(fantasyScoringService.getPlayerSeasonFantasyPoints).toHaveBeenCalledWith(
+        ['p1', 'p2', 'p3'],
+        'season-1',
+      );
     });
   });
 });

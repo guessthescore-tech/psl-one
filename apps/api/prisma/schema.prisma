@@ -1218,6 +1218,7 @@ model FantasyPlayerGameweekScore {
   gameweekScore FantasyGameweekScore @relation(fields: [gameweekScoreId], references: [id])
 
   @@unique([fantasyTeamId, playerId, gameweekId])
+  @@index([playerId, gameweekId])
   @@map("fantasy_player_gameweek_scores")
 }
 

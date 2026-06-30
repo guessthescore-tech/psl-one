@@ -74,7 +74,7 @@ export function liveTeamToExpClub(
 
 export function playerSummaryToExpPlayer(
   player: PlayerSummary,
-  overrides: Partial<Pick<ExpPlayer, 'goalsThisTournament' | 'assistsThisTournament' | 'fantasyPoints' | 'fantasyPrice'>> = {},
+  overrides: Partial<Pick<ExpPlayer, 'goalsThisTournament' | 'assistsThisTournament' | 'cleanSheets' | 'fantasyPoints' | 'fantasyPrice'>> = {},
 ): ExpPlayer {
   const position = positionToExp(player.position);
   return {
@@ -86,6 +86,7 @@ export function playerSummaryToExpPlayer(
     imageKey: `wc-player-${player.id}`,
     goalsThisTournament: overrides.goalsThisTournament ?? 0,
     assistsThisTournament: overrides.assistsThisTournament ?? 0,
+    cleanSheets: overrides.cleanSheets ?? 0,
     fantasyPoints: overrides.fantasyPoints ?? 0,
     fantasyPrice: overrides.fantasyPrice ?? defaultFantasyPriceForPosition(position),
   };
@@ -93,7 +94,7 @@ export function playerSummaryToExpPlayer(
 
 export function footballPlayerToExpPlayer(
   player: FootballPlayer,
-  overrides: Partial<Pick<ExpPlayer, 'goalsThisTournament' | 'assistsThisTournament' | 'fantasyPoints' | 'fantasyPrice'>> = {},
+  overrides: Partial<Pick<ExpPlayer, 'goalsThisTournament' | 'assistsThisTournament' | 'cleanSheets' | 'fantasyPoints' | 'fantasyPrice'>> = {},
 ): ExpPlayer {
   const position = positionToExp(player.position);
   const team = player.team ?? {
@@ -111,6 +112,7 @@ export function footballPlayerToExpPlayer(
     imageKey: `wc-player-${player.id}`,
     goalsThisTournament: overrides.goalsThisTournament ?? 0,
     assistsThisTournament: overrides.assistsThisTournament ?? 0,
+    cleanSheets: overrides.cleanSheets ?? 0,
     fantasyPoints: overrides.fantasyPoints ?? 0,
     fantasyPrice: overrides.fantasyPrice ?? defaultFantasyPriceForPosition(position),
   };
@@ -140,6 +142,7 @@ export function topPerformerToExpPlayer(
     imageKey: `wc-player-${player.playerId}`,
     goalsThisTournament: player.goals,
     assistsThisTournament: player.assists,
+    cleanSheets: player.cleanSheets,
     fantasyPoints: player.fantasyPoints,
     fantasyPrice: defaultFantasyPriceForPosition(position),
   };
@@ -160,6 +163,7 @@ export function playerProfileToExpPlayer(profile: PlayerProfile, fantasyPrice?: 
     imageKey: `wc-player-${profile.id}`,
     goalsThisTournament: profile.playerStats?.[0]?.goals ?? 0,
     assistsThisTournament: profile.playerStats?.[0]?.assists ?? 0,
+    cleanSheets: 0,
     fantasyPoints: 0,
     fantasyPrice: fantasyPrice ?? defaultFantasyPriceForPosition(position),
   };
