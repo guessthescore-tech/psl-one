@@ -42,11 +42,7 @@ export default function FantasyLandingPage() {
         ]);
         if (cancelled) return;
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
-        const squad = toExpFantasySquad(liveTeam, priceMap);
-        setTeam({
-          ...squad,
-          transfersRemaining: transferStatus.freeTransfersAvailable,
-        });
+        setTeam(toExpFantasySquad(liveTeam, priceMap, undefined, transferStatus.freeTransfersAvailable));
         setPageState('has-team');
       } catch (err) {
         if (cancelled) return;

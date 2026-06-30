@@ -76,6 +76,7 @@ export function toExpFantasySquad(
   team: FantasyTeam,
   priceMap?: Map<string, number>,
   statsMap?: Map<string, PlayerStatsSummary>,
+  freeTransfers?: number,
 ) {
   const players = team.players.map((tp, index) => {
     const position = POSITION_ABBR[tp.player.position];
@@ -115,7 +116,7 @@ export function toExpFantasySquad(
     teamName: team.name,
     totalPoints: team.totalPoints,
     gameweekPoints: 0,
-    transfersRemaining: 0,
+    transfersRemaining: freeTransfers ?? 0,
     players,
   };
 }

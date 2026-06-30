@@ -76,7 +76,7 @@ export default function TeamPage() {
           }),
         );
 
-        const liveTeam = toExpFantasySquad(team, priceMap, statsMap);
+        const liveTeam = toExpFantasySquad(team, priceMap, statsMap, transferStatus.freeTransfersAvailable);
         if (transferStatus.gameweekId) {
           getGameweekScore(transferStatus.gameweekId)
             .then((score) => {

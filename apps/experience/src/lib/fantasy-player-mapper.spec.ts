@@ -55,6 +55,29 @@ describe('fantasy-player-mapper pricing', () => {
   });
 });
 
+describe('fantasy-player-mapper transfersRemaining', () => {
+  const makeSquad = () => ({
+    id: 'team-1',
+    name: 'My Team',
+    formation: '4-3-3',
+    totalPoints: 10,
+    players: [],
+  });
+
+  it('sets transfersRemaining from the freeTransfers param', () => {
+    expect(toExpFantasySquad(makeSquad(), undefined, undefined, 2).transfersRemaining).toBe(2);
+  });
+
+  it('defaults transfersRemaining to 0 when freeTransfers is not provided', () => {
+    // Regression guard: hardcoded 0 must never silently survive when real data is available.
+    expect(toExpFantasySquad(makeSquad()).transfersRemaining).toBe(0);
+  });
+
+  it('passes 0 explicitly without falling back', () => {
+    expect(toExpFantasySquad(makeSquad(), undefined, undefined, 0).transfersRemaining).toBe(0);
+  });
+});
+
 describe('fantasy-player-mapper stats hydration', () => {
   const makeSquad = () => ({
     id: 'team-1',
