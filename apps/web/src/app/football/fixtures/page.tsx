@@ -54,9 +54,15 @@ export default function FixturesPage() {
 
   useEffect(() => {
     setLoading(true);
-    footballClient.listFixtures(statusFilter ? { status: statusFilter } : undefined)
+    footballClient.getActiveSeason()
+      .then((season) =>
+        footballClient.listFixtures({
+          seasonSlug: season.slug,
+          ...(statusFilter ? { status: statusFilter } : {}),
+        }),
+      )
       .then(setFixtures)
-      .catch(() => setError('Could not load fixtures'))
+      .catch(() => setError('Could not load fixtures for the active season'))
       .finally(() => setLoading(false));
   }, [statusFilter]);
 

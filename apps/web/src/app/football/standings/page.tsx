@@ -51,9 +51,10 @@ export default function StandingsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    footballClient.listStandings()
+    footballClient.getActiveSeason()
+      .then((season) => footballClient.listStandings({ seasonSlug: season.slug }))
       .then(setGroups)
-      .catch(() => setError('Could not load standings'))
+      .catch(() => setError('Could not load standings for the active season'))
       .finally(() => setLoading(false));
   }, []);
 

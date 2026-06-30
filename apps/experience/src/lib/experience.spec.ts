@@ -7731,6 +7731,21 @@ describe('/matches route contract', () => {
   });
 });
 
+// ─── Season-scoping regression guards ─────────────────────────────────────
+
+describe('season-scoping: players page', () => {
+  it('passes seasonSlug to getPlayers() call', () => {
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('seasonSlug');
+    expect(content).toContain('getPlayers');
+  });
+
+  it('fetches world-cup season before loading players', () => {
+    const content = read('app/players/page.tsx');
+    expect(content).toContain('getWorldCupSeason');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

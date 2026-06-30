@@ -16,7 +16,10 @@ export default function EditProfilePage() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    Promise.all([profileClient.getProfile(), footballClient.listTeams()])
+    Promise.all([
+      profileClient.getProfile(),
+      footballClient.getActiveSeason().then((s) => footballClient.listTeams({ seasonSlug: s.slug })),
+    ])
       .then(([p, t]) => { setProfile(p); setTeams(t); })
       .catch(() => router.push('/login'))
       .finally(() => setLoading(false));

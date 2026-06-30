@@ -56,14 +56,8 @@ export class FootballController {
   }
 
   @Get('teams')
-  listTeams(
-    @Query('competitionSlug') competitionSlug?: string,
-    @Query('seasonSlug') seasonSlug?: string,
-  ) {
-    const filters: { competitionSlug?: string; seasonSlug?: string } = {};
-    if (competitionSlug) filters.competitionSlug = competitionSlug;
-    if (seasonSlug) filters.seasonSlug = seasonSlug;
-    return this.footballService.listTeams(filters);
+  listTeams(@Query('seasonSlug') seasonSlug?: string) {
+    return this.footballService.listTeams(seasonSlug ? { seasonSlug } : {});
   }
 
   @Get('teams/:slug/players')
@@ -77,9 +71,13 @@ export class FootballController {
   }
 
   @Get('players')
-  listPlayers(@Query('teamSlug') teamSlug?: string) {
-    const filters: { teamSlug?: string } = {};
+  listPlayers(
+    @Query('teamSlug') teamSlug?: string,
+    @Query('seasonSlug') seasonSlug?: string,
+  ) {
+    const filters: { teamSlug?: string; seasonSlug?: string } = {};
     if (teamSlug) filters.teamSlug = teamSlug;
+    if (seasonSlug) filters.seasonSlug = seasonSlug;
     return this.footballService.listPlayers(filters);
   }
 
@@ -90,14 +88,12 @@ export class FootballController {
 
   @Get('fixtures')
   listFixtures(
-    @Query('competitionSlug') competitionSlug?: string,
     @Query('seasonSlug') seasonSlug?: string,
     @Query('teamSlug') teamSlug?: string,
     @Query('status') status?: string,
     @Query('group') group?: string,
   ) {
-    const filters: { competitionSlug?: string; seasonSlug?: string; teamSlug?: string; status?: string; group?: string } = {};
-    if (competitionSlug) filters.competitionSlug = competitionSlug;
+    const filters: { seasonSlug?: string; teamSlug?: string; status?: string; group?: string } = {};
     if (seasonSlug) filters.seasonSlug = seasonSlug;
     if (teamSlug) filters.teamSlug = teamSlug;
     if (status) filters.status = status;
@@ -157,12 +153,10 @@ export class FootballController {
 
   @Get('standings')
   listStandings(
-    @Query('competitionSlug') competitionSlug?: string,
     @Query('seasonSlug') seasonSlug?: string,
     @Query('group') group?: string,
   ) {
-    const filters: { competitionSlug?: string; seasonSlug?: string; group?: string } = {};
-    if (competitionSlug) filters.competitionSlug = competitionSlug;
+    const filters: { seasonSlug?: string; group?: string } = {};
     if (seasonSlug) filters.seasonSlug = seasonSlug;
     if (group) filters.group = group;
     return this.footballService.listStandings(filters);

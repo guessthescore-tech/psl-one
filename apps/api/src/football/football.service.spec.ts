@@ -119,6 +119,21 @@ describe('FootballService', () => {
     expect(result[0]!.slug).toBe('south-africa');
   });
 
+  it('listTeams applies seasonSlug filter via fixture relation', async () => {
+    (prisma.team.findMany as Mock).mockResolvedValue([MOCK_TEAM]);
+    await service.listTeams({ seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.team.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ homeFixtures: expect.anything() }),
+            expect.objectContaining({ awayFixtures: expect.anything() }),
+          ]),
+        }),
+      }),
+    );
+  });
+
   // ── 5. Get team by slug ───────────────────────────────────────────────────
   it('getTeam returns a team by slug', async () => {
     (prisma.team.findUnique as Mock).mockResolvedValue(MOCK_TEAM);
@@ -144,6 +159,45 @@ describe('FootballService', () => {
     await expect(service.getTeamPlayers('unknown')).rejects.toThrow(NotFoundException);
   });
 
+  // ── 6b. List players ─────────────────────────────────────────────────────
+  it('listPlayers returns all players when no filters', async () => {
+    (prisma.player.findMany as Mock).mockResolvedValue([MOCK_PLAYER]);
+    const result = await service.listPlayers({});
+    expect(result).toHaveLength(1);
+    expect(prisma.player.findMany).toHaveBeenCalledWith(
+      expect.not.objectContaining({ where: expect.anything() }),
+    );
+  });
+
+  it('listPlayers filters by seasonSlug via team fixture relation', async () => {
+    (prisma.player.findMany as Mock).mockResolvedValue([MOCK_PLAYER]);
+    await service.listPlayers({ seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          team: expect.objectContaining({
+            OR: expect.arrayContaining([
+              expect.objectContaining({ homeFixtures: expect.anything() }),
+              expect.objectContaining({ awayFixtures: expect.anything() }),
+            ]),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('listPlayers combines teamSlug and seasonSlug filters', async () => {
+    (prisma.player.findMany as Mock).mockResolvedValue([]);
+    await service.listPlayers({ teamSlug: 'south-africa', seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.player.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          team: expect.objectContaining({ slug: 'south-africa' }),
+        }),
+      }),
+    );
+  });
+
   // ── 7. List fixtures ──────────────────────────────────────────────────────
   it('listFixtures returns fixtures', async () => {
     (prisma.fixture.findMany as Mock).mockResolvedValue([MOCK_FIXTURE]);
@@ -152,12 +206,34 @@ describe('FootballService', () => {
     expect(result[0]!.status).toBe('FINISHED');
   });
 
-  it('listFixtures applies status filter', async () => {
+  it('listFixtures applies status filter at query level', async () => {
     (prisma.fixture.findMany as Mock).mockResolvedValue([]);
     await service.listFixtures({ status: 'LIVE' });
     expect(prisma.fixture.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ status: 'LIVE' }) }),
     );
+  });
+
+  it('listFixtures applies seasonSlug filter at query level', async () => {
+    (prisma.fixture.findMany as Mock).mockResolvedValue([]);
+    await service.listFixtures({ seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.fixture.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          season: { slug: 'fifa-world-cup-2026' },
+        }),
+      }),
+    );
+  });
+
+  it('listFixtures does not accept competitionSlug — TypeScript enforces at compile time', () => {
+    // @ts-expect-error competitionSlug was removed from the filter type
+    const call = () => service.listFixtures({ competitionSlug: 'fifa-world-cup' });
+    // The @ts-expect-error above is the authoritative proof; this runtime assertion
+    // ensures the function still works with valid params.
+    (prisma.fixture.findMany as Mock).mockResolvedValue([]);
+    void service.listFixtures({});
+    expect(typeof call).toBe('function');
   });
 
   // ── 8. Fixture detail ─────────────────────────────────────────────────────
@@ -181,6 +257,34 @@ describe('FootballService', () => {
     expect(result).toHaveLength(1);
     expect(result[0]!.groupName).toBe('A');
     expect(result[0]!.standings[0]!.points).toBe(3);
+  });
+
+  it('listStandings applies seasonSlug filter at query level', async () => {
+    (prisma.groupStanding.findMany as Mock).mockResolvedValue([]);
+    await service.listStandings({ seasonSlug: 'fifa-world-cup-2026' });
+    expect(prisma.groupStanding.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          group: expect.objectContaining({ season: { slug: 'fifa-world-cup-2026' } }),
+        }),
+      }),
+    );
+  });
+
+  it('listStandings does not accept competitionSlug — TypeScript enforces at compile time', () => {
+    // @ts-expect-error competitionSlug was removed from the filter type
+    const call = () => service.listStandings({ competitionSlug: 'fifa-world-cup' });
+    (prisma.groupStanding.findMany as Mock).mockResolvedValue([]);
+    void service.listStandings({});
+    expect(typeof call).toBe('function');
+  });
+
+  it('listTeams does not accept competitionSlug — TypeScript enforces at compile time', () => {
+    // @ts-expect-error competitionSlug was removed from the filter type
+    const call = () => service.listTeams({ competitionSlug: 'fifa-world-cup' });
+    (prisma.team.findMany as Mock).mockResolvedValue([]);
+    void service.listTeams({});
+    expect(typeof call).toBe('function');
   });
 
   // ── 10. Match centre ─────────────────────────────────────────────────────

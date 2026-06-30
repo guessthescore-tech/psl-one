@@ -158,6 +158,13 @@ sed -i "s|^MIGRATION_IMAGE_URI=.*|MIGRATION_IMAGE_URI=${REGISTRY}/psl-one-beta-a
 sed -i "s|^WEB_IMAGE_URI=.*|WEB_IMAGE_URI=${REGISTRY}/psl-one-beta-web:${NEW_SHA}|" .env.beta
 sed -i "s|^GIT_SHA=.*|GIT_SHA=${NEW_SHA}|" .env.beta
 
+# Refresh the repo checkout to the exact deployed SHA so the mounted Caddyfile
+# and other runtime files match the images being deployed.
+git fetch origin main --quiet
+git checkout --detach "${NEW_SHA}"
+test "$(git rev-parse HEAD)" = "${NEW_SHA}"
+test ! -f infra/beta/Caddyfile || ! grep -q 'auto_https off' infra/beta/Caddyfile
+
 docker compose -f compose.beta.yaml --env-file .env.beta pull api migrate web
 docker compose -f compose.beta.yaml --env-file .env.beta stop api web caddy
 # Migration (failure stops here intentionally — do not add || true):

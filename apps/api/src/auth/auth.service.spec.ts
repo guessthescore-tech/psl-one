@@ -237,24 +237,25 @@ describe('AuthService', () => {
     );
   });
 
-  // ── 9. Password reset: raw token delivered to notifier, not to console ────
-  it('requestPasswordReset passes raw token to notifier, never logs it', async () => {
+  // ── 9. Password reset: reset URL delivered via emailProvider, token never logged ────
+  it('requestPasswordReset delivers reset URL via emailProvider, never logs the raw token', async () => {
     const consoleSpy = vi.spyOn(console, 'log');
     (prisma.user.findUnique as Mock).mockResolvedValue({ id: 'uid-1', isActive: true });
 
     await authService.requestPasswordReset('fan@pslone.co.za');
 
-    // Notifier was called with the email and some token
-    expect(notifier.sendPasswordResetEmail).toHaveBeenCalledWith(
+    // emailProvider was called with the email and a URL containing the token
+    expect(emailProvider.sendPasswordReset).toHaveBeenCalledWith(
       'fan@pslone.co.za',
-      expect.any(String),
+      expect.stringContaining('/reset-password?token='),
     );
 
     // The raw token must not appear in any console.log call
-    const rawTokenPassed = (notifier.sendPasswordResetEmail as Mock).mock.calls[0]?.[1] as string;
-    expect(rawTokenPassed.length).toBeGreaterThan(0);
+    const resetUrl = (emailProvider.sendPasswordReset as Mock).mock.calls[0]?.[1] as string;
+    const rawToken = new URL(resetUrl).searchParams.get('token') as string;
+    expect(rawToken.length).toBeGreaterThan(0);
     const logCalls = consoleSpy.mock.calls.flat().join(' ');
-    expect(logCalls).not.toContain(rawTokenPassed);
+    expect(logCalls).not.toContain(rawToken);
 
     consoleSpy.mockRestore();
   });
@@ -269,11 +270,14 @@ describe('AuthService', () => {
       data: { tokenHash: string };
     };
     const storedHash = createCall.data.tokenHash;
-    const rawTokenPassed = (notifier.sendPasswordResetEmail as Mock).mock.calls[0]?.[1] as string;
+
+    // Extract raw token from the reset URL passed to emailProvider
+    const resetUrl = (emailProvider.sendPasswordReset as Mock).mock.calls[0]?.[1] as string;
+    const rawToken = new URL(resetUrl).searchParams.get('token') as string;
 
     // The value stored is the SHA-256 hash of the raw token, not the token itself
-    expect(storedHash).toBe(createHash('sha256').update(rawTokenPassed).digest('hex'));
-    expect(storedHash).not.toBe(rawTokenPassed);
+    expect(storedHash).toBe(createHash('sha256').update(rawToken).digest('hex'));
+    expect(storedHash).not.toBe(rawToken);
   });
 
   // ── 11. Password reset request does not enumerate ─────────────────────────
@@ -284,7 +288,7 @@ describe('AuthService', () => {
       authService.requestPasswordReset('ghost@nowhere.co.za'),
     ).resolves.toBeUndefined();
 
-    expect(notifier.sendPasswordResetEmail).not.toHaveBeenCalled();
+    expect(emailProvider.sendPasswordReset).not.toHaveBeenCalled();
 
     expect(prisma.authAuditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({

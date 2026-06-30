@@ -1,12 +1,49 @@
 import { z } from 'zod';
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production', 'staging']).default('development'),
-  PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-  DATABASE_URL: z.string().url(),
-  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
-  CORS_ORIGINS: z.string().optional(),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(['development', 'test', 'production', 'staging']).default('development'),
+    PORT: z.coerce.number().int().min(1).max(65535).default(4000),
+    DATABASE_URL: z.string().url(),
+    JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+    CORS_ORIGINS: z.string().optional(),
+
+    // Required for building email verification and password-reset links
+    APP_BASE_URL: z
+      .string()
+      .url('APP_BASE_URL must be a valid URL — e.g. https://beta.pslone.co.za'),
+
+    // Email provider: smtp | console | null  (console = dev-only, null = silent discard)
+    EMAIL_PROVIDER: z.enum(['smtp', 'console', 'null']).optional(),
+
+    // SMTP — all five are required when EMAIL_PROVIDER=smtp (validated below)
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.string().optional(),
+    SMTP_SECURE: z.string().optional(),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    SMTP_FROM: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.EMAIL_PROVIDER === 'smtp') {
+      const required = [
+        'SMTP_HOST',
+        'SMTP_PORT',
+        'SMTP_SECURE',
+        'SMTP_USER',
+        'SMTP_PASSWORD',
+      ] as const;
+      for (const key of required) {
+        if (!data[key]) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: [key],
+            message: `${key} is required when EMAIL_PROVIDER=smtp`,
+          });
+        }
+      }
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 

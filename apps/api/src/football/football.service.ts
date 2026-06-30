@@ -88,7 +88,7 @@ export class FootballService {
     return { activeSeason: active, upcomingSeasons: upcoming };
   }
 
-  listTeams(filters: { competitionSlug?: string; seasonSlug?: string }) {
+  listTeams(filters: { seasonSlug?: string }) {
     return this.prisma.team.findMany({
       ...(filters.seasonSlug
         ? {
@@ -119,10 +119,30 @@ export class FootballService {
     return team.players;
   }
 
-  listPlayers(filters: { teamSlug?: string }) {
+  listPlayers(filters: { teamSlug?: string; seasonSlug?: string }) {
+    const seasonCondition: Prisma.TeamWhereInput | undefined = filters.seasonSlug
+      ? {
+          OR: [
+            { homeFixtures: { some: { season: { slug: filters.seasonSlug } } } },
+            { awayFixtures: { some: { season: { slug: filters.seasonSlug } } } },
+          ],
+        }
+      : undefined;
+
+    const where: Prisma.PlayerWhereInput = {
+      ...(filters.teamSlug || seasonCondition
+        ? {
+            team: {
+              ...(filters.teamSlug ? { slug: filters.teamSlug } : {}),
+              ...seasonCondition,
+            },
+          }
+        : {}),
+    };
+
     return this.prisma.player.findMany({
       include: { team: { select: { id: true, name: true, slug: true } } },
-      ...(filters.teamSlug ? { where: { team: { slug: filters.teamSlug } } } : {}),
+      ...(Object.keys(where).length ? { where } : {}),
       orderBy: [{ position: 'asc' }, { name: 'asc' }],
     });
   }
@@ -137,7 +157,6 @@ export class FootballService {
   }
 
   listFixtures(filters: {
-    competitionSlug?: string;
     seasonSlug?: string;
     teamSlug?: string;
     status?: string;
@@ -239,7 +258,6 @@ export class FootballService {
   }
 
   async listStandings(filters: {
-    competitionSlug?: string;
     seasonSlug?: string;
     group?: string;
   }) {

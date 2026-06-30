@@ -1,5 +1,73 @@
 import { describe, it, expect } from 'vitest';
-import { parseCorsOrigins } from './env';
+import { parseCorsOrigins, validateEnv } from './env';
+
+const BASE_VALID: Record<string, unknown> = {
+  NODE_ENV: 'development',
+  DATABASE_URL: 'postgresql://user@localhost:5432/test',
+  JWT_SECRET: 'a-secret-that-is-definitely-at-least-32-chars',
+  APP_BASE_URL: 'https://beta.pslone.co.za',
+};
+
+describe('validateEnv — APP_BASE_URL', () => {
+  it('accepts a valid https URL', () => {
+    expect(() => validateEnv({ ...BASE_VALID })).not.toThrow();
+  });
+
+  it('rejects when APP_BASE_URL is missing', () => {
+    const { APP_BASE_URL: _, ...rest } = BASE_VALID;
+    expect(() => validateEnv(rest)).toThrow(/APP_BASE_URL/);
+  });
+
+  it('rejects when APP_BASE_URL is not a URL', () => {
+    expect(() => validateEnv({ ...BASE_VALID, APP_BASE_URL: 'not-a-url' })).toThrow(/APP_BASE_URL/);
+  });
+});
+
+describe('validateEnv — SMTP fields required when EMAIL_PROVIDER=smtp', () => {
+  const SMTP_VALID = {
+    EMAIL_PROVIDER: 'smtp',
+    SMTP_HOST: 'mail.pslone.co.za',
+    SMTP_PORT: '465',
+    SMTP_SECURE: 'true',
+    SMTP_USER: 'no-reply@pslone.co.za',
+    SMTP_PASSWORD: 'secret',
+  };
+
+  it('accepts full smtp config', () => {
+    expect(() => validateEnv({ ...BASE_VALID, ...SMTP_VALID })).not.toThrow();
+  });
+
+  it('rejects when SMTP_HOST is missing', () => {
+    const { SMTP_HOST: _, ...rest } = SMTP_VALID;
+    expect(() => validateEnv({ ...BASE_VALID, ...rest })).toThrow(/SMTP_HOST/);
+  });
+
+  it('rejects when SMTP_PORT is missing', () => {
+    const { SMTP_PORT: _, ...rest } = SMTP_VALID;
+    expect(() => validateEnv({ ...BASE_VALID, ...rest })).toThrow(/SMTP_PORT/);
+  });
+
+  it('rejects when SMTP_SECURE is missing', () => {
+    const { SMTP_SECURE: _, ...rest } = SMTP_VALID;
+    expect(() => validateEnv({ ...BASE_VALID, ...rest })).toThrow(/SMTP_SECURE/);
+  });
+
+  it('rejects when SMTP_USER is missing', () => {
+    const { SMTP_USER: _, ...rest } = SMTP_VALID;
+    expect(() => validateEnv({ ...BASE_VALID, ...rest })).toThrow(/SMTP_USER/);
+  });
+
+  it('rejects when SMTP_PASSWORD is missing', () => {
+    const { SMTP_PASSWORD: _, ...rest } = SMTP_VALID;
+    expect(() => validateEnv({ ...BASE_VALID, ...rest })).toThrow(/SMTP_PASSWORD/);
+  });
+
+  it('does not require SMTP fields when EMAIL_PROVIDER is not smtp', () => {
+    expect(() => validateEnv({ ...BASE_VALID, EMAIL_PROVIDER: 'console' })).not.toThrow();
+    expect(() => validateEnv({ ...BASE_VALID, EMAIL_PROVIDER: 'null' })).not.toThrow();
+    expect(() => validateEnv({ ...BASE_VALID })).not.toThrow();
+  });
+});
 
 describe('parseCorsOrigins', () => {
   it('returns localhost in development when CORS_ORIGINS not set', () => {

@@ -231,9 +231,12 @@ export const footballClient = {
   },
   getTeam: (slug: string) => get<Team>(footballUrl(`/teams/${slug}`)),
   getTeamPlayers: (slug: string) => get<Player[]>(footballUrl(`/teams/${slug}/players`)),
-  listPlayers: (params?: { teamSlug?: string }) => {
-    const qs = params?.teamSlug ? `?teamSlug=${params.teamSlug}` : '';
-    return get<Player[]>(footballUrl(`/players${qs}`));
+  listPlayers: (params?: { teamSlug?: string; seasonSlug?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.teamSlug) qs.set('teamSlug', params.teamSlug);
+    if (params?.seasonSlug) qs.set('seasonSlug', params.seasonSlug);
+    const q = qs.toString();
+    return get<Player[]>(footballUrl(`/players${q ? `?${q}` : ''}`));
   },
   getPlayer: (id: string) => get<Player>(footballUrl(`/players/${id}`)),
   listFixtures: (params?: { seasonSlug?: string; status?: string; group?: string; teamSlug?: string }) => {

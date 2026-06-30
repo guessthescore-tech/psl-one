@@ -231,7 +231,9 @@ export class AuthService {
 
       await this.writeAuditLog(user.id, AuditEvent.PASSWORD_RESET_REQUEST, true, userAgent);
 
-      await this.passwordResetNotifier.sendPasswordResetEmail(email, rawToken);
+      const baseUrl = this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3001';
+      const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
+      await this.emailProvider.sendPasswordReset(email, resetUrl);
     } else {
       await this.writeAuditLog(null, AuditEvent.PASSWORD_RESET_REQUEST, false, userAgent);
     }

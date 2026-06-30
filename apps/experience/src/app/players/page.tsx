@@ -41,7 +41,7 @@ export default function PlayersPage() {
       try {
         const season = await getWorldCupSeason();
         const [footballPlayers, pool, prices, topPerformers] = await Promise.all([
-          getPlayers().catch(() => []),
+          getPlayers({ seasonSlug: season.slug }).catch(() => []),
           getPlayerPool(undefined, season.id).catch(() => []),
           getPlayerPrices(season.id).catch(() => []),
           getTopPerformers(season.id, 50).catch(() => []),

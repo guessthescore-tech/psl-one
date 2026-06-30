@@ -17,9 +17,10 @@ export default function PlayersPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    footballClient.listPlayers()
+    footballClient.getActiveSeason()
+      .then((season) => footballClient.listPlayers({ seasonSlug: season.slug }))
       .then(setPlayers)
-      .catch(() => setError('Could not load players'))
+      .catch(() => setError('Could not load players for the active season'))
       .finally(() => setLoading(false));
   }, []);
 

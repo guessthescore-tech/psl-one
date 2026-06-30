@@ -10,9 +10,10 @@ export default function TeamsPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    footballClient.listTeams()
+    footballClient.getActiveSeason()
+      .then((season) => footballClient.listTeams({ seasonSlug: season.slug }))
       .then(setTeams)
-      .catch(() => setError('Could not load teams'))
+      .catch(() => setError('Could not load teams for the active season'))
       .finally(() => setLoading(false));
   }, []);
 
