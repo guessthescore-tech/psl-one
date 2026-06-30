@@ -175,18 +175,7 @@ docker compose -f compose.beta.yaml --env-file .env.beta run --rm migrate
 docker compose -f compose.beta.yaml --env-file .env.beta up -d --no-deps api web caddy
 ```
 
-After services are up, run the smoke suite from your local machine to verify the live host:
-
-```bash
-# From the repo root on your local machine
-SMOKE_ENVIRONMENT=beta \
-BETA_API_BASE_URL=https://api.beta.pslone.co.za \
-BETA_WEB_BASE_URL=https://beta.pslone.co.za \
-EXPECTED_SHA="${NEW_SHA}" \
-node scripts/smoke/staging-smoke.mjs
-```
-
-All 17 checks must pass (`PASS` lines, exit 0) before the deployment is considered complete. If any check fails, see `BETA-EC2-INCIDENT-RUNBOOK.md` or roll back via `BETA-EC2-ROLLBACK-RUNBOOK.md`.
+The manual path does not run smoke tests automatically. Prefer the GHA workflow for all production-equivalent deploys; it runs `scripts/smoke/staging-smoke.mjs` and fails the release if any check fails.
 
 ---
 
