@@ -873,7 +873,14 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
     const result = await service.getPlayerPool();
 
     const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
-      where: { team: { externalId: { not: string } }; OR: Array<Record<string, unknown>> };
+      where: {
+        team: {
+          externalId: { not: string };
+          seasonTeams?: { some: { seasonId: string } };
+          OR?: Array<Record<string, unknown>>;
+        };
+        OR: Array<Record<string, unknown>>;
+      };
     };
     expect(call.where.team?.externalId).toEqual({ not: 'TBD' });
     expect(call.where.team?.seasonTeams?.some?.seasonId).toBe(wcSeasonId);
@@ -1064,10 +1071,11 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
 
     const result = await service.getPlayerPool();
 
+    const typedResult = result as unknown as TestPlayer[];
     // Argentina has a SCHEDULED fixture → included
-    expect(result.find((p: TestPlayer) => p.team.externalId === 'argentina')).toBeDefined();
+    expect(typedResult.find(p => p.team.externalId === 'argentina')).toBeDefined();
     // Brazil's only fixture is FINISHED → excluded by the filter
-    expect(result.find((p: TestPlayer) => p.team.externalId === 'brazil')).toBeUndefined();
+    expect(typedResult.find(p => p.team.externalId === 'brazil')).toBeUndefined();
     expect(result).toHaveLength(1);
   });
 

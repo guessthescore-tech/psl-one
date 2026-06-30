@@ -114,4 +114,84 @@ describe('observability', () => {
     );
     warnSpy.mockRestore();
   });
+
+  // ── Contract: requestId / correlationId must appear in final JSON output ──────
+
+  it('[contract] structured log JSON output includes requestId and correlationId', () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as never);
+
+    requestContext.middleware()(
+      { method: 'GET', url: '/health', headers: { 'x-request-id': 'req-abc', 'x-correlation-id': 'corr-xyz' } },
+      { setHeader: vi.fn() },
+      () => {
+        logger.log({ action: 'test.structured' });
+      },
+    );
+
+    const entry = JSON.parse(String(writeSpy.mock.calls[0]?.[0]));
+    expect(entry.requestId).toBe('req-abc');
+    expect(entry.correlationId).toBe('corr-xyz');
+    expect(entry.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(entry.level).toBe('INFO');
+    expect(entry.action).toBe('test.structured');
+    writeSpy.mockRestore();
+  });
+
+  it('[contract] lifecycle path stdout JSON includes requestId and correlationId', async () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true as never);
+    const interceptor = new RequestLoggingInterceptor(requestContext, logger);
+    let resultPromise: Promise<unknown> | undefined;
+
+    requestContext.middleware()(
+      { method: 'GET', url: '/fixtures', headers: { 'x-request-id': 'req-lifecycle' } },
+      { setHeader: vi.fn() },
+      () => {
+        const context = {
+          switchToHttp: () => ({
+            getRequest: () => ({ method: 'GET', url: '/fixtures', user: undefined }),
+            getResponse: () => ({ statusCode: 200 }),
+          }),
+        } as never;
+        resultPromise = firstValueFrom(interceptor.intercept(context, { handle: () => of('ok') } as never));
+      },
+    );
+
+    await expect(resultPromise).resolves.toBe('ok');
+
+    const entry = JSON.parse(String(writeSpy.mock.calls[0]?.[0]));
+    expect(entry.requestId).toBe('req-lifecycle');
+    expect(entry.correlationId).toBe('req-lifecycle');
+    expect(entry.action).toBe('http.request.completed');
+    writeSpy.mockRestore();
+  });
+
+  it('[contract] error path (5xx) stderr JSON includes requestId and level ERROR', async () => {
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true as never);
+    const interceptor = new RequestLoggingInterceptor(requestContext, logger);
+    let resultPromise: Promise<unknown> | undefined;
+
+    requestContext.middleware()(
+      { method: 'POST', url: '/admin/action', headers: { 'x-request-id': 'req-error' } },
+      { setHeader: vi.fn() },
+      () => {
+        const context = {
+          switchToHttp: () => ({
+            getRequest: () => ({ method: 'POST', url: '/admin/action', user: undefined }),
+            getResponse: () => ({ statusCode: 500 }),
+          }),
+        } as never;
+        resultPromise = firstValueFrom(
+          interceptor.intercept(context, { handle: () => throwError(() => new Error('Internal failure')) } as never),
+        );
+      },
+    );
+
+    await expect(resultPromise).rejects.toThrow('Internal failure');
+
+    const entry = JSON.parse(String(stderrSpy.mock.calls[0]?.[0]));
+    expect(entry.requestId).toBe('req-error');
+    expect(entry.level).toBe('ERROR');
+    expect(entry.action).toBe('http.request.failed');
+    stderrSpy.mockRestore();
+  });
 });
