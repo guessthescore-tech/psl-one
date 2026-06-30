@@ -321,7 +321,7 @@ function FixturePredictionCard({
           fixtureId: result.fixtureId,
           homeScore: result.predictedHomeScore,
           awayScore: result.predictedAwayScore,
-          submittedAt: result.submittedAt,
+          submittedAt: result.createdAt,
           predictionId: result.id,
           status: result.status,
         };
@@ -551,7 +551,7 @@ export default function PredictPage() {
                   fixtureId: p.fixtureId,
                   homeScore: p.predictedHomeScore,
                   awayScore: p.predictedAwayScore,
-                  submittedAt: p.submittedAt,
+                  submittedAt: p.createdAt,
                   predictionId: p.id,
                   status: p.status,
                 } satisfies StoredPrediction
