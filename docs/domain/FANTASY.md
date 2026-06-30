@@ -85,6 +85,30 @@ If a starting player scores 0 points (did not play), the system checks the bench
 
 ---
 
+## Settlement
+
+Settlement is triggered by an operator via:
+
+```
+POST /fantasy/admin/scoring/gameweeks/:gameweekId/settle   (PSL_ADMIN)
+```
+
+**Preflight guard** (added sprint 2026-06-30): The endpoint refuses to settle if
+any FINISHED fixture in the gameweek has no `FantasyPlayerMatchStat` rows. This
+prevents zero-point scores from being written before the stats sync has run. The
+guard checks per-fixture completeness, not a simple row count, so partial syncs
+are also blocked.
+
+**Safe operator sequence for World Cup:**
+1. Run `sync:world-cup-player-stats` to populate `FantasyPlayerMatchStat` rows
+2. Call the settle endpoint — it returns HTTP 400 with fixture IDs if any are
+   missing, or 200 with `teamsSettled` on success
+
+See [`docs/operations/WC-FANTASY-SETTLEMENT-RUNBOOK.md`](../operations/WC-FANTASY-SETTLEMENT-RUNBOOK.md)
+for the full operator checklist, recalculate instructions, and UI behaviour table.
+
+---
+
 ## Leagues
 
 | Type | Description |

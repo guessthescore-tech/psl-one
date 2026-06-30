@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi } from 'vitest';
+import { BadRequestException } from '@nestjs/common';
 import { PlayerPosition } from '@prisma/client';
 import { FantasyGameweekScoringService } from './fantasy-gameweek-scoring.service';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -152,5 +153,103 @@ describe('FantasyGameweekScoringService.computePlayerFixturePoints', () => {
     const result = await svc.computePlayerFixturePoints('p1', 'fix-1');
     expect(result.breakdown.goalsConcededDeduction).toBe(0);
     expect(result.breakdown.cleanSheet).toBe(0);
+  });
+});
+
+// ── settleGameweekFantasyScores preflight guard ───────────────────────────────
+//
+// Settlement must be refused when any FINISHED fixture in the gameweek has no
+// FantasyPlayerMatchStat rows. A count-based check was too permissive: one
+// synced fixture passed the guard, leaving every other fixture at zero points.
+// The per-fixture check ensures ALL FINISHED fixtures are covered before writing
+// FantasyGameweekScore rows.
+//
+// Calling settle before sync creates FantasyGameweekScore rows with netPoints: 0
+// that surface via the UI .then() path (not .catch()), making it look correct.
+
+function makeSettleService({
+  finishedFixtureIds,
+  coveredFixtureIds,
+  gameweekExists = true,
+  teamIds = [] as string[],
+}: {
+  finishedFixtureIds: string[];
+  coveredFixtureIds: string[];
+  gameweekExists?: boolean;
+  teamIds?: string[];
+}) {
+  const mockPrisma = {
+    gameweek: {
+      findUnique: vi.fn().mockResolvedValue(
+        gameweekExists ? { id: 'gw-1', seasonId: 'season-1' } : null,
+      ),
+    },
+    fixture: {
+      findMany: vi.fn().mockResolvedValue(finishedFixtureIds.map(id => ({ id }))),
+    },
+    fantasyPlayerMatchStat: {
+      findMany: vi.fn().mockResolvedValue(coveredFixtureIds.map(id => ({ fixtureId: id }))),
+    },
+    fantasyTeam: {
+      findMany: vi.fn().mockResolvedValue(teamIds.map(id => ({ id }))),
+    },
+    fantasyGameweekScore: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+  } as unknown as PrismaService;
+
+  return new FantasyGameweekScoringService(
+    mockPrisma,
+    null as any,
+    null as any,
+    null as any,
+    null as any,
+    null as any,
+  );
+}
+
+describe('FantasyGameweekScoringService.settleGameweekFantasyScores preflight', () => {
+  it('throws BadRequestException when there are no FINISHED fixtures', async () => {
+    const svc = makeSettleService({ finishedFixtureIds: [], coveredFixtureIds: [] });
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(BadRequestException);
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(/no FINISHED fixtures/i);
+  });
+
+  it('throws BadRequestException when FINISHED fixtures exist but none have been stat-synced', async () => {
+    // Premature-settlement scenario: gameweek has finished matches but
+    // sync:world-cup-player-stats has not been run at all.
+    const svc = makeSettleService({ finishedFixtureIds: ['f1', 'f2', 'f3'], coveredFixtureIds: [] });
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(BadRequestException);
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(/FantasyPlayerMatchStat rows/i);
+  });
+
+  it('throws BadRequestException when only some FINISHED fixtures have stats (partial sync)', async () => {
+    // f1 is synced but f2 is not — partial sync must be blocked.
+    // A count-based guard (statCount > 0) would wrongly allow this through.
+    const svc = makeSettleService({
+      finishedFixtureIds: ['f1', 'f2'],
+      coveredFixtureIds: ['f1'],
+    });
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(BadRequestException);
+    await expect(svc.settleGameweekFantasyScores('gw-1'))
+      .rejects.toThrow(/f2/);
+  });
+
+  it('proceeds when every FINISHED fixture has at least one stat row', async () => {
+    // Full coverage: both f1 and f2 are synced → guard passes.
+    const svc = makeSettleService({
+      finishedFixtureIds: ['f1', 'f2'],
+      coveredFixtureIds: ['f1', 'f2'],
+      teamIds: [],
+    });
+    // No teams → teamsSettled: 0, but no exception.
+    const result = await svc.settleGameweekFantasyScores('gw-1');
+    expect(result.teamsSettled).toBe(0);
+    expect(result.errors).toHaveLength(0);
   });
 });

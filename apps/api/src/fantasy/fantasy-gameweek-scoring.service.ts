@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { FantasyAutoSubstitutionStatus, FantasySquadRole, NotificationPriority, NotificationType, PlayerPosition } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { FantasyAutoSubService, type ComputedAutoSub } from './fantasy-auto-sub.service';
@@ -477,6 +477,32 @@ export class FantasyGameweekScoringService {
       select: { id: true, seasonId: true },
     });
     if (!gameweek) throw new NotFoundException('Gameweek not found');
+
+    // Preflight: refuse if any FINISHED fixture has no synced FantasyPlayerMatchStat
+    // rows. A count-based check is too permissive — one synced fixture passes the
+    // guard but leaves every other fixture at zero points. Per-fixture completeness
+    // ensures ALL FINISHED fixtures are covered before writing score rows.
+    const finishedFixtures = await this.prisma.fixture.findMany({
+      where: { gameweekId, status: 'FINISHED' },
+      select: { id: true },
+    });
+    if (finishedFixtures.length === 0) {
+      throw new BadRequestException(
+        `Gameweek '${gameweekId}' has no FINISHED fixtures — cannot settle before any matches are complete`,
+      );
+    }
+    const coveredRows = await this.prisma.fantasyPlayerMatchStat.findMany({
+      where: { fixtureId: { in: finishedFixtures.map(f => f.id) } },
+      select: { fixtureId: true },
+      distinct: ['fixtureId'],
+    });
+    const coveredSet = new Set(coveredRows.map(r => r.fixtureId));
+    const unsyncedIds = finishedFixtures.map(f => f.id).filter(id => !coveredSet.has(id));
+    if (unsyncedIds.length > 0) {
+      throw new BadRequestException(
+        `${unsyncedIds.length} FINISHED fixture(s) have no FantasyPlayerMatchStat rows: [${unsyncedIds.join(', ')}] — run sync:world-cup-player-stats first`,
+      );
+    }
 
     const teams = await this.prisma.fantasyTeam.findMany({
       where: { seasonId: gameweek.seasonId },

@@ -25,7 +25,7 @@ const makeDb = () =>
   ({
     season: { findFirst: vi.fn(), findUnique: vi.fn() },
     gameweek: { findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn(), count: vi.fn() },
-    fixture: { findUnique: vi.fn(), findMany: vi.fn() },
+    fixture: { findUnique: vi.fn(), findMany: vi.fn(), count: vi.fn() },
     player: { findUnique: vi.fn() },
     fantasyTeam: {
       findUnique: vi.fn(),
@@ -54,6 +54,7 @@ const makeDb = () =>
     fantasyPlayerMatchStat: {
       upsert: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
     },
     fanProfile: { findUnique: vi.fn() },
     team: { findUnique: vi.fn() },
@@ -1848,6 +1849,12 @@ describe('FantasyGameweekScoringService — settlement', () => {
 
   it('settleGameweekFantasyScores settles all teams in season', async () => {
     vi.mocked(db.gameweek.findUnique).mockResolvedValue({ id: 'gw1', seasonId: 's1' } as never);
+    // Preflight: fixture f1 is FINISHED and covered → per-fixture guard passes.
+    vi.mocked(db.fixture.findMany)
+      .mockResolvedValueOnce([{ id: 'f1' }] as never)           // preflight: FINISHED fixtures
+      .mockResolvedValue([{ id: 'f1', fantasyMatchStats: [] }] as never); // per-team settle
+    vi.mocked(db.fantasyPlayerMatchStat.findMany)
+      .mockResolvedValueOnce([{ fixtureId: 'f1' }] as never);   // preflight: covered fixtures
     vi.mocked(db.fantasyTeam.findMany).mockResolvedValue([{ id: 'ft1' }, { id: 'ft2' }] as never);
     vi.mocked(db.fantasyGameweekScore.findMany).mockResolvedValue([
       { id: 'gs1', fantasyTeamId: 'ft1', netPoints: 10, grossPoints: 14 },
@@ -1860,7 +1867,6 @@ describe('FantasyGameweekScoringService — settlement', () => {
       .mockResolvedValueOnce({ id: 'ft1', userId: 'u1', seasonId: 's1', players: [] } as never)
       .mockResolvedValueOnce({ id: 'ft2', userId: 'u2', seasonId: 's1', players: [] } as never);
     vi.mocked(db.fantasyChip.findMany).mockResolvedValue([] as never);
-    vi.mocked(db.fixture.findMany).mockResolvedValue([{ id: 'f1', fantasyMatchStats: [] }] as never);
     vi.mocked(db.fantasyTransfer.findMany).mockResolvedValue([] as never);
     vi.mocked(db.fantasyGameweekScore.upsert).mockResolvedValue({ id: 'gs1', fantasyTeamId: 'ft1', gameweekId: 'gw1', netPoints: 0 } as never);
     vi.mocked(db.fantasyGameweekScore.aggregate).mockResolvedValue({ _sum: { netPoints: 0 } } as never);
