@@ -53,11 +53,18 @@ ${COMPOSE} stop api web caddy
 ${COMPOSE} up -d --no-deps api web caddy
 ```
 
-Verify:
+Verify using the smoke suite (from your local machine after services restart):
+
 ```bash
-curl http://localhost:4000/health/ready
-curl http://localhost:3001/api/health
+# From the repo root on your local machine
+SMOKE_ENVIRONMENT=beta \
+BETA_API_BASE_URL=https://api.beta.pslone.co.za \
+BETA_WEB_BASE_URL=https://beta.pslone.co.za \
+EXPECTED_SHA="${PREV_SHA}" \
+node scripts/smoke/staging-smoke.mjs
 ```
+
+All 17 checks must pass before the rollback is considered complete. If the smoke suite still fails after rollback, escalate to the incident runbook.
 
 ---
 

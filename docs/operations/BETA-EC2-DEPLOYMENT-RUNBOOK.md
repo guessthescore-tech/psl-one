@@ -139,6 +139,8 @@ Trigger `deploy-beta-ec2.yml`:
 
 Migration failure stops deployment. API and web do not restart after a failed migration.
 
+The workflow runs `scripts/smoke/staging-smoke.mjs` automatically after deploy (Step 4 — Smoke test). If any check fails, the workflow job fails and the run is marked red. The release manifest (Step 5) is written regardless of smoke result for audit purposes.
+
 ### Via SSM manually
 
 ```bash
@@ -160,7 +162,8 @@ sed -i "s|^GIT_SHA=.*|GIT_SHA=${NEW_SHA}|" .env.beta
 
 # Refresh the repo checkout to the exact deployed SHA so the mounted Caddyfile
 # and other runtime files match the images being deployed.
-git fetch origin main --quiet
+# Fetch the exact SHA — do not use 'origin main' (main may have moved on).
+git fetch origin "${NEW_SHA}" --quiet
 git checkout --detach "${NEW_SHA}"
 test "$(git rev-parse HEAD)" = "${NEW_SHA}"
 test ! -f infra/beta/Caddyfile || ! grep -q 'auto_https off' infra/beta/Caddyfile
@@ -171,6 +174,19 @@ docker compose -f compose.beta.yaml --env-file .env.beta stop api web caddy
 docker compose -f compose.beta.yaml --env-file .env.beta run --rm migrate
 docker compose -f compose.beta.yaml --env-file .env.beta up -d --no-deps api web caddy
 ```
+
+After services are up, run the smoke suite from your local machine to verify the live host:
+
+```bash
+# From the repo root on your local machine
+SMOKE_ENVIRONMENT=beta \
+BETA_API_BASE_URL=https://api.beta.pslone.co.za \
+BETA_WEB_BASE_URL=https://beta.pslone.co.za \
+EXPECTED_SHA="${NEW_SHA}" \
+node scripts/smoke/staging-smoke.mjs
+```
+
+All 17 checks must pass (`PASS` lines, exit 0) before the deployment is considered complete. If any check fails, see `BETA-EC2-INCIDENT-RUNBOOK.md` or roll back via `BETA-EC2-ROLLBACK-RUNBOOK.md`.
 
 ---
 
