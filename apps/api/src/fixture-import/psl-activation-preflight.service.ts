@@ -204,7 +204,7 @@ export class PslActivationPreflightService {
         },
       });
     } catch (err) {
-      this.logger.warn(`Audit log write failed (${action}): ${(err as Error).message}`);
+      this.logger.warn({ action: 'preflight.audit_log_failed', auditAction: action, error: (err as Error).message });
     }
   }
 }

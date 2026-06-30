@@ -205,14 +205,12 @@ export class ChallengeSettlementService {
       } catch (err: unknown) {
         // One challenge failure must not block others
         const msg = err instanceof Error ? err.message : String(err);
-        this.logger.warn(`Settlement skipped for token challenge: ${msg}`);
+        this.logger.warn({ action: 'settlement.challenge.skipped', reason: msg });
         errors++;
       }
     }
 
-    this.logger.log(
-      `[settle-fixture] fixtureId=${fixtureId} settled=${settled} skipped=${skipped} errors=${errors}`,
-    );
+    this.logger.log({ action: 'settlement.fixture.completed', fixtureId, settled, skipped, errors });
 
     return { settled, skipped, errors };
   }

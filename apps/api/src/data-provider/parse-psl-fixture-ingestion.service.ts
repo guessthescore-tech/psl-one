@@ -69,7 +69,7 @@ export class ParsePslFixtureIngestionService {
     if (!process.env['PARSE_API_KEY']) {
       result.sourceStatus = 'AUTH_FAILED';
       result.errors.push('PARSE_API_KEY not set — cannot fetch fixtures');
-      this.logger.warn('ParsePslFixtureIngestionService: PARSE_API_KEY not set');
+      this.logger.warn({ action: 'ingestion.disabled', requiredKey: 'PARSE_API_KEY' });
       await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_FAILED', { reason: 'AUTH_FAILED' });
       return result;
     }
@@ -89,7 +89,7 @@ export class ParsePslFixtureIngestionService {
         result.sourceStatus = 'PROVIDER_ERROR';
         result.errors.push('INGESTION_PROVIDER_ERROR: ' + msg);
       }
-      this.logger.error(`ParsePslFixtureIngestionService: fetch error — ${msg}`);
+      this.logger.error({ action: 'ingestion.fetch_failed', error: msg });
       await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_FAILED', { reason: result.sourceStatus });
       return result;
     }
@@ -98,10 +98,7 @@ export class ParsePslFixtureIngestionService {
 
     if (providerFixtures.length === 0) {
       result.sourceStatus = 'SOURCE_EMPTY';
-      this.logger.log(
-        'ParsePslFixtureIngestionService: INGESTION_SOURCE_EMPTY_NOOP — ' +
-        'psl.co.za has not published new-season fixtures (expected seasonal state)',
-      );
+      this.logger.log({ action: 'ingestion.source_empty', competitionCode });
       await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_SOURCE_EMPTY', { competitionCode });
       return result;
     }
@@ -130,9 +127,7 @@ export class ParsePslFixtureIngestionService {
 
     if (dryRun) {
       result.skipped = normalized.length;
-      this.logger.log(
-        `ParsePslFixtureIngestionService: DRY_RUN — ${normalized.length} fixture(s) normalized; 0 DB writes`,
-      );
+      this.logger.log({ action: 'ingestion.dry_run', competitionCode, normalized: normalized.length });
       await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_DRY_RUN', {
         competitionCode,
         normalized: normalized.length,
@@ -164,10 +159,7 @@ export class ParsePslFixtureIngestionService {
     result.errors.push(...errors);
     result.warnings.push(...warnings);
 
-    this.logger.log(
-      `ParsePslFixtureIngestionService: WRITE — ` +
-      `created=${created} updated=${updated} skipped=${skipped} errors=${errors.length}`,
-    );
+    this.logger.log({ action: 'ingestion.write_completed', competitionCode, created, updated, skipped, errors: errors.length });
 
     await this.writeAuditLog('PARSE_PSL_FIXTURE_INGESTION_WRITE_COMPLETED', {
       competitionCode,
@@ -323,7 +315,7 @@ export class ParsePslFixtureIngestionService {
       });
     } catch {
       // Audit log failure must never block ingestion
-      this.logger.warn(`ParsePslFixtureIngestionService: audit log write failed for action=${action}`);
+      this.logger.warn({ action: 'ingestion.audit_log_failed', auditAction: action });
     }
   }
 }

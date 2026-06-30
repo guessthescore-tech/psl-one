@@ -32,7 +32,7 @@ export class ParsePslAdapter implements ProviderAdapter {
   constructor() {
     this.apiKey = process.env['PARSE_API_KEY'] || undefined;
     if (!this.apiKey) {
-      this.logger.warn('PARSE_API_KEY not set — adapter in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'PARSE_API_KEY' });
     }
   }
 
@@ -50,22 +50,22 @@ export class ParsePslAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`Parse PSL auth error ${res.status}`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.name, endpoint, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('Parse PSL rate limit hit');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.name, endpoint });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`Parse PSL returned ${res.status}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, endpoint, statusCode: res.status });
         return null;
       }
       const data = (await res.json()) as T;
       return data;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Parse PSL fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, endpoint, error: msg });
       return null;
     }
   }
@@ -126,9 +126,7 @@ export class ParsePslAdapter implements ProviderAdapter {
   async getPlayers(teamExternalId: string): Promise<ProviderPlayer[]> {
     void teamExternalId;
     // Parse provides limited player data — players available via match lineups in future
-    this.logger.log(
-      'Parse PSL: player data not available via clubs endpoint — use match lineups',
-    );
+    this.logger.log({ action: 'provider.players_unavailable', provider: 'parse-psl', reason: 'use_match_lineups' });
     return [];
   }
 

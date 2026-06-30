@@ -25,7 +25,7 @@ export class SportsDataIoSoccerAdapter implements ProviderAdapter {
   constructor() {
     this.apiKey = process.env['SPORTSDATAIO_SOCCER_API_KEY'];
     if (!this.apiKey) {
-      this.logger.warn('SPORTSDATAIO_SOCCER_API_KEY not set — adapter in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'SPORTSDATAIO_SOCCER_API_KEY' });
     }
   }
 
@@ -37,21 +37,21 @@ export class SportsDataIoSoccerAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`SportsDataIO auth error ${res.status}`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.name, url, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('SportsDataIO rate limit hit');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.name, url });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`SportsDataIO returned ${res.status}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, url, statusCode: res.status });
         return null;
       }
       return (await res.json()) as T;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`SportsDataIO fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, url, error: msg });
       return null;
     }
   }

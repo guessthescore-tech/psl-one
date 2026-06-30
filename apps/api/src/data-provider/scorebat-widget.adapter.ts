@@ -35,7 +35,7 @@ export class ScoreBatWidgetAdapter implements ProviderAdapter {
   constructor() {
     this.widgetToken = process.env['SCOREBAT_WIDGET_TOKEN'] || undefined;
     if (!this.widgetToken) {
-      this.logger.warn('SCOREBAT_WIDGET_TOKEN not set — ScoreBat widget in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'SCOREBAT_WIDGET_TOKEN' });
     }
   }
 

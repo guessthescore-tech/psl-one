@@ -14,7 +14,7 @@ export class PreviewAnalyticsService {
     if (!this.enabled) return;
     const safe = sanitizeProperties(properties);
     // In preview mode: structured log only — no third-party calls
-    this.logger.log(JSON.stringify({ type: 'analytics', event, userId, properties: safe, ts: new Date().toISOString() }));
+    this.logger.log({ action: 'analytics.event', event, userId, properties: safe });
   }
 
   validateEvent(dto: TrackEventDto): { valid: boolean; sanitized: Record<string, string | number | boolean> } {

@@ -157,7 +157,7 @@ export class WorldCupImportService {
         result.sourceStatus = 'PROVIDER_ERROR';
         result.errors.push('PROVIDER_ERROR: ' + msg);
       }
-      this.logger.error(`WorldCupImportService: fetch error — ${msg}`);
+      this.logger.error({ action: 'import.fetch_failed', error: msg });
       await this.writeAuditLog('WORLD_CUP_FIXTURE_IMPORT_FAILED', { reason: result.sourceStatus });
       return result;
     }
@@ -166,7 +166,7 @@ export class WorldCupImportService {
 
     if (providerFixtures.length === 0) {
       result.sourceStatus = 'SOURCE_EMPTY';
-      this.logger.log('WorldCupImportService: SOURCE_EMPTY — no WC fixtures from provider');
+      this.logger.log({ action: 'import.source_empty' });
       await this.writeAuditLog('WORLD_CUP_FIXTURE_IMPORT_SOURCE_EMPTY', {});
       return result;
     }
@@ -187,9 +187,7 @@ export class WorldCupImportService {
 
     if (dryRun) {
       result.skipped = normalized.length;
-      this.logger.log(
-        `WorldCupImportService: DRY_RUN — ${normalized.length} fixture(s); 0 DB writes`,
-      );
+      this.logger.log({ action: 'import.dry_run', provider: result.provider, normalized: normalized.length });
       await this.writeAuditLog('WORLD_CUP_FIXTURE_IMPORT_DRY_RUN', {
         provider: result.provider,
         normalized: normalized.length,
@@ -224,9 +222,7 @@ export class WorldCupImportService {
     result.errors.push(...errors);
     result.warnings.push(...warnings);
 
-    this.logger.log(
-      `WorldCupImportService: WRITE — created=${created} updated=${updated} skipped=${skipped}`,
-    );
+    this.logger.log({ action: 'import.write_completed', provider: result.provider, created, updated, skipped });
     await this.writeAuditLog('WORLD_CUP_FIXTURE_IMPORT_WRITE_COMPLETED', {
       provider: result.provider,
       seasonId: resolvedSeasonId,
@@ -503,7 +499,7 @@ export class WorldCupImportService {
       const msg = err instanceof Error ? err.message : String(err);
       result.sourceStatus = 'PROVIDER_ERROR';
       result.errors.push('PROVIDER_ERROR: ' + msg);
-      this.logger.error(`refreshFixtureStatuses: fetch error — ${msg}`);
+      this.logger.error({ action: 'import.refresh_failed', error: msg });
       await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH_FAILED', { reason: 'PROVIDER_ERROR' });
       return result;
     }
@@ -600,9 +596,7 @@ export class WorldCupImportService {
       }
     }
 
-    this.logger.log(
-      `refreshFixtureStatuses: discovered=${result.discovered} matched=${result.matched} updated=${result.updated} skipped=${result.skipped}`,
-    );
+    this.logger.log({ action: 'import.refresh_completed', provider: result.provider, discovered: result.discovered, matched: result.matched, updated: result.updated, skipped: result.skipped });
     await this.writeAuditLog('WORLD_CUP_FIXTURE_STATUS_REFRESH', {
       provider: result.provider,
       discovered: result.discovered,
@@ -624,7 +618,7 @@ export class WorldCupImportService {
         },
       });
     } catch {
-      this.logger.warn(`WorldCupImportService: audit log write failed for action=${action}`);
+      this.logger.warn({ action: 'import.audit_log_failed', auditAction: action });
     }
   }
 }

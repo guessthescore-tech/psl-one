@@ -207,7 +207,7 @@ export class WorldCupBetaBackfillService {
     const seasons = await this.provider.getSeasons();
     const providerSeason = this.pickWorldCupSeason(seasons);
     if (!providerSeason) {
-      this.logger.warn('World Cup backfill: provider season not found — using seed data only');
+      this.logger.warn({ action: 'backfill.season_not_found', fallback: 'seed_data' });
       return {
         providerName: this.provider.name,
         providerSeasonId: null,

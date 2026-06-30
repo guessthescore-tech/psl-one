@@ -29,7 +29,7 @@ export class SportRadarSoccerAdapter implements ProviderAdapter {
   constructor() {
     this.apiKey = process.env['SPORTSRADAR_SOCCER_API_KEY'] || undefined;
     if (!this.apiKey) {
-      this.logger.warn('SPORTSRADAR_SOCCER_API_KEY not set — adapter in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'SPORTSRADAR_SOCCER_API_KEY' });
     }
   }
 
@@ -46,21 +46,21 @@ export class SportRadarSoccerAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(10000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`SportRadar auth error ${res.status} — check SPORTSRADAR_SOCCER_API_KEY`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('SportRadar rate limit hit — backoff required');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.name, path });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`SportRadar returned ${res.status} for ${path}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       return (await res.json()) as T;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`SportRadar fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, path, error: msg });
       return null;
     }
   }
@@ -95,7 +95,7 @@ export class SportRadarSoccerAdapter implements ProviderAdapter {
       c => c.name?.toLowerCase().includes('world cup') || c.id?.includes('world_cup'),
     );
     if (!wc) {
-      this.logger.warn('SportRadar: FIFA World Cup competition not found in competitions list');
+      this.logger.warn({ action: 'provider.competition_not_found', provider: this.name, competition: 'FIFA World Cup' });
       return [];
     }
     const seasonsData = await this.fetch<SrSeasonsResponse>(`/competitions/${wc.id}/seasons.json`);

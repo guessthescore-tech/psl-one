@@ -25,7 +25,7 @@ export class SportmonksLiveMatchAdapter implements LiveMatchProviderAdapter {
   constructor() {
     this.apiKey = process.env['SPORTMONKS_API_KEY'];
     if (!this.apiKey) {
-      this.logger.warn('SPORTMONKS_API_KEY not set — SportmonksLiveMatchAdapter in safe/disabled mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.providerName, requiredKey: 'SPORTMONKS_API_KEY' });
     }
   }
 
@@ -77,21 +77,21 @@ export class SportmonksLiveMatchAdapter implements LiveMatchProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`Sportmonks auth error ${res.status} for ${url}`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.providerName, url, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('Sportmonks rate limit hit');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.providerName, url });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`Sportmonks HTTP ${res.status} for ${url}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.providerName, url, statusCode: res.status });
         return null;
       }
       return (await res.json()) as T;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Sportmonks fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.providerName, url, error: msg });
       return null;
     }
   }

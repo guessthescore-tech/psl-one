@@ -28,7 +28,7 @@ export class ApiFootballAdapter implements ProviderAdapter {
   constructor() {
     this.apiKey = process.env['API_FOOTBALL_KEY'] || undefined;
     if (!this.apiKey) {
-      this.logger.warn('API_FOOTBALL_KEY not set — adapter in disabled/safe mode');
+      this.logger.warn({ action: 'provider.disabled', provider: this.name, requiredKey: 'API_FOOTBALL_KEY' });
     }
   }
 
@@ -40,26 +40,26 @@ export class ApiFootballAdapter implements ProviderAdapter {
         signal: AbortSignal.timeout(8000),
       });
       if (res.status === 401 || res.status === 403) {
-        this.logger.warn(`API-Football auth error ${res.status}`);
+        this.logger.warn({ action: 'provider.auth_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       if (res.status === 429) {
-        this.logger.warn('API-Football rate limit hit');
+        this.logger.warn({ action: 'provider.rate_limited', provider: this.name, path });
         return null;
       }
       if (!res.ok) {
-        this.logger.warn(`API-Football returned ${res.status}`);
+        this.logger.warn({ action: 'provider.http_error', provider: this.name, path, statusCode: res.status });
         return null;
       }
       const data = (await res.json()) as { response: T; errors?: Record<string, string> };
       if (data.errors && Object.keys(data.errors).length > 0) {
-        this.logger.warn(`API-Football body error: ${JSON.stringify(data.errors)}`);
+        this.logger.warn({ action: 'provider.body_error', provider: this.name, path, errors: data.errors });
         return null;
       }
       return data.response ?? null;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`API-Football fetch error: ${msg}`);
+      this.logger.warn({ action: 'provider.fetch_failed', provider: this.name, path, error: msg });
       return null;
     }
   }
