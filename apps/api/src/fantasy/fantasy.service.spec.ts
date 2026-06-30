@@ -993,7 +993,10 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
     expect(awayClause!.awayFixtures!.some.seasonId).toBe(wcSeasonId);
   });
 
-  it('[regression] WC pool returns active team player; eliminated team player absent', async () => {
+  it('[regression] query construction excludes a team whose only fixture is FINISHED', async () => {
+    // This is the fixture-aware test. Unlike the query-shape test above, it wires
+    // a mock that applies the service's WHERE clause to test players with known fixture
+    // state — so the exclusion is proved by construction, not by a pre-canned result.
     const wcSeasonId = 'wc-season-elim-002';
     (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: wcSeasonId,
@@ -1002,28 +1005,70 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
       competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
     });
 
-    // Simulate DB-level result: Prisma applies the fixture-status filter and returns
-    // only the active-team player. The eliminated-team player is excluded because
-    // Brazil's only remaining fixture has status FINISHED.
-    const activePlayer = {
+    type TestFixture = { seasonId: string; status: FixtureStatus };
+    type TestTeam = {
+      externalId: string;
+      homeFixtures: TestFixture[];
+      awayFixtures: TestFixture[];
+    };
+    type TestPlayer = { id: string; name: string; team: TestTeam & { id: string; name: string; shortName: string } };
+
+    // Brazil: last fixture is FINISHED — eliminated
+    const eliminatedPlayer: TestPlayer = {
+      id: 'p-bra-1',
+      name: 'Neymar',
+      team: {
+        id: 'team-bra', name: 'Brazil', shortName: 'BRA', externalId: 'brazil',
+        homeFixtures: [{ seasonId: wcSeasonId, status: FixtureStatus.FINISHED }],
+        awayFixtures: [],
+      },
+    };
+
+    // Argentina: still has a SCHEDULED fixture — active
+    const activePlayer: TestPlayer = {
       id: 'p-arg-1',
       name: 'Lionel Messi',
-      position: PlayerPosition.FORWARD,
-      team: { id: 'team-arg', name: 'Argentina', shortName: 'ARG', externalId: 'argentina' },
+      team: {
+        id: 'team-arg', name: 'Argentina', shortName: 'ARG', externalId: 'argentina',
+        homeFixtures: [{ seasonId: wcSeasonId, status: FixtureStatus.SCHEDULED }],
+        awayFixtures: [],
+      },
     };
-    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([activePlayer]);
+
+    // Fixture-aware mock: reads the team.OR clause the service constructs and applies
+    // it to the test players — the same logic the database would execute.
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockImplementation(
+      (args: { where?: { team?: { OR?: Array<{
+        homeFixtures?: { some: { seasonId: string; status: { in: FixtureStatus[] } } };
+        awayFixtures?: { some: { seasonId: string; status: { in: FixtureStatus[] } } };
+      }> } } }) => {
+        const teamOR = args.where?.team?.OR ?? [];
+        const allowedStatuses = teamOR.flatMap(c => [
+          ...(c.homeFixtures?.some.status.in ?? []),
+          ...(c.awayFixtures?.some.status.in ?? []),
+        ]);
+        const seasonId = teamOR[0]?.homeFixtures?.some.seasonId
+          ?? teamOR[0]?.awayFixtures?.some.seasonId;
+
+        return [eliminatedPlayer, activePlayer].filter(p => {
+          const hasActiveHome = p.team.homeFixtures.some(
+            f => f.seasonId === seasonId && allowedStatuses.includes(f.status),
+          );
+          const hasActiveAway = p.team.awayFixtures.some(
+            f => f.seasonId === seasonId && allowedStatuses.includes(f.status),
+          );
+          return hasActiveHome || hasActiveAway;
+        });
+      },
+    );
 
     const result = await service.getPlayerPool();
 
-    // Only the active team's player is in the pool
+    // Argentina has a SCHEDULED fixture → included
+    expect(result.find((p: TestPlayer) => p.team.externalId === 'argentina')).toBeDefined();
+    // Brazil's only fixture is FINISHED → excluded by the filter
+    expect(result.find((p: TestPlayer) => p.team.externalId === 'brazil')).toBeUndefined();
     expect(result).toHaveLength(1);
-    expect(result[0]!.team.externalId).toBe('argentina');
-
-    // No player from an eliminated team (externalId 'brazil') appears
-    const eliminatedTeamPlayerInPool = result.find(
-      (p: { team: { externalId: string } }) => p.team.externalId === 'brazil',
-    );
-    expect(eliminatedTeamPlayerInPool).toBeUndefined();
   });
 
   it('[regression] non-WC (PSL) seasons do not apply the active-fixture team filter', async () => {
