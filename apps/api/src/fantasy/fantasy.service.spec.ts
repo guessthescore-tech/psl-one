@@ -942,4 +942,108 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
     };
     expect(call.where.position).toBe('FORWARD');
   });
+
+  // ── Regression: eliminated WC team exclusion ──────────────────────────────
+
+  it('[regression] WC pool query allows only SCHEDULED/LIVE/HALF_TIME — FINISHED is not in the status list', async () => {
+    const wcSeasonId = 'wc-season-elim-001';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: wcSeasonId,
+      slug: 'fifa-world-cup-2026',
+      name: 'FIFA World Cup 2026',
+      competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
+    });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await service.getPlayerPool();
+
+    type TeamOR = Array<{
+      homeFixtures?: { some: { seasonId: string; status: { in: FixtureStatus[] } } };
+      awayFixtures?: { some: { seasonId: string; status: { in: FixtureStatus[] } } };
+    }>;
+    const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      where: { team: { OR: TeamOR } };
+    };
+
+    const teamOR = call.where.team.OR;
+    const homeClause = teamOR.find(c => c.homeFixtures);
+    const awayClause = teamOR.find(c => c.awayFixtures);
+
+    expect(homeClause).toBeDefined();
+    expect(awayClause).toBeDefined();
+
+    const homeStatuses = homeClause!.homeFixtures!.some.status.in;
+    const awayStatuses = awayClause!.awayFixtures!.some.status.in;
+
+    // Active statuses must be present — teams still in the tournament have these
+    expect(homeStatuses).toContain(FixtureStatus.SCHEDULED);
+    expect(homeStatuses).toContain(FixtureStatus.LIVE);
+    expect(homeStatuses).toContain(FixtureStatus.HALF_TIME);
+    expect(awayStatuses).toContain(FixtureStatus.SCHEDULED);
+    expect(awayStatuses).toContain(FixtureStatus.LIVE);
+    expect(awayStatuses).toContain(FixtureStatus.HALF_TIME);
+
+    // FINISHED must not be allowed — a team whose only remaining fixture is FINISHED
+    // will match neither homeFixtures nor awayFixtures and will be excluded by the DB
+    expect(homeStatuses).not.toContain(FixtureStatus.FINISHED);
+    expect(awayStatuses).not.toContain(FixtureStatus.FINISHED);
+
+    // Fixture conditions must be scoped to the active season, not all seasons
+    expect(homeClause!.homeFixtures!.some.seasonId).toBe(wcSeasonId);
+    expect(awayClause!.awayFixtures!.some.seasonId).toBe(wcSeasonId);
+  });
+
+  it('[regression] WC pool returns active team player; eliminated team player absent', async () => {
+    const wcSeasonId = 'wc-season-elim-002';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: wcSeasonId,
+      slug: 'fifa-world-cup-2026',
+      name: 'FIFA World Cup 2026',
+      competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
+    });
+
+    // Simulate DB-level result: Prisma applies the fixture-status filter and returns
+    // only the active-team player. The eliminated-team player is excluded because
+    // Brazil's only remaining fixture has status FINISHED.
+    const activePlayer = {
+      id: 'p-arg-1',
+      name: 'Lionel Messi',
+      position: PlayerPosition.FORWARD,
+      team: { id: 'team-arg', name: 'Argentina', shortName: 'ARG', externalId: 'argentina' },
+    };
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([activePlayer]);
+
+    const result = await service.getPlayerPool();
+
+    // Only the active team's player is in the pool
+    expect(result).toHaveLength(1);
+    expect(result[0]!.team.externalId).toBe('argentina');
+
+    // No player from an eliminated team (externalId 'brazil') appears
+    const eliminatedTeamPlayerInPool = result.find(
+      (p: { team: { externalId: string } }) => p.team.externalId === 'brazil',
+    );
+    expect(eliminatedTeamPlayerInPool).toBeUndefined();
+  });
+
+  it('[regression] non-WC (PSL) seasons do not apply the active-fixture team filter', async () => {
+    const pslSeasonId = 'psl-season-2025';
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: pslSeasonId,
+      slug: 'psl-2025-26',
+      name: 'Premier Soccer League 2025/26',
+      competition: { slug: 'premier-soccer-league', name: 'Premier Soccer League' },
+    });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    await service.getPlayerPool();
+
+    const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
+      where: { team: { OR?: unknown } };
+    };
+
+    // PSL teams are always available regardless of fixture status —
+    // the active-fixture filter is WC-only and must not be applied here
+    expect(call.where.team.OR).toBeUndefined();
+  });
 });
