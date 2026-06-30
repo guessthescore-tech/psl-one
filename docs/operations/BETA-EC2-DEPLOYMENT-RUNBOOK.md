@@ -139,7 +139,7 @@ Trigger `deploy-beta-ec2.yml`:
 
 Migration failure stops deployment. API and web do not restart after a failed migration.
 
-The workflow runs `scripts/smoke/staging-smoke.mjs` automatically after deploy (Step 4 — Smoke test). If any check fails, the workflow job fails and the run is marked red. The release manifest (Step 5) is written regardless of smoke result for audit purposes.
+Step 4 runs smoke checks automatically; any failure marks the run red.
 
 ### Via SSM manually
 
@@ -175,7 +175,7 @@ docker compose -f compose.beta.yaml --env-file .env.beta run --rm migrate
 docker compose -f compose.beta.yaml --env-file .env.beta up -d --no-deps api web caddy
 ```
 
-The manual path does not run smoke tests automatically. Prefer the GHA workflow for all production-equivalent deploys; it runs `scripts/smoke/staging-smoke.mjs` and fails the release if any check fails.
+For production-equivalent deploys, use the workflow — it gates on smoke automatically.
 
 ---
 

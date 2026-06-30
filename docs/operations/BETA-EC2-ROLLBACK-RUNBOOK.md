@@ -59,7 +59,7 @@ curl http://localhost:4000/health/ready
 curl http://localhost:3001/api/health
 ```
 
-For full smoke validation, trigger `deploy-beta-ec2.yml` with `git_sha` set to the rollback SHA — the workflow runs `scripts/smoke/staging-smoke.mjs` automatically and fails if any check fails.
+For full smoke validation, trigger `deploy-beta-ec2.yml` with the rollback SHA.
 
 ---
 
