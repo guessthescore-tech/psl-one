@@ -24,10 +24,12 @@ export function getBetaToken(): string {
 
 export function setToken(token: string): void {
   localStorage.setItem('psl_access_token', token);
+  window.dispatchEvent(new Event('psl-auth-change'));
 }
 
 export function clearToken(): void {
   localStorage.removeItem('psl_access_token');
+  window.dispatchEvent(new Event('psl-auth-change'));
 }
 
 function authedHeaders(): HeadersInit {

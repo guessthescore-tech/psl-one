@@ -839,10 +839,15 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
 
     // The filter must include prices scope
     const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
-      where: { prices?: { some?: { seasonId?: string } }; team?: { externalId?: unknown } };
+      where: {
+        prices?: { some?: { seasonId?: string } };
+        team?: { externalId?: unknown; seasonTeams?: { some?: { seasonId?: string } }; OR?: Array<Record<string, unknown>> };
+      };
     };
     expect(call.where.prices?.some?.seasonId).toBe(wcSeasonId);
-    expect(call.where.team).toEqual({ externalId: { not: 'TBD' } });
+    expect(call.where.team?.externalId).toEqual({ not: 'TBD' });
+    expect(call.where.team?.seasonTeams).toBeUndefined();
+    expect(call.where.team?.OR).toBeUndefined();
     expect(result).toHaveLength(1);
     expect(result[0]!.name).toBe('WC Player');
   });
@@ -870,7 +875,14 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
     const call = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as {
       where: { team: { externalId: { not: string } }; OR: Array<Record<string, unknown>> };
     };
-    expect(call.where.team).toEqual({ externalId: { not: 'TBD' } });
+    expect(call.where.team?.externalId).toEqual({ not: 'TBD' });
+    expect(call.where.team?.seasonTeams?.some?.seasonId).toBe(wcSeasonId);
+    expect(call.where.team?.OR).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ homeFixtures: expect.anything() }),
+        expect.objectContaining({ awayFixtures: expect.anything() }),
+      ]),
+    );
     expect(call.where.OR).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ source: 'fifa-wc2026' }),
@@ -902,7 +914,14 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
     expect(prisma.player.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          team: { externalId: { not: 'TBD' } },
+          team: expect.objectContaining({
+            externalId: { not: 'TBD' },
+            seasonTeams: { some: { seasonId: wcSeasonId } },
+            OR: expect.arrayContaining([
+              expect.objectContaining({ homeFixtures: expect.anything() }),
+              expect.objectContaining({ awayFixtures: expect.anything() }),
+            ]),
+          }),
           OR: expect.arrayContaining([
             expect.objectContaining({ source: 'fifa-wc2026' }),
             expect.objectContaining({ prices: { some: { seasonId: wcSeasonId } } }),

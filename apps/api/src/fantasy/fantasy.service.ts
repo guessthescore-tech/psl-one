@@ -319,11 +319,37 @@ export class FantasyService {
       : {
           prices: { some: { seasonId: season.id } },
         };
+    const teamFilter = isWorldCupSeason
+      ? {
+          externalId: { not: 'TBD' },
+          seasonTeams: { some: { seasonId: season.id } },
+          OR: [
+            {
+              homeFixtures: {
+                some: {
+                  seasonId: season.id,
+                  status: { in: [FixtureStatus.SCHEDULED, FixtureStatus.LIVE, FixtureStatus.HALF_TIME] },
+                },
+              },
+            },
+            {
+              awayFixtures: {
+                some: {
+                  seasonId: season.id,
+                  status: { in: [FixtureStatus.SCHEDULED, FixtureStatus.LIVE, FixtureStatus.HALF_TIME] },
+                },
+              },
+            },
+          ],
+        }
+      : {
+          externalId: { not: 'TBD' },
+        };
 
     return this.prisma.player.findMany({
       where: {
         ...(position ? { position } : {}),
-        team: { externalId: { not: 'TBD' } },
+        team: teamFilter,
         ...seasonScopedFilter,
       },
       include: {

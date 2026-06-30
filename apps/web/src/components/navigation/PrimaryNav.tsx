@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { getToken, clearToken } from '@/lib/auth-client';
 
 /* ── Route definitions ──────────────────────────────────────────── */
 interface NavItem { href: string; label: string; exact?: boolean }
@@ -42,6 +43,30 @@ function MenuIcon({ open }: { open: boolean }) {
 export function PrimaryNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+
+  useEffect(() => {
+    const syncAuth = () => setIsAuthed(!!getToken());
+    syncAuth();
+
+    const onStorage = () => syncAuth();
+    const onAuthChange = () => syncAuth();
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onStorage);
+    window.addEventListener('psl-auth-change', onAuthChange as EventListener);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onStorage);
+      window.removeEventListener('psl-auth-change', onAuthChange as EventListener);
+    };
+  }, []);
+
+  async function handleSignOut() {
+    clearToken();
+    setIsAuthed(false);
+    setMenuOpen(false);
+    window.location.href = '/';
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-psl-midnight shadow-card-lg">
@@ -96,12 +121,30 @@ export function PrimaryNav() {
 
           {/* Auth CTAs */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Link
-              href="/login"
-              className="hidden sm:block text-xs font-semibold text-white/55 hover:text-white motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight rounded px-2 py-1.5"
-            >
-              Sign in
-            </Link>
+            {isAuthed ? (
+              <>
+                <Link
+                  href="/account"
+                  className="hidden sm:block text-xs font-semibold text-white/55 hover:text-white motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight rounded px-2 py-1.5"
+                >
+                  Account
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="hidden sm:block text-xs font-semibold text-white/55 hover:text-white motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight rounded px-2 py-1.5"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden sm:block text-xs font-semibold text-white/55 hover:text-white motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight rounded px-2 py-1.5"
+              >
+                Sign in
+              </Link>
+            )}
             <Link
               href="/register"
               className="text-xs font-black text-psl-midnight bg-psl-gold px-4 py-2 rounded-pill hover:bg-yellow-300 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold focus-visible:ring-offset-2 focus-visible:ring-offset-psl-midnight whitespace-nowrap"
@@ -152,13 +195,32 @@ export function PrimaryNav() {
                 );
               })}
               <li className="px-5 pt-3 pb-1 border-t border-white/10 mt-2 flex gap-3">
-                <Link
-                  href="/login"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex-1 text-center text-sm font-semibold text-white/70 border border-white/20 py-2.5 rounded-card-sm hover:bg-white/10 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold"
-                >
-                  Sign in
-                </Link>
+                {isAuthed ? (
+                  <>
+                    <Link
+                      href="/account"
+                      onClick={() => setMenuOpen(false)}
+                      className="flex-1 text-center text-sm font-semibold text-white/70 border border-white/20 py-2.5 rounded-card-sm hover:bg-white/10 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold"
+                    >
+                      Account
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="flex-1 text-center text-sm font-semibold text-white/70 border border-white/20 py-2.5 rounded-card-sm hover:bg-white/10 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex-1 text-center text-sm font-semibold text-white/70 border border-white/20 py-2.5 rounded-card-sm hover:bg-white/10 motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-psl-gold"
+                  >
+                    Sign in
+                  </Link>
+                )}
                 <Link
                   href="/register"
                   onClick={() => setMenuOpen(false)}
