@@ -22,7 +22,9 @@
     "replay:world-cup-fixture": "tsx src/scripts/replay-world-cup-fixture.ts",
     "replay:world-cup-fixture:prod": "node dist/scripts/replay-world-cup-fixture.js",
     "sync:world-cup-player-stats": "tsx src/scripts/sync-world-cup-player-stats.ts",
-    "sync:world-cup-player-stats:prod": "node dist/scripts/sync-world-cup-player-stats.js"
+    "sync:world-cup-player-stats:prod": "node dist/scripts/sync-world-cup-player-stats.js",
+    "sync:world-cup-scorers": "tsx src/scripts/sync-world-cup-scorers.ts",
+    "sync:world-cup-scorers:prod": "node dist/scripts/sync-world-cup-scorers.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
