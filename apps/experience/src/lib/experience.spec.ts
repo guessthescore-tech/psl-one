@@ -8046,10 +8046,11 @@ describe('Fantasy onboarding — authenticated flow', () => {
     expect(content).toContain('savedTeamId');
   });
 
-  it('onboarding page imports addPlayer and updateTeam for Step 4 submission to existing team', () => {
+  it('onboarding page imports saveCompleteSquad for Step 4 submission to existing team', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    expect(content).toContain('addPlayer');
-    expect(content).toContain('updateTeam');
+    expect(content).toContain('saveCompleteSquad');
+    expect(content).not.toContain('addPlayer');
+    expect(content).not.toContain('updateTeam');
   });
 
   it('onboarding page handles 409 conflict from createTeam by redirecting to existing team', () => {
@@ -8397,18 +8398,18 @@ describe('Challenge accept page — server-validated auth', () => {
 // ─── Fantasy onboarding — squad build path regression ────────────────────
 
 describe('Fantasy onboarding — squad completion flow', () => {
-  it('onboarding handleSubmit adds players using a sequential addPlayer loop (not a single bulk createTeam)', () => {
+  it('onboarding handleSubmit saves the complete squad in one request (not a partial add loop)', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    // Step 4 submit: updateTeam (formation, fresh only) then sequential addPlayer for new slots
-    expect(content).toContain('await addPlayer(slot)');
-    // Iterates over slotsToAdd (filtered to exclude already-persisted players)
-    expect(content).toContain('for (const slot of slotsToAdd)');
+    expect(content).toContain('await saveCompleteSquad({ formation, players: slots })');
+    expect(content).not.toContain('await addPlayer(slot)');
+    expect(content).not.toContain('for (const slot of slotsToAdd)');
   });
 
-  it('onboarding imports addPlayer and updateTeam from fantasy-api (not makeTransfer)', () => {
+  it('onboarding imports saveCompleteSquad from fantasy-api (not makeTransfer)', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    expect(content).toContain("addPlayer,");
-    expect(content).toContain("updateTeam,");
+    expect(content).toContain('saveCompleteSquad');
+    expect(content).not.toContain("addPlayer,");
+    expect(content).not.toContain("updateTeam,");
     expect(content).not.toContain('makeTransfer');
   });
 
@@ -8448,6 +8449,11 @@ describe('Fantasy onboarding — squad completion flow', () => {
   it('fantasy-api updateTeam patches /fantasy/team/me (sets formation before player adds)', () => {
     const content = read('lib/fantasy-api.ts');
     expect(content).toContain("apiPatch<FantasyTeam>('/fantasy/team/me'");
+  });
+
+  it('fantasy-api saveCompleteSquad puts to /fantasy/team/me/squad', () => {
+    const content = read('lib/fantasy-api.ts');
+    expect(content).toContain("apiPut<FantasyTeam>('/fantasy/team/me/squad'");
   });
 });
 
@@ -8611,24 +8617,21 @@ describe('Fantasy onboarding — partial team resume (no-loop guarantee)', () =>
     expect(content).toContain('setFormation(restoredFormation)');
   });
 
-  it('partial team: resumedPlayerIds tracks already-persisted players', () => {
+  it('partial team: final submit no longer tracks persisted players for incremental adds', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    expect(content).toContain('resumedPlayerIds');
-    expect(content).toContain('setResumedPlayerIds');
-    expect(content).toContain('existingTeam.players.map(tp => tp.playerId)');
+    expect(content).not.toContain('resumedPlayerIds');
+    expect(content).not.toContain('setResumedPlayerIds');
   });
 
-  it('handleSubmit skips already-persisted players to avoid 409 conflicts', () => {
+  it('handleSubmit saves the complete persisted squad rather than skipping already-persisted players', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    expect(content).toContain('!resumedPlayerIds.has(s.playerId)');
-    expect(content).toContain('slotsToAdd');
+    expect(content).toContain('saveCompleteSquad({ formation, players: slots })');
+    expect(content).not.toContain('slotsToAdd');
   });
 
-  it('handleSubmit only calls updateTeam for fresh onboarding (size === 0), not for resumed teams', () => {
+  it('handleSubmit does not call the transfer-window-gated updateTeam path during final onboarding submit', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    // Conditional: skip the transfer-window-gated formation update when resuming
-    expect(content).toContain('resumedPlayerIds.size === 0');
-    expect(content).toContain('await updateTeam({ formation })');
+    expect(content).not.toContain('await updateTeam({ formation })');
   });
 
   it('partial team: onboarding does NOT redirect to /fantasy/team (only null resumeStep triggers redirect)', () => {
@@ -8761,19 +8764,19 @@ describe('Onboarding squad builder — slot index and state persistence', () => 
 
   it('formation change preserves existing picks by re-seating players (not a silent reset)', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    // When picks exist, the onChange handler re-maps players into the new slot layout
-    expect(content).toContain('hasPicks');
-    expect(content).toContain('if (!hasPicks) return buildEmptySquad(f)');
-    // Players are redistributed by position — not a wholesale wipe
-    expect(content).toContain("filled.filter(p => p.position === 'DEF')");
+    const helper = read('lib/fantasy-onboarding-squad.ts');
+    expect(content).toContain('reseatStartersForFormation(prev, f)');
+    expect(helper).toContain('hasPicks');
+    expect(helper).toContain('if (!hasPicks) return buildEmptySquad(formation)');
+    expect(helper).toContain("filled.filter(p => p.position === 'DEF')");
   });
 
   it('formation change resets to empty squad only when no players are selected', () => {
-    const content = read('app/fantasy/onboarding/page.tsx');
+    const helper = read('lib/fantasy-onboarding-squad.ts');
     // Guard: only call buildEmptySquad when squad is empty
-    expect(content).toContain('if (!hasPicks) return buildEmptySquad(f)');
+    expect(helper).toContain('if (!hasPicks) return buildEmptySquad(formation)');
     // The unconditional setSquad(buildEmptySquad(f)) must no longer exist
-    expect(content).not.toContain('setSquad(buildEmptySquad(f))');
+    expect(read('app/fantasy/onboarding/page.tsx')).not.toContain('setSquad(buildEmptySquad(f))');
   });
 
   it('onboarding and FantasyPitchView both use the same shared pitch component', () => {

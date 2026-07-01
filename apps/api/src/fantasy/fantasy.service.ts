@@ -16,6 +16,7 @@ import { AchievementsService } from '../achievements/achievements.service';
 import { FantasyLeagueService } from './fantasy-league.service';
 import { CreateFantasyTeamDto } from './dto/create-fantasy-team.dto';
 import { FantasyPlayerSlotDto } from './dto/fantasy-player-slot.dto';
+import { SaveFantasySquadDto } from './dto/save-fantasy-squad.dto';
 import { TransferDto } from './dto/transfer.dto';
 import { UpdateFantasyTeamDto } from './dto/update-fantasy-team.dto';
 import { UpdatePlayerSlotDto } from './dto/update-player-slot.dto';
@@ -777,6 +778,60 @@ export class FantasyService {
         },
       },
     });
+  }
+
+  async saveCompleteSquad(userId: string, dto: SaveFantasySquadDto) {
+    const season = await this.getActiveSeason();
+    const rulesConfig = await this.loadSquadConfig(season.id);
+    const team = await this.prisma.fantasyTeam.findUnique({
+      where: { userId_seasonId: { userId, seasonId: season.id } },
+      include: { players: true },
+    });
+    if (!team) throw new NotFoundException('Fantasy team not found. Create one first via POST /fantasy/team/me');
+
+    const slots = dto.players ?? [];
+    if (this.isWorldCupSeason(season)) {
+      await this.assertPlayersFromActiveTeams(slots.map(p => p.playerId), season.id);
+    }
+
+    const playerDetails = await this.resolvePlayerDetails(slots.map(p => p.playerId), season.id);
+    const validation = validateSquadComposition(slots, playerDetails, rulesConfig);
+    if (!validation.isValid) {
+      throw new BadRequestException({ message: 'Invalid squad', errors: validation.errors });
+    }
+
+    if (team.players.length >= rulesConfig.squadSize) {
+      const existingIds = [...team.players.map(p => p.playerId)].sort();
+      const nextIds = [...slots.map(p => p.playerId)].sort();
+      if (existingIds.join('|') !== nextIds.join('|')) {
+        throw new BadRequestException('Complete squad already exists. Use transfers to change players.');
+      }
+    }
+
+    const nextPlayers = slots.map(slot => {
+      const pd = playerDetails.find(p => p.id === slot.playerId)!;
+      return {
+        fantasyTeamId: team.id,
+        playerId: slot.playerId,
+        squadRole: slot.squadRole,
+        position: pd.position,
+        benchSlot: slot.benchSlot ?? null,
+        isCaptain: slot.isCaptain ?? false,
+        isViceCaptain: slot.isViceCaptain ?? false,
+      };
+    });
+
+    await this.prisma.$transaction(async tx => {
+      await tx.fantasyTeamPlayer.deleteMany({ where: { fantasyTeamId: team.id } });
+      await tx.fantasyTeam.update({
+        where: { id: team.id },
+        data: { formation: dto.formation ?? validation.formation ?? team.formation },
+      });
+      await tx.fantasyTeamPlayer.createMany({ data: nextPlayers });
+    });
+
+    await this.fantasyLeagueService.ensureGlobalLeagueMemberships(userId, team.id);
+    return this.getMyTeam(userId);
   }
 
   async addPlayerToSquad(userId: string, slot: FantasyPlayerSlotDto) {

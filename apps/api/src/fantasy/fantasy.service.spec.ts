@@ -970,6 +970,123 @@ describe('Fantasy team management — deadline locks', () => {
   });
 });
 
+// ── saveCompleteSquad — atomic onboarding persistence ───────────────────────
+
+describe('FantasyService.saveCompleteSquad', () => {
+  const makePrismaMock = () => {
+    const prisma = {
+      $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma)),
+      season: { findFirst: vi.fn() },
+      player: { findMany: vi.fn(), findUnique: vi.fn() },
+      fantasyTeam: { findUnique: vi.fn(), update: vi.fn() },
+      fantasyTeamPlayer: {
+        deleteMany: vi.fn(),
+        createMany: vi.fn(),
+      },
+      fantasyRulesConfig: { findUnique: vi.fn() },
+      fantasyPlayerPrice: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    return prisma as unknown as PrismaService;
+  };
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+  let leagueServiceMock: ReturnType<typeof makeFantasyLeagueServiceMock>;
+
+  const season = {
+    id: 's1',
+    slug: 'psl-2026',
+    name: 'PSL 2026',
+    competition: { id: 'c1', slug: 'psl', name: 'PSL' },
+  };
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    leagueServiceMock = makeFantasyLeagueServiceMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), leagueServiceMock);
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(season);
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  });
+
+  it('validates before mutating so an invalid squad leaves no partial changes', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      formation: null,
+      players: [],
+    });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+
+    await expect(
+      service.saveCompleteSquad('u1', { formation: '4-4-2', players: slots.slice(0, 10) }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.fantasyTeamPlayer.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.fantasyTeamPlayer.createMany).not.toHaveBeenCalled();
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).not.toHaveBeenCalled();
+  });
+
+  it('replaces an incomplete persisted squad with exactly 15 validated players in one transaction', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        id: 'ft1',
+        formation: null,
+        players: slots.slice(0, 10).map(slot => ({ playerId: slot.playerId })),
+      })
+      .mockResolvedValueOnce({
+        id: 'ft1',
+        formation: '4-4-2',
+        players: slots.map(slot => ({ playerId: slot.playerId, player: players.find(p => p.id === slot.playerId) })),
+      });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft1' });
+    (prisma.fantasyTeamPlayer.createMany as ReturnType<typeof vi.fn>).mockResolvedValue({ count: 15 });
+
+    await service.saveCompleteSquad('u1', { formation: '4-4-2', players: slots });
+
+    expect(prisma.$transaction).toHaveBeenCalledOnce();
+    expect(prisma.fantasyTeamPlayer.deleteMany).toHaveBeenCalledWith({ where: { fantasyTeamId: 'ft1' } });
+    expect(prisma.fantasyTeam.update).toHaveBeenCalledWith({
+      where: { id: 'ft1' },
+      data: { formation: '4-4-2' },
+    });
+    expect(prisma.fantasyTeamPlayer.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ fantasyTeamId: 'ft1', playerId: 'gk1', squadRole: FantasySquadRole.STARTER }),
+      ]),
+    });
+    const createManyArg = (prisma.fantasyTeamPlayer.createMany as ReturnType<typeof vi.fn>).mock.calls[0]![0] as { data: unknown[] };
+    expect(createManyArg.data).toHaveLength(15);
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).toHaveBeenCalledWith('u1', 'ft1');
+  });
+
+  it('rejects attempts to replace a complete squad with a different player set', async () => {
+    const { players, slots } = buildValidSquad();
+    const replacementPlayer = makePlayer('replacement-def', PlayerPosition.DEFENDER, 't7');
+    const replacementSlots = slots.map(slot => (
+      slot.playerId === 'd0'
+        ? { ...slot, playerId: replacementPlayer.id }
+        : slot
+    ));
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      formation: '4-4-2',
+      players: slots.map(slot => ({ playerId: slot.playerId })),
+    });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([...players, replacementPlayer]);
+
+    await expect(
+      service.saveCompleteSquad('u1', { formation: '4-4-2', players: replacementSlots }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.fantasyTeamPlayer.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.fantasyTeamPlayer.createMany).not.toHaveBeenCalled();
+  });
+});
+
 // ── addPlayerToSquad — WC eligibility enforcement ───────────────────────────
 
 describe('FantasyService.addPlayerToSquad — WC eligibility gate', () => {

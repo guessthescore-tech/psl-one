@@ -23,36 +23,24 @@ import {
   getPlayerPrices,
   getTeam,
   createTeam,
-  updateTeam,
-  addPlayer,
+  saveCompleteSquad,
   validateSquad,
 } from '@/lib/fantasy-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
 import { ApiError } from '@/lib/api';
 import { SQUAD_SIZE, getResumeStep } from '@/lib/fantasy-team-resume';
+import {
+  buildEmptySquad,
+  getStarterSlotPosition,
+  reseatStartersForFormation,
+  selectPlayerForSlot,
+  type SquadState,
+} from '@/lib/fantasy-onboarding-squad';
 
 const TOTAL_BUDGET = 100;
 const STEP_LABELS = ['Name Team', 'Formation', 'Build Squad', 'Review'];
 
 type Step = 1 | 2 | 3 | 4;
-
-interface SquadState {
-  starters: (ExpFantasyPlayer | null)[];
-  bench: (ExpFantasyPlayer | null)[];
-}
-
-function parseFormationRows(formation: string): number[] {
-  return formation.split('-').map(Number);
-}
-
-function buildEmptySquad(formation: string): SquadState {
-  const rows = parseFormationRows(formation);
-  const starterCount = 1 + rows.reduce((a, b) => a + b, 0);
-  return {
-    starters: Array.from({ length: starterCount }, () => null),
-    bench: [null, null, null, null],
-  };
-}
 
 export default function OnboardingPage() {
   const reduce = useReducedMotion();
@@ -93,9 +81,6 @@ export default function OnboardingPage() {
   const [poolError, setPoolError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  // Tracks player IDs already persisted to the DB from a previous session. The
-  // submit handler skips these so we never attempt a duplicate addPlayer call.
-  const [resumedPlayerIds, setResumedPlayerIds] = useState<Set<string>>(new Set());
 
   // On mount: verify auth via server and check for existing team
   useEffect(() => {
@@ -165,7 +150,6 @@ export default function OnboardingPage() {
             if (captainTp) setCaptainId(captainTp.playerId);
             if (vcTp) setViceCaptainId(vcTp.playerId);
 
-            setResumedPlayerIds(new Set(existingTeam.players.map(tp => tp.playerId)));
           }
 
           setStep(resumeStep);
@@ -285,25 +269,13 @@ export default function OnboardingPage() {
 
     try {
       if (savedTeamId) {
-        // Persist formation only for fresh onboarding (0 players in DB).
-        // For resumed partial teams the formation was already set in a previous
-        // session; calling updateTeam again would trigger the transfer-window
-        // guard on the backend (WC has no gameweeks → always throws).
-        if (resumedPlayerIds.size === 0) {
-          await updateTeam({ formation });
-        }
-
         const slots = allPlayers.map((p, i) =>
           toFantasySlot(
             { ...p, isCaptain: p.id === captainId, isViceCaptain: p.id === viceCaptainId },
             i,
           ),
         );
-        // Skip players already persisted from a previous session (avoids 409 conflicts)
-        const slotsToAdd = slots.filter(s => !resumedPlayerIds.has(s.playerId));
-        for (const slot of slotsToAdd) {
-          await addPlayer(slot);
-        }
+        await saveCompleteSquad({ formation, players: slots });
       } else {
         // Fallback: name wasn't persisted yet (design review or edge case)
         await createTeam({
@@ -317,10 +289,8 @@ export default function OnboardingPage() {
         });
       }
 
-      // The savedTeamId path builds the squad via sequential addPlayer calls, which
-      // don't enforce budget/captain/max-per-team composition rules the way a single
-      // createTeam submission does. Validate the persisted squad before declaring
-      // success so an invalid squad is never silently completed.
+      // Validate the persisted squad before declaring success so an invalid
+      // squad is never silently completed.
       const validation = await validateSquad();
       if (!validation.isValid) {
         setSubmitError(validation.errors.join(' '));
@@ -371,26 +341,10 @@ export default function OnboardingPage() {
 
   const handlePlayerSelect = useCallback((player: ExpFantasyPlayer) => {
     if (!selectedSlot) return;
-    const selectedPlayer: ExpFantasyPlayer = {
-      ...player,
-      squadRole: selectedSlot.isStarter ? 'STARTER' : 'SUBSTITUTE',
-      benchSlot: selectedSlot.isStarter ? null : selectedSlot.idx + 1,
-      isCaptain: false,
-      isViceCaptain: false,
-    };
-    setSquad(prev => {
-      const starters = [...prev.starters];
-      const bench = [...prev.bench];
-      if (selectedSlot.isStarter) {
-        starters[selectedSlot.idx] = selectedPlayer;
-      } else {
-        bench[selectedSlot.idx] = selectedPlayer;
-      }
-      return { starters, bench };
-    });
+    setSquad(prev => selectPlayerForSlot(prev, selectedSlot, player, formation));
     setPoolOpen(false);
     setSelectedSlot(null);
-  }, [selectedSlot]);
+  }, [formation, selectedSlot]);
 
   const pitchPlayers = squad.starters.map(p =>
     p ? { ...p, isCaptain: p.id === captainId, isViceCaptain: p.id === viceCaptainId } : null,
@@ -478,27 +432,7 @@ export default function OnboardingPage() {
                   value={formation}
                   onChange={f => {
                     setFormation(f);
-                    setSquad(prev => {
-                      const hasPicks = [...prev.starters, ...prev.bench].some(Boolean);
-                      if (!hasPicks) return buildEmptySquad(f);
-                      // Re-seat existing picks into the new formation's slot layout.
-                      // Players that exceed the new slot count for their position are
-                      // dropped (unavoidable when reducing a position group).
-                      // Bench players are always preserved.
-                      const filled = prev.starters.filter(Boolean) as ExpFantasyPlayer[];
-                      const gks  = filled.filter(p => p.position === 'GK');
-                      const defs = filled.filter(p => p.position === 'DEF');
-                      const mids = filled.filter(p => p.position === 'MID');
-                      const fwds = filled.filter(p => p.position === 'FWD');
-                      const [nDef = 4, nMid = 3, nFwd = 3] = parseFormationRows(f);
-                      const newStarters: (ExpFantasyPlayer | null)[] = [
-                        gks[0] ?? null,
-                        ...Array.from({ length: nDef }, (_, i): ExpFantasyPlayer | null => defs[i] ?? null),
-                        ...Array.from({ length: nMid }, (_, i): ExpFantasyPlayer | null => mids[i] ?? null),
-                        ...Array.from({ length: nFwd }, (_, i): ExpFantasyPlayer | null => fwds[i] ?? null),
-                      ];
-                      return { starters: newStarters, bench: prev.bench };
-                    });
+                    setSquad(prev => reseatStartersForFormation(prev, f));
                   }}
                 />
 
@@ -633,6 +567,7 @@ export default function OnboardingPage() {
             players={playerPool}
             onSelect={handlePlayerSelect}
             pickedIds={pickedIds}
+            filterPosition={selectedSlot?.isStarter ? getStarterSlotPosition(formation, selectedSlot.idx) : undefined}
           />
         )}
       </FantasyBottomSheet>

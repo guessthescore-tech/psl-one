@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getGameweekScore, getPlayerPool, getPlayerPrices, getTransferStatus, getPublicLeagues, joinPublicLeague, validateSquad } from './fantasy-api';
+import {
+  getGameweekScore,
+  getPlayerPool,
+  getPlayerPrices,
+  getTransferStatus,
+  getPublicLeagues,
+  joinPublicLeague,
+  saveCompleteSquad,
+  validateSquad,
+} from './fantasy-api';
 
 describe('fantasy-api getPlayerPrices', () => {
   beforeEach(() => {
@@ -318,9 +327,40 @@ describe('fantasy-api validateSquad', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining('/fantasy/team/me/validate'),
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({ method: 'POST', body: '{}' }),
     );
     expect(result.isValid).toBe(false);
     expect(result.errors).toContain('Captain not assigned');
+  });
+});
+
+describe('fantasy-api saveCompleteSquad', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sends the complete onboarding squad as a single PUT request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'team-1', players: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await saveCompleteSquad({
+      formation: '4-3-3',
+      players: [
+        { playerId: 'p1', squadRole: 'STARTER', isCaptain: true, isViceCaptain: false },
+      ],
+    });
+
+    const [url, options] = fetchMock.mock.calls[0]!;
+    expect(url).toContain('/fantasy/team/me/squad');
+    expect(options).toEqual(expect.objectContaining({ method: 'PUT' }));
+    expect(JSON.parse((options as RequestInit).body as string)).toEqual({
+      formation: '4-3-3',
+      players: [
+        { playerId: 'p1', squadRole: 'STARTER', isCaptain: true, isViceCaptain: false },
+      ],
+    });
   });
 });

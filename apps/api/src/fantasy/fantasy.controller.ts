@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -27,6 +28,7 @@ import { FantasyCupService } from './fantasy-cup.service';
 import { FantasyRulesConfigService, UpdateRulesDto } from './fantasy-rules-config.service';
 import { FantasyGameweekScoringService } from './fantasy-gameweek-scoring.service';
 import { CreateFantasyTeamDto } from './dto/create-fantasy-team.dto';
+import { SaveFantasySquadDto } from './dto/save-fantasy-squad.dto';
 import { UpdateFantasyTeamDto } from './dto/update-fantasy-team.dto';
 import { FantasyPlayerSlotDto } from './dto/fantasy-player-slot.dto';
 import { UpdatePlayerSlotDto } from './dto/update-player-slot.dto';
@@ -132,6 +134,12 @@ export class FantasyController {
   @UseGuards(JwtAuthGuard)
   updateTeam(@CurrentUser() user: TokenPayload, @Body() dto: UpdateFantasyTeamDto) {
     return this.fantasy.updateTeamMeta(user.sub, dto);
+  }
+
+  @Put('team/me/squad')
+  @UseGuards(JwtAuthGuard)
+  saveCompleteSquad(@CurrentUser() user: TokenPayload, @Body() dto: SaveFantasySquadDto) {
+    return this.fantasy.saveCompleteSquad(user.sub, dto);
   }
 
   // ── Granular player management ────────────────────────────────────────────

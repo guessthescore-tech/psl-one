@@ -8,7 +8,7 @@
  * endpoints are authenticated where the server requires it for personalisation.
  */
 
-import { apiFetch, apiPost, apiPatch, publicFetch } from './api';
+import { apiFetch, apiPost, apiPatch, apiPut, publicFetch } from './api';
 
 // ── Enums ─────────────────────────────────────────────────────────────────────
 
@@ -326,6 +326,10 @@ export function updateTeam(dto: { name?: string; formation?: string }): Promise<
   return apiPatch<FantasyTeam>('/fantasy/team/me', dto);
 }
 
+export function saveCompleteSquad(dto: { formation: string; players: FantasyPlayerSlot[] }): Promise<FantasyTeam> {
+  return apiPut<FantasyTeam>('/fantasy/team/me/squad', dto);
+}
+
 export function addPlayer(slot: FantasyPlayerSlot): Promise<FantasyTeam> {
   return apiPost<FantasyTeam>('/fantasy/team/me/players', slot);
 }
@@ -360,7 +364,7 @@ export function makeTransfers(dto: {
 // ── Validation ────────────────────────────────────────────────────────────────
 
 export function validateSquad(): Promise<SquadValidation> {
-  return apiFetch<SquadValidation>('/fantasy/team/me/validate', { method: 'POST' });
+  return apiPost<SquadValidation>('/fantasy/team/me/validate', {});
 }
 
 // ── Deadline ──────────────────────────────────────────────────────────────────

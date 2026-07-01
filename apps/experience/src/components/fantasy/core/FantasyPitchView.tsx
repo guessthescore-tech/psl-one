@@ -26,19 +26,18 @@ export function FantasyPitchView({
   const reduce = useReducedMotion();
   const formationRows = parseFormation(formation); // e.g. [4,3,3]
 
-  // Organise starters by position
-  const starters = players.filter(p => !p || p.squadRole === 'STARTER');
+  const [defCount = 4, midCount = 3, fwdCount = 3] = formationRows;
+  const starterSlots = Array.from(
+    { length: 1 + defCount + midCount + fwdCount },
+    (_, i) => players[i] ?? null,
+  );
 
-  // Build rows: GK (1) + formation rows
-  const gkPlayers = starters.filter(p => !p || p?.position === 'GK').slice(0, 1);
-  const defPlayers = starters.filter(p => !p || p?.position === 'DEF').slice(0, formationRows[0] ?? 4);
-  const midPlayers = starters.filter(p => !p || p?.position === 'MID').slice(0, formationRows[1] ?? 3);
-  const fwdPlayers = starters.filter(p => !p || p?.position === 'FWD').slice(0, formationRows[2] ?? 3);
-
-  // Pad to formation counts
-  while (defPlayers.length < (formationRows[0] ?? 4)) defPlayers.push(null);
-  while (midPlayers.length < (formationRows[1] ?? 3)) midPlayers.push(null);
-  while (fwdPlayers.length < (formationRows[2] ?? 3)) fwdPlayers.push(null);
+  // Build rows from the flat starter-slot array. Do not filter by player
+  // position here; filtering changes slot identity when null placeholders exist.
+  const gkPlayers = starterSlots.slice(0, 1);
+  const defPlayers = starterSlots.slice(1, 1 + defCount);
+  const midPlayers = starterSlots.slice(1 + defCount, 1 + defCount + midCount);
+  const fwdPlayers = starterSlots.slice(1 + defCount + midCount, 1 + defCount + midCount + fwdCount);
 
   const rows: Array<{ label: string; pos: string; slots: (ExpFantasyPlayer | null)[] }> = [
     { label: 'GK',  pos: 'GK',  slots: gkPlayers  },
@@ -54,8 +53,8 @@ export function FantasyPitchView({
   const rowStartIdx = [
     0,
     1,
-    1 + (formationRows[0] ?? 4),
-    1 + (formationRows[0] ?? 4) + (formationRows[1] ?? 3),
+    1 + defCount,
+    1 + defCount + midCount,
   ];
 
   return (

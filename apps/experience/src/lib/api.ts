@@ -88,6 +88,16 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 }
 
 /**
+ * PUT with JSON body. Returns parsed response body.
+ */
+export async function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return apiFetch<T>(path, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * DELETE. Resolves when the server responds 2xx. Throws otherwise.
  */
 export async function apiDelete(path: string): Promise<void> {
