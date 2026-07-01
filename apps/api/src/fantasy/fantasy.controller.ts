@@ -230,10 +230,15 @@ export class FantasyController {
     return this.leagueService.joinLeagueByCode(user.sub, dto.inviteCode);
   }
 
+  @Get('leagues/public')
+  listPublicLeagues(@Query('seasonId') seasonId: string) {
+    return this.leagueService.listPublicLeagues(seasonId);
+  }
+
   @Post('leagues/public/join')
   @UseGuards(JwtAuthGuard)
   joinPublicLeague(@CurrentUser() user: TokenPayload, @Body() dto: JoinPublicLeagueDto) {
-    return this.leagueService.joinPublicLeague(user.sub, dto.seasonId);
+    return this.leagueService.joinPublicLeague(user.sub, dto.seasonId, dto.leagueId);
   }
 
   @Get('leagues/:leagueId')

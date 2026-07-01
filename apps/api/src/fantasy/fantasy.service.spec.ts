@@ -4,10 +4,15 @@ import { FantasySquadRole, LineupStatus, MatchEventType, PlayerPosition, Fixture
 import { FantasyService } from './fantasy.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { AchievementsService } from '../achievements/achievements.service';
+import type { FantasyLeagueService } from './fantasy-league.service';
 
 const makeAchievementsMock = () => ({
   safeEvaluate: vi.fn().mockResolvedValue(undefined),
 }) as unknown as AchievementsService;
+
+const makeFantasyLeagueServiceMock = () => ({
+  ensureGlobalLeagueMemberships: vi.fn().mockResolvedValue([]),
+}) as unknown as FantasyLeagueService;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,6 +77,7 @@ describe('Fantasy squad validation (via FantasyService.validateSlots)', () => {
       fantasyPointsLedger: { createMany: vi.fn() },
       fixture: { findUnique: vi.fn() },
       fantasyRulesConfig: { findUnique: vi.fn() },
+      fantasyPlayerPrice: { findMany: vi.fn().mockResolvedValue([]) },
     }) as unknown as PrismaService;
 
   let service: FantasyService;
@@ -79,7 +85,7 @@ describe('Fantasy squad validation (via FantasyService.validateSlots)', () => {
 
   beforeEach(() => {
     prisma = makePrismaMock();
-    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), makeFantasyLeagueServiceMock());
   });
 
   it('accepts a valid 15-player squad: 2GK 5DEF 5MID 3FWD', async () => {
@@ -278,6 +284,44 @@ describe('Fantasy squad validation (via FantasyService.validateSlots)', () => {
     expect(result.isValid).toBe(false);
     expect(result.maxPerTeamValid).toBe(false);
   });
+
+  it('rejects missing vice-captain', async () => {
+    const { players, slots } = buildValidSquad();
+    slots.forEach(s => { s.isViceCaptain = false; });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    const result = await service.validateSlots(slots);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.toLowerCase().includes('vice-captain'))).toBe(true);
+  });
+
+  // ── Budget cap ───────────────────────────────────────────────────────────
+
+  it('accepts a squad at or under the £100m budget cap', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'season-1' });
+    // 15 players at 60 tenths (£6.0m) each = £90m total — under the £100m cap
+    (prisma.fantasyPlayerPrice.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      players.map(p => ({ playerId: p.id, price: 60 })),
+    );
+    const result = await service.validateSlots(slots);
+    expect(result.budgetValid).toBe(true);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('rejects a squad exceeding the £100m budget cap', async () => {
+    const { players, slots } = buildValidSquad();
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'season-1' });
+    // 15 players at 80 tenths (£8.0m) each = £120m total — over the £100m cap
+    (prisma.fantasyPlayerPrice.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(
+      players.map(p => ({ playerId: p.id, price: 80 })),
+    );
+    const result = await service.validateSlots(slots);
+    expect(result.budgetValid).toBe(false);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('exceeds budget'))).toBe(true);
+  });
 });
 
 // ── FPL Scoring tests ─────────────────────────────────────────────────────────
@@ -293,6 +337,7 @@ describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
       fantasyPointsLedger: { createMany: vi.fn() },
       fixture: { findUnique: vi.fn() },
       fantasyRulesConfig: { findUnique: vi.fn() },
+      fantasyPlayerPrice: { findMany: vi.fn().mockResolvedValue([]) },
     }) as unknown as PrismaService;
 
   // We test the internal scorePlayer function indirectly via settleFixture.
@@ -301,6 +346,7 @@ describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
 
   let service: FantasyService;
   let prisma: ReturnType<typeof makePrismaMock>;
+  let leagueServiceMock: ReturnType<typeof makeFantasyLeagueServiceMock>;
 
   const FIXTURE_ID = 'fix-1';
   const HOME_TEAM_ID = 'home-team';
@@ -342,7 +388,8 @@ describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
 
   beforeEach(() => {
     prisma = makePrismaMock();
-    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    leagueServiceMock = makeFantasyLeagueServiceMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), leagueServiceMock);
     (prisma.fantasyPointsLedger.createMany as ReturnType<typeof vi.fn>).mockResolvedValue({ count: 1 });
     (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({});
   });
@@ -691,6 +738,29 @@ describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
     await expect(service.createTeam('u1', { players: badSlots })).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('auto-enters the team into global leagues on a full-squad createTeam submission', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1', slug: 'psl', name: 'PSL', competition: { slug: 'psl', name: 'PSL' } });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    const { players, slots } = buildValidSquad();
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue(players);
+    (prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft-full', name: 'Full Squad', players: [] });
+
+    await service.createTeam('u1', { name: 'Full Squad', players: slots });
+
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).toHaveBeenCalledWith('u1', 'ft-full');
+  });
+
+  it('does not auto-enter global leagues for name-only (empty squad) team creation', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1', slug: 'psl', name: 'PSL', competition: { slug: 'psl', name: 'PSL' } });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft-empty', name: 'My Crew', players: [] });
+
+    await service.createTeam('u1', { name: 'My Crew' });
+
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).not.toHaveBeenCalled();
+  });
+
   it('transfer cannot break squad composition', async () => {
     const { players, slots } = buildValidSquad();
     const defPlayer = players.find(p => p.position === PlayerPosition.DEFENDER)!;
@@ -739,6 +809,7 @@ describe('Fantasy team management — deadline locks', () => {
       fantasyTransfer: { create: vi.fn() },
       fixture: { findUnique: vi.fn() },
       fantasyRulesConfig: { findUnique: vi.fn() },
+      fantasyPlayerPrice: { findMany: vi.fn().mockResolvedValue([]) },
     }) as unknown as PrismaService;
 
   let service: FantasyService;
@@ -746,7 +817,7 @@ describe('Fantasy team management — deadline locks', () => {
 
   beforeEach(() => {
     prisma = makePrismaMock();
-    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), makeFantasyLeagueServiceMock());
     (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
   });
 
@@ -910,10 +981,12 @@ describe('FantasyService.addPlayerToSquad — WC eligibility gate', () => {
       fantasyTeam: { findUnique: vi.fn() },
       fantasyTeamPlayer: { create: vi.fn() },
       fantasyRulesConfig: { findUnique: vi.fn() },
+      fantasyPlayerPrice: { findMany: vi.fn().mockResolvedValue([]) },
     }) as unknown as PrismaService;
 
   let service: FantasyService;
   let prisma: ReturnType<typeof makePrismaMock>;
+  let leagueServiceMock: ReturnType<typeof makeFantasyLeagueServiceMock>;
 
   const WC_SEASON = {
     id: 'wc-s1',
@@ -924,7 +997,8 @@ describe('FantasyService.addPlayerToSquad — WC eligibility gate', () => {
 
   beforeEach(() => {
     prisma = makePrismaMock();
-    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    leagueServiceMock = makeFantasyLeagueServiceMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), leagueServiceMock);
     (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     // Open transfer window so deadline is not the reason for rejection
     (prisma.gameweek.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -1009,6 +1083,54 @@ describe('FantasyService.addPlayerToSquad — WC eligibility gate', () => {
       expect(msg).toContain('Portugal');
     }
   });
+
+  // ── Auto-entry into global leagues ────────────────────────────────────────
+
+  it('auto-enters the team into global leagues once the 15th player completes the squad', async () => {
+    const pslSeason = {
+      id: 'psl-s1',
+      slug: 'psl-2025-26',
+      name: 'Premier Soccer League 2025/26',
+      competition: { slug: 'premier-soccer-league', name: 'Premier Soccer League' },
+    };
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(pslSeason);
+    // 14 existing players — this addPlayerToSquad call is the 15th (squad becomes full)
+    const existingPlayers = Array.from({ length: 14 }, (_, i) => ({ id: `existing-${i}` }));
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'ft1', players: existingPlayers })
+      .mockResolvedValueOnce({ id: 'ft1', name: 'PSL Team', formation: null, players: [] });
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p-last', position: PlayerPosition.MIDFIELDER, teamId: 'team-psl', name: 'Last Player',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp15' });
+
+    await service.addPlayerToSquad('u1', { playerId: 'p-last', squadRole: 'STARTER' as FantasySquadRole });
+
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).toHaveBeenCalledWith('u1', 'ft1');
+  });
+
+  it('does not auto-enter global leagues while the squad is still incomplete', async () => {
+    const pslSeason = {
+      id: 'psl-s1',
+      slug: 'psl-2025-26',
+      name: 'Premier Soccer League 2025/26',
+      competition: { slug: 'premier-soccer-league', name: 'Premier Soccer League' },
+    };
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(pslSeason);
+    // Only 5 existing players — squad remains incomplete after this add
+    const existingPlayers = Array.from({ length: 5 }, (_, i) => ({ id: `existing-${i}` }));
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'ft1', players: existingPlayers })
+      .mockResolvedValueOnce({ id: 'ft1', name: 'PSL Team', formation: null, players: [] });
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p-mid', position: PlayerPosition.MIDFIELDER, teamId: 'team-psl', name: 'Mid Player',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp6' });
+
+    await service.addPlayerToSquad('u1', { playerId: 'p-mid', squadRole: 'STARTER' as FantasySquadRole });
+
+    expect(leagueServiceMock.ensureGlobalLeagueMemberships).not.toHaveBeenCalled();
+  });
 });
 
 // ── getPlayerPool — active season scope ─────────────────────────────────────
@@ -1025,7 +1147,7 @@ describe('FantasyService.getPlayerPool — active season scope', () => {
 
   beforeEach(() => {
     prisma = makePrismaMock();
-    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock(), makeFantasyLeagueServiceMock());
   });
 
   it('queries players with prices scoped to active season', async () => {

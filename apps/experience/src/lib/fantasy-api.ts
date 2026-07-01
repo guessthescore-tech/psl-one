@@ -148,6 +148,7 @@ export interface League {
   isJoinable: boolean;
   createdByUserId: string | null;
   createdAt: string;
+  memberCount?: number;
 }
 
 export interface LeagueMembership {
@@ -413,8 +414,12 @@ export function joinLeagueByCode(inviteCode: string): Promise<LeagueMembership> 
   return apiPost<LeagueMembership>('/fantasy/leagues/join', { inviteCode });
 }
 
-export function joinPublicLeague(seasonId: string): Promise<LeagueMembership> {
-  return apiPost<LeagueMembership>('/fantasy/leagues/public/join', { seasonId });
+export function getPublicLeagues(seasonId: string): Promise<League[]> {
+  return apiFetch<League[]>(`/fantasy/leagues/public?seasonId=${encodeURIComponent(seasonId)}`);
+}
+
+export function joinPublicLeague(seasonId: string, leagueId?: string): Promise<LeagueMembership> {
+  return apiPost<LeagueMembership>('/fantasy/leagues/public/join', { seasonId, leagueId });
 }
 
 export function createLeague(dto: { name: string; seasonId: string }): Promise<League> {

@@ -46,10 +46,15 @@ function authedHeaders(extra?: HeadersInit): HeadersInit {
  * non-2xx responses with a descriptive error message.
  */
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(apiUrl(path), {
-    ...options,
-    headers: authedHeaders(options?.headers),
-  });
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      ...options,
+      headers: authedHeaders(options?.headers),
+    });
+  } catch {
+    throw new ApiError(0, 'Unable to reach the server. Please check your connection and try again.');
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { message?: string; errors?: string[] };
@@ -93,10 +98,15 @@ export async function apiDelete(path: string): Promise<void> {
  * Unauthenticated GET — for public endpoints that don't require a token.
  */
 export async function publicFetch<T>(path: string): Promise<T> {
-  const res = await fetch(apiUrl(path), {
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  let res: Response;
+  try {
+    res = await fetch(apiUrl(path), {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError(0, 'Unable to reach the server. Please check your connection and try again.');
+  }
+  if (!res.ok) throw new ApiError(res.status, `HTTP ${res.status}`);
   return res.json() as Promise<T>;
 }

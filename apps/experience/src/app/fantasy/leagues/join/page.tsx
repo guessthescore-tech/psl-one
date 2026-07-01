@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Users, CheckCircle, WarningCircle } from '@phosphor-icons/react/dist/ssr';
@@ -10,6 +10,8 @@ import { FantasySectionHeader } from '@/components/fantasy/shared/FantasySection
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
 import { LeagueCodeInput } from '@/components/fantasy/leagues/LeagueCodeInput';
 import { getDataMode } from '@/lib/data';
+import { getWorldCupSeason } from '@/lib/football-api';
+import type { League } from '@/lib/fantasy-api';
 
 type JoinState = 'idle' | 'searching' | 'found' | 'error_not_found' | 'error_member' | 'joining' | 'success';
 
@@ -34,6 +36,35 @@ export default function JoinLeaguePage() {
 
   const [code, setCode] = useState('');
   const [state, setState] = useState<JoinState>('idle');
+  const [seasonId, setSeasonId] = useState<string | null>(null);
+  const [publicLeagues, setPublicLeagues] = useState<League[]>([]);
+  const [publicLeaguesLoading, setPublicLeaguesLoading] = useState(mode !== 'DESIGN_REVIEW_DATA');
+
+  useEffect(() => {
+    if (mode === 'DESIGN_REVIEW_DATA') return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [season, { getPublicLeagues }] = await Promise.all([
+          getWorldCupSeason(),
+          import('@/lib/fantasy-api'),
+        ]);
+        const leagues = await getPublicLeagues(season.id);
+        if (cancelled) return;
+        setSeasonId(season.id);
+        setPublicLeagues(leagues);
+      } catch {
+        // Leave publicLeagues empty — the section below renders an empty state.
+      } finally {
+        if (!cancelled) setPublicLeaguesLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode]);
 
   async function handleFind() {
     if (code.length < 6) return;
@@ -82,9 +113,10 @@ export default function JoinLeaguePage() {
       router.push(`/fantasy/leagues/${id}`);
       return;
     }
+    if (!seasonId) return;
     try {
       const { joinPublicLeague } = await import('@/lib/fantasy-api');
-      await joinPublicLeague(id);
+      await joinPublicLeague(seasonId, id);
       router.push(`/fantasy/leagues/${id}`);
     } catch {
       // TODO: show error
@@ -198,28 +230,57 @@ export default function JoinLeaguePage() {
       <div className="pb-24">
         <FantasySectionHeader title="Browse Public Leagues" subtitle="Open to any fan" />
         <div className="flex flex-col gap-3 px-4">
-          {MOCK_PUBLIC_LEAGUES.map((league, i) => (
-            <motion.div
-              key={league.id}
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.06 }}
-              className="rounded-card bg-exp-navy border border-exp-border-dk p-4 flex items-center gap-4"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="text-body-sm font-semibold text-white truncate mb-0.5">{league.name}</div>
-                <div className="text-label-sm text-exp-muted">{league.memberCount.toLocaleString()} members</div>
-              </div>
-              <motion.button
-                type="button"
-                onClick={() => handleJoinPublic(league.id)}
-                whileTap={reduce ? {} : { scale: 0.97 }}
-                className="flex-shrink-0 min-h-[44px] px-4 bg-exp-green rounded-card-sm text-white font-black text-label-lg uppercase tracking-wider hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+          {mode === 'DESIGN_REVIEW_DATA' ? (
+            MOCK_PUBLIC_LEAGUES.map((league, i) => (
+              <motion.div
+                key={league.id}
+                initial={reduce ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.06 }}
+                className="rounded-card bg-exp-navy border border-exp-border-dk p-4 flex items-center gap-4"
               >
-                Join
-              </motion.button>
-            </motion.div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <div className="text-body-sm font-semibold text-white truncate mb-0.5">{league.name}</div>
+                  <div className="text-label-sm text-exp-muted">{league.memberCount.toLocaleString()} members</div>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={() => handleJoinPublic(league.id)}
+                  whileTap={reduce ? {} : { scale: 0.97 }}
+                  className="flex-shrink-0 min-h-[44px] px-4 bg-exp-green rounded-card-sm text-white font-black text-label-lg uppercase tracking-wider hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+                >
+                  Join
+                </motion.button>
+              </motion.div>
+            ))
+          ) : publicLeaguesLoading ? (
+            <FantasyLoadingState rows={3} type="card" />
+          ) : publicLeagues.length === 0 ? (
+            <p className="text-body-sm text-exp-muted px-1 py-4">No public leagues are open right now.</p>
+          ) : (
+            publicLeagues.map((league, i) => (
+              <motion.div
+                key={league.id}
+                initial={reduce ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.06 }}
+                className="rounded-card bg-exp-navy border border-exp-border-dk p-4 flex items-center gap-4"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-body-sm font-semibold text-white truncate mb-0.5">{league.name}</div>
+                  <div className="text-label-sm text-exp-muted">{(league.memberCount ?? 0).toLocaleString()} members</div>
+                </div>
+                <motion.button
+                  type="button"
+                  onClick={() => handleJoinPublic(league.id)}
+                  whileTap={reduce ? {} : { scale: 0.97 }}
+                  className="flex-shrink-0 min-h-[44px] px-4 bg-exp-green rounded-card-sm text-white font-black text-label-lg uppercase tracking-wider hover:opacity-90 transition-opacity focus-visible:outline-2 focus-visible:outline-exp-gold focus-visible:outline-offset-2"
+                >
+                  Join
+                </motion.button>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
     </FantasyShell>

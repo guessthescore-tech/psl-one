@@ -8789,6 +8789,64 @@ describe('Onboarding squad builder — slot index and state persistence', () => 
   });
 });
 
+// ─── Fantasy team save + league entry regression ──────────────────────────
+
+describe('Onboarding submit — validates squad before declaring success', () => {
+  it('handleSubmit calls validateSquad after persisting the team, before router.push', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('const validation = await validateSquad();');
+    const validateIdx = content.indexOf('const validation = await validateSquad();');
+    const pushIdx = content.indexOf("router.push('/fantasy/team');", validateIdx);
+    expect(validateIdx).toBeGreaterThan(-1);
+    expect(pushIdx).toBeGreaterThan(validateIdx);
+  });
+
+  it('handleSubmit blocks navigation and surfaces errors when validation fails', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('if (!validation.isValid)');
+    expect(content).toContain('setSubmitError(validation.errors.join(');
+  });
+});
+
+describe('leagues/create — real season resolution and error surfacing', () => {
+  it('no longer hardcodes seasonId: \'active\'', () => {
+    const content = read('app/fantasy/leagues/create/page.tsx');
+    expect(content).not.toContain("seasonId: 'active'");
+  });
+
+  it('resolves the real season via getWorldCupSeason before creating a league', () => {
+    const content = read('app/fantasy/leagues/create/page.tsx');
+    expect(content).toContain("import { getWorldCupSeason } from '@/lib/football-api';");
+    expect(content).toContain('await getWorldCupSeason()');
+    expect(content).toContain('createLeague({ name, seasonId: season.id })');
+  });
+
+  it('surfaces a real error instead of the silent TODO catch', () => {
+    const content = read('app/fantasy/leagues/create/page.tsx');
+    expect(content).not.toContain('// TODO: error toast');
+    expect(content).toContain('setError(');
+  });
+});
+
+describe('leagues/join — real public leagues, correct join semantics', () => {
+  it('live mode no longer renders MOCK_PUBLIC_LEAGUES unconditionally', () => {
+    const content = read('app/fantasy/leagues/join/page.tsx');
+    // MOCK_PUBLIC_LEAGUES must only be used in the DESIGN_REVIEW_DATA branch
+    expect(content).toContain("mode === 'DESIGN_REVIEW_DATA' ? (\n            MOCK_PUBLIC_LEAGUES.map");
+  });
+
+  it('fetches real public leagues via getPublicLeagues in live mode', () => {
+    const content = read('app/fantasy/leagues/join/page.tsx');
+    expect(content).toContain('getPublicLeagues(season.id)');
+  });
+
+  it('handleJoinPublic no longer calls joinPublicLeague with a single (fake seasonId) argument', () => {
+    const content = read('app/fantasy/leagues/join/page.tsx');
+    expect(content).not.toMatch(/joinPublicLeague\(id\)/);
+    expect(content).toContain('joinPublicLeague(seasonId, id)');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

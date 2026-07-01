@@ -25,6 +25,7 @@ import {
   createTeam,
   updateTeam,
   addPlayer,
+  validateSquad,
 } from '@/lib/fantasy-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
 import { ApiError } from '@/lib/api';
@@ -315,6 +316,18 @@ export default function OnboardingPage() {
           ),
         });
       }
+
+      // The savedTeamId path builds the squad via sequential addPlayer calls, which
+      // don't enforce budget/captain/max-per-team composition rules the way a single
+      // createTeam submission does. Validate the persisted squad before declaring
+      // success so an invalid squad is never silently completed.
+      const validation = await validateSquad();
+      if (!validation.isValid) {
+        setSubmitError(validation.errors.join(' '));
+        setSubmitting(false);
+        return;
+      }
+
       router.push('/fantasy/team');
     } catch (err: unknown) {
       setSubmitError(

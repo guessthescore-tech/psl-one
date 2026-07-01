@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AchievementsService } from '../achievements/achievements.service';
+import { FantasyLeagueService } from './fantasy-league.service';
 import { CreateFantasyTeamDto } from './dto/create-fantasy-team.dto';
 import { FantasyPlayerSlotDto } from './dto/fantasy-player-slot.dto';
 import { TransferDto } from './dto/transfer.dto';
@@ -35,6 +36,7 @@ export interface SquadValidationResult {
   captainValid: boolean;
   viceCaptainValid: boolean;
   maxPerTeamValid: boolean;
+  budgetValid: boolean;
 }
 
 interface PlayerDetail {
@@ -42,7 +44,11 @@ interface PlayerDetail {
   position: PlayerPosition;
   teamId: string;
   name: string;
+  price: number;
 }
+
+// Squad value cap in millions — fantasy points only, no cash value.
+const BUDGET_CAP_MILLIONS = 100;
 
 function deriveFormation(defCount: number, midCount: number, fwdCount: number): string {
   return `${defCount}-${midCount}-${fwdCount}`;
@@ -163,6 +169,13 @@ function validateSquadComposition(
   }
   if (!maxPerTeamValid) errors.push('Maximum 3 players from the same real team');
 
+  // Budget cap
+  const totalPrice = slots.reduce((sum, s) => sum + (playerById.get(s.playerId)?.price ?? 0), 0);
+  const budgetValid = totalPrice <= BUDGET_CAP_MILLIONS;
+  if (!budgetValid) {
+    errors.push(`Squad value £${totalPrice.toFixed(1)}m exceeds budget of £${BUDGET_CAP_MILLIONS}m`);
+  }
+
   // Bench summary
   const subGK = subs.find(s => playerById.get(s.playerId)?.position === PlayerPosition.GOALKEEPER);
   const benchSummary = `GK sub: ${subGK ? 'yes' : 'no'}, outfield subs: ${subs.length - (subGK ? 1 : 0)}`;
@@ -177,6 +190,7 @@ function validateSquadComposition(
     captainValid,
     viceCaptainValid,
     maxPerTeamValid,
+    budgetValid,
   };
 }
 
@@ -287,6 +301,7 @@ export class FantasyService {
   constructor(
     private prisma: PrismaService,
     private achievementsService: AchievementsService,
+    private fantasyLeagueService: FantasyLeagueService,
   ) {}
 
   // ── Player pool ───────────────────────────────────────────────────────────
@@ -445,7 +460,7 @@ export class FantasyService {
     }
 
     const rulesConfig = await this.loadSquadConfig(season.id);
-    const playerDetails = await this.resolvePlayerDetails(slots.map(p => p.playerId));
+    const playerDetails = await this.resolvePlayerDetails(slots.map(p => p.playerId), season.id);
     const validation = validateSquadComposition(slots, playerDetails, rulesConfig);
     if (!validation.isValid) {
       throw new BadRequestException({ message: 'Invalid squad', errors: validation.errors });
@@ -474,6 +489,7 @@ export class FantasyService {
       include: { players: { include: { player: true } } },
     });
 
+    await this.fantasyLeagueService.ensureGlobalLeagueMemberships(userId, team.id);
     this.achievementsService.safeEvaluate(userId, ['first-fantasy-team']).catch(() => null);
     return team;
   }
@@ -515,7 +531,7 @@ export class FantasyService {
     }));
 
     const rulesConfig = await this.loadSquadConfig(season.id);
-    const playerDetails = await this.resolvePlayerDetails(newSlots.map(s => s.playerId));
+    const playerDetails = await this.resolvePlayerDetails(newSlots.map(s => s.playerId), season.id);
     const validation = validateSquadComposition(newSlots, playerDetails, rulesConfig);
     if (!validation.isValid) {
       throw new BadRequestException({ message: 'Transfer creates invalid squad', errors: validation.errors });
@@ -561,11 +577,14 @@ export class FantasyService {
       isViceCaptain: p.isViceCaptain,
     }));
 
+    const priceMap = await this.resolvePlayerPrices(team.players.map(p => p.playerId), season.id);
+
     const playerDetails: PlayerDetail[] = team.players.map(p => ({
       id: p.playerId,
       position: p.player.position,
       teamId: p.player.teamId,
       name: p.player.name,
+      price: priceMap.get(p.playerId) ?? 0,
     }));
 
     const rulesConfig = await this.loadSquadConfig(season.id);
@@ -721,7 +740,7 @@ export class FantasyService {
   async validateSlots(slots: FantasyPlayerSlotDto[]) {
     const season = await this.prisma.season.findFirst({ where: { isActive: true } });
     const rulesConfig = season ? await this.loadSquadConfig(season.id) : DEFAULT_SQUAD_CONFIG;
-    const playerDetails = await this.resolvePlayerDetails(slots.map(s => s.playerId));
+    const playerDetails = await this.resolvePlayerDetails(slots.map(s => s.playerId), season?.id);
     return validateSquadComposition(slots, playerDetails, rulesConfig);
   }
 
@@ -802,6 +821,11 @@ export class FantasyService {
         isViceCaptain: slot.isViceCaptain ?? false,
       },
     });
+
+    // Squad just reached full size — auto-enter the fan's team into the global leagues.
+    if (team.players.length + 1 === rulesConfig.squadSize) {
+      await this.fantasyLeagueService.ensureGlobalLeagueMemberships(userId, team.id);
+    }
 
     return this.getMyTeam(userId);
   }
@@ -884,12 +908,22 @@ export class FantasyService {
     return config ?? DEFAULT_SQUAD_CONFIG;
   }
 
-  private async resolvePlayerDetails(playerIds: string[]): Promise<PlayerDetail[]> {
+  private async resolvePlayerDetails(playerIds: string[], seasonId?: string): Promise<PlayerDetail[]> {
     const players = await this.prisma.player.findMany({
       where: { id: { in: playerIds } },
       select: { id: true, position: true, teamId: true, name: true },
     });
-    return players;
+    const priceMap = seasonId ? await this.resolvePlayerPrices(playerIds, seasonId) : new Map<string, number>();
+    return players.map(p => ({ ...p, price: priceMap.get(p.id) ?? 0 }));
+  }
+
+  // Prices are stored in tenths of a million; this returns whole millions.
+  private async resolvePlayerPrices(playerIds: string[], seasonId: string): Promise<Map<string, number>> {
+    const prices = await this.prisma.fantasyPlayerPrice.findMany({
+      where: { seasonId, playerId: { in: playerIds } },
+      select: { playerId: true, price: true },
+    });
+    return new Map(prices.map(p => [p.playerId, p.price / 10]));
   }
 
   private isWorldCupSeason(season: { slug?: string | null; name?: string | null; competition?: { slug?: string | null; name?: string | null } | null }): boolean {

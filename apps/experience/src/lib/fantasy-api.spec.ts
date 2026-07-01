@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getGameweekScore, getPlayerPool, getPlayerPrices, getTransferStatus } from './fantasy-api';
+import { getGameweekScore, getPlayerPool, getPlayerPrices, getTransferStatus, getPublicLeagues, joinPublicLeague, validateSquad } from './fantasy-api';
 
 describe('fantasy-api getPlayerPrices', () => {
   beforeEach(() => {
@@ -239,5 +239,88 @@ describe('fantasy-api getPlayerPool', () => {
       expect.stringContaining('/fantasy/player-pool?seasonId=season-1'),
       expect.any(Object),
     );
+  });
+});
+
+describe('fantasy-api getPublicLeagues', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('fetches joinable public leagues scoped to the season', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 'pub-1', name: 'Public League', memberCount: 42 }],
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const leagues = await getPublicLeagues('season-1');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/fantasy/leagues/public?seasonId=season-1'),
+      expect.any(Object),
+    );
+    expect(leagues[0]!.memberCount).toBe(42);
+  });
+});
+
+describe('fantasy-api joinPublicLeague', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('sends leagueId in the body when joining a specific browsed league', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'member-1', leagueId: 'pub-specific' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await joinPublicLeague('season-1', 'pub-specific');
+
+    const [, options] = fetchMock.mock.calls[0]!;
+    expect(JSON.parse((options as RequestInit).body as string)).toEqual({
+      seasonId: 'season-1',
+      leagueId: 'pub-specific',
+    });
+  });
+
+  it('omits a specific league (round-robin assignment) when leagueId is not given', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'member-1', leagueId: 'pub-auto' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await joinPublicLeague('season-1');
+
+    const [, options] = fetchMock.mock.calls[0]!;
+    expect(JSON.parse((options as RequestInit).body as string)).toEqual({
+      seasonId: 'season-1',
+      leagueId: undefined,
+    });
+  });
+});
+
+describe('fantasy-api validateSquad', () => {
+  beforeEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('posts to the validate endpoint and returns the composition result', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ isValid: false, errors: ['Captain not assigned'] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await validateSquad();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/fantasy/team/me/validate'),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(result.isValid).toBe(false);
+    expect(result.errors).toContain('Captain not assigned');
   });
 });

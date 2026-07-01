@@ -151,7 +151,7 @@ export class FantasyLeagueService {
 
   // ── Public leagues ──────────────────────────────────────────────────────
 
-  async joinPublicLeague(userId: string, seasonId: string) {
+  async joinPublicLeague(userId: string, seasonId: string, leagueId?: string) {
     const season = await this.prisma.season.findUnique({ where: { id: seasonId } });
     if (!season) throw new NotFoundException('Season not found');
 
@@ -180,22 +180,33 @@ export class FantasyLeagueService {
     });
     if (teamPublic.length > 0) throw new BadRequestException('Already in a public league for this season');
 
-    // Find first available public league with room, or create one
-    let league = await this.prisma.fantasyLeague.findFirst({
-      where: { seasonId, type: FantasyLeagueType.PUBLIC, isJoinable: true },
-      orderBy: { createdAt: 'asc' },
-    });
+    let league: { id: string; seasonId: string; type: FantasyLeagueType; isJoinable: boolean } | null = null;
 
-    if (!league) {
-      league = await this.prisma.fantasyLeague.create({
-        data: {
-          seasonId,
-          name: 'Public League',
-          type: FantasyLeagueType.PUBLIC,
-          scoringType: FantasyLeagueScoringType.CLASSIC,
-          isJoinable: true,
-        },
+    if (leagueId) {
+      // Join a specific public league found via browse/search.
+      league = await this.prisma.fantasyLeague.findUnique({ where: { id: leagueId } });
+      if (!league || league.type !== FantasyLeagueType.PUBLIC || league.seasonId !== seasonId) {
+        throw new NotFoundException('Public league not found');
+      }
+      if (!league.isJoinable) throw new BadRequestException('League is not accepting new members');
+    } else {
+      // Find first available public league with room, or create one.
+      league = await this.prisma.fantasyLeague.findFirst({
+        where: { seasonId, type: FantasyLeagueType.PUBLIC, isJoinable: true },
+        orderBy: { createdAt: 'asc' },
       });
+
+      if (!league) {
+        league = await this.prisma.fantasyLeague.create({
+          data: {
+            seasonId,
+            name: 'Public League',
+            type: FantasyLeagueType.PUBLIC,
+            scoringType: FantasyLeagueScoringType.CLASSIC,
+            isJoinable: true,
+          },
+        });
+      }
     }
 
     const membership = await this.prisma.fantasyLeagueMember.create({
@@ -208,6 +219,27 @@ export class FantasyLeagueService {
     });
     this.achievementsService.safeEvaluate(userId, ['joined-first-fantasy-league']).catch(() => null);
     return membership;
+  }
+
+  async listPublicLeagues(seasonId: string) {
+    const leagues = await this.prisma.fantasyLeague.findMany({
+      where: { seasonId, type: FantasyLeagueType.PUBLIC, isJoinable: true },
+      include: { _count: { select: { members: { where: { leftAt: null } } } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return leagues.map(l => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      scoringType: l.scoringType,
+      seasonId: l.seasonId,
+      inviteCode: l.inviteCode,
+      isJoinable: l.isJoinable,
+      createdByUserId: l.createdByUserId,
+      createdAt: l.createdAt,
+      memberCount: l._count.members,
+    }));
   }
 
   // ── Global leagues ──────────────────────────────────────────────────────

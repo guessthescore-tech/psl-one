@@ -961,6 +961,58 @@ describe('FantasyLeagueService', () => {
     expect(vi.mocked(db.fantasyLeagueMember.create)).toHaveBeenCalled();
   });
 
+  it('joinPublicLeague with a specific leagueId joins that exact league', async () => {
+    vi.mocked(db.season.findUnique).mockResolvedValue({ id: 's1' } as never);
+    vi.mocked(db.fantasyTeam.findFirst).mockResolvedValue({ id: 't1' } as never);
+    vi.mocked(db.fantasyLeagueMember.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.fantasyLeague.findUnique).mockResolvedValue({
+      id: 'pub-specific', type: FantasyLeagueType.PUBLIC, seasonId: 's1', isJoinable: true,
+    } as never);
+    vi.mocked(db.fantasyLeagueMember.create).mockResolvedValue({ id: 'm1' } as never);
+
+    await svc.joinPublicLeague('u1', 's1', 'pub-specific');
+
+    expect(vi.mocked(db.fantasyLeague.create)).not.toHaveBeenCalled();
+    expect(vi.mocked(db.fantasyLeagueMember.create)).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ leagueId: 'pub-specific', fantasyTeamId: 't1' }) }),
+    );
+  });
+
+  it('joinPublicLeague rejects a leagueId that is not a joinable PUBLIC league for the season', async () => {
+    vi.mocked(db.season.findUnique).mockResolvedValue({ id: 's1' } as never);
+    vi.mocked(db.fantasyTeam.findFirst).mockResolvedValue({ id: 't1' } as never);
+    vi.mocked(db.fantasyLeagueMember.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.fantasyLeague.findUnique).mockResolvedValue({
+      id: 'priv-1', type: FantasyLeagueType.PRIVATE, seasonId: 's1', isJoinable: true,
+    } as never);
+
+    await expect(svc.joinPublicLeague('u1', 's1', 'priv-1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('joinPublicLeague rejects a leagueId for a different season', async () => {
+    vi.mocked(db.season.findUnique).mockResolvedValue({ id: 's1' } as never);
+    vi.mocked(db.fantasyTeam.findFirst).mockResolvedValue({ id: 't1' } as never);
+    vi.mocked(db.fantasyLeagueMember.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.fantasyLeague.findUnique).mockResolvedValue({
+      id: 'pub-other-season', type: FantasyLeagueType.PUBLIC, seasonId: 's2', isJoinable: true,
+    } as never);
+
+    await expect(svc.joinPublicLeague('u1', 's1', 'pub-other-season')).rejects.toThrow(NotFoundException);
+  });
+
+  it('listPublicLeagues returns only joinable PUBLIC leagues with member counts', async () => {
+    vi.mocked(db.fantasyLeague.findMany).mockResolvedValue([
+      { id: 'pub-1', name: 'Public League', type: FantasyLeagueType.PUBLIC, scoringType: FantasyLeagueScoringType.CLASSIC, seasonId: 's1', inviteCode: null, isJoinable: true, createdByUserId: null, createdAt: new Date(), _count: { members: 42 } },
+    ] as never);
+
+    const result = await svc.listPublicLeagues('s1');
+
+    expect(vi.mocked(db.fantasyLeague.findMany)).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { seasonId: 's1', type: FantasyLeagueType.PUBLIC, isJoinable: true } }),
+    );
+    expect(result[0]).toMatchObject({ id: 'pub-1', name: 'Public League', memberCount: 42 });
+  });
+
   // ── Classic standings ────────────────────────────────────────────────────
 
   it('getLeagueStandings ranks by totalPoints DESC', async () => {
