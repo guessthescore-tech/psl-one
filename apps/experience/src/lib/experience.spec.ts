@@ -8073,6 +8073,51 @@ describe('Fantasy onboarding — authenticated flow', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
     expect(content).toContain('ApiError');
   });
+
+  it('onboarding page renders FantasyActionBar (step-1 primary CTA container)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('FantasyActionBar');
+  });
+
+  it('Step 1 primary CTA is labeled "Save & Continue →"', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("'Save & Continue →'");
+  });
+
+  it('Step 1 CTA is disabled when team name is empty or too short (validation guard)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // The disabled expression rejects empty strings and names that fail validateName
+    expect(content).toContain("validateName(teamName) !== ''");
+    expect(content).toContain("teamName.trim() === ''");
+  });
+});
+
+// ─── FantasyActionBar positioning regression ──────────────────────────────────
+
+describe('FantasyActionBar — bottom positioning', () => {
+  it('uses a valid CSS length for bottom (not a Tailwind theme() function)', () => {
+    const content = read('components/fantasy/shared/FantasyActionBar.tsx');
+    // theme() is a PostCSS/Tailwind build-time function — invalid in React style props
+    expect(content).not.toContain('theme(spacing.');
+  });
+
+  it('positions above the MobileBottomNav using 3.5rem bottom offset', () => {
+    const content = read('components/fantasy/shared/FantasyActionBar.tsx');
+    // MobileBottomNav is h-14 = 3.5rem; action bar must clear it
+    expect(content).toContain('3.5rem');
+  });
+
+  it('accounts for safe-area-inset-bottom in bottom positioning', () => {
+    const content = read('components/fantasy/shared/FantasyActionBar.tsx');
+    expect(content).toContain('env(safe-area-inset-bottom');
+  });
+
+  it('is fixed-positioned with full-width spread', () => {
+    const content = read('components/fantasy/shared/FantasyActionBar.tsx');
+    expect(content).toContain('fixed');
+    expect(content).toContain('left-0');
+    expect(content).toContain('right-0');
+  });
 });
 
 // ─── Onboarding: server-validated auth (regression) ─────────────────────────

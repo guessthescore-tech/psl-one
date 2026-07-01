@@ -27,7 +27,7 @@ export function FantasyActionBar({ primary, secondary, hint }: FantasyActionBarP
     <div
       className="fixed left-0 right-0 z-40 px-4 pb-4 pt-3 bg-gradient-to-t from-exp-void via-exp-void/95 to-transparent"
       style={{
-        bottom: 'calc(theme(spacing.16) + env(safe-area-inset-bottom, 0px))',
+        bottom: 'calc(3.5rem + env(safe-area-inset-bottom, 0px))',
       }}
     >
       {hint && (
