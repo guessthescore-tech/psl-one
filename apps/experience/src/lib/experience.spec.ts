@@ -7092,8 +7092,10 @@ describe('SignUpForm', () => {
   it('has consentAnalytics checkbox', () => {
     expect(read('app/sign-up/SignUpForm.tsx')).toContain('consentAnalytics');
   });
-  it('submits to /auth/register', () => {
-    expect(read('app/sign-up/SignUpForm.tsx')).toContain('/auth/register');
+  it('uses the shared auth register helper', () => {
+    const content = read('app/sign-up/SignUpForm.tsx');
+    expect(content).toContain("from '@/lib/auth'");
+    expect(content).toContain('register({');
   });
   it('has success state with verification message', () => {
     const content = read('app/sign-up/SignUpForm.tsx');
@@ -7117,8 +7119,12 @@ describe('SignUpForm', () => {
   it('validates age 13+', () => {
     expect(read('app/sign-up/SignUpForm.tsx')).toContain('13');
   });
-  it('uses NEXT_PUBLIC_API_BASE_URL', () => {
-    expect(read('app/sign-up/SignUpForm.tsx')).toContain('NEXT_PUBLIC_API_BASE_URL');
+  it('uses the shared auth helper and keeps API base in auth.ts', () => {
+    const form = read('app/sign-up/SignUpForm.tsx');
+    const auth = read('lib/auth.ts');
+    expect(form).toContain("from '@/lib/auth'");
+    expect(form).toContain('register({');
+    expect(auth).toContain('NEXT_PUBLIC_API_BASE_URL');
   });
   it('has no gambling language', () => {
     const content = read('app/sign-up/SignUpForm.tsx').toLowerCase();
@@ -7258,7 +7264,8 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
     const content = read('app/sign-up/SignUpForm.tsx');
     expect(content).toContain('emailDeliveryStatus');
     expect(content).toContain('Email delivery status');
-    expect(content).toContain('setToken');
+    expect(content).toContain("from '@/lib/auth'");
+    expect(content).toContain('register({');
   });
 
   it('guess-the-score shows explicit error when API unavailable', () => {

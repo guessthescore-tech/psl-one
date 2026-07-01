@@ -62,6 +62,17 @@ export type RegisterResponse =
   | { accessToken: string; user: AuthUser; emailDeliveryStatus?: 'SENT' | 'FAILED' | 'SKIPPED' }
   | { message: string };
 
+export type RegisterInput = {
+  email: string;
+  password: string;
+  dateOfBirth: string;
+  consentCoreService: boolean;
+  phone?: string;
+  saId?: string;
+  consentMarketing?: boolean;
+  consentAnalytics?: boolean;
+};
+
 // ── Auth API calls ────────────────────────────────────────────────────────────
 
 /**
@@ -88,11 +99,11 @@ export async function login(email: string, password: string): Promise<LoginRespo
  * Register a new fan account. Stores the returned JWT automatically when
  * the server returns an accessToken.
  */
-export async function register(email: string, password: string): Promise<RegisterResponse> {
+export async function register(input: RegisterInput): Promise<RegisterResponse> {
   const res = await fetch(authUrl('/auth/register'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(input),
   });
 
   if (!res.ok && res.status !== 201) {
@@ -100,11 +111,11 @@ export async function register(email: string, password: string): Promise<Registe
     throw new Error(err.message ?? 'Registration failed');
   }
 
-  const data = await res.json() as RegisterResponse;
-  if ('accessToken' in data) {
-    setToken(data.accessToken);
+  const response = await res.json() as RegisterResponse;
+  if ('accessToken' in response) {
+    setToken(response.accessToken);
   }
-  return data;
+  return response;
 }
 
 /**

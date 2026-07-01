@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
 import { Eye, EyeSlash, CheckCircle } from '@phosphor-icons/react';
-import { setToken } from '@/lib/auth';
+import { register } from '@/lib/auth';
 
 const API_BASE =
   typeof window === 'undefined'
@@ -86,33 +86,26 @@ export function SignUpForm() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-          dateOfBirth: form.dateOfBirth,
-          consentCoreService: form.consentCoreService,
-          consentMarketing: form.consentMarketing,
-          consentAnalytics: form.consentAnalytics,
-        }),
+      const data = await register({
+        email: form.email,
+        password: form.password,
+        dateOfBirth: form.dateOfBirth,
+        consentCoreService: form.consentCoreService,
+        consentMarketing: form.consentMarketing,
+        consentAnalytics: form.consentAnalytics,
       });
 
-      if (res.status === 201) {
-        const data = await res.json().catch(() => ({})) as {
-          accessToken?: string;
-          emailDeliveryStatus?: 'SENT' | 'FAILED' | 'SKIPPED';
-        };
-        if (data.accessToken) setToken(data.accessToken);
+      if ('accessToken' in data) {
         setSuccess({
           email: form.email,
           token: data.accessToken,
           emailDeliveryStatus: data.emailDeliveryStatus ?? 'SKIPPED',
         });
       } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data.message ?? 'Registration failed. Please try again.');
+        setSuccess({
+          email: form.email,
+          emailDeliveryStatus: 'SKIPPED',
+        });
       }
     } catch {
       setError('Unable to connect to the server. Please try again.');
