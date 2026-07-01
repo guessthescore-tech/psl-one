@@ -771,22 +771,46 @@ describe('Fantasy team management — deadline locks', () => {
     expect(result).toBeDefined();
   });
 
-  it('updateTeamMeta throws when formation change is requested after deadline', async () => {
+  it('updateTeamMeta throws when formation change is requested after deadline (established team)', async () => {
     lockDeadline();
+    // Established team (15 players) → formation change IS gated by the window
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      _count: { players: 15 },
+    });
     await expect(service.updateTeamMeta('u1', { formation: '4-3-3' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('addPlayerToSquad throws when deadline has passed and team already has players', async () => {
+  it('updateTeamMeta allows formation change for empty team (onboarding) even when deadline is locked', async () => {
     lockDeadline();
-    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    // Non-empty squad → transfer window IS enforced
+    // Empty team (just registered name, 0 players) → onboarding, window bypassed
     (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 'ft1',
-      players: [{ playerId: 'existing-p1', squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false }],
+      _count: { players: 0 },
     });
-    await expect(
-      service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole }),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1', name: 'My Team', formation: '4-3-3', players: [],
+    });
+    const result = await service.updateTeamMeta('u1', { formation: '4-3-3' });
+    expect(result).toBeDefined();
+  });
+
+  it('addPlayerToSquad allows adding to an incomplete squad regardless of deadline (sequential onboarding)', async () => {
+    lockDeadline();
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Squad has 1 player (< squadSize=15) — still onboarding, window NOT enforced
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({
+        id: 'ft1',
+        players: [{ playerId: 'existing-p1', squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false }],
+      })
+      .mockResolvedValueOnce({ id: 'ft1', name: 'My Team', formation: null, players: [] });
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p1', position: PlayerPosition.MIDFIELDER, teamId: 't1', name: 'Test Player',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp2' });
+    const result = await service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole });
+    expect(result).toBeDefined();
   });
 
   it('addPlayerToSquad skips deadline check for initial squad setup (0 existing players)', async () => {
@@ -803,6 +827,30 @@ describe('Fantasy team management — deadline locks', () => {
 
     const result = await service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole });
     expect(result).toBeDefined();
+  });
+
+  it('makeTransfer is always gated by transfer window for established teams', async () => {
+    lockDeadline();
+    const { players, slots } = buildValidSquad();
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      players: slots.map(s => ({
+        id: `ftp-${s.playerId}`,
+        playerId: s.playerId,
+        squadRole: s.squadRole,
+        benchSlot: s.benchSlot ?? null,
+        isCaptain: s.isCaptain ?? false,
+        isViceCaptain: s.isViceCaptain ?? false,
+        lockedAt: null,
+        player: players.find(p => p.id === s.playerId) ?? null,
+      })),
+    });
+    const defPlayer = players.find(p => p.position === PlayerPosition.DEFENDER)!;
+    const otherDef = { id: 'new-def', position: PlayerPosition.DEFENDER, teamId: 't-new', name: 'New Defender' };
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(otherDef);
+    await expect(
+      service.makeTransfer('u1', { removePlayerId: defPlayer.id, addPlayerId: otherDef.id }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('removePlayerFromSquad throws when deadline has passed', async () => {

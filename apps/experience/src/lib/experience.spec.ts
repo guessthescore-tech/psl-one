@@ -8349,6 +8349,63 @@ describe('Challenge accept page — server-validated auth', () => {
   });
 });
 
+// ─── Fantasy onboarding — squad build path regression ────────────────────
+
+describe('Fantasy onboarding — squad completion flow', () => {
+  it('onboarding handleSubmit adds players using a sequential addPlayer loop (not a single bulk createTeam)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Step 4 submit: updateTeam (formation) then sequential addPlayer for each slot
+    expect(content).toContain('await updateTeam(');
+    expect(content).toContain('await addPlayer(slot)');
+    expect(content).toContain('for (const slot of slots)');
+  });
+
+  it('onboarding imports addPlayer and updateTeam from fantasy-api (not makeTransfer)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("addPlayer,");
+    expect(content).toContain("updateTeam,");
+    expect(content).not.toContain('makeTransfer');
+  });
+
+  it('onboarding createTeam at Step 1 sends name only (no players in the initial POST)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // createTeam is called with { name: teamName.trim() } — no players key
+    expect(content).toContain("createTeam({ name: teamName.trim() })");
+  });
+
+  it('onboarding handleSubmit only calls createTeam as a fallback (not the primary path)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Primary path uses savedTeamId (from Step 1 name save) + addPlayer loop
+    expect(content).toContain('if (savedTeamId)');
+    // Fallback path uses createTeam with players
+    expect(content).toContain('await createTeam(');
+  });
+
+  it('fantasy/team page redirects to onboarding when team is not found', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    // "not found" in error → empty state pointing to /fantasy/onboarding
+    expect(content).toContain('not found');
+    expect(content).toContain('/fantasy/onboarding');
+  });
+
+  it('fantasy/team page renders the loaded team (non-empty state) using getTeam()', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain('getTeam()');
+    expect(content).toContain("status: 'ready'");
+    expect(content).toContain('FantasyPitchView');
+  });
+
+  it('fantasy-api addPlayer posts to /fantasy/team/me/players (correct onboarding endpoint)', () => {
+    const content = read('lib/fantasy-api.ts');
+    expect(content).toContain("apiPost<FantasyTeam>('/fantasy/team/me/players'");
+  });
+
+  it('fantasy-api updateTeam patches /fantasy/team/me (sets formation before player adds)', () => {
+    const content = read('lib/fantasy-api.ts');
+    expect(content).toContain("apiPatch<FantasyTeam>('/fantasy/team/me'");
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

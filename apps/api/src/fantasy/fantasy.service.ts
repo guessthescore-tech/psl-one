@@ -729,15 +729,19 @@ export class FantasyService {
 
   async updateTeamMeta(userId: string, dto: UpdateFantasyTeamDto) {
     const season = await this.getActiveSeason();
-    // Formation changes touch squad structure → require transfer window open.
-    // Pure name renames are cosmetic and must be allowed at any time.
-    if (dto.formation !== undefined) {
-      await this.assertTransferOpen(season.id);
-    }
     const team = await this.prisma.fantasyTeam.findUnique({
       where: { userId_seasonId: { userId, seasonId: season.id } },
+      include: { _count: { select: { players: true } } },
     });
     if (!team) throw new NotFoundException('Fantasy team not found');
+
+    // Formation changes touch squad structure → require transfer window open,
+    // but only for established teams. An empty team (players === 0) is still
+    // in the onboarding phase and must be allowed to set its formation.
+    // Pure name renames are cosmetic and are always allowed.
+    if (dto.formation !== undefined && team._count.players > 0) {
+      await this.assertTransferOpen(season.id);
+    }
 
     return this.prisma.fantasyTeam.update({
       where: { id: team.id },
@@ -765,9 +769,12 @@ export class FantasyService {
     });
     if (!team) throw new NotFoundException('Fantasy team not found. Create one first via POST /fantasy/team/me');
 
-    // Skip transfer window check for initial squad setup: a team with no players
-    // yet is still in the onboarding phase and should not be gated by deadlines.
-    if (team.players.length > 0) {
+    // Transfer window only gates established teams. A squad below its configured
+    // size is still being built (onboarding), so all additions are allowed
+    // regardless of the deadline. A full squad would hit the guard below and
+    // throw "Squad is already full" before reaching this point, so real
+    // post-onboarding player changes must go through makeTransfer.
+    if (team.players.length >= rulesConfig.squadSize) {
       await this.assertTransferOpen(season.id);
     }
 
