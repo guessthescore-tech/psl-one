@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
 import { House, CalendarBlank, Users, Trophy, UserCircle } from '@phosphor-icons/react/dist/ssr';
+import { useSession } from '@/lib/use-session';
 
 const NAV = [
   { label: 'Home',     href: '/',           Icon: House          },
@@ -15,6 +16,13 @@ const NAV = [
 
 export function AppHeader() {
   const pathname = usePathname();
+  // useSession validates the JWT against /auth/me on client mount.
+  // 'loading' produces the same placeholder as the initial SSR render — no hydration mismatch.
+  // 'network-error' means the server was unreachable; token is preserved and we show the
+  // authenticated state rather than logging the user out unexpectedly.
+  const { sessionState } = useSession();
+  const showPlaceholder = sessionState === 'loading';
+  const authed = sessionState === 'authenticated' || sessionState === 'network-error';
 
   return (
     <header
@@ -67,23 +75,38 @@ export function AppHeader() {
             })}
           </nav>
 
-          {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/sign-in"
-              className="text-sm text-white/55 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm px-1"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[44px] flex items-center"
-            >
-              Join free
-            </Link>
+          {/* Desktop CTA — auth-aware */}
+          <div className="hidden md:flex items-center gap-3" aria-live="polite">
+            {showPlaceholder ? (
+              // Placeholder prevents layout shift while session is being validated
+              <div className="w-28 h-9" aria-hidden />
+            ) : authed ? (
+              <Link
+                href="/account"
+                className="flex items-center gap-1.5 text-sm text-white/70 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm px-1"
+              >
+                <UserCircle size={18} aria-hidden />
+                My Account
+              </Link>
+            ) : (
+              <>
+                <Link
+                  href="/sign-in"
+                  className="text-sm text-white/55 hover:text-white transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold rounded-sm px-1"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/register"
+                  className="bg-exp-gold text-exp-void text-sm font-bold px-4 py-2 rounded-pill hover:bg-exp-gold-2 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold focus-visible:ring-offset-2 focus-visible:ring-offset-exp-void min-h-[44px] flex items-center"
+                >
+                  Join free
+                </Link>
+              </>
+            )}
           </div>
 
-          {/* Mobile menu icon — bottom nav handles mobile, this is a fallback label */}
+          {/* Mobile: account icon (bottom nav handles main tabs) */}
           <div className="md:hidden">
             <Link
               href="/account"

@@ -758,13 +758,19 @@ export class FantasyService {
 
   async addPlayerToSquad(userId: string, slot: FantasyPlayerSlotDto) {
     const season = await this.getActiveSeason();
-    await this.assertTransferOpen(season.id);
     const rulesConfig = await this.loadSquadConfig(season.id);
     const team = await this.prisma.fantasyTeam.findUnique({
       where: { userId_seasonId: { userId, seasonId: season.id } },
       include: { players: true },
     });
     if (!team) throw new NotFoundException('Fantasy team not found. Create one first via POST /fantasy/team/me');
+
+    // Skip transfer window check for initial squad setup: a team with no players
+    // yet is still in the onboarding phase and should not be gated by deadlines.
+    if (team.players.length > 0) {
+      await this.assertTransferOpen(season.id);
+    }
+
     if (team.players.length >= rulesConfig.squadSize) throw new BadRequestException(`Squad is already full (max ${rulesConfig.squadSize} players)`);
 
     const existing = team.players.find(p => p.playerId === slot.playerId);

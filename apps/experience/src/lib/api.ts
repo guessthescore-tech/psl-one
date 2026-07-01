@@ -10,6 +10,13 @@
 import { getToken } from './auth';
 import { getServerApiBase } from './server-api-base';
 
+export class ApiError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 function resolveApiBase(): string {
   if (process.env['NEXT_PUBLIC_API_BASE_URL']) return process.env['NEXT_PUBLIC_API_BASE_URL'];
   if (typeof window === 'undefined') return getServerApiBase();
@@ -45,12 +52,11 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   });
 
   if (!res.ok) {
-    if (res.status === 401) throw new Error('UNAUTHORIZED');
     const body = await res.json().catch(() => ({})) as { message?: string; errors?: string[] };
     const msg = Array.isArray(body.errors)
       ? body.errors.join(', ')
       : (body.message ?? `HTTP ${res.status}`);
-    throw new Error(msg);
+    throw new ApiError(res.status, msg);
   }
 
   return res.json() as Promise<T>;

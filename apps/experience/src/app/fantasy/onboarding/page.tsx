@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyActionBar } from '@/components/fantasy/shared/FantasyActionBar';
 import { FantasyBottomSheet } from '@/components/fantasy/shared/FantasyBottomSheet';
+import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
 import { OnboardingStep } from '@/components/fantasy/core/OnboardingStep';
 import { FormationSelector } from '@/components/fantasy/core/FormationSelector';
 import { FantasyPitchView } from '@/components/fantasy/core/FantasyPitchView';
@@ -15,9 +16,18 @@ import { BudgetIndicator } from '@/components/fantasy/core/BudgetIndicator';
 import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
+import { isAuthenticated } from '@/lib/auth';
 import { getWorldCupSeason } from '@/lib/football-api';
-import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
+import {
+  getPlayerPool,
+  getPlayerPrices,
+  getTeam,
+  createTeam,
+  updateTeam,
+  addPlayer,
+} from '@/lib/fantasy-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
+import { ApiError } from '@/lib/api';
 
 const TOTAL_BUDGET = 100;
 const STEP_LABELS = ['Name Team', 'Formation', 'Build Squad', 'Review'];
@@ -47,35 +57,31 @@ export default function OnboardingPage() {
   const router = useRouter();
   const mode = getDataMode();
 
+  // Initialisation state — check auth and existing team before rendering
+  const [initDone, setInitDone] = useState(mode === 'DESIGN_REVIEW_DATA');
+  const [initError, setInitError] = useState<string | null>(null);
+
   const [step, setStep] = useState<Step>(1);
   const [teamName, setTeamName] = useState('');
   const [nameError, setNameError] = useState('');
+  // Step 1 saves the team name to the API; subsequent steps use the team ID
+  const [savedTeamId, setSavedTeamId] = useState<string | null>(null);
+  const [savingName, setSavingName] = useState(false);
   const [formation, setFormation] = useState('4-3-3');
   const [squad, setSquad] = useState<SquadState>(() => {
-    // In design review, pre-fill squad
     if (mode === 'DESIGN_REVIEW_DATA') {
-      const starters = FANTASY_MOCK_PLAYERS
-        .filter(p => p.squadRole === 'STARTER')
-        .slice(0, 11);
-      const bench = FANTASY_MOCK_PLAYERS
-        .filter(p => p.squadRole === 'SUBSTITUTE')
-        .slice(0, 4);
+      const starters = FANTASY_MOCK_PLAYERS.filter(p => p.squadRole === 'STARTER').slice(0, 11);
+      const bench = FANTASY_MOCK_PLAYERS.filter(p => p.squadRole === 'SUBSTITUTE').slice(0, 4);
       return { starters, bench };
     }
     return buildEmptySquad('4-3-3');
   });
-  const [captainId, setCaptainId] = useState<string | null>(() => {
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      return FANTASY_MOCK_PLAYERS.find(p => p.isCaptain)?.id ?? null;
-    }
-    return null;
-  });
-  const [viceCaptainId, setViceCaptainId] = useState<string | null>(() => {
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      return FANTASY_MOCK_PLAYERS.find(p => p.isViceCaptain)?.id ?? null;
-    }
-    return null;
-  });
+  const [captainId, setCaptainId] = useState<string | null>(() =>
+    mode === 'DESIGN_REVIEW_DATA' ? (FANTASY_MOCK_PLAYERS.find(p => p.isCaptain)?.id ?? null) : null,
+  );
+  const [viceCaptainId, setViceCaptainId] = useState<string | null>(() =>
+    mode === 'DESIGN_REVIEW_DATA' ? (FANTASY_MOCK_PLAYERS.find(p => p.isViceCaptain)?.id ?? null) : null,
+  );
   const [poolOpen, setPoolOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ isStarter: boolean; idx: number } | null>(null);
   const [playerPool, setPlayerPool] = useState<ExpFantasyPlayer[]>(
@@ -84,7 +90,37 @@ export default function OnboardingPage() {
   const [poolLoading, setPoolLoading] = useState(mode !== 'DESIGN_REVIEW_DATA');
   const [poolError, setPoolError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // On mount: verify auth and check for existing team
+  useEffect(() => {
+    if (mode === 'DESIGN_REVIEW_DATA') return;
+
+    if (!isAuthenticated()) {
+      router.push('/sign-in?redirect=/fantasy/onboarding');
+      return;
+    }
+
+    // If the user already has a team, send them straight to it
+    getTeam()
+      .then(() => {
+        router.push('/fantasy/team');
+      })
+      .catch((err: unknown) => {
+        // 404 = no team yet, which is exactly what we want for onboarding
+        if (err instanceof ApiError && err.status === 404) {
+          setInitDone(true);
+        } else if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+          router.push('/sign-in?redirect=/fantasy/onboarding');
+        } else {
+          // Network error or unexpected — let the user try
+          setInitDone(true);
+          setInitError('Could not verify your account. You can still create a team below.');
+        }
+      });
+  }, [mode, router]);
+
+  // Load player pool
   useEffect(() => {
     if (mode === 'DESIGN_REVIEW_DATA') {
       setPlayerPool(FANTASY_MOCK_PLAYERS);
@@ -104,10 +140,6 @@ export default function OnboardingPage() {
       .then(([players, prices]) => {
         if (cancelled) return;
         if (players.length === 0) {
-          // Do NOT fall back to top-performers: that data includes players from
-          // eliminated teams (historical stats). The player pool endpoint is the
-          // authoritative source — if it is empty the tournament may not have
-          // started yet or all fixtures are concluded.
           setPoolError('No eligible players found. The player pool will appear once fixtures are scheduled.');
           return;
         }
@@ -130,7 +162,6 @@ export default function OnboardingPage() {
   const budgetRemaining = Math.max(0, TOTAL_BUDGET - totalValue);
   const squadComplete = squad.starters.every(Boolean) && squad.bench.every(Boolean);
 
-  // Validate team name
   function validateName(val: string): string {
     if (val.trim().length < 3) return 'Team name must be at least 3 characters';
     if (val.trim().length > 20) return 'Team name must be 20 characters or less';
@@ -142,9 +173,87 @@ export default function OnboardingPage() {
     setNameError(validateName(e.target.value));
   };
 
-  const handleSlotClick = useCallback((player: ExpFantasyPlayer | null, pos: string, idx: number) => {
+  // Step 1: persist the team name to the API, then advance
+  async function handleSaveName() {
+    const err = validateName(teamName);
+    if (err) { setNameError(err); return; }
+
+    if (mode === 'DESIGN_REVIEW_DATA') {
+      setSavedTeamId('mock-team-id');
+      setStep(2);
+      return;
+    }
+
+    setSavingName(true);
+    setNameError('');
+    try {
+      const team = await createTeam({ name: teamName.trim() });
+      setSavedTeamId(team.id);
+      setStep(2);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 409) {
+        // Team already exists (e.g. double-submit). Redirect to team management.
+        router.push('/fantasy/team');
+      } else {
+        setNameError(
+          err instanceof Error ? err.message : 'Could not save team name. Please try again.',
+        );
+      }
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  // Step 4: update formation + add all players to the existing (name-only) team
+  async function handleSubmit() {
+    if (mode === 'DESIGN_REVIEW_DATA') {
+      setSubmitting(true);
+      await new Promise(r => setTimeout(r, 800));
+      router.push('/fantasy/team');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      if (savedTeamId) {
+        // Name was saved at Step 1: now add formation + players to the empty team
+        await updateTeam({ formation });
+
+        const slots = allPlayers.map((p, i) =>
+          toFantasySlot(
+            { ...p, isCaptain: p.id === captainId, isViceCaptain: p.id === viceCaptainId },
+            i,
+          ),
+        );
+        // Add players sequentially to respect squad composition validation
+        for (const slot of slots) {
+          await addPlayer(slot);
+        }
+      } else {
+        // Fallback: name wasn't persisted yet (design review or edge case)
+        await createTeam({
+          name: teamName,
+          players: allPlayers.map((p, i) =>
+            toFantasySlot(
+              { ...p, isCaptain: p.id === captainId, isViceCaptain: p.id === viceCaptainId },
+              i,
+            ),
+          ),
+        });
+      }
+      router.push('/fantasy/team');
+    } catch (err: unknown) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Failed to save team. Please try again.',
+      );
+      setSubmitting(false);
+    }
+  }
+
+  const handleSlotClick = useCallback((player: ExpFantasyPlayer | null, _pos: string, idx: number) => {
     if (player) {
-      // Remove player
       setSquad(prev => {
         const starters = [...prev.starters];
         const benchArr = [...prev.bench];
@@ -160,7 +269,7 @@ export default function OnboardingPage() {
     }
   }, []);
 
-  const handleBenchClick = useCallback((player: ExpFantasyPlayer, benchIdx: number) => {
+  const handleBenchClick = useCallback((_player: ExpFantasyPlayer, benchIdx: number) => {
     setSquad(prev => {
       const bench = [...prev.bench];
       bench[benchIdx] = null;
@@ -191,39 +300,18 @@ export default function OnboardingPage() {
     setSelectedSlot(null);
   }, [selectedSlot]);
 
-  async function handleSubmit() {
-    if (mode === 'DESIGN_REVIEW_DATA') {
-      setSubmitting(true);
-      await new Promise(r => setTimeout(r, 800));
-      router.push('/fantasy/team');
-      return;
-    }
-    // LIVE_BETA_DATA: call createTeam API
-    setSubmitting(true);
-    try {
-      const { createTeam } = await import('@/lib/fantasy-api');
-      await createTeam({
-        name: teamName,
-        players: allPlayers.map((p, i) => toFantasySlot({
-          ...p,
-          isCaptain: p.id === captainId,
-          isViceCaptain: p.id === viceCaptainId,
-        }, i)),
-      });
-      router.push('/fantasy/team');
-    } catch {
-      setSubmitting(false);
-    }
-  }
+  const pitchPlayers = squad.starters.map(p =>
+    p ? { ...p, isCaptain: p.id === captainId, isViceCaptain: p.id === viceCaptainId } : null,
+  );
 
-  const pitchPlayers = squad.starters.map(p => {
-    if (!p) return null;
-    return {
-      ...p,
-      isCaptain: p.id === captainId,
-      isViceCaptain: p.id === viceCaptainId,
-    };
-  });
+  // Show a loading shell while we check auth and existing team
+  if (!initDone) {
+    return (
+      <FantasyShell title="Fantasy Setup" hideFantasyTabs>
+        <FantasyLoadingState />
+      </FantasyShell>
+    );
+  }
 
   return (
     <FantasyShell
@@ -232,6 +320,12 @@ export default function OnboardingPage() {
       hideFantasyTabs
     >
       <div className="pb-32">
+        {initError && (
+          <div className="mx-4 mt-2 bg-exp-live/10 border border-exp-live/30 rounded-card-xs px-3 py-2">
+            <p className="text-body-sm text-exp-live">{initError}</p>
+          </div>
+        )}
+
         <OnboardingStep currentStep={step} totalSteps={4} stepLabels={STEP_LABELS} />
 
         <AnimatePresence mode="wait">
@@ -240,7 +334,7 @@ export default function OnboardingPage() {
             <StepWrapper key="step1" reduce={reduce}>
               <div className="px-4 py-6 space-y-4">
                 <h2 className="text-display-md text-white">Name your team</h2>
-                <p className="text-body-md text-exp-muted">Choose a name that represents you (3-20 characters).</p>
+                <p className="text-body-md text-exp-muted">Choose a name that represents you (3–20 characters).</p>
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -252,13 +346,12 @@ export default function OnboardingPage() {
                     aria-describedby="name-hint"
                     className="w-full bg-exp-navy border border-exp-border-dk rounded-card-xs px-4 py-3 text-body-lg text-white placeholder:text-exp-muted focus:outline-none focus:border-exp-gold min-h-[44px]"
                   />
-                  {nameError && <p className="text-body-sm text-exp-live">{nameError}</p>}
+                  {nameError && <p className="text-body-sm text-exp-live" role="alert">{nameError}</p>}
                   <p id="name-hint" className="text-label-sm text-exp-muted">
                     {teamName.length}/20 characters · Keep it clean and appropriate
                   </p>
                 </div>
 
-                {/* Coaching panel — fills empty space and communicates value */}
                 <div className="mt-6 space-y-3">
                   <p className="text-label-md text-exp-muted uppercase tracking-wider">What you get</p>
                   {[
@@ -291,10 +384,10 @@ export default function OnboardingPage() {
                 <p className="text-body-md text-exp-muted mb-6">This determines how your players line up on the pitch.</p>
                 <FormationSelector value={formation} onChange={f => { setFormation(f); setSquad(buildEmptySquad(f)); }} />
 
-                {/* Formation preview */}
                 <div className="mt-6">
                   <p className="text-label-md text-exp-muted mb-3">Formation preview</p>
-                  <div className="rounded-card overflow-hidden h-48"
+                  <div
+                    className="rounded-card overflow-hidden h-48"
                     style={{ background: 'repeating-linear-gradient(180deg,#145c2e 0px,#145c2e 24px,#115228 24px,#115228 48px)' }}
                     aria-hidden="true"
                   >
@@ -319,11 +412,9 @@ export default function OnboardingPage() {
           {step === 3 && (
             <StepWrapper key="step3" reduce={reduce}>
               <div className="space-y-4">
-                {/* Budget */}
                 <div className="px-4 pt-4">
                   <BudgetIndicator remaining={budgetRemaining} total={TOTAL_BUDGET} />
                 </div>
-                {/* Pitch */}
                 <div className="px-4">
                   <FantasyPitchView
                     players={pitchPlayers}
@@ -331,7 +422,6 @@ export default function OnboardingPage() {
                     onPlayerClick={handleSlotClick}
                   />
                 </div>
-                {/* Bench */}
                 <BenchPanel
                   players={squad.bench}
                   onPlayerClick={handleBenchClick}
@@ -350,6 +440,11 @@ export default function OnboardingPage() {
           {step === 4 && (
             <StepWrapper key="step4" reduce={reduce}>
               <div className="px-4 py-4 space-y-4">
+                {submitError && (
+                  <div className="bg-exp-live/10 border border-exp-live/30 rounded-card-xs px-4 py-3">
+                    <p className="text-body-sm text-exp-live" role="alert">{submitError}</p>
+                  </div>
+                )}
                 <div className="bg-exp-navy border border-exp-border-dk rounded-card px-4 py-4">
                   <h3 className="text-display-sm text-white mb-3">Team Summary</h3>
                   <div className="space-y-2">
@@ -360,7 +455,6 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                {/* Captain selection */}
                 <div className="bg-exp-navy border border-exp-border-dk rounded-card px-4 py-4">
                   <h3 className="text-display-sm text-white mb-3">Choose Captain</h3>
                   <div className="space-y-2">
@@ -428,15 +522,20 @@ export default function OnboardingPage() {
       {/* Action bar */}
       <FantasyActionBar
         primary={{
-          label: step === 4 ? 'Submit Team' : 'Next →',
-          loading: submitting,
+          label: step === 1 ? 'Save & Continue →' : step === 4 ? 'Submit Team' : 'Next →',
+          loading: step === 1 ? savingName : submitting,
           disabled:
             (step === 1 && (validateName(teamName) !== '' || teamName.trim() === '')) ||
             (step === 3 && !squadComplete) ||
             (step === 4 && (!captainId || !viceCaptainId)),
           onClick: () => {
-            if (step < 4) setStep((step + 1) as Step);
-            else handleSubmit();
+            if (step === 1) {
+              void handleSaveName();
+            } else if (step < 4) {
+              setStep((step + 1) as Step);
+            } else {
+              void handleSubmit();
+            }
           },
         }}
         secondary={

@@ -7945,6 +7945,138 @@ describe('fantasyPoints product-definition contract', () => {
   });
 });
 
+// ─── Auth-aware navbar ────────────────────────────────────────────────────────
+
+describe('AppHeader auth-aware rendering', () => {
+  it('AppHeader imports useSession from use-session module', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('useSession');
+  });
+
+  it('AppHeader does NOT directly import isAuthenticated (server validation replaces it)', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('AppHeader derives authed from sessionState including network-error fallback', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content).toContain('sessionState');
+    expect(content).toContain('authed');
+    // network-error must show authenticated (token present, server unreachable)
+    expect(content).toContain('network-error');
+  });
+
+  it('AppHeader conditionally renders My Account link when authenticated', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content).toContain('My Account');
+    expect(content).toContain('/account');
+  });
+
+  it('AppHeader Sign in and Join free links are conditional, not always rendered', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    // Both Sign in and My Account must be present in the file — one for each auth state
+    expect(content).toContain('Sign in');
+    expect(content).toContain('My Account');
+    // The sign-in links must be guarded by auth state (inside a conditional branch)
+    expect(content).toContain('authed');
+  });
+
+  it('AppHeader renders a stable placeholder while session state is loading', () => {
+    const content = read('components/shell/AppHeader.tsx');
+    expect(content).toContain('showPlaceholder');
+    expect(content).toContain("sessionState === 'loading'");
+  });
+
+  it('use-session.ts exists and exports validateSession and useSession', () => {
+    const content = read('lib/use-session.ts');
+    expect(content).toContain('export async function validateSession');
+    expect(content).toContain('export function useSession');
+  });
+
+  it('use-session.ts clears token on 401 and leaves it intact for network errors', () => {
+    const content = read('lib/use-session.ts');
+    expect(content).toContain('clearToken');
+    expect(content).toContain('err.status === 401');
+    expect(content).toContain('network-error');
+  });
+});
+
+// ─── Fantasy onboarding auth + step 1 save ────────────────────────────────────
+
+describe('Fantasy onboarding — authenticated flow', () => {
+  it('onboarding page imports isAuthenticated for auth guard', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('isAuthenticated');
+  });
+
+  it('onboarding page redirects unauthenticated users to sign-in', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('/sign-in');
+    expect(content).toContain('redirect=/fantasy/onboarding');
+  });
+
+  it('onboarding page checks for existing team and redirects to /fantasy/team if found', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('getTeam');
+    expect(content).toContain('/fantasy/team');
+  });
+
+  it('Step 1 action label is "Save & Continue" not just "Next"', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('Save & Continue');
+  });
+
+  it('Step 1 calls createTeam with name-only payload before advancing', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('createTeam');
+    expect(content).toContain('handleSaveName');
+  });
+
+  it('onboarding page stores savedTeamId after Step 1 save', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('savedTeamId');
+  });
+
+  it('onboarding page imports addPlayer and updateTeam for Step 4 submission to existing team', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('addPlayer');
+    expect(content).toContain('updateTeam');
+  });
+
+  it('onboarding page handles 409 conflict from createTeam by redirecting to existing team', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('409');
+    expect(content).toContain('/fantasy/team');
+  });
+
+  it('onboarding page shows a loading shell while checking auth and team existence', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('FantasyLoadingState');
+    expect(content).toContain('initDone');
+  });
+
+  it('Step 1 shows role="alert" for name validation errors', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('role="alert"');
+  });
+
+  it('onboarding page imports ApiError for status-code-aware error handling', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('ApiError');
+  });
+});
+
+// ─── fantasy-api.ts createTeam optional players ───────────────────────────────
+
+describe('fantasy-api createTeam type contract', () => {
+  it('createTeam accepts name-only payload (players optional)', () => {
+    const content = read('lib/fantasy-api.ts');
+    // players must be optional (?) in the createTeam signature
+    expect(content).toMatch(/createTeam.*players\?/s);
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

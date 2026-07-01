@@ -776,11 +776,33 @@ describe('Fantasy team management — deadline locks', () => {
     await expect(service.updateTeamMeta('u1', { formation: '4-3-3' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
-  it('addPlayerToSquad throws when deadline has passed', async () => {
+  it('addPlayerToSquad throws when deadline has passed and team already has players', async () => {
     lockDeadline();
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Non-empty squad → transfer window IS enforced
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      players: [{ playerId: 'existing-p1', squadRole: 'STARTER', benchSlot: null, isCaptain: false, isViceCaptain: false }],
+    });
     await expect(
       service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('addPlayerToSquad skips deadline check for initial squad setup (0 existing players)', async () => {
+    lockDeadline(); // deadline is passed — should NOT block initial setup
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Empty squad → initial setup, transfer window skipped
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'ft1', players: [] })
+      .mockResolvedValueOnce({ id: 'ft1', name: 'My Team', formation: null, players: [] });
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p1', position: PlayerPosition.MIDFIELDER, teamId: 't1', name: 'Test Player',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp1' });
+
+    const result = await service.addPlayerToSquad('u1', { playerId: 'p1', squadRole: 'STARTER' as FantasySquadRole });
+    expect(result).toBeDefined();
   });
 
   it('removePlayerFromSquad throws when deadline has passed', async () => {

@@ -317,7 +317,7 @@ export function getTeam(): Promise<FantasyTeam> {
   return apiFetch<FantasyTeam>('/fantasy/team/me');
 }
 
-export function createTeam(dto: { name: string; players: FantasyPlayerSlot[] }): Promise<FantasyTeam> {
+export function createTeam(dto: { name?: string; players?: FantasyPlayerSlot[] }): Promise<FantasyTeam> {
   return apiPost<FantasyTeam>('/fantasy/team/me', dto);
 }
 
