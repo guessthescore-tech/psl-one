@@ -658,11 +658,37 @@ describe('Fantasy scoring (scorePlayer via settleFixture)', () => {
     await expect(service.createTeam('u1', { players: slots })).rejects.toBeInstanceOf(ConflictException);
   });
 
-  it('throws BadRequestException for invalid squad on create', async () => {
-    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1' });
+  it('creates an empty team (name-only registration) when players is omitted', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1', slug: 'psl', name: 'PSL', competition: { slug: 'psl', name: 'PSL' } });
     (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft-new', name: 'My Crew', players: [] });
+    const result = await service.createTeam('u1', { name: 'My Crew' });
+    expect(result).toBeDefined();
+    expect((prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data.name).toBe('My Crew');
+    // No players array in the create call — name-only registration
+    expect((prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mock.calls[0]![0]!.data.players).toBeUndefined();
+  });
+
+  it('creates an empty team when players is explicitly []', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1', slug: 'psl', name: 'PSL', competition: { slug: 'psl', name: 'PSL' } });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyTeam.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft-new', name: 'My Fantasy Team', players: [] });
+    const result = await service.createTeam('u1', { players: [] });
+    expect(result).toBeDefined();
+  });
+
+  it('throws BadRequestException for invalid squad composition when players are provided (non-empty)', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 's1', slug: 'psl', name: 'PSL', competition: { slug: 'psl', name: 'PSL' } });
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    await expect(service.createTeam('u1', { players: [] })).rejects.toBeInstanceOf(BadRequestException);
+    // Provide 3 players but squad requires 15 → validation fails
+    const badSlots = [
+      { playerId: 'p1', squadRole: FantasySquadRole.STARTER, isCaptain: true, isViceCaptain: false },
+      { playerId: 'p2', squadRole: FantasySquadRole.STARTER, isCaptain: false, isViceCaptain: true },
+      { playerId: 'p3', squadRole: FantasySquadRole.SUBSTITUTE, isCaptain: false, isViceCaptain: false },
+    ];
+    await expect(service.createTeam('u1', { players: badSlots })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('transfer cannot break squad composition', async () => {
@@ -737,9 +763,17 @@ describe('Fantasy team management — deadline locks', () => {
     });
   }
 
-  it('updateTeamMeta throws when deadline has passed', async () => {
+  it('updateTeamMeta allows name rename after deadline (name-only = no window needed)', async () => {
     lockDeadline();
-    await expect(service.updateTeamMeta('u1', { name: 'New Name' })).rejects.toBeInstanceOf(BadRequestException);
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft1' });
+    (prisma.fantasyTeam.update as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ft1', name: 'New Name', players: [] });
+    const result = await service.updateTeamMeta('u1', { name: 'New Name' });
+    expect(result).toBeDefined();
+  });
+
+  it('updateTeamMeta throws when formation change is requested after deadline', async () => {
+    lockDeadline();
+    await expect(service.updateTeamMeta('u1', { formation: '4-3-3' })).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('addPlayerToSquad throws when deadline has passed', async () => {

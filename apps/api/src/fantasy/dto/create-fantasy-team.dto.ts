@@ -7,8 +7,11 @@ export class CreateFantasyTeamDto {
   @IsString()
   name?: string;
 
+  // Optional: omit or pass [] to register a team name without selecting players yet.
+  // When provided and non-empty, full squad-composition validation is enforced.
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => FantasyPlayerSlotDto)
-  players!: FantasyPlayerSlotDto[];
+  players?: FantasyPlayerSlotDto[];
 }

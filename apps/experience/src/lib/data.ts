@@ -570,6 +570,7 @@ export interface ExpLeagueManager {
 }
 
 export interface ExpChip {
+  id: string;
   type: 'BENCH_BOOST' | 'FREE_HIT' | 'TRIPLE_CAPTAIN' | 'WILDCARD';
   status: 'AVAILABLE' | 'ACTIVE' | 'USED';
   usedInGameweek: number | null;
@@ -920,10 +921,10 @@ export const FANTASY_MOCK_LEAGUES: ExpLeague[] = [
 /* ── Mock chips ──────────────────────────────────────────────────────────────── */
 
 export const FANTASY_MOCK_CHIPS: ExpChip[] = [
-  { type: 'BENCH_BOOST',     status: 'AVAILABLE', usedInGameweek: null },
-  { type: 'FREE_HIT',        status: 'AVAILABLE', usedInGameweek: null },
-  { type: 'TRIPLE_CAPTAIN',  status: 'AVAILABLE', usedInGameweek: null },
-  { type: 'WILDCARD',        status: 'USED',       usedInGameweek: 1    },
+  { id: 'mock-chip-bb',  type: 'BENCH_BOOST',     status: 'AVAILABLE', usedInGameweek: null },
+  { id: 'mock-chip-fh',  type: 'FREE_HIT',        status: 'AVAILABLE', usedInGameweek: null },
+  { id: 'mock-chip-tc',  type: 'TRIPLE_CAPTAIN',  status: 'AVAILABLE', usedInGameweek: null },
+  { id: 'mock-chip-wc',  type: 'WILDCARD',        status: 'USED',      usedInGameweek: 1    },
 ];
 
 /* ── Mock history (10 gameweeks) ─────────────────────────────────────────────── */

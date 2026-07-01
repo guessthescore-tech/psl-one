@@ -17,7 +17,6 @@ import { FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
 import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPool, getPlayerPrices } from '@/lib/fantasy-api';
-import { getTopPerformers } from '@/lib/players-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
 
 const TOTAL_BUDGET = 100;
@@ -100,37 +99,20 @@ export default function OnboardingPage() {
         Promise.all([
           getPlayerPool(undefined, season.id),
           getPlayerPrices(season.id).catch(() => []),
-          getTopPerformers(season.id, 50).catch(() => []),
         ]),
       )
-      .then(([players, prices, topPerformers]) => {
+      .then(([players, prices]) => {
         if (cancelled) return;
+        if (players.length === 0) {
+          // Do NOT fall back to top-performers: that data includes players from
+          // eliminated teams (historical stats). The player pool endpoint is the
+          // authoritative source — if it is empty the tournament may not have
+          // started yet or all fixtures are concluded.
+          setPoolError('No eligible players found. The player pool will appear once fixtures are scheduled.');
+          return;
+        }
         const priceMap = new Map(prices.map((p) => [p.playerId, p.currentPrice]));
-        const livePool =
-          players.length > 0
-            ? players.map((p) => toExpFantasyPlayer(p, { fantasyPrice: priceMap.get(p.id) }))
-            : topPerformers.map((perf) =>
-                toExpFantasyPlayer({
-                  id: perf.playerId,
-                  name: perf.playerName,
-                  position:
-                    perf.position === 'Goalkeeper'
-                      ? 'GOALKEEPER'
-                      : perf.position === 'Defender'
-                        ? 'DEFENDER'
-                        : perf.position === 'Midfielder'
-                          ? 'MIDFIELDER'
-                          : 'FORWARD',
-                  number: null,
-                  team: {
-                    id: perf.teamName,
-                    name: perf.teamName,
-                    shortName: perf.teamName,
-                    externalId: null,
-                  },
-                }),
-              );
-        setPlayerPool(livePool);
+        setPlayerPool(players.map((p) => toExpFantasyPlayer(p, { fantasyPrice: priceMap.get(p.id) })));
       })
       .catch(() => {
         if (!cancelled) setPoolError('Could not load the live World Cup player pool.');

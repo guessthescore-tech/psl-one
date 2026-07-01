@@ -421,9 +421,32 @@ export class FantasyService {
     });
     if (existing) throw new ConflictException('Fantasy team already exists. Use PATCH to update.');
 
+    const slots = dto.players ?? [];
+    const isWorldCup = this.isWorldCupSeason(season);
+
+    // Name-only registration: skip squad validation, create an empty team.
+    // Players are added later via POST /fantasy/team/me/players.
+    if (slots.length === 0) {
+      const team = await this.prisma.fantasyTeam.create({
+        data: {
+          userId,
+          seasonId: season.id,
+          name: dto.name ?? 'My Fantasy Team',
+        },
+        include: { players: { include: { player: true } } },
+      });
+      this.achievementsService.safeEvaluate(userId, ['first-fantasy-team']).catch(() => null);
+      return team;
+    }
+
+    // Full squad submission: validate composition and eligibility.
+    if (isWorldCup) {
+      await this.assertPlayersFromActiveTeams(slots.map(p => p.playerId), season.id);
+    }
+
     const rulesConfig = await this.loadSquadConfig(season.id);
-    const playerDetails = await this.resolvePlayerDetails(dto.players.map(p => p.playerId));
-    const validation = validateSquadComposition(dto.players, playerDetails, rulesConfig);
+    const playerDetails = await this.resolvePlayerDetails(slots.map(p => p.playerId));
+    const validation = validateSquadComposition(slots, playerDetails, rulesConfig);
     if (!validation.isValid) {
       throw new BadRequestException({ message: 'Invalid squad', errors: validation.errors });
     }
@@ -435,7 +458,7 @@ export class FantasyService {
         name: dto.name ?? 'My Fantasy Team',
         ...(validation.formation ? { formation: validation.formation } : {}),
         players: {
-          create: dto.players.map(slot => {
+          create: slots.map(slot => {
             const pd = playerDetails.find(p => p.id === slot.playerId)!;
             return {
               playerId: slot.playerId,
@@ -706,7 +729,11 @@ export class FantasyService {
 
   async updateTeamMeta(userId: string, dto: UpdateFantasyTeamDto) {
     const season = await this.getActiveSeason();
-    await this.assertTransferOpen(season.id);
+    // Formation changes touch squad structure → require transfer window open.
+    // Pure name renames are cosmetic and must be allowed at any time.
+    if (dto.formation !== undefined) {
+      await this.assertTransferOpen(season.id);
+    }
     const team = await this.prisma.fantasyTeam.findUnique({
       where: { userId_seasonId: { userId, seasonId: season.id } },
     });
@@ -742,6 +769,11 @@ export class FantasyService {
 
     const existing = team.players.find(p => p.playerId === slot.playerId);
     if (existing) throw new ConflictException('Player is already in your squad');
+
+    // For WC seasons: reject players from eliminated teams before hitting the DB create
+    if (this.isWorldCupSeason(season)) {
+      await this.assertPlayersFromActiveTeams([slot.playerId], season.id);
+    }
 
     const player = await this.prisma.player.findUnique({ where: { id: slot.playerId } });
     if (!player) throw new NotFoundException('Player not found');
@@ -845,5 +877,46 @@ export class FantasyService {
       select: { id: true, position: true, teamId: true, name: true },
     });
     return players;
+  }
+
+  private isWorldCupSeason(season: { slug?: string | null; name?: string | null; competition?: { slug?: string | null; name?: string | null } | null }): boolean {
+    return (
+      season.slug === WC_SEASON_SLUG ||
+      (season.name?.toLowerCase() ?? '').includes('world cup') ||
+      season.competition?.slug === WC_SEASON_SLUG ||
+      (season.competition?.name?.toLowerCase() ?? '').includes('world cup')
+    );
+  }
+
+  private async assertPlayersFromActiveTeams(playerIds: string[], seasonId: string): Promise<void> {
+    // A player is ineligible if their team has NO remaining SCHEDULED/LIVE/HALF_TIME
+    // fixtures in this season (i.e., the team is eliminated).
+    const ineligible = await this.prisma.player.findMany({
+      where: {
+        id: { in: playerIds },
+        team: {
+          homeFixtures: {
+            none: {
+              seasonId,
+              status: { in: [FixtureStatus.SCHEDULED, FixtureStatus.LIVE, FixtureStatus.HALF_TIME] },
+            },
+          },
+          awayFixtures: {
+            none: {
+              seasonId,
+              status: { in: [FixtureStatus.SCHEDULED, FixtureStatus.LIVE, FixtureStatus.HALF_TIME] },
+            },
+          },
+        },
+      },
+      select: { id: true, name: true, team: { select: { name: true } } },
+    });
+
+    if (ineligible.length > 0) {
+      const names = ineligible.map(p => `${p.name} (${p.team?.name ?? 'unknown team'})`).join(', ');
+      throw new BadRequestException(
+        `Cannot select players from eliminated teams: ${names}`,
+      );
+    }
   }
 }
