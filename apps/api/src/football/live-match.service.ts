@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ManualLiveMatchProviderAdapter } from './live-match-provider.interface';
 import type { LiveMatchProviderAdapter } from './live-match-provider.interface';
 import { SportmonksLiveMatchAdapter } from './sportmonks-live-match.adapter';
+import { FootballDataOrgLiveMatchAdapter } from './football-data-org-live-match.adapter';
 import { UpdateLiveStateDto } from './dto/update-live-state.dto';
 import { AddMatchEventDto } from './dto/add-match-event.dto';
 import { UpdateMatchEventDto } from './dto/update-match-event.dto';
@@ -48,13 +49,28 @@ export class LiveMatchService {
   }
 
   /**
-   * Selects the live-match provider at startup via env vars.
-   * WC_LIVE_PROVIDER=sportmonks + SPORTMONKS_API_KEY → SportmonksLiveMatchAdapter
-   * Anything else → ManualLiveMatchProviderAdapter (safe default, no network calls).
-   * PSL production use of Sportmonks is not authorised — see ADR-037.
+   * Selects the live-match provider at startup via WC_LIVE_PROVIDER env var.
+   *
+   * football-data-org (recommended for WC beta):
+   *   WC_LIVE_PROVIDER=football-data-org + FOOTBALL_DATA_API_KEY
+   *   Uses the same fixture-ID namespace as the WC fixture import — IDs align
+   *   without reimporting. Goals, assists, cards, and clean sheets are available
+   *   from the free tier for FINISHED matches. (ADR-037)
+   *
+   * sportmonks (legacy, WC beta only):
+   *   WC_LIVE_PROVIDER=sportmonks + SPORTMONKS_API_KEY
+   *   NOTE: beta fixtures carry football-data.org providerFixtureId values; the
+   *   Sportmonks adapter will send those IDs to Sportmonks which does not
+   *   recognise them → returns []. Requires fixture reimport to work correctly.
+   *
+   * Default → ManualLiveMatchProviderAdapter (safe, no network calls).
+   * PSL production use of any live provider is not authorised — see ADR-037.
    */
   static resolveProvider(): LiveMatchProviderAdapter {
     const env = process.env['WC_LIVE_PROVIDER'];
+    if (env === 'football-data-org' && process.env['FOOTBALL_DATA_API_KEY']) {
+      return new FootballDataOrgLiveMatchAdapter();
+    }
     if (env === 'sportmonks' && process.env['SPORTMONKS_API_KEY']) {
       return new SportmonksLiveMatchAdapter();
     }

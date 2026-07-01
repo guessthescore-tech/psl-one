@@ -981,4 +981,22 @@ describe('LiveMatchService.resolveProvider', () => {
     const provider = LiveMatchService.resolveProvider();
     expect(provider.providerName).toBe('manual');
   });
+
+  it('returns FootballDataOrgLiveMatchAdapter when WC_LIVE_PROVIDER=football-data-org and key present', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', 'football-data-org');
+    vi.stubEnv('FOOTBALL_DATA_API_KEY', 'test-key-fdo');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('football-data-org');
+  });
+
+  it('returns ManualLiveMatchProviderAdapter when WC_LIVE_PROVIDER=football-data-org but key absent', async () => {
+    vi.stubEnv('WC_LIVE_PROVIDER', 'football-data-org');
+    vi.stubEnv('FOOTBALL_DATA_API_KEY', '');
+    vi.resetModules();
+    const { LiveMatchService } = await import('./live-match.service');
+    const provider = LiveMatchService.resolveProvider();
+    expect(provider.providerName).toBe('manual');
+  });
 });

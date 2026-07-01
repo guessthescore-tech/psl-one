@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import type { ProviderAdapter, ProviderPlayer, ProviderSeason, ProviderTeam } from './provider-adapter.interface';
 import { SportmonksAdapter } from './sportmonks.adapter';
+import { FootballDataOrgAdapter } from './football-data-org.adapter';
 import { TEAMS } from './world-cup-beta-teams';
 import { PLAYERS } from './world-cup-beta-players';
 
@@ -109,7 +110,19 @@ export class WorldCupBetaBackfillService {
     private readonly prisma: PrismaClient,
     provider?: ProviderAdapter | null,
   ) {
-    this.provider = provider ?? (process.env['SPORTMONKS_API_KEY'] ? new SportmonksAdapter() : null);
+    if (provider !== undefined) {
+      // Explicit injection (tests, admin caller overrides)
+      this.provider = provider;
+    } else if (process.env['FOOTBALL_DATA_API_KEY']) {
+      // Preferred for WC beta: FDO IDs already match the providerFixtureId
+      // values stored by the WC fixture import, so externalId backfill aligns
+      // with the live-match sync path without fixture reimport.
+      this.provider = new FootballDataOrgAdapter();
+    } else if (process.env['SPORTMONKS_API_KEY']) {
+      this.provider = new SportmonksAdapter();
+    } else {
+      this.provider = null;
+    }
   }
 
   static confirmToken = BACKFILL_CONFIRM;
