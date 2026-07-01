@@ -16,7 +16,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { Controller, Get, Module } from '@nestjs/common';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
-import { parseCorsOrigins } from './env';
+import { API_CORS_METHODS, parseCorsOrigins } from './env';
 
 // ── Minimal controller for health check ───────────────────────────────────
 
@@ -87,7 +87,11 @@ describe('Security headers on API responses', () => {
       new FastifyAdapter({ trustProxy: false }),
     );
 
-    app.enableCors({ origin: ['http://localhost:3001', 'http://127.0.0.1:3001'], credentials: true });
+    app.enableCors({
+      origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
+      credentials: true,
+      methods: API_CORS_METHODS,
+    });
 
     app.getHttpAdapter().getInstance().addHook(
       'onSend',
@@ -128,6 +132,23 @@ describe('Security headers on API responses', () => {
       headers: { Origin: 'http://127.0.0.1:3001' },
     });
     expect(res.headers['access-control-allow-origin']).toBe('http://127.0.0.1:3001');
+  });
+
+  it('preflight allows PATCH and DELETE for authenticated browser API calls', async () => {
+    const res = await app.inject({
+      method: 'OPTIONS',
+      url: '/ping',
+      headers: {
+        Origin: 'http://localhost:3001',
+        'Access-Control-Request-Method': 'PATCH',
+        'Access-Control-Request-Headers': 'authorization,content-type',
+      },
+    });
+    expect(res.statusCode).toBe(204);
+    expect(res.headers['access-control-allow-origin']).toBe('http://localhost:3001');
+    expect(res.headers['access-control-allow-methods']).toContain('PATCH');
+    expect(res.headers['access-control-allow-methods']).toContain('DELETE');
+    expect(res.headers['access-control-allow-headers']).toContain('authorization');
   });
 
   it('unlisted origin does not receive permissive CORS headers', async () => {

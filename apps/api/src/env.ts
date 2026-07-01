@@ -47,6 +47,8 @@ const envSchema = z
 
 export type Env = z.infer<typeof envSchema>;
 
+export const API_CORS_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
+
 export function validateEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
   if (!result.success) {

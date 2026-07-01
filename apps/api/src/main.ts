@@ -3,7 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { parseCorsOrigins } from './env';
+import { API_CORS_METHODS, parseCorsOrigins } from './env';
 import { RequestContextService } from './observability/request-context.service';
 import { RequestLoggingInterceptor } from './observability/request-logging.interceptor';
 import { StructuredLoggerService } from './observability/structured-logger.service';
@@ -27,7 +27,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
   const corsOrigins = parseCorsOrigins(process.env['CORS_ORIGINS'], nodeEnv);
-  app.enableCors({ origin: corsOrigins, credentials: true });
+  app.enableCors({ origin: corsOrigins, credentials: true, methods: API_CORS_METHODS });
 
   // Security headers — applied to every response.
   // HSTS is omitted in development/test (HTTP only); staging/production set it via HTTPS termination.
