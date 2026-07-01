@@ -5,7 +5,7 @@ import type { ExpFantasyPlayer } from '@/lib/data';
 
 interface BenchPanelProps {
   players: (ExpFantasyPlayer | null)[];
-  onPlayerClick?: (player: ExpFantasyPlayer, benchIndex: number) => void;
+  onPlayerClick?: (player: ExpFantasyPlayer | null, benchIndex: number) => void;
   selectedPlayerId?: string | null;
 }
 
@@ -23,7 +23,7 @@ export function BenchPanel({ players, onPlayerClick, selectedPlayerId }: BenchPa
                 player={player}
                 slotLabel={`Bench ${i + 1}`}
                 isSelected={player ? player.id === selectedPlayerId : false}
-                onClick={player && onPlayerClick ? () => onPlayerClick(player, i) : undefined}
+                onClick={onPlayerClick ? () => onPlayerClick(player, i) : undefined}
               />
             </div>
           );

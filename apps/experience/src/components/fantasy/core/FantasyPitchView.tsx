@@ -47,6 +47,17 @@ export function FantasyPitchView({
     { label: 'FWD', pos: 'FWD', slots: fwdPlayers  },
   ];
 
+  // Global start index for each row in the flat starters array.
+  // The array is ordered: 1 GK, then DEF×N, then MID×M, then FWD×P.
+  // Passing the global index (not the row-local slotIdx) prevents different
+  // rows from writing to the same squad.starters slot.
+  const rowStartIdx = [
+    0,
+    1,
+    1 + (formationRows[0] ?? 4),
+    1 + (formationRows[0] ?? 4) + (formationRows[1] ?? 3),
+  ];
+
   return (
     <div
       className="relative rounded-card overflow-hidden"
@@ -82,7 +93,7 @@ export function FantasyPitchView({
                 slotLabel={row.label}
                 isSelected={player ? player.id === selectedPlayerId : false}
                 isTransferOut={player ? player.id === transferOutId : false}
-                onClick={onPlayerClick ? () => onPlayerClick(player, row.pos, slotIdx) : undefined}
+                onClick={onPlayerClick ? () => onPlayerClick(player, row.pos, (rowStartIdx[rowIdx] ?? 0) + slotIdx) : undefined}
               />
             ))}
           </motion.div>

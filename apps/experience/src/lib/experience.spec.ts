@@ -8714,6 +8714,81 @@ describe('PlayerPool scroll container structure', () => {
   });
 });
 
+// ─── Onboarding squad state model regression ─────────────────────────────
+
+describe('Onboarding squad builder — slot index and state persistence', () => {
+  it('FantasyPitchView computes rowStartIdx offsets to avoid row-local slot collisions', () => {
+    const pitch = read('components/fantasy/core/FantasyPitchView.tsx');
+    // rowStartIdx must exist so GK (row 0, offset 0), DEF (row 1, offset 1),
+    // MID (row 2, offset 1+DEF), FWD (row 3, offset 1+DEF+MID) never share idx 0
+    expect(pitch).toContain('rowStartIdx');
+  });
+
+  it('FantasyPitchView passes global slot index (rowStartIdx[rowIdx] + slotIdx) to onPlayerClick', () => {
+    const pitch = read('components/fantasy/core/FantasyPitchView.tsx');
+    // This is the fix: row-local slotIdx is NOT passed alone — it is offset by the row start
+    expect(pitch).toContain('rowStartIdx[rowIdx]');
+    expect(pitch).toMatch(/rowStartIdx\[rowIdx\].*\+.*slotIdx|slotIdx.*\+.*rowStartIdx\[rowIdx\]/);
+  });
+
+  it('FantasyPitchView onPlayerClick does NOT receive bare slotIdx (regression: row-local index collision)', () => {
+    const pitch = read('components/fantasy/core/FantasyPitchView.tsx');
+    // The callback must not pass slotIdx alone — passing it without the row offset
+    // causes GK, DEF0, MID0, FWD0 to all write to squad.starters[0]
+    expect(pitch).not.toMatch(/onPlayerClick\([^)]+,\s*[^,)]+,\s*slotIdx\s*\)/);
+  });
+
+  it('BenchPanel onPlayerClick fires for empty slots (not only non-null players)', () => {
+    const bench = read('components/fantasy/core/BenchPanel.tsx');
+    // onClick must be set whenever onPlayerClick exists, not gated on player being truthy.
+    // The old guard "player && onPlayerClick" blocked empty bench slot clicks.
+    expect(bench).not.toContain('player && onPlayerClick');
+    expect(bench).toContain('onPlayerClick ? () => onPlayerClick(player, i) : undefined');
+  });
+
+  it('BenchPanel onPlayerClick accepts null (empty slot) to allow bench player additions', () => {
+    const bench = read('components/fantasy/core/BenchPanel.tsx');
+    // Type must allow null so the onboarding handler can differentiate add vs remove
+    expect(bench).toContain('ExpFantasyPlayer | null, benchIndex');
+  });
+
+  it('onboarding handleBenchClick opens player pool when bench slot is empty (null)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Empty bench slot click must open the pool at the correct bench slot index
+    expect(content).toContain('isStarter: false');
+    expect(content).toContain('setSelectedSlot({ isStarter: false, idx: benchIdx })');
+  });
+
+  it('formation change preserves existing picks by re-seating players (not a silent reset)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // When picks exist, the onChange handler re-maps players into the new slot layout
+    expect(content).toContain('hasPicks');
+    expect(content).toContain('if (!hasPicks) return buildEmptySquad(f)');
+    // Players are redistributed by position — not a wholesale wipe
+    expect(content).toContain("filled.filter(p => p.position === 'DEF')");
+  });
+
+  it('formation change resets to empty squad only when no players are selected', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Guard: only call buildEmptySquad when squad is empty
+    expect(content).toContain('if (!hasPicks) return buildEmptySquad(f)');
+    // The unconditional setSquad(buildEmptySquad(f)) must no longer exist
+    expect(content).not.toContain('setSquad(buildEmptySquad(f))');
+  });
+
+  it('onboarding and FantasyPitchView both use the same shared pitch component', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("import { FantasyPitchView }");
+    expect(content).toContain('<FantasyPitchView');
+  });
+
+  it('onboarding can complete with 15 players: squadComplete requires starters AND bench full', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('squad.starters.every(Boolean)');
+    expect(content).toContain('squad.bench.every(Boolean)');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

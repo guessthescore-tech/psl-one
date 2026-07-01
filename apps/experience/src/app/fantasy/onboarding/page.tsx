@@ -341,12 +341,19 @@ export default function OnboardingPage() {
     }
   }, []);
 
-  const handleBenchClick = useCallback((_player: ExpFantasyPlayer, benchIdx: number) => {
-    setSquad(prev => {
-      const bench = [...prev.bench];
-      bench[benchIdx] = null;
-      return { ...prev, bench };
-    });
+  const handleBenchClick = useCallback((player: ExpFantasyPlayer | null, benchIdx: number) => {
+    if (player) {
+      // Remove existing bench player
+      setSquad(prev => {
+        const bench = [...prev.bench];
+        bench[benchIdx] = null;
+        return { ...prev, bench };
+      });
+    } else {
+      // Open player pool to fill the empty bench slot
+      setSelectedSlot({ isStarter: false, idx: benchIdx });
+      setPoolOpen(true);
+    }
   }, []);
 
   const handlePlayerSelect = useCallback((player: ExpFantasyPlayer) => {
@@ -454,7 +461,33 @@ export default function OnboardingPage() {
               <div className="px-4 py-6">
                 <h2 className="text-display-md text-white mb-1">Pick your formation</h2>
                 <p className="text-body-md text-exp-muted mb-6">This determines how your players line up on the pitch.</p>
-                <FormationSelector value={formation} onChange={f => { setFormation(f); setSquad(buildEmptySquad(f)); }} />
+                <FormationSelector
+                  value={formation}
+                  onChange={f => {
+                    setFormation(f);
+                    setSquad(prev => {
+                      const hasPicks = [...prev.starters, ...prev.bench].some(Boolean);
+                      if (!hasPicks) return buildEmptySquad(f);
+                      // Re-seat existing picks into the new formation's slot layout.
+                      // Players that exceed the new slot count for their position are
+                      // dropped (unavoidable when reducing a position group).
+                      // Bench players are always preserved.
+                      const filled = prev.starters.filter(Boolean) as ExpFantasyPlayer[];
+                      const gks  = filled.filter(p => p.position === 'GK');
+                      const defs = filled.filter(p => p.position === 'DEF');
+                      const mids = filled.filter(p => p.position === 'MID');
+                      const fwds = filled.filter(p => p.position === 'FWD');
+                      const [nDef = 4, nMid = 3, nFwd = 3] = parseFormationRows(f);
+                      const newStarters: (ExpFantasyPlayer | null)[] = [
+                        gks[0] ?? null,
+                        ...Array.from({ length: nDef }, (_, i): ExpFantasyPlayer | null => defs[i] ?? null),
+                        ...Array.from({ length: nMid }, (_, i): ExpFantasyPlayer | null => mids[i] ?? null),
+                        ...Array.from({ length: nFwd }, (_, i): ExpFantasyPlayer | null => fwds[i] ?? null),
+                      ];
+                      return { starters: newStarters, bench: prev.bench };
+                    });
+                  }}
+                />
 
                 <div className="mt-6">
                   <p className="text-label-md text-exp-muted mb-3">Formation preview</p>
