@@ -134,8 +134,10 @@ export class FootballDataOrgAdapter implements ProviderAdapter {
   }
 
   async getPlayers(teamExternalId: string): Promise<ProviderPlayer[]> {
+    // /v4/teams/{id}/squad returns 404 on the free tier; /v4/teams/{id} returns
+    // the same squad array embedded in the team detail response.
     const data = await this.fetch<FdSquadResponse>(
-      `/v4/teams/${encodeURIComponent(teamExternalId)}/squad`,
+      `/v4/teams/${encodeURIComponent(teamExternalId)}`,
     );
     if (!data) return [];
     return (data.squad ?? []).map(p => ({
