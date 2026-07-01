@@ -16,7 +16,7 @@ import { BudgetIndicator } from '@/components/fantasy/core/BudgetIndicator';
 import { CaptainMarker } from '@/components/fantasy/core/CaptainMarker';
 import { FANTASY_MOCK_PLAYERS, getDataMode } from '@/lib/data';
 import type { ExpFantasyPlayer } from '@/lib/data';
-import { isAuthenticated } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import { getWorldCupSeason } from '@/lib/football-api';
 import {
   getPlayerPool,
@@ -92,32 +92,35 @@ export default function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // On mount: verify auth and check for existing team
+  // On mount: verify auth via server and check for existing team
   useEffect(() => {
     if (mode === 'DESIGN_REVIEW_DATA') return;
 
-    if (!isAuthenticated()) {
-      router.push('/sign-in?redirect=/fantasy/onboarding');
-      return;
-    }
+    async function init() {
+      const { status } = await validateSession();
+      if (status === 'anonymous') {
+        router.push('/sign-in?redirect=/fantasy/onboarding');
+        return;
+      }
 
-    // If the user already has a team, send them straight to it
-    getTeam()
-      .then(() => {
+      // If the user already has a team, send them straight to it
+      try {
+        await getTeam();
         router.push('/fantasy/team');
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         // 404 = no team yet, which is exactly what we want for onboarding
         if (err instanceof ApiError && err.status === 404) {
           setInitDone(true);
-        } else if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+        } else if (err instanceof ApiError && err.status === 401) {
           router.push('/sign-in?redirect=/fantasy/onboarding');
         } else {
           // Network error or unexpected — let the user try
           setInitDone(true);
           setInitError('Could not verify your account. You can still create a team below.');
         }
-      });
+      }
+    }
+    void init();
   }, [mode, router]);
 
   // Load player pool

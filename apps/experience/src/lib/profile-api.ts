@@ -1,9 +1,17 @@
 /**
  * Profile API — PSL One Experience app
  * Handles fan profile reads and updates.
+ *
+ * All requests route through apiFetch (from ./api) which resolves the correct
+ * API base URL and attaches the Bearer token automatically.
+ *
+ * Backend routes (NestJS @Controller('profile')):
+ *   GET    /profile/me          → getProfile()
+ *   PATCH  /profile/me          → updateProfile()
+ *   GET    /profile/summary     → getProfileSummary()
  */
 
-import { getToken } from './auth';
+import { apiFetch, apiPatch } from './api';
 
 /* ── Types ────────────────────────────────────────────────────────────────── */
 
@@ -15,18 +23,22 @@ export interface PreferredTeam {
 
 export interface FanProfile {
   id: string;
-  email: string;
-  displayName: string;
-  bio?: string;
-  phone?: string;
-  preferredTeam?: PreferredTeam;
-  memberSince: string;
+  displayName: string | null;
+  city?: string | null;
+  country?: string | null;
+  preferredTeam?: PreferredTeam | null;
+  // Fields below are not returned by /profile/me (backend FanProfile model) but
+  // kept optional here so design-review mock objects in the account pages compile.
+  email?: string;
+  bio?: string | null;
+  phone?: string | null;
+  memberSince?: string;
 }
 
 export interface ProfileSummary {
-  displayName: string;
+  displayName: string | null;
   email: string;
-  memberSince: string;
+  memberSince?: string;
   fantasyTeamName?: string;
   fantasyTotalPoints?: number;
   fantasyGlobalRank?: number;
@@ -39,45 +51,16 @@ export interface UpdateProfileInput {
   preferredTeamId?: string;
 }
 
-/* ── API base URL ────────────────────────────────────────────────────────── */
-
-const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000';
-
-function authHeaders(): Record<string, string> {
-  const token = getToken();
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 /* ── API functions ───────────────────────────────────────────────────────── */
 
-export async function getProfile(): Promise<FanProfile> {
-  const res = await fetch(`${API_BASE}/api/profile`, {
-    headers: authHeaders(),
-  });
-
-  if (!res.ok) throw new Error('Failed to load profile');
-  return (await res.json()) as FanProfile;
+export function getProfile(): Promise<FanProfile> {
+  return apiFetch<FanProfile>('/profile/me');
 }
 
-export async function updateProfile(input: UpdateProfileInput): Promise<FanProfile> {
-  const res = await fetch(`${API_BASE}/api/profile`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: JSON.stringify(input),
-  });
-
-  if (!res.ok) throw new Error('Failed to update profile');
-  return (await res.json()) as FanProfile;
+export function updateProfile(input: UpdateProfileInput): Promise<FanProfile> {
+  return apiPatch<FanProfile>('/profile/me', input);
 }
 
-export async function getProfileSummary(): Promise<ProfileSummary> {
-  const res = await fetch(`${API_BASE}/api/profile/summary`, {
-    headers: authHeaders(),
-  });
-
-  if (!res.ok) throw new Error('Failed to load profile summary');
-  return (await res.json()) as ProfileSummary;
+export function getProfileSummary(): Promise<ProfileSummary> {
+  return apiFetch<ProfileSummary>('/profile/summary');
 }

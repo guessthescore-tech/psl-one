@@ -6,7 +6,8 @@ import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingS
 import { FantasyErrorState } from '@/components/fantasy/shared/FantasyErrorState';
 import { ProfileForm } from '@/components/account/ProfileForm';
 import { getDataMode } from '@/lib/data';
-import { isAuthenticated } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
+import { ApiError } from '@/lib/api';
 import type { FanProfile } from '@/lib/profile-api';
 import { useRouter } from 'next/navigation';
 
@@ -40,7 +41,8 @@ export default function AccountProfilePage() {
       return;
     }
 
-    if (!isAuthenticated()) {
+    const { status } = await validateSession();
+    if (status === 'anonymous') {
       router.push('/sign-in?redirect=/account/profile');
       return;
     }
@@ -49,7 +51,11 @@ export default function AccountProfilePage() {
       const { getProfile } = await import('@/lib/profile-api');
       const data = await getProfile();
       setProfile(data);
-    } catch {
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.push('/sign-in?redirect=/account/profile');
+        return;
+      }
       setLoadError(true);
     } finally {
       setLoading(false);
@@ -92,7 +98,7 @@ export default function AccountProfilePage() {
       {!loading && !loadError && profile && (
         <ProfileForm
           initialValues={{
-            displayName: profile.displayName,
+            displayName: profile.displayName ?? '',
             bio: profile.bio ?? '',
             phone: profile.phone ?? '',
           }}

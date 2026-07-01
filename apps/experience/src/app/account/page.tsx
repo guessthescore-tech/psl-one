@@ -112,17 +112,18 @@ export default function AccountPage() {
     );
   }
 
-  // Initials for avatar
-  const initials = profile.displayName
+  // Initials for avatar — displayName may be null for new users who haven't set one
+  const displayName = profile.displayName ?? profile.email;
+  const initials = displayName
     .split(' ')
     .map(n => n[0])
     .join('')
     .toUpperCase()
     .slice(0, 2);
 
-  const memberSinceFormatted = new Date(profile.memberSince).toLocaleDateString('en-ZA', {
-    month: 'long', year: 'numeric',
-  });
+  const memberSinceFormatted = profile.memberSince
+    ? new Date(profile.memberSince).toLocaleDateString('en-ZA', { month: 'long', year: 'numeric' })
+    : null;
 
   return (
     <FantasyShell hideFantasyTabs>
@@ -137,11 +138,13 @@ export default function AccountPage() {
             <span className="text-exp-gold font-black text-xl">{initials}</span>
           </div>
           <div className="min-w-0">
-            <p className="text-display-sm text-white truncate">{profile.displayName}</p>
+            <p className="text-display-sm text-white truncate">{displayName}</p>
             <p className="text-body-sm text-exp-muted truncate">{profile.email}</p>
-            <p className="text-label-sm text-exp-muted mt-1">
-              Member since {memberSinceFormatted}
-            </p>
+            {memberSinceFormatted && (
+              <p className="text-label-sm text-exp-muted mt-1">
+                Member since {memberSinceFormatted}
+              </p>
+            )}
           </div>
         </div>
 

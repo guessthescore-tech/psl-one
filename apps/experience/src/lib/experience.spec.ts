@@ -945,9 +945,9 @@ describe('auth lib exists', () => {
   it('auth.ts exports isAuthenticated', () => expect(read('lib/auth.ts')).toContain('export function isAuthenticated'));
   it('auth.ts exports requestPasswordReset', () => expect(read('lib/auth.ts')).toContain('export async function requestPasswordReset'));
   it('auth.ts exports confirmPasswordReset', () => expect(read('lib/auth.ts')).toContain('export async function confirmPasswordReset'));
-  it('profile-api.ts exports getProfile', () => expect(read('lib/profile-api.ts')).toContain('export async function getProfile'));
-  it('profile-api.ts exports updateProfile', () => expect(read('lib/profile-api.ts')).toContain('export async function updateProfile'));
-  it('profile-api.ts exports getProfileSummary', () => expect(read('lib/profile-api.ts')).toContain('export async function getProfileSummary'));
+  it('profile-api.ts exports getProfile', () => expect(read('lib/profile-api.ts')).toContain('export function getProfile'));
+  it('profile-api.ts exports updateProfile', () => expect(read('lib/profile-api.ts')).toContain('export function updateProfile'));
+  it('profile-api.ts exports getProfileSummary', () => expect(read('lib/profile-api.ts')).toContain('export function getProfileSummary'));
 });
 
 describe('POPIA compliance messaging', () => {
@@ -8012,9 +8012,10 @@ describe('AppHeader auth-aware rendering', () => {
 // ─── Fantasy onboarding auth + step 1 save ────────────────────────────────────
 
 describe('Fantasy onboarding — authenticated flow', () => {
-  it('onboarding page imports isAuthenticated for auth guard', () => {
+  it('onboarding page uses validateSession() for server-validated auth guard (not isAuthenticated)', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    expect(content).toContain('isAuthenticated');
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
   });
 
   it('onboarding page redirects unauthenticated users to sign-in', () => {
@@ -8071,6 +8072,88 @@ describe('Fantasy onboarding — authenticated flow', () => {
   it('onboarding page imports ApiError for status-code-aware error handling', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
     expect(content).toContain('ApiError');
+  });
+});
+
+// ─── Onboarding: server-validated auth (regression) ─────────────────────────
+
+describe('Fantasy onboarding — server-validated auth regression', () => {
+  it('onboarding uses validateSession from use-session, not isAuthenticated from auth', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('onboarding awaits validateSession() inside an async init function', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('async function init');
+    expect(content).toContain('await validateSession()');
+  });
+
+  it('onboarding redirects on anonymous session status, not raw token absence', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("status === 'anonymous'");
+    expect(content).toContain('/sign-in?redirect=/fantasy/onboarding');
+  });
+
+  it('onboarding catches 401 from getTeam() via ApiError.status, not err.message string', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Must use status code check, not the fragile string comparison
+    expect(content).toContain('err.status === 401');
+    expect(content).not.toContain("err.message === 'UNAUTHORIZED'");
+  });
+});
+
+// ─── profile-api.ts: correct URL and paths (regression) ─────────────────────
+
+describe('profile-api — correct URL and endpoint paths', () => {
+  it('uses apiFetch from ./api (not raw fetch with wrong env var)', () => {
+    const content = read('lib/profile-api.ts');
+    expect(content).toContain("from './api'");
+    expect(content).toContain('apiFetch');
+    expect(content).not.toContain('NEXT_PUBLIC_API_URL');
+    expect(content).not.toContain('localhost:3000');
+  });
+
+  it('getProfileSummary calls /profile/summary (not /api/profile/summary)', () => {
+    const content = read('lib/profile-api.ts');
+    expect(content).toContain("'/profile/summary'");
+    expect(content).not.toContain('/api/profile');
+  });
+
+  it('getProfile calls /profile/me (not /api/profile)', () => {
+    const content = read('lib/profile-api.ts');
+    expect(content).toContain("'/profile/me'");
+  });
+
+  it('ProfileSummary.displayName allows null (backend returns null for new users)', () => {
+    const content = read('lib/profile-api.ts');
+    expect(content).toContain('displayName: string | null');
+  });
+
+  it('ProfileSummary.memberSince is optional (not returned by /profile/summary)', () => {
+    const content = read('lib/profile-api.ts');
+    expect(content).toContain('memberSince?: string');
+  });
+});
+
+// ─── Account page: null-safe rendering (regression) ─────────────────────────
+
+describe('Account page — null-safe profile rendering', () => {
+  it('guards displayName null with email fallback before calling .split()', () => {
+    const content = read('app/account/page.tsx');
+    // Should use a fallback, not call .split directly on profile.displayName
+    expect(content).toContain('profile.displayName ??');
+    expect(content).not.toMatch(/profile\.displayName\s*\n?\s*\.split/);
+  });
+
+  it('guards memberSince with a conditional before constructing the date', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain('profile.memberSince');
+    expect(content).toContain('memberSinceFormatted');
+    // The formatted value must be guarded before rendering
+    expect(content).toContain('{memberSinceFormatted &&');
   });
 });
 
@@ -8134,6 +8217,63 @@ describe('Account page — server-validated auth', () => {
     expect(content).not.toContain('isAuthenticated()');
     expect(content).not.toContain('!!getToken');
   });
+});
+
+// ─── Account profile page — server-validated auth guard ──────────────────
+
+describe('Account profile page — server-validated auth', () => {
+  it('imports validateSession from use-session (not isAuthenticated from auth)', () => {
+    const content = read('app/account/profile/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('awaits validateSession() before fetching profile data', () => {
+    const content = read('app/account/profile/page.tsx');
+    expect(content).toContain('await validateSession()');
+  });
+
+  it('redirects to sign-in on anonymous session status', () => {
+    const content = read('app/account/profile/page.tsx');
+    expect(content).toContain("status === 'anonymous'");
+    expect(content).toContain('/sign-in?redirect=/account/profile');
+  });
+
+  it('does not use raw token presence for auth guard', () => {
+    const content = read('app/account/profile/page.tsx');
+    expect(content).not.toContain('isAuthenticated()');
+    expect(content).not.toContain('!!getToken');
+  });
+
+  it('handles 401 from getProfile() as redirect, not generic error state', () => {
+    const content = read('app/account/profile/page.tsx');
+    expect(content).toContain('ApiError');
+    expect(content).toContain('err.status === 401');
+  });
+});
+
+// ─── Session source-of-truth consistency across account pages ────────────
+
+describe('Consistent session source of truth — account + onboarding', () => {
+  const pages = [
+    'app/account/page.tsx',
+    'app/account/profile/page.tsx',
+    'app/fantasy/onboarding/page.tsx',
+  ] as const;
+
+  for (const page of pages) {
+    it(`${page} uses validateSession from use-session`, () => {
+      const content = read(page);
+      expect(content).toContain("from '@/lib/use-session'");
+      expect(content).toContain('validateSession');
+    });
+
+    it(`${page} does not use isAuthenticated() raw token check`, () => {
+      const content = read(page);
+      expect(content).not.toContain('isAuthenticated()');
+    });
+  }
 });
 
 // ─── Predict page — server-validated session for predictions ─────────────
