@@ -18,10 +18,12 @@ import { getWorldCupSeason } from '@/lib/football-api';
 import { getDeadline, getGameweekScore, getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
 import { getBatchPlayerSeasonStats } from '@/lib/players-api';
+import { SQUAD_SIZE } from '@/lib/fantasy-team-resume';
 
 type TeamState =
   | { status: 'loading' }
   | { status: 'ready'; team: ExpFantasySquad; deadlineAt: string; isLocked: boolean }
+  | { status: 'incomplete'; playerCount: number }
   | { status: 'empty'; message: string }
   | { status: 'error'; message: string };
 
@@ -72,6 +74,14 @@ export default function TeamPage() {
         );
 
         const liveTeam = toExpFantasySquad(team, priceMap, statsMap, transferStatus.freeTransfersAvailable);
+
+        // A squad with fewer than SQUAD_SIZE players has not completed onboarding.
+        // Show an explicit incomplete state rather than an empty/broken pitch.
+        if (team.players.length < SQUAD_SIZE) {
+          if (!cancelled) setState({ status: 'incomplete', playerCount: team.players.length });
+          return;
+        }
+
         if (transferStatus.gameweekId) {
           getGameweekScore(transferStatus.gameweekId)
             .then((score) => {
@@ -143,6 +153,28 @@ export default function TeamPage() {
           title="No fantasy team yet"
           message={state.message}
           action={{ label: 'Build Team', href: '/fantasy/onboarding' }}
+        />
+      </FantasyShell>
+    );
+  }
+
+  if (state.status === 'incomplete') {
+    const isNameOnly = state.playerCount === 0;
+    return (
+      <FantasyShell title="My Team" back={{ href: '/fantasy', label: 'Back to Fantasy' }}>
+        <FantasyEmptyState
+          icon="⚠️"
+          title="Squad not complete"
+          message={
+            isNameOnly
+              ? 'You registered a team name but have not picked your squad yet. Continue the setup to choose your 15 players.'
+              : `You have ${state.playerCount} of ${SQUAD_SIZE} players. Your squad is not ready yet — complete it to start earning points.`
+          }
+          action={
+            isNameOnly
+              ? { label: 'Continue Setup', href: '/fantasy/onboarding' }
+              : { label: 'Add Players', href: '/fantasy/team/transfers' }
+          }
         />
       </FantasyShell>
     );

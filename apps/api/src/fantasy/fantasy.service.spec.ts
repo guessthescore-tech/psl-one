@@ -899,6 +899,118 @@ describe('Fantasy team management — deadline locks', () => {
   });
 });
 
+// ── addPlayerToSquad — WC eligibility enforcement ───────────────────────────
+
+describe('FantasyService.addPlayerToSquad — WC eligibility gate', () => {
+  const makePrismaMock = () =>
+    ({
+      season: { findFirst: vi.fn() },
+      gameweek: { findFirst: vi.fn() },
+      player: { findMany: vi.fn(), findUnique: vi.fn() },
+      fantasyTeam: { findUnique: vi.fn() },
+      fantasyTeamPlayer: { create: vi.fn() },
+      fantasyRulesConfig: { findUnique: vi.fn() },
+    }) as unknown as PrismaService;
+
+  let service: FantasyService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  const WC_SEASON = {
+    id: 'wc-s1',
+    slug: 'fifa-world-cup-2026',
+    name: 'FIFA World Cup 2026',
+    competition: { slug: 'fifa-world-cup-2026', name: 'FIFA World Cup 2026' },
+  };
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    service = new FantasyService(prisma as unknown as PrismaService, makeAchievementsMock());
+    (prisma.fantasyRulesConfig.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    // Open transfer window so deadline is not the reason for rejection
+    (prisma.gameweek.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'gw-1',
+      status: 'OPEN',
+      transferDeadlineAt: new Date(Date.now() + 60_000),
+    });
+  });
+
+  it('rejects a player from an eliminated WC team (no remaining active fixtures)', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(WC_SEASON);
+    // Incomplete squad (< 15) so deadline gate is skipped
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      players: [],
+    });
+    // player.findMany for assertPlayersFromActiveTeams returns the player as ineligible
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'p-elim', name: 'Eliminated Star', team: { name: 'Brazil' } },
+    ]);
+
+    await expect(
+      service.addPlayerToSquad('u1', { playerId: 'p-elim', squadRole: 'STARTER' as FantasySquadRole }),
+    ).rejects.toThrow(/eliminated/i);
+  });
+
+  it('allows a player from an active WC team (has upcoming fixtures)', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(WC_SEASON);
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'ft1', players: [] })               // first call: the team
+      .mockResolvedValueOnce({ id: 'ft1', name: 'My WC Team', formation: null, players: [] }); // getMyTeam
+    // player.findMany returns [] (no ineligible players) — the player IS eligible
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p-active', position: PlayerPosition.FORWARD, teamId: 'team-arg', name: 'Active Star',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp1' });
+
+    const result = await service.addPlayerToSquad('u1', { playerId: 'p-active', squadRole: 'STARTER' as FantasySquadRole });
+    expect(result).toBeDefined();
+  });
+
+  it('skips eligibility check for non-WC seasons', async () => {
+    const pslSeason = {
+      id: 'psl-s1',
+      slug: 'psl-2025-26',
+      name: 'Premier Soccer League 2025/26',
+      competition: { slug: 'premier-soccer-league', name: 'Premier Soccer League' },
+    };
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(pslSeason);
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce({ id: 'ft1', players: [] })
+      .mockResolvedValueOnce({ id: 'ft1', name: 'PSL Team', formation: null, players: [] });
+    (prisma.player.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p-psl', position: PlayerPosition.MIDFIELDER, teamId: 'team-psl', name: 'PSL Player',
+    });
+    (prisma.fantasyTeamPlayer.create as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'ftp1' });
+
+    const result = await service.addPlayerToSquad('u1', { playerId: 'p-psl', squadRole: 'STARTER' as FantasySquadRole });
+    expect(result).toBeDefined();
+    // player.findMany (assertPlayersFromActiveTeams) must NOT have been called for PSL
+    const findManyCalls = (prisma.player.findMany as ReturnType<typeof vi.fn>).mock.calls;
+    expect(findManyCalls).toHaveLength(0);
+  });
+
+  it('error message names the eliminated player and their team', async () => {
+    (prisma.season.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(WC_SEASON);
+    (prisma.fantasyTeam.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'ft1',
+      players: [],
+    });
+    (prisma.player.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'p-x', name: 'Ronaldo', team: { name: 'Portugal' } },
+    ]);
+
+    try {
+      await service.addPlayerToSquad('u1', { playerId: 'p-x', squadRole: 'STARTER' as FantasySquadRole });
+      expect.fail('Should have thrown');
+    } catch (e) {
+      const msg = (e as BadRequestException).message;
+      expect(msg).toContain('Ronaldo');
+      expect(msg).toContain('Portugal');
+    }
+  });
+});
+
 // ── getPlayerPool — active season scope ─────────────────────────────────────
 
 describe('FantasyService.getPlayerPool — active season scope', () => {

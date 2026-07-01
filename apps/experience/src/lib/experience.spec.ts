@@ -8399,10 +8399,10 @@ describe('Challenge accept page — server-validated auth', () => {
 describe('Fantasy onboarding — squad completion flow', () => {
   it('onboarding handleSubmit adds players using a sequential addPlayer loop (not a single bulk createTeam)', () => {
     const content = read('app/fantasy/onboarding/page.tsx');
-    // Step 4 submit: updateTeam (formation) then sequential addPlayer for each slot
-    expect(content).toContain('await updateTeam(');
+    // Step 4 submit: updateTeam (formation, fresh only) then sequential addPlayer for new slots
     expect(content).toContain('await addPlayer(slot)');
-    expect(content).toContain('for (const slot of slots)');
+    // Iterates over slotsToAdd (filtered to exclude already-persisted players)
+    expect(content).toContain('for (const slot of slotsToAdd)');
   });
 
   it('onboarding imports addPlayer and updateTeam from fantasy-api (not makeTransfer)', () => {
@@ -8448,6 +8448,208 @@ describe('Fantasy onboarding — squad completion flow', () => {
   it('fantasy-api updateTeam patches /fantasy/team/me (sets formation before player adds)', () => {
     const content = read('lib/fantasy-api.ts');
     expect(content).toContain("apiPatch<FantasyTeam>('/fantasy/team/me'");
+  });
+});
+
+// ─── Fantasy eligibility & squad completeness ─────────────────────────────────
+
+describe('Fantasy eligibility — player pool and incomplete squad guards', () => {
+  it('onboarding player pool calls getPlayerPool with the WC season id (not a stale pool)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Pool is loaded via getWorldCupSeason() → getPlayerPool(undefined, season.id)
+    expect(content).toContain('getWorldCupSeason()');
+    expect(content).toContain('getPlayerPool(undefined, season.id)');
+  });
+
+  it('onboarding shows an empty-state message when the pool returns no eligible players', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('No eligible players found');
+    expect(content).toContain('poolError');
+  });
+
+  it('onboarding resumes using getResumeStep (not a direct SQUAD_SIZE comparison)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // getResumeStep(playerCount) encapsulates the threshold — page uses its return value
+    expect(content).toContain('getResumeStep');
+    expect(content).toContain('setSavedTeamId(existingTeam.id)');
+    expect(content).toContain('setStep(resumeStep)');
+  });
+
+  it('onboarding only redirects to /fantasy/team when squad is complete (resumeStep === null)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('router.push(\'/fantasy/team\')');
+    // The redirect is guarded by the null return from getResumeStep
+    expect(content).toContain('resumeStep === null');
+  });
+
+  it('onboarding imports SQUAD_SIZE from the shared helper (not locally defined)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("from '@/lib/fantasy-team-resume'");
+    expect(content).not.toContain('const SQUAD_SIZE = 15');
+  });
+
+  it('team page imports SQUAD_SIZE from the shared helper (not locally defined)', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain("from '@/lib/fantasy-team-resume'");
+    expect(content).not.toContain('const SQUAD_SIZE = 15');
+  });
+
+  it('team page includes an "incomplete" status in its TeamState union', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain("status: 'incomplete'");
+    expect(content).toContain('playerCount');
+  });
+
+  it('team page checks players.length < SQUAD_SIZE and sets incomplete state (not ready)', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain('team.players.length < SQUAD_SIZE');
+    expect(content).toContain("status: 'incomplete'");
+  });
+
+  it('team page incomplete state for 0-player team links to /fantasy/onboarding (not /fantasy/team)', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain("href: '/fantasy/onboarding'");
+    expect(content).toContain('Continue Setup');
+  });
+
+  it('team page incomplete state for partial team links to /fantasy/team/transfers', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain("href: '/fantasy/team/transfers'");
+    expect(content).toContain('Add Players');
+  });
+
+  it('team page has early-return guard for incomplete state (FantasyPitchView not rendered for incomplete squads)', () => {
+    const content = read('app/fantasy/team/page.tsx');
+    expect(content).toContain("if (state.status === 'incomplete')");
+    // The incomplete block ends before the main ready render — FantasyPitchView is only in the ready path
+    const incompleteBlock = content
+      .split("if (state.status === 'incomplete')")[1]
+      ?.split("if (state.status === 'error')")[0] ?? '';
+    expect(incompleteBlock).not.toContain('<FantasyPitchView');
+  });
+
+  it('onboarding squadComplete gate prevents advancing to step 4 with an incomplete squad', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('squadComplete');
+    // squadComplete is both computed and used as the disabled condition on step 3
+    expect(content).toContain('step === 3 && !squadComplete');
+  });
+
+  it('backend getPlayerPool is called for onboarding (not a hardcoded or mock pool in live mode)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("getPlayerPool");
+    // Must not fall through to FANTASY_MOCK_PLAYERS in live mode
+    expect(content).toContain("mode !== 'DESIGN_REVIEW_DATA'");
+  });
+});
+
+// ─── fantasy-team-resume shared helper ───────────────────────────────────────
+
+describe('fantasy-team-resume shared helper', () => {
+  it('exports SQUAD_SIZE = 15 (matches backend DEFAULT_SQUAD_CONFIG.squadSize)', () => {
+    const content = read('lib/fantasy-team-resume.ts');
+    expect(content).toContain('export const SQUAD_SIZE = 15');
+  });
+
+  it('getResumeStep returns 2 for 0-player team (name saved, formation not chosen)', () => {
+    const content = read('lib/fantasy-team-resume.ts');
+    expect(content).toContain('if (playerCount === 0) return 2');
+  });
+
+  it('getResumeStep returns 3 for 1-14 player team (partial squad, continue building)', () => {
+    const content = read('lib/fantasy-team-resume.ts');
+    expect(content).toContain('return 3');
+    // The 3 is the fallback for any count > 0 and < SQUAD_SIZE
+    expect(content).toContain('if (playerCount >= SQUAD_SIZE) return null');
+  });
+
+  it('getResumeStep returns null for complete teams (>= 15 players)', () => {
+    const content = read('lib/fantasy-team-resume.ts');
+    expect(content).toContain('if (playerCount >= SQUAD_SIZE) return null');
+  });
+
+  it('both onboarding and team pages import SQUAD_SIZE from the shared helper (no local redefinition)', () => {
+    const onboarding = read('app/fantasy/onboarding/page.tsx');
+    const team = read('app/fantasy/team/page.tsx');
+    // Import from shared helper
+    expect(onboarding).toContain("from '@/lib/fantasy-team-resume'");
+    expect(team).toContain("from '@/lib/fantasy-team-resume'");
+    // Not locally redefined
+    expect(onboarding).not.toContain('const SQUAD_SIZE = 15');
+    expect(team).not.toContain('const SQUAD_SIZE = 15');
+  });
+});
+
+// ─── Fantasy onboarding — partial team resume (no-loop guarantee) ─────────────
+
+describe('Fantasy onboarding — partial team resume (no-loop guarantee)', () => {
+  it('onboarding uses getResumeStep from shared helper to compute the resume step', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('getResumeStep');
+    expect(content).toContain("from '@/lib/fantasy-team-resume'");
+  });
+
+  it('partial team (1-14 players): onboarding step is set from getResumeStep (not hardcoded)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // getResumeStep returns 3 for 1-14 players and 2 for 0 players — page uses its return value
+    expect(content).toContain('setStep(resumeStep)');
+    // The step in the init/resume path comes from getResumeStep, never hardcoded in that branch
+    expect(content).toContain('const resumeStep = getResumeStep(existingTeam.players.length)');
+  });
+
+  it('partial team: squad state is pre-populated from existing DB players (no empty pitch)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('existingTeam.players.length > 0');
+    expect(content).toContain('existingStarters');
+    expect(content).toContain('existingBench');
+    expect(content).toContain('setSquad({ starters: restoredStarters, bench: restoredBench })');
+  });
+
+  it('partial team: formation is restored from the existing team record', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain("existingTeam.formation ?? '4-3-3'");
+    expect(content).toContain('setFormation(restoredFormation)');
+  });
+
+  it('partial team: resumedPlayerIds tracks already-persisted players', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('resumedPlayerIds');
+    expect(content).toContain('setResumedPlayerIds');
+    expect(content).toContain('existingTeam.players.map(tp => tp.playerId)');
+  });
+
+  it('handleSubmit skips already-persisted players to avoid 409 conflicts', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('!resumedPlayerIds.has(s.playerId)');
+    expect(content).toContain('slotsToAdd');
+  });
+
+  it('handleSubmit only calls updateTeam for fresh onboarding (size === 0), not for resumed teams', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // Conditional: skip the transfer-window-gated formation update when resuming
+    expect(content).toContain('resumedPlayerIds.size === 0');
+    expect(content).toContain('await updateTeam({ formation })');
+  });
+
+  it('partial team: onboarding does NOT redirect to /fantasy/team (only null resumeStep triggers redirect)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    // The redirect only fires when getResumeStep returns null (complete squad)
+    expect(content).toContain('resumeStep === null');
+    // The non-null branch sets initDone, not router.push
+    expect(content).toContain('setInitDone(true)');
+  });
+
+  it('complete team (15 players): onboarding still redirects to /fantasy/team', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('resumeStep === null');
+    expect(content).toContain("router.push('/fantasy/team')");
+  });
+
+  it('empty team (0 players): onboarding sets savedTeamId and proceeds without redirect', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('setSavedTeamId(existingTeam.id)');
+    expect(content).toContain('setTeamName(existingTeam.name)');
+    expect(content).toContain('setInitDone(true)');
   });
 });
 

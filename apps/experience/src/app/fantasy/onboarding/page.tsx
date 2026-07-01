@@ -28,6 +28,7 @@ import {
 } from '@/lib/fantasy-api';
 import { toExpFantasyPlayer, toFantasySlot } from '@/lib/fantasy-player-mapper';
 import { ApiError } from '@/lib/api';
+import { SQUAD_SIZE, getResumeStep } from '@/lib/fantasy-team-resume';
 
 const TOTAL_BUDGET = 100;
 const STEP_LABELS = ['Name Team', 'Formation', 'Build Squad', 'Review'];
@@ -91,6 +92,9 @@ export default function OnboardingPage() {
   const [poolError, setPoolError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Tracks player IDs already persisted to the DB from a previous session. The
+  // submit handler skips these so we never attempt a duplicate addPlayer call.
+  const [resumedPlayerIds, setResumedPlayerIds] = useState<Set<string>>(new Set());
 
   // On mount: verify auth via server and check for existing team
   useEffect(() => {
@@ -103,10 +107,69 @@ export default function OnboardingPage() {
         return;
       }
 
-      // If the user already has a team, send them straight to it
+      // Check for an existing team. Determine whether to resume onboarding
+      // or redirect to the completed team page using getResumeStep().
       try {
-        await getTeam();
-        router.push('/fantasy/team');
+        const existingTeam = await getTeam();
+        const resumeStep = getResumeStep(existingTeam.players.length);
+
+        if (resumeStep === null) {
+          // Complete squad: go straight to the team page
+          router.push('/fantasy/team');
+        } else {
+          setSavedTeamId(existingTeam.id);
+          setTeamName(existingTeam.name);
+
+          if (existingTeam.players.length > 0) {
+            // 1-14 players: restore squad state from DB so the pitch shows what's
+            // already saved. The submit handler will skip these players.
+            const restoredFormation = existingTeam.formation ?? '4-3-3';
+            setFormation(restoredFormation);
+
+            const existingStarters = existingTeam.players
+              .filter(tp => tp.squadRole === 'STARTER')
+              .map(tp =>
+                toExpFantasyPlayer(tp.player, {
+                  squadRole: 'STARTER',
+                  isCaptain: tp.isCaptain,
+                  isViceCaptain: tp.isViceCaptain,
+                }),
+              );
+
+            const existingBench = existingTeam.players
+              .filter(tp => tp.squadRole === 'SUBSTITUTE')
+              .sort((a, b) => (a.benchSlot ?? 99) - (b.benchSlot ?? 99))
+              .map((tp, i) =>
+                toExpFantasyPlayer(tp.player, {
+                  squadRole: 'SUBSTITUTE',
+                  benchSlot: tp.benchSlot ?? i + 1,
+                  isCaptain: tp.isCaptain,
+                  isViceCaptain: tp.isViceCaptain,
+                }),
+              );
+
+            const emptySquad = buildEmptySquad(restoredFormation);
+            const restoredStarters: (ExpFantasyPlayer | null)[] = [...emptySquad.starters];
+            existingStarters.forEach((p, i) => {
+              if (i < restoredStarters.length) restoredStarters[i] = p;
+            });
+            const restoredBench: (ExpFantasyPlayer | null)[] = [...emptySquad.bench];
+            existingBench.forEach((p, i) => {
+              if (i < restoredBench.length) restoredBench[i] = p;
+            });
+            setSquad({ starters: restoredStarters, bench: restoredBench });
+
+            const captainTp = existingTeam.players.find(tp => tp.isCaptain);
+            const vcTp = existingTeam.players.find(tp => tp.isViceCaptain);
+            if (captainTp) setCaptainId(captainTp.playerId);
+            if (vcTp) setViceCaptainId(vcTp.playerId);
+
+            setResumedPlayerIds(new Set(existingTeam.players.map(tp => tp.playerId)));
+          }
+
+          setStep(resumeStep);
+          setInitDone(true);
+        }
       } catch (err: unknown) {
         // 404 = no team yet, which is exactly what we want for onboarding
         if (err instanceof ApiError && err.status === 404) {
@@ -221,8 +284,13 @@ export default function OnboardingPage() {
 
     try {
       if (savedTeamId) {
-        // Name was saved at Step 1: now add formation + players to the empty team
-        await updateTeam({ formation });
+        // Persist formation only for fresh onboarding (0 players in DB).
+        // For resumed partial teams the formation was already set in a previous
+        // session; calling updateTeam again would trigger the transfer-window
+        // guard on the backend (WC has no gameweeks → always throws).
+        if (resumedPlayerIds.size === 0) {
+          await updateTeam({ formation });
+        }
 
         const slots = allPlayers.map((p, i) =>
           toFantasySlot(
@@ -230,8 +298,9 @@ export default function OnboardingPage() {
             i,
           ),
         );
-        // Add players sequentially to respect squad composition validation
-        for (const slot of slots) {
+        // Skip players already persisted from a previous session (avoids 409 conflicts)
+        const slotsToAdd = slots.filter(s => !resumedPlayerIds.has(s.playerId));
+        for (const slot of slotsToAdd) {
           await addPlayer(slot);
         }
       } else {
