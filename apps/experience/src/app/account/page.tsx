@@ -8,7 +8,8 @@ import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingS
 import { FantasyErrorState } from '@/components/fantasy/shared/FantasyErrorState';
 import { AccountNav } from '@/components/account/AccountNav';
 import { getDataMode } from '@/lib/data';
-import { isAuthenticated, logout } from '@/lib/auth';
+import { logout } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import type { ProfileSummary } from '@/lib/profile-api';
 
 const MOCK_PROFILE: ProfileSummary = {
@@ -40,23 +41,25 @@ export default function AccountPage() {
       return;
     }
 
-    if (!isAuthenticated()) {
-      router.push('/sign-in?redirect=/account');
-      return;
-    }
-
-    import('@/lib/profile-api')
-      .then(m => m.getProfileSummary())
-      .then(data => {
+    async function init() {
+      const { status } = await validateSession();
+      if (status === 'anonymous') {
+        router.push('/sign-in?redirect=/account');
+        return;
+      }
+      try {
+        const m = await import('@/lib/profile-api');
+        const data = await m.getProfileSummary();
         setProfile(data);
         setLoadError(null);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         setProfile(null);
         setLoadError('Could not load your account summary.');
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+    void init();
   }, [mode, router]);
 
   async function handleSignOut() {

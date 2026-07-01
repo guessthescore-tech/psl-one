@@ -34,6 +34,54 @@ describe('PrimaryNav', () => {
   it('has mobile menu aria-label',  () => { expect(navSrc).toContain('Mobile menu navigation'); });
   it('uses Next.js Link',          () => { expect(navSrc).toContain("from 'next/link'"); });
   it('has focus-visible ring',      () => { expect(navSrc).toContain('focus-visible'); });
+
+  // ── Server-validated auth state ────────────────────────────────
+  it('imports useWebSession from use-session (not raw getToken)', () => {
+    expect(navSrc).toContain("from '@/lib/use-session'");
+    expect(navSrc).toContain('useWebSession');
+  });
+
+  it('does NOT use raw getToken() for auth state detection', () => {
+    // getToken presence check was the bug — confirmed removed from nav
+    expect(navSrc).not.toContain('!!getToken');
+    expect(navSrc).not.toContain('isAuthed = useState(false)');
+  });
+
+  it('derives isAuthed from sessionState including network-error fallback', () => {
+    expect(navSrc).toContain('sessionState');
+    expect(navSrc).toContain('isAuthed');
+    expect(navSrc).toContain('network-error');
+  });
+
+  it('renders a stable placeholder while session is being validated', () => {
+    expect(navSrc).toContain('showPlaceholder');
+    expect(navSrc).toContain("sessionState === 'loading'");
+  });
+});
+
+/* ── use-session ────────────────────────────────────────────────── */
+describe('use-session', () => {
+  const sessionSrc = read('use-session.ts');
+
+  it('exports validateWebSession as a testable async function', () => {
+    expect(sessionSrc).toContain('export async function validateWebSession');
+  });
+
+  it('exports useWebSession hook', () => {
+    expect(sessionSrc).toContain('export function useWebSession');
+  });
+
+  it('clears token on 401 and does not clear for other errors', () => {
+    expect(sessionSrc).toContain('clearToken');
+    expect(sessionSrc).toContain('err.status === 401');
+    expect(sessionSrc).toContain("'network-error'");
+  });
+
+  it('re-validates on storage, focus, and psl-auth-change events', () => {
+    expect(sessionSrc).toContain('storage');
+    expect(sessionSrc).toContain('focus');
+    expect(sessionSrc).toContain('psl-auth-change');
+  });
 });
 
 /* ── MobileBottomNav ───────────────────────────────────────────── */

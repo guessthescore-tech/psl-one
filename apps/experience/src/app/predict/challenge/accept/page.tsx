@@ -11,7 +11,7 @@ import { getDataMode, WC_FIXTURES, type ExpFixture } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
 import { apiFetch, apiPost } from '@/lib/api';
-import { isAuthenticated } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import { getFixture, type Fixture as ApiFixture } from '@/lib/football-api';
 import { liveTeamToExpClub } from '@/lib/live-mappers';
 
@@ -153,6 +153,11 @@ function TokenChallengeInner({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [errorState, setErrorState] = useState<'not_found' | 'self_challenge' | 'expired' | 'already_accepted' | 'locked' | 'needs_auth' | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [sessionStatus, setSessionStatus] = useState<'loading' | 'authenticated' | 'anonymous' | 'network-error'>('loading');
+
+  useEffect(() => {
+    validateSession().then(({ status }) => setSessionStatus(status));
+  }, []);
 
   const loadChallenge = useCallback(async () => {
     try {
@@ -179,7 +184,7 @@ function TokenChallengeInner({ token }: { token: string }) {
   async function handleAccept() {
     if (!challenge) return;
 
-    if (!isAuthenticated()) {
+    if (sessionStatus !== 'authenticated' && sessionStatus !== 'network-error') {
       setErrorState('needs_auth');
       return;
     }

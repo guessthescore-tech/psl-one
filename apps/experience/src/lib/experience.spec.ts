@@ -8077,6 +8077,131 @@ describe('fantasy-api createTeam type contract', () => {
   });
 });
 
+// ─── Fantasy page — server-validated auth guard ───────────────────────────
+
+describe('Fantasy landing page — server-validated auth', () => {
+  it('imports validateSession from use-session (not isAuthenticated from auth)', () => {
+    const content = read('app/fantasy/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('awaits validateSession() and uses status === anonymous for unauthenticated state', () => {
+    const content = read('app/fantasy/page.tsx');
+    expect(content).toContain("await validateSession()");
+    expect(content).toContain("status === 'anonymous'");
+    expect(content).toContain("setPageState('unauthenticated')");
+  });
+
+  it('does not gate on raw token presence (no !!getToken() or !isAuthenticated())', () => {
+    const content = read('app/fantasy/page.tsx');
+    expect(content).not.toContain('!!getToken');
+    expect(content).not.toContain('!isAuthenticated');
+  });
+});
+
+// ─── Account page — server-validated auth guard ───────────────────────────
+
+describe('Account page — server-validated auth', () => {
+  it('imports validateSession from use-session (not isAuthenticated from auth)', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('awaits validateSession() before loading profile data', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain('await validateSession()');
+  });
+
+  it('redirects to sign-in on anonymous status (not on token presence check)', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).toContain("status === 'anonymous'");
+    expect(content).toContain('/sign-in?redirect=/account');
+  });
+
+  it('does not use raw token presence for auth guard', () => {
+    const content = read('app/account/page.tsx');
+    expect(content).not.toContain('isAuthenticated()');
+    expect(content).not.toContain('!!getToken');
+  });
+});
+
+// ─── Predict page — server-validated session for predictions ─────────────
+
+describe('Predict page — server-validated session', () => {
+  it('imports validateSession from use-session (not getToken from auth)', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain("from '@/lib/auth'");
+  });
+
+  it('runs fixture loading and session validation concurrently with Promise.all', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain('Promise.all');
+    expect(content).toContain('validateSession()');
+  });
+
+  it("gates server prediction loading on sessionResult.status === 'authenticated'", () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).toContain("sessionResult.status === 'authenticated'");
+  });
+
+  it('does not use raw getToken() to gate prediction loading', () => {
+    const content = read('app/predict/page.tsx');
+    expect(content).not.toContain('getToken()');
+  });
+});
+
+// ─── Challenge page — server-validated auth guard ────────────────────────
+
+describe('Challenge page — server-validated auth', () => {
+  it('imports validateSession from use-session (not isAuthenticated from auth)', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('stores session status in component state and resolves on mount', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain('sessionStatus');
+    expect(content).toContain("validateSession().then(({ status }) => setSessionStatus(status))");
+  });
+
+  it('gates challenge creation on validated session status not raw token', () => {
+    const content = read('app/predict/challenge/page.tsx');
+    expect(content).toContain("sessionStatus !== 'authenticated'");
+    expect(content).not.toContain('isAuthenticated()');
+  });
+});
+
+// ─── Challenge accept page — server-validated auth guard ─────────────────
+
+describe('Challenge accept page — server-validated auth', () => {
+  it('imports validateSession from use-session (not isAuthenticated from auth)', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain("from '@/lib/use-session'");
+    expect(content).toContain('validateSession');
+    expect(content).not.toContain('isAuthenticated');
+  });
+
+  it('stores session status in TokenChallengeInner and resolves on mount', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain('sessionStatus');
+    expect(content).toContain("validateSession().then(({ status }) => setSessionStatus(status))");
+  });
+
+  it('gates accept action on validated session status', () => {
+    const content = read('app/predict/challenge/accept/page.tsx');
+    expect(content).toContain("sessionStatus !== 'authenticated'");
+    expect(content).not.toContain('isAuthenticated()');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { FantasyShell } from '@/components/fantasy/shared/FantasyShell';
 import { FantasyLoadingState } from '@/components/fantasy/shared/FantasyLoadingState';
 import { getDataMode, isLiveDataMode, FANTASY_MOCK_TEAM } from '@/lib/data';
-import { isAuthenticated } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import { getWorldCupSeason } from '@/lib/football-api';
 import { getPlayerPrices, getTeam, getTransferStatus } from '@/lib/fantasy-api';
 import { toExpFantasySquad } from '@/lib/fantasy-player-mapper';
@@ -29,10 +29,12 @@ export default function FantasyLandingPage() {
         setPageState('has-team');
         return;
       }
-      if (!isAuthenticated()) {
+      const { status } = await validateSession();
+      if (status === 'anonymous') {
         setPageState('unauthenticated');
         return;
       }
+      // 'authenticated' or 'network-error' → proceed; API will return 401 if truly expired
       try {
         const season = await getWorldCupSeason();
         const [liveTeam, transferStatus, prices] = await Promise.all([

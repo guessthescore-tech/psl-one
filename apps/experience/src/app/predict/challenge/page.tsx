@@ -12,7 +12,7 @@ import { getDataMode, WC_FIXTURES, type ExpFixture } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
 import { apiPost } from '@/lib/api';
-import { isAuthenticated } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import { getFixture, type Fixture as ApiFixture } from '@/lib/football-api';
 import { liveTeamToExpClub } from '@/lib/live-mappers';
 
@@ -278,6 +278,13 @@ function ChallengePageInner() {
   const [loadError, setLoadError] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [sessionStatus, setSessionStatus] = useState<'loading' | 'authenticated' | 'anonymous' | 'network-error'>('loading');
+
+  useEffect(() => {
+    if (mode !== 'DESIGN_REVIEW_DATA') {
+      validateSession().then(({ status }) => setSessionStatus(status));
+    }
+  }, [mode]);
 
   const loadFixture = useCallback(() => {
     if (!fixtureId) {
@@ -314,8 +321,8 @@ function ChallengePageInner() {
       return;
     }
 
-    // Check auth
-    if (!isAuthenticated()) {
+    // Check validated session (resolved on mount — loading/anonymous both mean not confirmed)
+    if (sessionStatus !== 'authenticated' && sessionStatus !== 'network-error') {
       setNeedsAuth(true);
       return;
     }

@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getToken, clearToken } from '@/lib/auth-client';
+import { useState } from 'react';
+import { clearToken } from '@/lib/auth-client';
+import { useWebSession } from '@/lib/use-session';
 
 /* ── Route definitions ──────────────────────────────────────────── */
 interface NavItem { href: string; label: string; exact?: boolean }
@@ -43,27 +44,17 @@ function MenuIcon({ open }: { open: boolean }) {
 export function PrimaryNav() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isAuthed, setIsAuthed] = useState(false);
-
-  useEffect(() => {
-    const syncAuth = () => setIsAuthed(!!getToken());
-    syncAuth();
-
-    const onStorage = () => syncAuth();
-    const onAuthChange = () => syncAuth();
-    window.addEventListener('storage', onStorage);
-    window.addEventListener('focus', onStorage);
-    window.addEventListener('psl-auth-change', onAuthChange as EventListener);
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      window.removeEventListener('focus', onStorage);
-      window.removeEventListener('psl-auth-change', onAuthChange as EventListener);
-    };
-  }, []);
+  // useWebSession validates the JWT against /auth/me on mount and re-validates on
+  // focus, storage events, and psl-auth-change. 'loading' renders a stable placeholder
+  // so the header does not flash "Sign in" before the server responds.
+  const { sessionState } = useWebSession();
+  const showPlaceholder = sessionState === 'loading';
+  // network-error: server unreachable but token present — show authenticated state
+  // rather than unexpectedly signing the user out.
+  const isAuthed = sessionState === 'authenticated' || sessionState === 'network-error';
 
   async function handleSignOut() {
     clearToken();
-    setIsAuthed(false);
     setMenuOpen(false);
     window.location.href = '/';
   }
@@ -121,7 +112,10 @@ export function PrimaryNav() {
 
           {/* Auth CTAs */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            {isAuthed ? (
+            {showPlaceholder ? (
+              // Stable placeholder prevents layout shift while session is being validated
+              <div className="hidden sm:block w-24 h-7" aria-hidden />
+            ) : isAuthed ? (
               <>
                 <Link
                   href="/account"
@@ -194,7 +188,7 @@ export function PrimaryNav() {
                   </li>
                 );
               })}
-              <li className="px-5 pt-3 pb-1 border-t border-white/10 mt-2 flex gap-3">
+              {!showPlaceholder && <li className="px-5 pt-3 pb-1 border-t border-white/10 mt-2 flex gap-3">
                 {isAuthed ? (
                   <>
                     <Link
@@ -228,7 +222,7 @@ export function PrimaryNav() {
                 >
                   Join Beta
                 </Link>
-              </li>
+              </li>}
             </ul>
           </nav>
         </div>

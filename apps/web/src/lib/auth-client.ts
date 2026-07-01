@@ -1,3 +1,10 @@
+export class WebApiError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+    this.name = 'WebApiError';
+  }
+}
+
 function resolveApiBase(): string {
   if (process.env['NEXT_PUBLIC_API_BASE_URL']) return process.env['NEXT_PUBLIC_API_BASE_URL'];
   if (typeof window === 'undefined') return 'http://localhost:4000';
@@ -110,7 +117,7 @@ export async function me(): Promise<MeResponse> {
   const res = await fetch(apiUrl('/auth/me'), {
     headers: authedHeaders(),
   });
-  if (!res.ok) throw new Error('Not authenticated');
+  if (!res.ok) throw new WebApiError(res.status, 'Not authenticated');
   return res.json() as Promise<MeResponse>;
 }
 

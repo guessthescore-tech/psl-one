@@ -11,7 +11,7 @@ import { getDataMode, WC_FIXTURES, type ExpFixture } from '@/lib/data';
 import { TeamIdentity } from '@/components/ui/TeamIdentity';
 import { DesignReviewBanner } from '@/components/fantasy/shared/DesignReviewBanner';
 import { getFixtures, type Fixture } from '@/lib/football-api';
-import { getToken } from '@/lib/auth';
+import { validateSession } from '@/lib/use-session';
 import { createScorePrediction, getMyFixturePrediction } from '@/lib/predictions-api';
 
 function toExpFixture(f: Fixture): ExpFixture {
@@ -534,7 +534,10 @@ export default function PredictPage() {
     }
 
     try {
-      const data = await getFixtures({ seasonSlug: 'fifa-world-cup-2026', status: 'SCHEDULED' });
+      const [data, sessionResult] = await Promise.all([
+        getFixtures({ seasonSlug: 'fifa-world-cup-2026', status: 'SCHEDULED' }),
+        validateSession(),
+      ]);
       const mapped = data.map(toExpFixture).sort((a, b) => {
         if (a.id === requestedFixtureId) return -1;
         if (b.id === requestedFixtureId) return 1;
@@ -542,7 +545,7 @@ export default function PredictPage() {
       });
       setFixtures(mapped);
 
-      if (getToken()) {
+      if (sessionResult.status === 'authenticated') {
         const settled = await Promise.allSettled(
           mapped.map(async f => {
             const p = await getMyFixturePrediction(f.id);
