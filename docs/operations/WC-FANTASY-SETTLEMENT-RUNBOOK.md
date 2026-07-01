@@ -2,7 +2,7 @@
 
 **Audience:** PSL_ADMIN operators  
 **Status:** Current  
-**Last verified:** 2026-06-30
+**Last verified:** 2026-07-01
 
 ---
 
@@ -21,20 +21,55 @@ HTTP 400 with a message that names each unsynced fixture by ID.
 
 ## Safe Settlement Sequence
 
-### Step 1 — Sync player stats for all FINISHED fixtures
+### Step 1 — Populate player stats from the FDO scorers feed
+
+> **Beta data source:** The beta leaderboard and fantasy stats are populated from
+> football-data.org's competition-aggregate scorers endpoint
+> (`/v4/competitions/WC/scorers`), not from per-match event ingestion. One
+> `PlayerMatchStats` row is written per scorer (attached to the team's first
+> finished fixture). This gives correct competition totals but no per-match breakdown.
+>
+> **Do NOT use `sync:world-cup-player-stats` on the FDO free tier.** That script
+> calls `/v4/matches/{id}` per fixture, which returns no lineups or goal events on
+> the free tier. It will write 0 rows and look like it succeeded.
 
 ```bash
-pnpm --filter @psl-one/api \
-  sync:world-cup-player-stats -- --confirm=SYNC_PROVIDER_PLAYER_STATS
+# On EC2 via SSM — inside the API container:
+docker compose --env-file .env.beta -f compose.beta.yaml exec -T api \
+  node apps/api/dist/scripts/sync-world-cup-scorers.js --confirm=SYNC_WC_SCORERS
 ```
 
-This writes `FantasyPlayerMatchStat` rows (and `PlayerMatchStats`) for every
-FINISHED fixture that has a `providerFixtureId` set. It is idempotent: running it
-twice is safe.
+Or locally (against a database with FOOTBALL_DATA_API_KEY set):
 
-**Verify:** Check that every FINISHED fixture in the target gameweek now has
-`FantasyPlayerMatchStat` rows. The settle endpoint will tell you exactly which
-fixture IDs are still missing if it is called before this step is complete.
+```bash
+pnpm --filter @psl-one/api sync:world-cup-scorers -- --confirm=SYNC_WC_SCORERS
+```
+
+This writes `PlayerMatchStats` rows with `status=VERIFIED` for every matched scorer.
+It is idempotent: running it twice is safe (upsert on `(playerId, fixtureId)`).
+
+**Dry-run first:**
+
+```bash
+pnpm --filter @psl-one/api sync:world-cup-scorers -- --dry-run
+```
+
+Expected output: `matched: 52, written: 52, skipped: 48` (48 scorers have name
+variants not yet in the seed data — see data gap section below).
+
+**Verify top-performers:**
+
+```bash
+curl https://api.beta.pslone.co.za/players/season/fifa-world-cup-2026/top-performers | jq length
+# Expected: 10+ entries
+```
+
+**Note:** The settlement preflight checks for `FantasyPlayerMatchStat` rows, which
+are written by `syncProviderPlayerStats()` (the per-match sync path, not the scorers
+sync). The scorers sync only writes `PlayerMatchStats`. For fantasy settlement to
+succeed, per-match `FantasyPlayerMatchStat` coverage must also be present. If the
+preflight blocks with "run sync:world-cup-player-stats first", it means the per-match
+path has not run — see the data gap section below.
 
 ### Step 2 — Mark the gameweek COMPLETED (optional but recommended)
 
@@ -90,7 +125,16 @@ fixture IDs:
 — run sync:world-cup-player-stats first
 ```
 
-Run Step 1 again, then re-attempt Step 3.
+> **Important:** On the FDO free tier, `sync:world-cup-player-stats` will NOT
+> populate `FantasyPlayerMatchStat` rows (the per-match endpoint returns no
+> lineups/events). The preflight will remain blocked until either:
+> (a) the FDO tier is upgraded so `/v4/matches/{id}` returns lineups, or
+> (b) per-match stats are entered manually via the admin endpoint.
+> The scorers-aggregate sync (`sync:world-cup-scorers`) populates `PlayerMatchStats`
+> only — it does not satisfy the `FantasyPlayerMatchStat` preflight.
+
+Run `sync:world-cup-player-stats` only if you have confirmed that `/v4/matches/{id}`
+returns lineups for WC fixtures (requires paid FDO tier). Then re-attempt Step 3.
 
 ---
 
@@ -150,9 +194,22 @@ path fires with real points.
 
 ```
 [ ] 1. All target fixtures have status FINISHED in the database
-[ ] 2. sync:world-cup-player-stats ran successfully (check for FantasyPlayerMatchStat rows)
-[ ] 3. Every FINISHED fixture ID is covered (verify by calling settle — if 400, sync again)
+[ ] 2. sync:world-cup-scorers ran successfully (check top-performers endpoint returns ≥10 rows)
+[ ] 3. FantasyPlayerMatchStat rows exist for every FINISHED fixture
+       — FDO free tier: requires manual admin entry or paid tier upgrade
+       — Paid FDO tier: run sync:world-cup-player-stats --confirm=SYNC_PROVIDER_PLAYER_STATS
 [ ] 4. POST /fantasy/admin/scoring/gameweeks/:id/settle returns 200 with teamsSettled > 0
 [ ] 5. Fan UI shows real points (not 0) on the fantasy team page
 [ ] 6. Optional: PATCH gameweek status to COMPLETED
 ```
+
+---
+
+## Data Gaps (beta, FDO free tier)
+
+| Gap | Impact | Resolution |
+|---|---|---|
+| `/v4/matches/{id}` returns no lineups/events | `FantasyPlayerMatchStat` rows cannot be written by the per-match sync; fantasy settlement preflight will block | Upgrade FDO tier OR enter stats manually |
+| 48/100 top scorers have no seed player match | Those players' goals/assists are absent from the leaderboard | Update seed data player names to match FDO spelling variants |
+| `minutesPlayed` is approximate (playedMatches × 85) | Slightly inaccurate for players who were substituted | Acceptable for beta; requires per-match data to fix |
+| No per-match breakdown | Fixture detail view shows all goals in one fixture, not spread correctly | Architectural limitation of aggregate sync; requires per-match data |

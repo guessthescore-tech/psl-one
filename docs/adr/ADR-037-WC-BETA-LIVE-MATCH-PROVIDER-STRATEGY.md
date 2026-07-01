@@ -1,6 +1,6 @@
 # ADR-037 — World Cup Beta Live Match Provider Strategy
 
-**Status:** Accepted  
+**Status:** Accepted (amended 2026-07-01 — see Amendment below)  
 **Date:** 2026-06-26  
 **Author:** Platform Engineering  
 **Related:** ADR-029 (Sportmonks rejected for PSL), ADR-030 (football-data.org for WC fixtures)
@@ -96,3 +96,54 @@ SPORTMONKS_API_KEY=<trial or licensed key>
 - ADR-029: Sportmonks rejected for PSL — remains in force
 - ADR-030: football-data.org selected for WC fixtures — remains in force
 - **ADR-037 (this):** Sportmonks conditionally accepted for WC beta live match data
+
+---
+
+## Amendment — 2026-07-01
+
+**Context:**  
+After this ADR was accepted, the beta EC2 environment was deployed with
+`WC_LIVE_PROVIDER=football-data-org` rather than `WC_LIVE_PROVIDER=sportmonks`.
+The Sportmonks trial token is invalid/expired on the current beta. As a result,
+`FootballDataOrgLiveMatchAdapter` is the active live match provider on beta EC2.
+
+**Impact on this ADR:**
+
+1. **Live match adapter:** The adapter actually serving beta traffic is
+   `FootballDataOrgLiveMatchAdapter`, not `SportmonksLiveMatchAdapter`. The
+   Sportmonks adapter remains in the codebase but is gated behind
+   `WC_LIVE_PROVIDER=sportmonks` and is not active.
+
+2. **Player stats path:** FDO free tier does NOT return lineups or events from
+   `/v4/matches/{id}`. Therefore `fetchFixturePlayerStats()` returns `[]` for all
+   fixtures, and `sync:world-cup-player-stats` writes 0 `PlayerMatchStats` rows.
+
+3. **Leaderboard population (beta actual):** The beta leaderboard is populated via
+   `sync:world-cup-scorers`, which calls `/v4/competitions/WC/scorers` (aggregate
+   competition totals, not per-match data). This is **not** per-match coverage; it
+   gives correct total-goals-in-tournament figures only.
+
+4. **Fantasy settlement:** The `FantasyPlayerMatchStat` preflight (one row per
+   finished fixture) cannot be satisfied on FDO free tier. Fantasy settlement is
+   blocked until: (a) FDO tier is upgraded so `/v4/matches/{id}` returns lineups,
+   or (b) stats are entered manually via the admin API.
+
+**What does NOT change:**
+- Sportmonks remains REJECTED for PSL (ADR-029 still applies)
+- The live match adapter interface is provider-neutral — swapping Sportmonks in
+  requires only setting `WC_LIVE_PROVIDER=sportmonks` and a valid key
+- The original decision rationale (prefer gated-env-var provider over hardcoded
+  manual entry) remains sound; this amendment records actual beta deployment state
+
+**Updated provider capability table (actual beta EC2 state):**
+
+| Concern | Provider | Status |
+|---|---|---|
+| Fixtures and scores | football-data.org | Live |
+| Live match state (status, minute) | football-data.org (polling) | Live via FDO live adapter |
+| Match events (goals, cards, subs) | None (FDO free tier limitation) | ❌ |
+| Lineups | None (FDO free tier limitation) | ❌ |
+| Per-match player stats | None (FDO free tier limitation) | ❌ |
+| Aggregate top-scorers | football-data.org `/v4/competitions/WC/scorers` | ✅ via sync:world-cup-scorers |
+| Video highlights | ScoreBat (widget embed) | Gated by `SCOREBAT_WIDGET_TOKEN` |
+| PSL fixtures | ParsePslAdapter / ApiFootball | Not activated |

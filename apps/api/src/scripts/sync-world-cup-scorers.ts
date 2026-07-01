@@ -43,7 +43,7 @@ function parseArgs(argv: string[]) {
   return args;
 }
 
-function normalise(s: string) {
+export function normalise(s: string) {
   return s
     .toLowerCase()
     .normalize('NFD')

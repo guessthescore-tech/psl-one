@@ -12,9 +12,13 @@
  *   - backfills the WC competition + season if missing
  *   - upserts WC fantasy/prediction rules
  *   - populates the WC player pool from seed data
- *   - enriches players/teams from Sportmonks when available
+ *   - enriches players/teams from football-data.org when FOOTBALL_DATA_API_KEY is set
+ *     (player externalIds needed by the scorers sync to match FDO scorer IDs to DB rows)
  *   - writes SeasonTeam, SeasonSquadRegistration, and FantasyPlayerPrice rows
  *   - is idempotent by design
+ *
+ * NOTE: This backfill does NOT populate PlayerMatchStats. Run sync:world-cup-scorers
+ * (src/scripts/sync-world-cup-scorers.ts) separately to populate leaderboard data.
  */
 
 import { PrismaClient } from '@prisma/client';

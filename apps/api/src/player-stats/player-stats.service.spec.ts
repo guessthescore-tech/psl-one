@@ -269,6 +269,43 @@ describe('PlayerStatsService', () => {
         'season-1',
       );
     });
+
+    // ── WC beta aggregate-scorer path (status=VERIFIED) ────────────────────
+    //
+    // The sync:world-cup-scorers script writes PlayerMatchStats with
+    // status=VERIFIED (not PUBLISHED). PUBLISHED_STATUSES includes both, so
+    // VERIFIED rows must appear in top-performers results. This test pins that
+    // contract so any accidental removal of VERIFIED from PUBLISHED_STATUSES
+    // surfaces as a failure here, not as a silent empty leaderboard on beta.
+
+    it('includes stats with status=VERIFIED (written by aggregate scorers sync)', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ status: PlayerMatchStatsStatus.VERIFIED, source: PlayerMatchStatsSource.IMPORTED, goals: 6 }),
+      ]);
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.goals).toBe(6);
+    });
+
+    it('does NOT include stats with status=DRAFT', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([]);
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      // DRAFT rows are never passed to findMany in PUBLISHED_STATUSES — mock
+      // returns [] to represent the query correctly filtering them out.
+      expect(result).toEqual([]);
+    });
+
+    it('sorts by goals descending, then assists descending', async () => {
+      prisma.playerMatchStats.findMany.mockResolvedValue([
+        makeStat({ id: 's1', playerId: 'p1', goals: 3, assists: 1, status: PlayerMatchStatsStatus.VERIFIED }),
+        makeStat({ id: 's2', playerId: 'p2', goals: 6, assists: 0, status: PlayerMatchStatsStatus.VERIFIED }),
+        makeStat({ id: 's3', playerId: 'p3', goals: 3, assists: 2, status: PlayerMatchStatsStatus.VERIFIED }),
+      ]);
+      prisma.player.findUnique.mockResolvedValue(PLAYER);
+      const result = await service.listSeasonTopPerformers('season-1', 10);
+      expect(result[0]!.goals).toBe(6);
+      expect(result[1]!.assists).toBe(2); // p3 beats p1 on assists tie-break
+    });
   });
 
   // ── listGameweekStats ─────────────────────────────────────────────────

@@ -27,11 +27,14 @@
 
 | Check | Value |
 |---|---|
-| FINISHED WC fixtures | 68 |
+| FINISHED WC fixtures | 68 (as of WC 2026 group stage) |
 | Fixtures with `providerFixtureId` | 87 (all football-data.org IDs, e.g. "537336") |
-| `PlayerMatchStats` rows (WC season) | **0** — blocked by provider mismatch until fix applied |
-| Players with `externalId` set | **0** — Sportmonks backfill matched 0/48 WC teams |
-| Active live-match provider on EC2 | `WC_LIVE_PROVIDER=sportmonks` (misaligned — see gap above) |
+| `PlayerMatchStats` rows (WC season) | **52** — written by `sync:world-cup-scorers` with `status=VERIFIED, source=IMPORTED` |
+| Players with `externalId` set | 114 WC players (from FDO squad backfill) + 96 PSL placeholders = 210 total |
+| Active live-match provider on EC2 | `WC_LIVE_PROVIDER=football-data-org` (FDO live adapter active) |
+| Top-performers endpoint | **LIVE** — returns ≥10 scorers; data source is FDO aggregate scorers feed |
+| 48 FDO scorers not matched | Seed player name variants differ from FDO API; no data for these players |
+| `FantasyPlayerMatchStat` rows | **0** — free tier cannot provide per-match lineups; settlement preflight blocked |
 
 ---
 
@@ -88,26 +91,39 @@ Provider selection priority:
 
 ## Steps to Populate Beta Stats (owner action)
 
-These run on the EC2 instance via SSM. The deploy workflow can be extended to run
-them automatically once `FOOTBALL_DATA_API_KEY` is present.
+### Leaderboard / top-performers (done — aggregate scorers path)
 
 ```bash
-# 1. Set env vars on EC2 (SSM Parameter Store or .env.beta)
-WC_LIVE_PROVIDER=football-data-org
-FOOTBALL_DATA_API_KEY=<key>
-ALLOW_WORLD_CUP_WRITE=true
+# Already run on 2026-07-01. Safe to re-run (idempotent upsert).
+docker compose --env-file .env.beta -f compose.beta.yaml exec -T api \
+  node apps/api/dist/scripts/sync-world-cup-scorers.js --confirm=SYNC_WC_SCORERS
 
-# 2. Re-run backfill (non-destructive; sets player externalId from FDO squad data)
-docker compose -f /opt/psl-one/compose.beta.yaml exec -T api \
-  node dist/scripts/world-cup-backfill.js --confirm=BACKFILL_WORLD_CUP_BETA
-
-# 3. Sync player stats for all FINISHED WC fixtures
-docker compose -f /opt/psl-one/compose.beta.yaml exec -T api \
-  node dist/scripts/sync-world-cup-player-stats.js --confirm=SYNC_PROVIDER_PLAYER_STATS
-
-# 4. Verify (expect PlayerMatchStats rows > 0 and top-performers non-empty)
-curl -s https://api.beta.pslone.co.za/player-stats/seasons/fifa-world-cup-2026/top-performers | jq length
+# Verify (expect ≥10 entries):
+curl https://api.beta.pslone.co.za/players/season/fifa-world-cup-2026/top-performers | jq length
 ```
+
+### Per-match stats / fantasy settlement (BLOCKED — FDO free tier)
+
+The per-match stats path requires `/v4/matches/{id}` to return lineups and events.
+On the FDO free tier this is not available. Two options:
+
+**Option A — upgrade FDO tier:**
+```bash
+# After upgrading, run per-match sync:
+docker compose --env-file .env.beta -f compose.beta.yaml exec -T api \
+  node apps/api/dist/scripts/sync-world-cup-player-stats.js --confirm=SYNC_PROVIDER_PLAYER_STATS
+```
+
+**Option B — manual admin entry** (available today):
+```bash
+# POST per-player stats for a fixture via admin API
+curl -X POST https://api.beta.pslone.co.za/admin/player-stats/<fixtureId>/sync \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+> **Do not run `sync:world-cup-player-stats` as the leaderboard population step on the
+> FDO free tier.** It will write 0 rows and silently leave the leaderboard empty. Use
+> `sync:world-cup-scorers` for leaderboard population (already run, 52 rows present).
 
 ---
 
@@ -133,4 +149,4 @@ curl -s https://api.beta.pslone.co.za/player-stats/seasons/fifa-world-cup-2026/t
 
 - ADR-029: Sportmonks rejected for PSL — remains in force
 - ADR-030: football-data.org selected for WC fixtures — remains in force
-- ADR-037: WC beta live-match provider strategy — Sportmonks conditionally accepted; **FDO is now preferred** for the reasons above; update to ADR-037 pending
+- ADR-037: WC beta live-match provider strategy — Sportmonks conditionally accepted (original); **amended 2026-07-01** to record FDO as the actual active live provider and document free-tier stats limitations

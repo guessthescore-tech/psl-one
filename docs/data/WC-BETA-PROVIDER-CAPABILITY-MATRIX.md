@@ -1,6 +1,6 @@
 # WC Beta — Provider Capability Matrix
 
-**Updated:** 2026-06-26  
+**Updated:** 2026-07-01  
 **Context:** World Cup 2026 beta. PSL season is NOT active. All features are points-only (no real money).
 
 ---
@@ -9,7 +9,8 @@
 
 | Provider | Role in beta | Status | Key env var | PSL production |
 |---|---|---|---|---|
-| football-data.org | WC fixtures, scores, standings, teams | **ACTIVE** | `FOOTBALL_DATA_API_KEY` | Not applicable |
+| football-data.org | WC fixtures, scores, standings, teams, top-scorers (aggregate) | **ACTIVE** | `FOOTBALL_DATA_API_KEY` | Not applicable |
+| football-data.org (live) | WC live match state + player stats via `FootballDataOrgLiveMatchAdapter` | **ACTIVE** | `FOOTBALL_DATA_API_KEY` + `WC_LIVE_PROVIDER=football-data-org` | Not applicable |
 | Sportmonks v3 | WC live match events, lineups, player stats | **GATED** | `SPORTMONKS_API_KEY` + `WC_LIVE_PROVIDER=sportmonks` | REJECTED (ADR-029) |
 | ScoreBat | WC video highlights (widget embed) | **GATED** | `SCOREBAT_WIDGET_TOKEN` | Not applicable |
 | ParsePslAdapter | PSL fixture ingestion monitoring | **INACTIVE** | `PARSE_API_KEY` + `DATA_PROVIDER=parse-psl` | Candidate (awaiting fixtures) |
@@ -29,13 +30,23 @@
 | WC standings | ✅ | ✅ | ❌ | Limited | ✅ |
 | WC teams | ✅ | ✅ | ❌ | ✅ | ✅ |
 | WC live state (status/minute) | ✅ (polling) | ✅ | ❌ | ✅ | ✅ |
-| WC match events (goals/cards) | ❌ (free tier) | ✅ | ❌ | ✅ | ✅ |
+| WC match events (goals/cards) | ❌ (free tier — `/v4/matches/{id}` returns no events) | ✅ | ❌ | ✅ | ✅ |
 | WC lineups | ❌ (free tier) | ✅ | ❌ | ✅ | ✅ |
-| WC player stats | ❌ (free tier) | ✅ | ❌ | ✅ | ✅ |
+| WC per-match player stats | ❌ (free tier — no lineups/events) | ✅ | ❌ | ✅ | ✅ |
+| WC aggregate top-scorers | ✅ `/v4/competitions/WC/scorers` — competition totals only | ❌ | ❌ | ❌ | ❌ |
+| WC leaderboard (beta path) | ✅ via `sync:world-cup-scorers` (52/100 matched) | N/A | ❌ | ❌ | ❌ |
 | WC video highlights | ❌ | ❌ | ✅ (widget) | ❌ | ❌ |
 | PSL fixtures | ❌ | REJECTED | ❌ | ✅ (id=288) | ❌ |
 | PSL standings | ❌ | REJECTED | ❌ | ✅ | ❌ |
 | PSL player stats | ❌ | REJECTED | ❌ | ✅ | ❌ |
+
+> **WC beta leaderboard data source:** The beta `PlayerMatchStats` table is populated
+> by the `sync:world-cup-scorers` script, which calls
+> `/v4/competitions/WC/scorers?limit=100`. Each scorer gets ONE aggregate row with
+> competition totals (goals, assists). `minutesPlayed` is approximated as
+> `playedMatches × 85`. 52 of 100 FDO scorers matched beta seed players by name. The
+> per-match sync (`sync:world-cup-player-stats`) returns **0 rows** on the free tier
+> and must not be used for leaderboard population.
 
 ---
 
@@ -49,11 +60,21 @@
 - **Limitations:** No live events, lineups, or player stats on free tier
 - **Data state:** 85/105 fixtures provider-backed (19 knockout TBD fixtures self-resolve July 2026)
 
+### football-data.org live (`FootballDataOrgLiveMatchAdapter`)
+- **Status:** Active — current live match adapter on beta EC2
+- **Activated by:** `WC_LIVE_PROVIDER=football-data-org` + `FOOTBALL_DATA_API_KEY`
+- **Used for:** Live match status + score polling; `fetchFixturePlayerStats()` called but
+  returns `[]` on free tier (no lineups in `/v4/matches/{id}`)
+- **Adapter file:** `apps/api/src/football/football-data-org-live-match.adapter.ts`
+- **Key:** `FOOTBALL_DATA_API_KEY` (same key as fixture adapter — 10 req/min)
+- **Important:** `fetchFixtureEvents()` always returns `[]` (free tier limitation,
+  documented in code and pinned in adapter spec). Do not expect goal/card events.
+
 ### Sportmonks (`SportmonksLiveMatchAdapter`)
-- **Status:** Gated — activated by `WC_LIVE_PROVIDER=sportmonks` + `SPORTMONKS_API_KEY`
-- **Used for:** Live match events, lineups, player stats (WC only)
+- **Status:** Gated — NOT active on beta EC2; activated by `WC_LIVE_PROVIDER=sportmonks` + `SPORTMONKS_API_KEY`
+- **Used for:** Live match events, lineups, player stats (WC only) — richer than FDO but requires paid key
 - **Adapter file:** `apps/api/src/football/sportmonks-live-match.adapter.ts`
-- **Key:** `SPORTMONKS_API_KEY` (trial available)
+- **Key:** `SPORTMONKS_API_KEY` (trial available; current trial token expired or invalid)
 - **PSL use:** REJECTED — see ADR-029 and ADR-037
 - **Fallback:** `ManualLiveMatchProviderAdapter` (safe default, no network calls)
 
@@ -87,8 +108,29 @@ default → NoOpAdapter
 
 ### WC live match state / events / lineups / stats
 ```
+WC_LIVE_PROVIDER=football-data-org AND FOOTBALL_DATA_API_KEY? → FootballDataOrgLiveMatchAdapter
+  ↳ fetchFixturePlayerStats() returns [] on free tier (no lineups/events in /v4/matches/{id})
+  ↳ CURRENT BETA EC2 STATE
+
 WC_LIVE_PROVIDER=sportmonks AND SPORTMONKS_API_KEY? → SportmonksLiveMatchAdapter
-default → ManualLiveMatchProviderAdapter (admin manual entry)
+  ↳ full lineups + events + player stats (requires paid Sportmonks key)
+  ↳ GATED — NOT active on beta EC2
+
+default → ManualLiveMatchProviderAdapter (admin manual entry — safe no-op)
+```
+
+### WC leaderboard / top-performers population
+```
+Beta aggregate path (current):
+  pnpm sync:world-cup-scorers -- --confirm=SYNC_WC_SCORERS
+  → calls /v4/competitions/WC/scorers (1 API request, free tier)
+  → writes PlayerMatchStats with status=VERIFIED, source=IMPORTED
+  → 52/100 scorers matched; competition totals (not per-match breakdown)
+
+Per-match path (NOT usable on FDO free tier):
+  pnpm sync:world-cup-player-stats -- --confirm=SYNC_PROVIDER_PLAYER_STATS
+  → calls /v4/matches/{id} per fixture (no lineups → 0 rows written)
+  → DO NOT USE as the leaderboard population step on FDO free tier
 ```
 
 ### PSL fixture ingestion
