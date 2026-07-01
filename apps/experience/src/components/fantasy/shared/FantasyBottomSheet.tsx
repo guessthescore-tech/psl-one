@@ -90,8 +90,8 @@ export function FantasyBottomSheet({
               </div>
             )}
 
-            {/* Body */}
-            <div className="overflow-y-auto flex-1 pb-safe">
+            {/* Body — non-scrolling flex column; individual children own their scroll */}
+            <div className="flex-1 min-h-0 flex flex-col">
               {children}
             </div>
           </motion.div>

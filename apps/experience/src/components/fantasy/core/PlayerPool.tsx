@@ -42,9 +42,9 @@ export function PlayerPool({ players, onSelect, pickedIds = [], filterPosition }
   }, [players, position, search, sortBy]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Search */}
-      <div className="px-4 py-2 border-b border-exp-border-dk">
+      <div className="px-4 py-2 border-b border-exp-border-dk flex-shrink-0">
         <input
           type="search"
           value={search}
@@ -62,8 +62,8 @@ export function PlayerPool({ players, onSelect, pickedIds = [], filterPosition }
         onSortChange={setSortBy}
       />
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      {/* List — sole scroll container for the player pool */}
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain pb-safe">
         {filtered.length === 0 ? (
           <div className="py-10 text-center text-exp-muted text-body-sm">No players found</div>
         ) : (
@@ -78,7 +78,7 @@ export function PlayerPool({ players, onSelect, pickedIds = [], filterPosition }
         )}
       </div>
 
-      <p className="px-4 py-2 text-label-sm text-exp-muted text-center border-t border-exp-border-dk">
+      <p className="flex-shrink-0 px-4 py-2 text-label-sm text-exp-muted text-center border-t border-exp-border-dk">
         Points only — no real money or financial value
       </p>
     </div>

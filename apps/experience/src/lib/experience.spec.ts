@@ -8653,6 +8653,67 @@ describe('Fantasy onboarding — partial team resume (no-loop guarantee)', () =>
   });
 });
 
+// ─── Player pool scroll container regression ──────────────────────────────
+
+describe('PlayerPool scroll container structure', () => {
+  it('FantasyBottomSheet body is a flex column that does NOT own overflow-y-auto (inner children scroll)', () => {
+    const sheet = read('components/fantasy/shared/FantasyBottomSheet.tsx');
+    // Body must be a flex column so PlayerPool can be a flex-1 child
+    expect(sheet).toContain('flex flex-col');
+    // Body must NOT be the scroll container — only the inner list scrolls
+    const bodyClass = sheet.match(/className="([^"]*flex-1[^"]*)"/)?.[1] ?? '';
+    expect(bodyClass).not.toContain('overflow-y-auto');
+  });
+
+  it('FantasyBottomSheet body uses min-h-0 to allow flex child shrinking', () => {
+    const sheet = read('components/fantasy/shared/FantasyBottomSheet.tsx');
+    expect(sheet).toContain('min-h-0');
+  });
+
+  it('PlayerPool root is flex-1 min-h-0 (not h-full) so it fills a bounded flex parent', () => {
+    const pool = read('components/fantasy/core/PlayerPool.tsx');
+    expect(pool).toContain('flex-1 min-h-0');
+    // h-full cannot resolve correctly inside a flex-derived parent height
+    const rootClass = pool.match(/className="([^"]*flex flex-col[^"]*)"/)?.[1] ?? '';
+    expect(rootClass).not.toContain('h-full');
+  });
+
+  it('PlayerPool list is the sole overflow-y-auto scroll container', () => {
+    const pool = read('components/fantasy/core/PlayerPool.tsx');
+    const overflowMatches = (pool.match(/overflow-y-auto/g) ?? []).length;
+    // Exactly one overflow-y-auto — on the list, not the root or search header
+    expect(overflowMatches).toBe(1);
+  });
+
+  it('PlayerPool list has overscroll-contain to prevent page scroll bleed on mobile', () => {
+    const pool = read('components/fantasy/core/PlayerPool.tsx');
+    expect(pool).toContain('overscroll-contain');
+  });
+
+  it('PlayerPool list has pb-safe for iOS home indicator clearance', () => {
+    const pool = read('components/fantasy/core/PlayerPool.tsx');
+    const listDiv = pool.split('sole scroll container')[1] ?? '';
+    expect(listDiv).toContain('pb-safe');
+  });
+
+  it('PlayerPool search header has flex-shrink-0 to stay pinned above the list', () => {
+    const pool = read('components/fantasy/core/PlayerPool.tsx');
+    expect(pool).toContain('flex-shrink-0');
+  });
+
+  it('onboarding renders PlayerPool inside FantasyBottomSheet (shared component, not inline)', () => {
+    const content = read('app/fantasy/onboarding/page.tsx');
+    expect(content).toContain('FantasyBottomSheet');
+    expect(content).toContain('PlayerPool');
+  });
+
+  it('transfers renders PlayerPool inside FantasyBottomSheet (same shared component)', () => {
+    const content = read('app/fantasy/team/transfers/page.tsx');
+    expect(content).toContain('FantasyBottomSheet');
+    expect(content).toContain('PlayerPool');
+  });
+});
+
 // ─── getAllFiles helper ────────────────────────────────────────────────────
 
 function getAllFiles(dir: string): string[] {

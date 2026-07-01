@@ -40,7 +40,7 @@ export function InviteLeagueSheet({ open, onClose, leagueName, inviteCode }: Inv
 
   return (
     <FantasyBottomSheet open={open} onClose={onClose} snapHeight="half" title="Invite Friends">
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-5 pb-safe">
         <p className="text-body-md text-exp-muted">
           Share this code with friends to join <span className="text-white font-semibold">{leagueName}</span>.
         </p>
