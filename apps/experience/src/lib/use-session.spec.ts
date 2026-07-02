@@ -1,104 +1,190 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { AUTH_CHANGE_EVENT, TOKEN_KEY } from './auth';
+import { subscribeToSessionChanges, validateSession } from './use-session';
 
-// Mock auth module — control what getToken/clearToken do without needing localStorage
-vi.mock('./auth', () => ({
-  getToken: vi.fn().mockReturnValue(null),
-  clearToken: vi.fn(),
-}));
+class MemoryStorage {
+  private values = new Map<string, string>();
 
-// Keep ApiError real so instanceof checks work; mock only apiFetch
-vi.mock('./api', async (importActual) => {
-  const actual = await importActual<typeof import('./api')>();
-  return { ...actual, apiFetch: vi.fn() };
-});
+  getItem(key: string) {
+    return this.values.get(key) ?? null;
+  }
 
-import * as auth from './auth';
-import * as api from './api';
-import { ApiError } from './api';
-import { validateSession } from './use-session';
+  setItem(key: string, value: string) {
+    this.values.set(key, value);
+  }
 
-const mockGetToken = auth.getToken as ReturnType<typeof vi.fn>;
-const mockClearToken = auth.clearToken as ReturnType<typeof vi.fn>;
-const mockApiFetch = api.apiFetch as ReturnType<typeof vi.fn>;
+  removeItem(key: string) {
+    this.values.delete(key);
+  }
+
+  clear() {
+    this.values.clear();
+  }
+}
+
+function installBrowserGlobals() {
+  const windowTarget = new EventTarget();
+  const storage = new MemoryStorage();
+  Object.defineProperty(globalThis, 'window', {
+    value: windowTarget,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: storage,
+    configurable: true,
+  });
+  return { windowTarget, storage };
+}
+
+function storageEventForToken() {
+  const event = new Event('storage');
+  Object.defineProperty(event, 'key', { value: TOKEN_KEY });
+  return event;
+}
 
 describe('validateSession', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    mockGetToken.mockReturnValue(null);
+    installBrowserGlobals();
+    vi.unstubAllGlobals();
   });
 
-  it('returns anonymous immediately and skips /auth/me when no token', async () => {
-    mockGetToken.mockReturnValue(null);
-    const result = await validateSession();
-    expect(result.status).toBe('anonymous');
-    expect(result.user).toBeNull();
-    expect(mockApiFetch).not.toHaveBeenCalled();
-    expect(mockClearToken).not.toHaveBeenCalled();
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(globalThis, 'window');
+    Reflect.deleteProperty(globalThis, 'localStorage');
   });
 
-  it('returns authenticated with user when /auth/me responds 200', async () => {
-    const mockUser = { id: 'u1', email: 'fan@psl.co.za', role: 'FAN' };
-    mockGetToken.mockReturnValue('valid-jwt');
-    mockApiFetch.mockResolvedValue(mockUser);
+  it('returns anonymous when no token exists', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await validateSession();
-
-    expect(result.status).toBe('authenticated');
-    expect(result.user).toEqual(mockUser);
-    expect(mockApiFetch).toHaveBeenCalledWith('/auth/me');
-    expect(mockClearToken).not.toHaveBeenCalled();
+    await expect(validateSession()).resolves.toEqual({ status: 'anonymous', user: null });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('returns anonymous and clears token when /auth/me responds 401', async () => {
-    mockGetToken.mockReturnValue('expired-jwt');
-    mockApiFetch.mockRejectedValue(new ApiError(401, 'Unauthorized'));
+  it('returns authenticated when token exists and /auth/me succeeds', async () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-1');
+    const user = { id: 'u1', email: 'fan@example.com', role: 'FAN' };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => user,
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await validateSession();
-
-    expect(result.status).toBe('anonymous');
-    expect(result.user).toBeNull();
-    expect(mockClearToken).toHaveBeenCalledOnce();
+    await expect(validateSession()).resolves.toEqual({ status: 'authenticated', user });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/me'),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Authorization: 'Bearer jwt-1' }),
+      }),
+    );
   });
 
-  it('returns network-error and preserves token for non-401 API error', async () => {
-    mockGetToken.mockReturnValue('maybe-valid-jwt');
-    mockApiFetch.mockRejectedValue(new ApiError(503, 'Service Unavailable'));
+  it('clears token and returns anonymous when /auth/me returns 401', async () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-1');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({ message: 'Unauthorized' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await validateSession();
-
-    expect(result.status).toBe('network-error');
-    expect(result.user).toBeNull();
-    expect(mockClearToken).not.toHaveBeenCalled();
+    await expect(validateSession()).resolves.toEqual({ status: 'anonymous', user: null });
+    expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
   });
 
-  it('returns network-error and preserves token for actual network failure', async () => {
-    mockGetToken.mockReturnValue('maybe-valid-jwt');
-    mockApiFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+  it('preserves token and returns network-error on fetch failure', async () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-1');
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await validateSession();
-
-    expect(result.status).toBe('network-error');
-    expect(result.user).toBeNull();
-    expect(mockClearToken).not.toHaveBeenCalled();
+    await expect(validateSession()).resolves.toEqual({ status: 'network-error', user: null });
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('jwt-1');
   });
 
-  it('returns network-error and does NOT clear token for 403 Forbidden', async () => {
-    mockGetToken.mockReturnValue('valid-but-no-access-jwt');
-    mockApiFetch.mockRejectedValue(new ApiError(403, 'Forbidden'));
+  it('preserves token and returns network-error on non-401 API errors', async () => {
+    localStorage.setItem(TOKEN_KEY, 'jwt-1');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ message: 'Service unavailable' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
 
-    const result = await validateSession();
+    await expect(validateSession()).resolves.toEqual({ status: 'network-error', user: null });
+    expect(localStorage.getItem(TOKEN_KEY)).toBe('jwt-1');
+  });
+});
 
-    expect(result.status).toBe('network-error');
-    expect(mockClearToken).not.toHaveBeenCalled();
+describe('subscribeToSessionChanges', () => {
+  beforeEach(() => {
+    installBrowserGlobals();
   });
 
-  it('calls /auth/me with the right endpoint when token is present', async () => {
-    mockGetToken.mockReturnValue('some-token');
-    mockApiFetch.mockResolvedValue({ id: 'u2', email: 'admin@psl.co.za', role: 'PSL_ADMIN' });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    Reflect.deleteProperty(globalThis, 'window');
+    Reflect.deleteProperty(globalThis, 'localStorage');
+  });
 
-    await validateSession();
+  it('revalidates when psl-auth-change fires', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeToSessionChanges(onChange);
 
-    expect(mockApiFetch).toHaveBeenCalledWith('/auth/me');
-    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+
+    expect(onChange).toHaveBeenCalledOnce();
+    unsubscribe();
+  });
+
+  it('revalidates when the shared token changes in storage', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeToSessionChanges(onChange);
+
+    window.dispatchEvent(storageEventForToken());
+
+    expect(onChange).toHaveBeenCalledOnce();
+    unsubscribe();
+  });
+
+  it('ignores storage changes for unrelated keys', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeToSessionChanges(onChange);
+    const event = new Event('storage');
+    Object.defineProperty(event, 'key', { value: 'unrelated' });
+
+    window.dispatchEvent(event);
+
+    expect(onChange).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it('revalidates on window focus', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeToSessionChanges(onChange);
+
+    window.dispatchEvent(new Event('focus'));
+
+    expect(onChange).toHaveBeenCalledOnce();
+    unsubscribe();
+  });
+
+  it('removes all listeners on unsubscribe so unmounted headers do not update', () => {
+    const onChange = vi.fn();
+    const unsubscribe = subscribeToSessionChanges(onChange);
+
+    unsubscribe();
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+    window.dispatchEvent(storageEventForToken());
+    window.dispatchEvent(new Event('focus'));
+
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('returns a no-op unsubscribe on the server', () => {
+    Reflect.deleteProperty(globalThis, 'window');
+
+    expect(() => subscribeToSessionChanges(() => undefined)()).not.toThrow();
   });
 });

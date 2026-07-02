@@ -10,7 +10,8 @@
  * preferred long-term) or in NEXT_PUBLIC_* env vars.
  */
 
-const TOKEN_KEY = 'psl_access_token';
+export const TOKEN_KEY = 'psl_access_token';
+export const AUTH_CHANGE_EVENT = 'psl-auth-change';
 
 const AUTH_BASE =
   process.env['NEXT_PUBLIC_API_BASE_URL'] ??
@@ -31,14 +32,21 @@ export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+export function notifyAuthChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new Event(AUTH_CHANGE_EVENT));
+}
+
 export function setToken(token: string): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(TOKEN_KEY, token);
+  notifyAuthChanged();
 }
 
 export function clearToken(): void {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(TOKEN_KEY);
+  notifyAuthChanged();
 }
 
 export function isAuthenticated(): boolean {

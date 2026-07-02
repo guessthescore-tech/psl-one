@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getToken, clearToken } from './auth';
+import { AUTH_CHANGE_EVENT, TOKEN_KEY, getToken, clearToken } from './auth';
 import type { AuthUser } from './auth';
 import { apiFetch, ApiError } from './api';
 
@@ -41,6 +41,26 @@ export async function validateSession(): Promise<{ status: Exclude<SessionStatus
   }
 }
 
+export function subscribeToSessionChanges(onChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+
+  const handleAuthChange = () => onChange();
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === TOKEN_KEY) onChange();
+  };
+  const handleFocus = () => onChange();
+
+  window.addEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
+  window.addEventListener('storage', handleStorage);
+  window.addEventListener('focus', handleFocus);
+
+  return () => {
+    window.removeEventListener(AUTH_CHANGE_EVENT, handleAuthChange);
+    window.removeEventListener('storage', handleStorage);
+    window.removeEventListener('focus', handleFocus);
+  };
+}
+
 /**
  * React hook that resolves auth state on client mount by validating the stored
  * token with the server. Starts in 'loading' so SSR and the initial client render
@@ -57,10 +77,25 @@ export function useSession(): SessionResult {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    validateSession().then(({ status, user: me }) => {
-      setSessionState(status);
-      setUser(me);
-    });
+    let cancelled = false;
+    let validationRequest = 0;
+
+    const revalidate = () => {
+      const request = ++validationRequest;
+      validateSession().then(({ status, user: me }) => {
+        if (cancelled || request !== validationRequest) return;
+        setSessionState(status);
+        setUser(me);
+      });
+    };
+
+    revalidate();
+    const unsubscribe = subscribeToSessionChanges(revalidate);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   return { sessionState, user };

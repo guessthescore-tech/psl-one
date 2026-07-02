@@ -84,6 +84,39 @@ This function was centralised in STORY-35. Do not create local `getToken()` help
 
 ---
 
+## Experience App Session State
+
+The Experience app currently stores the beta JWT in browser `localStorage` under
+`psl_access_token`. This is a beta-stage client-side token contract; production
+session hardening remains planned separately.
+
+The root navbar (`apps/experience/src/components/shell/AppHeader.tsx`) stays
+mounted across client-side route transitions, so it must not rely on a one-time
+session check. The shared session hook (`apps/experience/src/lib/use-session.ts`)
+validates the stored token against `GET /auth/me` and then revalidates when:
+
+- `psl-auth-change` is dispatched after local sign-in, registration, or logout
+- a browser `storage` event reports a `psl_access_token` change from another tab
+- the window regains focus
+
+Token mutation helpers in `apps/experience/src/lib/auth.ts` are authoritative:
+
+- `setToken(token)` writes `psl_access_token` and dispatches `psl-auth-change`
+- `clearToken()` removes `psl_access_token` and dispatches `psl-auth-change`
+
+Do not write to `localStorage` directly from pages or components. Use these
+helpers so persistent layout components, including the navbar, stay in sync.
+
+Session validation behavior:
+
+- `200` from `/auth/me` -> authenticated
+- `401` from `/auth/me` -> clear token and treat as anonymous
+- network/server/CORS failure with a token present -> preserve token and expose
+  `network-error`, allowing the UI to avoid logging the fan out on transient
+  backend failures
+
+---
+
 ## Getting User Context in Services
 
 Always extract user context from the JWT-populated `req.user`, never from request body:

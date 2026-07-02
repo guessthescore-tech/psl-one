@@ -8001,6 +8001,33 @@ describe('AppHeader auth-aware rendering', () => {
     expect(content).toContain('export function useSession');
   });
 
+  it('auth.ts emits psl-auth-change when setToken or clearToken mutates the token', () => {
+    const content = read('lib/auth.ts');
+    expect(content).toContain("export const AUTH_CHANGE_EVENT = 'psl-auth-change'");
+    expect(content).toContain('export const TOKEN_KEY');
+    expect(content).toContain('notifyAuthChanged');
+    expect(content).toMatch(/setToken[\s\S]*localStorage\.setItem\(TOKEN_KEY, token\)[\s\S]*notifyAuthChanged\(\)/);
+    expect(content).toMatch(/clearToken[\s\S]*localStorage\.removeItem\(TOKEN_KEY\)[\s\S]*notifyAuthChanged\(\)/);
+  });
+
+  it('use-session.ts subscribes to auth, storage, and focus changes for persistent header state', () => {
+    const content = read('lib/use-session.ts');
+    expect(content).toContain('subscribeToSessionChanges');
+    expect(content).toContain('AUTH_CHANGE_EVENT');
+    expect(content).toContain("'storage'");
+    expect(content).toContain("'focus'");
+    expect(content).toContain('event.key === TOKEN_KEY');
+  });
+
+  it('useSession avoids state updates after unmount and ignores stale validation responses', () => {
+    const content = read('lib/use-session.ts');
+    expect(content).toContain('let cancelled = false');
+    expect(content).toContain('let validationRequest = 0');
+    expect(content).toContain('request !== validationRequest');
+    expect(content).toContain('cancelled = true');
+    expect(content).toContain('unsubscribe()');
+  });
+
   it('use-session.ts clears token on 401 and leaves it intact for network errors', () => {
     const content = read('lib/use-session.ts');
     expect(content).toContain('clearToken');
