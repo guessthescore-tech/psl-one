@@ -25,6 +25,7 @@ interface FormState {
 interface SuccessState {
   email: string;
   token?: string;
+  accountCreated: boolean;
   emailDeliveryStatus: 'SENT' | 'FAILED' | 'SKIPPED';
 }
 
@@ -99,11 +100,13 @@ export function SignUpForm() {
         setSuccess({
           email: form.email,
           token: data.accessToken,
+          accountCreated: true,
           emailDeliveryStatus: data.emailDeliveryStatus ?? 'SKIPPED',
         });
       } else {
         setSuccess({
           email: form.email,
+          accountCreated: false,
           emailDeliveryStatus: 'SKIPPED',
         });
       }
@@ -143,6 +146,7 @@ export function SignUpForm() {
   /* ── Success state ── */
   if (success) {
     const emailSent = success.emailDeliveryStatus === 'SENT' || resendSent;
+    const canResend = Boolean(success.token);
     return (
       <div className="flex flex-col items-center gap-6 py-4 text-center">
         <div className="w-16 h-16 rounded-full bg-exp-green/15 flex items-center justify-center">
@@ -150,8 +154,15 @@ export function SignUpForm() {
         </div>
 
         <div>
-          <h2 className="text-display-sm text-white mb-2">Account created!</h2>
-          {emailSent ? (
+          <h2 className="text-display-sm text-white mb-2">
+            {success.accountCreated ? 'Account created!' : 'Check your email'}
+          </h2>
+          {!success.accountCreated ? (
+            <p className="text-body-md text-white/70">
+              If an account can be created for <strong className="text-white">{success.email}</strong>,
+              we will send the next verification instructions there. You can also try signing in.
+            </p>
+          ) : emailSent ? (
             <p className="text-body-md text-white/70">
               {"We've sent a verification email to "}
               <strong className="text-white">{success.email}</strong>
@@ -166,7 +177,7 @@ export function SignUpForm() {
         </div>
 
         <div className="w-full border-t border-exp-border-dk pt-4">
-          {!emailSent && (
+          {success.accountCreated && !emailSent && (
             <p role="status" className="text-body-sm text-exp-gold text-center mb-3">
               Email delivery status: {success.emailDeliveryStatus.toLowerCase()}.
             </p>
@@ -180,6 +191,18 @@ export function SignUpForm() {
             <p className="text-body-sm text-exp-green text-center">
               Verification email resent!
             </p>
+          ) : !canResend ? (
+            <a
+              href="/sign-in"
+              className={clsx(
+                'inline-flex items-center justify-center w-full py-3 rounded-card-sm text-label-lg font-bold',
+                'border border-exp-border-dk text-white/70 hover:text-white hover:border-white/30',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-exp-gold',
+                'min-h-[44px]',
+              )}
+            >
+              Go to sign in
+            </a>
           ) : (
             <button
               type="button"

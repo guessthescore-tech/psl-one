@@ -7268,6 +7268,19 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
     expect(content).toContain('register({');
   });
 
+  it('sign-up page does not claim account creation for non-enumerable register responses', () => {
+    const content = read('app/sign-up/SignUpForm.tsx');
+    expect(content).toContain('accountCreated: false');
+    expect(content).toContain("success.accountCreated ? 'Account created!' : 'Check your email'");
+  });
+
+  it('sign-up resend is only offered when registration returned an access token', () => {
+    const content = read('app/sign-up/SignUpForm.tsx');
+    expect(content).toContain('const canResend = Boolean(success.token)');
+    expect(content).toContain('!canResend');
+    expect(content).toContain('Go to sign in');
+  });
+
   it('guess-the-score shows explicit error when API unavailable', () => {
     const content = read('app/guess-the-score/page.tsx');
     expect(content).toContain('Fixture data unavailable');

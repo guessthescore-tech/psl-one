@@ -72,7 +72,7 @@ The beta `compose.beta.yaml` environment injects these values into the API conta
 - `SMTP_PASSWORD` from `/psl-one/beta/SMTP_PASSWORD`
 - `SMTP_FROM` from `/psl-one/beta/smtp-from`
 
-Current beta settings are wired for the cPanel mailbox at `mail.pslone.co.za` with `EMAIL_PROVIDER=smtp`. The API container verifies SMTP connectivity during deploy; if the mailbox changes, update the SSM values before the next `deploy-beta-ec2.yml` run.
+Current beta settings are wired for the cPanel mailbox at `mail.pslone.co.za` with `EMAIL_PROVIDER=smtp`, `SMTP_PORT=465`, and `SMTP_SECURE=true`. cPanel implicit TLS on 465 is required; using STARTTLS on port 587 causes SMTP authentication failures. The API container verifies SMTP connectivity during deploy; if the mailbox changes, update the SSM values before the next `deploy-beta-ec2.yml` run.
 
 ### Step 3 — Wait for bootstrap
 
