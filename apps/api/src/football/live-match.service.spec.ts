@@ -569,6 +569,58 @@ describe('LiveMatchService', () => {
       expect(result.synced).toBe(false);
     });
 
+    it('persists provider status and score state', async () => {
+      const provider = makeProvider({
+        providerName: 'football-data-org',
+        fetchFixtureState: vi.fn().mockResolvedValue({
+          providerFixtureId: 'ext-abc',
+          status: FixtureStatus.FINISHED,
+          homeScore: 2,
+          awayScore: 1,
+          currentMinute: null,
+          period: null,
+          startedAt: null,
+          halfTimeAt: null,
+          resumedAt: null,
+          finishedAt: new Date('2026-07-01T20:00:00Z'),
+        }),
+      });
+      service = makeService(provider);
+      mockPrisma.fixture.findUnique.mockResolvedValueOnce({
+        id: FIXTURE_ID, providerSource: 'football-data-org', providerFixtureId: 'ext-abc',
+      });
+
+      const result = await service.syncFixtureFromProvider(FIXTURE_ID);
+
+      expect(result).toMatchObject({
+        synced: true,
+        fixtureId: FIXTURE_ID,
+        provider: 'football-data-org',
+        teamResolution: 'not_attempted',
+      });
+      expect(mockPrisma.fixture.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: FIXTURE_ID },
+          data: expect.objectContaining({
+            status: FixtureStatus.FINISHED,
+            homeScore: 2,
+            awayScore: 1,
+            currentMinute: null,
+            period: null,
+          }),
+        }),
+      );
+      expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: 'PROVIDER_FIXTURE_SYNCED',
+            entityType: 'Fixture',
+            entityId: FIXTURE_ID,
+          }),
+        }),
+      );
+    });
+
     it('throws NotFoundException for unknown fixture', async () => {
       mockPrisma.fixture.findUnique.mockResolvedValueOnce(null);
       await expect(service.syncFixtureFromProvider('bad')).rejects.toThrow(NotFoundException);

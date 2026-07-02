@@ -4,6 +4,7 @@ export interface ProviderFixture {
   awayTeamName: string;
   kickoffAt: string;
   status: string;
+  round?: string;
   homeScore?: number;
   awayScore?: number;
 }

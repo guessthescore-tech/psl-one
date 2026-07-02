@@ -12,9 +12,41 @@ import type {
 } from './dto/world-cup-import.dto';
 
 const WC_PROVIDER_SOURCE = 'wheniskickoff';
+const FOOTBALL_DATA_ORG_PROVIDER_SOURCE = 'football-data-org';
 const WC_COMPETITION_CODES = ['WC', 'WORLD_CUP_2026', 'FIFA_WORLD_CUP', 'WC2026'];
 const WRITE_CONFIRM_VALUE = 'IMPORT_WORLD_CUP_BETA';
 const WRITE_ENV_FLAG = 'ALLOW_WORLD_CUP_WRITE';
+const TBD_TEAM_SLUG = 'tbd';
+
+type NormalizedFixture = {
+  externalId: string;
+  homeTeamName: string;
+  awayTeamName: string;
+  kickoffAt: string;
+  status: string;
+  round?: string;
+  homeScore?: number;
+  awayScore?: number;
+};
+
+type ExistingFixtureForSync = {
+  id: string;
+  status?: FixtureStatus;
+  providerSource: string | null;
+  providerFixtureId: string | null;
+  importedAt: Date | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  homeTeam?: { id: string; name: string; slug: string; shortName: string | null };
+  awayTeam?: { id: string; name: string; slug: string; shortName: string | null };
+};
+
+type TbdFallbackResult = {
+  fixture: ExistingFixtureForSync | null;
+  ambiguous: boolean;
+};
 
 /**
  * World Cup 2026 fixture import service.
@@ -236,20 +268,21 @@ export class WorldCupImportService {
 
   private normalizeFixtures(
     raw: ProviderFixture[],
-  ): { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[] {
+  ): NormalizedFixture[] {
     return raw.filter(f => f.externalId && f.homeTeamName && f.awayTeamName).map(f => ({
       externalId: f.externalId,
       homeTeamName: f.homeTeamName,
       awayTeamName: f.awayTeamName,
       kickoffAt: f.kickoffAt ?? new Date().toISOString(),
       status: f.status ?? 'SCHEDULED',
+      ...(f.round ? { round: f.round } : {}),
       ...(f.homeScore !== undefined ? { homeScore: f.homeScore } : {}),
       ...(f.awayScore !== undefined ? { awayScore: f.awayScore } : {}),
     }));
   }
 
   private async buildCandidates(
-    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[],
+    fixtures: NormalizedFixture[],
     providerSource: string,
   ): Promise<WorldCupImportCandidateDto[]> {
     const candidates: WorldCupImportCandidateDto[] = [];
@@ -361,7 +394,7 @@ export class WorldCupImportService {
   }
 
   private async upsertFixtures(
-    fixtures: { externalId: string; homeTeamName: string; awayTeamName: string; kickoffAt: string; status: string; homeScore?: number; awayScore?: number }[],
+    fixtures: NormalizedFixture[],
     seasonId: string,
     providerSource: string,
   ): Promise<{ created: number; updated: number; skipped: number; errors: string[]; warnings: string[] }> {
@@ -386,9 +419,9 @@ export class WorldCupImportService {
         }
 
         // Primary lookup: by providerFixtureId + providerSource (already provider-synced fixtures)
-        let existing = await this.prisma.fixture.findFirst({
+        let existing: ExistingFixtureForSync | null = await this.prisma.fixture.findFirst({
           where: { providerFixtureId: f.externalId, providerSource },
-          select: { id: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
+          select: this.fixtureSyncSelect(),
         });
 
         // Cascade lookup: team + kickoff window matches seeded fixtures with no providerFixtureId
@@ -401,19 +434,23 @@ export class WorldCupImportService {
               awayTeamId: awayTeam.id,
               kickoffAt: { gte: windowStart, lte: windowEnd },
             },
-            select: { id: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
+            select: this.fixtureSyncSelect(),
           });
         }
 
+        if (!existing) {
+          const fallback = await this.findSingleTbdFallbackFixture(f, kickoffAt, seasonId);
+          if (fallback.ambiguous) {
+            warnings.push(`Ambiguous TBD fixture match for externalId=${f.externalId}`);
+            skipped++;
+            continue;
+          }
+          existing = fallback.fixture;
+        }
+
         if (existing) {
-          // Preserve valid existing scores unless provider gives a new non-null value
-          const scoreUpdates: { homeScore?: number | null; awayScore?: number | null } = {};
-          if (f.homeScore !== undefined) {
-            if (f.homeScore !== null || existing.homeScore == null) scoreUpdates.homeScore = f.homeScore;
-          }
-          if (f.awayScore !== undefined) {
-            if (f.awayScore !== null || existing.awayScore == null) scoreUpdates.awayScore = f.awayScore;
-          }
+          const scoreUpdates = this.buildScoreUpdates(f, existing);
+          const teamUpdates = this.buildTbdTeamUpdates(existing, homeTeam.id, awayTeam.id);
 
           await this.prisma.fixture.update({
             where: { id: existing.id },
@@ -425,6 +462,7 @@ export class WorldCupImportService {
               ...(existing.providerSource == null ? { providerSource } : {}),
               ...(existing.providerFixtureId == null ? { providerFixtureId: f.externalId } : {}),
               ...(existing.importedAt == null ? { importedAt: now } : {}),
+              ...teamUpdates,
               ...scoreUpdates,
             },
           });
@@ -473,7 +511,7 @@ export class WorldCupImportService {
     safety: { noNewFixtures: true; noRealMoney: true; noPslActivation: true };
   }> {
     const result = {
-      provider: WC_PROVIDER_SOURCE,
+      provider: FOOTBALL_DATA_ORG_PROVIDER_SOURCE,
       sourceStatus: 'SOURCE_EMPTY',
       discovered: 0,
       matched: 0,
@@ -513,6 +551,7 @@ export class WorldCupImportService {
 
     result.sourceStatus = 'SOURCE_AVAILABLE';
     const now = new Date();
+    const wcSeasonId = await this.findWcSeasonId();
 
     // Status mapping from provider values to internal enum
     const STATUS_MAP: Record<string, string> = {
@@ -528,7 +567,7 @@ export class WorldCupImportService {
       ended: 'FINISHED',
       POSTPONED: 'POSTPONED',
       CANCELLED: 'CANCELLED',
-      SUSPENDED: 'SUSPENDED',
+      SUSPENDED: 'POSTPONED',
     };
 
     for (const pf of providerFixtures) {
@@ -539,7 +578,7 @@ export class WorldCupImportService {
           continue;
         }
 
-        // Match by homeTeamName + awayTeamName + kickoffAt within ±24h window
+        // Provider ID is the authoritative match key; team/kickoff is only a fallback.
         const windowStart = new Date(kickoffAt.getTime() - 24 * 60 * 60 * 1000);
         const windowEnd = new Date(kickoffAt.getTime() + 24 * 60 * 60 * 1000);
 
@@ -550,14 +589,30 @@ export class WorldCupImportService {
           continue;
         }
 
-        const existing = await this.prisma.fixture.findFirst({
-          where: {
-            homeTeamId: homeTeam.id,
-            awayTeamId: awayTeam.id,
-            kickoffAt: { gte: windowStart, lte: windowEnd },
-          },
-          select: { id: true, status: true, providerSource: true, providerFixtureId: true, importedAt: true, homeScore: true, awayScore: true },
+        let existing: ExistingFixtureForSync | null = await this.prisma.fixture.findFirst({
+          where: { providerFixtureId: pf.externalId, providerSource: FOOTBALL_DATA_ORG_PROVIDER_SOURCE },
+          select: this.fixtureSyncSelect(),
         });
+
+        if (!existing) {
+          existing = await this.prisma.fixture.findFirst({
+            where: {
+              homeTeamId: homeTeam.id,
+              awayTeamId: awayTeam.id,
+              kickoffAt: { gte: windowStart, lte: windowEnd },
+            },
+            select: this.fixtureSyncSelect(),
+          });
+        }
+
+        if (!existing) {
+          const fallback = await this.findSingleTbdFallbackFixture(pf, kickoffAt, wcSeasonId);
+          if (fallback.ambiguous) {
+            result.skipped++;
+            continue;
+          }
+          existing = fallback.fixture;
+        }
 
         if (!existing) {
           result.skipped++;
@@ -568,14 +623,8 @@ export class WorldCupImportService {
         const rawStatus = STATUS_MAP[pf.status ?? ''] ?? existing.status;
         const newStatus = rawStatus as FixtureStatus;
 
-        // Preserve valid existing scores unless provider gives a new non-null value
-        const scoreUpdates: { homeScore?: number | null; awayScore?: number | null } = {};
-        if (pf.homeScore !== undefined) {
-          if (pf.homeScore !== null || existing.homeScore == null) scoreUpdates.homeScore = pf.homeScore;
-        }
-        if (pf.awayScore !== undefined) {
-          if (pf.awayScore !== null || existing.awayScore == null) scoreUpdates.awayScore = pf.awayScore;
-        }
+        const scoreUpdates = this.buildScoreUpdates(pf, existing);
+        const teamUpdates = this.buildTbdTeamUpdates(existing, homeTeam.id, awayTeam.id);
 
         await this.prisma.fixture.update({
           where: { id: existing.id },
@@ -583,9 +632,10 @@ export class WorldCupImportService {
             status: newStatus,
             lastSyncedAt: now,
             // Backfill provider metadata on seeded fixtures
-            ...(existing.providerSource == null ? { providerSource: WC_PROVIDER_SOURCE } : {}),
+            ...(existing.providerSource == null ? { providerSource: FOOTBALL_DATA_ORG_PROVIDER_SOURCE } : {}),
             ...(existing.providerFixtureId == null && pf.externalId ? { providerFixtureId: pf.externalId } : {}),
             ...(existing.importedAt == null ? { importedAt: now } : {}),
+            ...teamUpdates,
             ...scoreUpdates,
           },
         });
@@ -605,6 +655,86 @@ export class WorldCupImportService {
       skipped: result.skipped,
     });
     return result;
+  }
+
+  private fixtureSyncSelect() {
+    return {
+      id: true,
+      status: true,
+      providerSource: true,
+      providerFixtureId: true,
+      importedAt: true,
+      homeScore: true,
+      awayScore: true,
+      homeTeamId: true,
+      awayTeamId: true,
+      homeTeam: { select: { id: true, name: true, slug: true, shortName: true } },
+      awayTeam: { select: { id: true, name: true, slug: true, shortName: true } },
+    } as const;
+  }
+
+  private buildScoreUpdates(
+    fixture: Pick<NormalizedFixture, 'homeScore' | 'awayScore'>,
+    existing: Pick<ExistingFixtureForSync, 'homeScore' | 'awayScore'>,
+  ): { homeScore?: number | null; awayScore?: number | null } {
+    const scoreUpdates: { homeScore?: number | null; awayScore?: number | null } = {};
+    if (fixture.homeScore !== undefined) {
+      if (fixture.homeScore !== null || existing.homeScore == null) scoreUpdates.homeScore = fixture.homeScore;
+    }
+    if (fixture.awayScore !== undefined) {
+      if (fixture.awayScore !== null || existing.awayScore == null) scoreUpdates.awayScore = fixture.awayScore;
+    }
+    return scoreUpdates;
+  }
+
+  private buildTbdTeamUpdates(
+    existing: ExistingFixtureForSync,
+    providerHomeTeamId: string,
+    providerAwayTeamId: string,
+  ): { homeTeamId?: string; awayTeamId?: string } {
+    const updates: { homeTeamId?: string; awayTeamId?: string } = {};
+    if (this.isTbdTeam(existing.homeTeam) && providerHomeTeamId !== existing.homeTeamId) {
+      updates.homeTeamId = providerHomeTeamId;
+    }
+    if (this.isTbdTeam(existing.awayTeam) && providerAwayTeamId !== existing.awayTeamId) {
+      updates.awayTeamId = providerAwayTeamId;
+    }
+    return updates;
+  }
+
+  private isTbdTeam(team?: { name: string; slug: string; shortName: string | null }): boolean {
+    if (!team) return false;
+    return team.slug === TBD_TEAM_SLUG || team.name.toUpperCase() === 'TBD' || team.shortName?.toUpperCase() === 'TBD';
+  }
+
+  private async findSingleTbdFallbackFixture(
+    fixture: NormalizedFixture | ProviderFixture,
+    kickoffAt: Date,
+    seasonId: string | null,
+  ): Promise<TbdFallbackResult> {
+    if (!seasonId) return { fixture: null, ambiguous: false };
+
+    const windowStart = new Date(kickoffAt.getTime() - 2 * 60 * 60 * 1000);
+    const windowEnd = new Date(kickoffAt.getTime() + 2 * 60 * 60 * 1000);
+    const candidates = await this.prisma.fixture.findMany({
+      where: {
+        seasonId,
+        kickoffAt: { gte: windowStart, lte: windowEnd },
+        ...(fixture.round ? { round: fixture.round } : {}),
+        providerFixtureId: null,
+        OR: [
+          { homeTeam: { slug: TBD_TEAM_SLUG } },
+          { awayTeam: { slug: TBD_TEAM_SLUG } },
+        ],
+      },
+      select: this.fixtureSyncSelect(),
+      take: 2,
+    });
+
+    return {
+      fixture: candidates.length === 1 ? candidates[0]! : null,
+      ambiguous: candidates.length > 1,
+    };
   }
 
   private async writeAuditLog(action: string, metadata: Record<string, unknown>): Promise<void> {

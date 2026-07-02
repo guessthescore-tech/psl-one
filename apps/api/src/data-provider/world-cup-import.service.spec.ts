@@ -7,6 +7,7 @@ import type { ProviderFixture } from './provider-adapter.interface';
 const makePrismaMock = () => ({
   fixture: {
     findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({}),
     create: vi.fn().mockResolvedValue({}),
   },
@@ -291,6 +292,183 @@ describe('WorldCupImportService — cascade lookup for seeded fixtures', () => {
     // scores should not be in update data (preserved as-is in DB)
     expect(Object.keys(updateArg.data)).not.toContain('homeScore');
     expect(Object.keys(updateArg.data)).not.toContain('awayScore');
+  });
+
+  it('updates only TBD teams when an existing provider-backed knockout fixture resolves', async () => {
+    (prisma.team.findFirst as Mock)
+      .mockResolvedValueOnce({ id: 'team-brazil' })
+      .mockResolvedValueOnce({ id: 'team-france' });
+    (prisma.fixture.findFirst as Mock).mockResolvedValueOnce({
+      id: 'knockout-1',
+      providerSource: 'football-data-org',
+      providerFixtureId: 'fd-1',
+      importedAt: new Date(),
+      homeScore: null,
+      awayScore: null,
+      homeTeamId: 'team-tbd',
+      awayTeamId: 'team-tbd',
+      homeTeam: { id: 'team-tbd', name: 'TBD', slug: 'tbd', shortName: 'TBD' },
+      awayTeam: { id: 'team-tbd', name: 'TBD', slug: 'tbd', shortName: 'TBD' },
+    });
+
+    const fixtures = [
+      {
+        externalId: 'fd-1',
+        homeTeamName: 'Brazil',
+        awayTeamName: 'France',
+        kickoffAt: '2026-07-01T18:00:00Z',
+        status: 'SCHEDULED',
+      },
+    ];
+
+    await (svc as unknown as { upsertFixtures(f: typeof fixtures, s: string, p: string): Promise<unknown> }).upsertFixtures(
+      fixtures, 'season-1', 'football-data-org',
+    );
+
+    expect(prisma.fixture.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'knockout-1' },
+        data: expect.objectContaining({
+          homeTeamId: 'team-brazil',
+          awayTeamId: 'team-france',
+        }),
+      }),
+    );
+  });
+
+  it('does not overwrite a non-TBD team during provider-backed resolution', async () => {
+    (prisma.team.findFirst as Mock)
+      .mockResolvedValueOnce({ id: 'team-germany' })
+      .mockResolvedValueOnce({ id: 'team-france' });
+    (prisma.fixture.findFirst as Mock).mockResolvedValueOnce({
+      id: 'knockout-2',
+      providerSource: 'football-data-org',
+      providerFixtureId: 'fd-2',
+      importedAt: new Date(),
+      homeScore: null,
+      awayScore: null,
+      homeTeamId: 'team-brazil',
+      awayTeamId: 'team-tbd',
+      homeTeam: { id: 'team-brazil', name: 'Brazil', slug: 'brazil', shortName: 'Brazil' },
+      awayTeam: { id: 'team-tbd', name: 'TBD', slug: 'tbd', shortName: 'TBD' },
+    });
+
+    const fixtures = [
+      {
+        externalId: 'fd-2',
+        homeTeamName: 'Germany',
+        awayTeamName: 'France',
+        kickoffAt: '2026-07-02T18:00:00Z',
+        status: 'SCHEDULED',
+      },
+    ];
+
+    await (svc as unknown as { upsertFixtures(f: typeof fixtures, s: string, p: string): Promise<unknown> }).upsertFixtures(
+      fixtures, 'season-1', 'football-data-org',
+    );
+
+    const updateArg = (prisma.fixture.update as Mock).mock.calls[0]![0] as { data: Record<string, unknown> };
+    expect(updateArg.data['homeTeamId']).toBeUndefined();
+    expect(updateArg.data['awayTeamId']).toBe('team-france');
+  });
+
+  it('skips ambiguous TBD fallback matches', async () => {
+    (prisma.team.findFirst as Mock)
+      .mockResolvedValueOnce({ id: 'team-brazil' })
+      .mockResolvedValueOnce({ id: 'team-france' });
+    (prisma.fixture.findFirst as Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    (prisma.fixture.findMany as Mock).mockResolvedValueOnce([
+      { id: 'candidate-1' },
+      { id: 'candidate-2' },
+    ]);
+
+    const fixtures = [
+      {
+        externalId: 'fd-ambiguous',
+        homeTeamName: 'Brazil',
+        awayTeamName: 'France',
+        kickoffAt: '2026-07-03T18:00:00Z',
+        status: 'SCHEDULED',
+        round: 'ROUND_OF_32',
+      },
+    ];
+
+    const result = await (svc as unknown as { upsertFixtures(f: typeof fixtures, s: string, p: string): Promise<{ skipped: number; warnings: string[] }> }).upsertFixtures(
+      fixtures, 'season-1', 'football-data-org',
+    );
+
+    expect(result.skipped).toBe(1);
+    expect(result.warnings[0]).toMatch(/Ambiguous TBD fixture match/);
+    expect(prisma.fixture.update).not.toHaveBeenCalled();
+    expect(prisma.fixture.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('WorldCupImportService — refreshFixtureStatuses', () => {
+  let svc: WorldCupImportService;
+  let prisma: ReturnType<typeof makePrismaMock>;
+
+  beforeEach(() => {
+    prisma = makePrismaMock();
+    svc = new WorldCupImportService(prisma as unknown as PrismaService);
+    vi.stubEnv('FOOTBALL_DATA_API_KEY', 'test-key');
+    vi.stubGlobal('fetch', async () => ({
+      ok: true,
+      json: async () => ({
+        matches: [
+          {
+            id: 537424,
+            homeTeam: { name: 'Brazil' },
+            awayTeam: { name: 'France' },
+            utcDate: '2026-07-01T18:00:00Z',
+            status: 'TIMED',
+            stage: 'LAST_32',
+            score: { fullTime: { home: null, away: null } },
+          },
+        ],
+      }),
+    }));
+  });
+
+  it('matches by providerFixtureId before team and kickoff fallback', async () => {
+    (prisma.season.findFirst as Mock).mockResolvedValueOnce({ id: 'season-1' });
+    (prisma.team.findFirst as Mock)
+      .mockResolvedValueOnce({ id: 'team-brazil' })
+      .mockResolvedValueOnce({ id: 'team-france' });
+    (prisma.fixture.findFirst as Mock).mockResolvedValueOnce({
+      id: 'provider-backed-tbd',
+      status: 'SCHEDULED',
+      providerSource: 'football-data-org',
+      providerFixtureId: '537424',
+      importedAt: new Date(),
+      homeScore: null,
+      awayScore: null,
+      homeTeamId: 'team-tbd',
+      awayTeamId: 'team-tbd',
+      homeTeam: { id: 'team-tbd', name: 'TBD', slug: 'tbd', shortName: 'TBD' },
+      awayTeam: { id: 'team-tbd', name: 'TBD', slug: 'tbd', shortName: 'TBD' },
+    });
+
+    const result = await svc.refreshFixtureStatuses();
+
+    expect(result.matched).toBe(1);
+    expect(prisma.fixture.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { providerFixtureId: '537424', providerSource: 'football-data-org' },
+      }),
+    );
+    expect(prisma.fixture.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'provider-backed-tbd' },
+        data: expect.objectContaining({
+          homeTeamId: 'team-brazil',
+          awayTeamId: 'team-france',
+          status: 'SCHEDULED',
+        }),
+      }),
+    );
   });
 });
 

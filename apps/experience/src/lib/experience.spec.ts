@@ -7291,6 +7291,14 @@ describe('Sprint 42B — no silent WC_FALLBACK_FIXTURES on live pages', () => {
     expect(content).toContain('Fixtures unavailable');
   });
 
+  it('fixtures page is dynamic so deployed pages do not serve stale WC fixture data', () => {
+    const content = read('app/fixtures/page.tsx');
+    expect(content).toContain("dynamic = 'force-dynamic'");
+    expect(content).toContain('revalidate = 0');
+    expect(content).toContain("cache: 'no-store'");
+    expect(content).not.toContain('revalidate: 300');
+  });
+
   it('world-cup page shows explicit error when API unavailable', () => {
     const content = read('app/world-cup/page.tsx');
     expect(content).toContain('Fixtures unavailable');

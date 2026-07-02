@@ -157,6 +157,7 @@ export class WorldCupDbStatusService {
     const providerFixtureIdCount = await this.prisma.fixture.count({
       where: { ...seasonFilter, providerFixtureId: { not: null } },
     });
+    const missingProviderFixtureIdCount = fixtureCount - providerFixtureIdCount;
 
     const importedAtCount = await this.prisma.fixture.count({
       where: { ...seasonFilter, importedAt: { not: null } },
@@ -179,6 +180,19 @@ export class WorldCupDbStatusService {
       orderBy: { lastSyncedAt: 'desc' },
       select: { lastSyncedAt: true },
     });
+    const staleThreshold = new Date(Date.now() - 30 * 60 * 1000);
+    const staleSyncedCount = await this.prisma.fixture.count({
+      where: { ...seasonFilter, lastSyncedAt: { not: null, lt: staleThreshold } },
+    });
+    const tbdFixtureCount = await this.prisma.fixture.count({
+      where: {
+        ...seasonFilter,
+        OR: [
+          { homeTeam: { slug: 'tbd' } },
+          { awayTeam: { slug: 'tbd' } },
+        ],
+      },
+    });
 
     let dataState: 'SEEDED_STATIC' | 'PARTIAL_PROVIDER_SYNC' | 'PROVIDER_SYNCED';
     if (providerBackedCount === 0) {
@@ -194,12 +208,16 @@ export class WorldCupDbStatusService {
       fixtureCount,
       providerBackedCount,
       providerFixtureIdCount,
+      missingProviderFixtureIdCount,
       importedAtCount,
       lastSyncedAtCount,
       finishedCount,
       finishedWithScoresCount,
       finishedMissingScoresCount: finishedCount - finishedWithScoresCount,
       lastSyncedAtLatest: lastSyncedRecord?.lastSyncedAt?.toISOString() ?? null,
+      staleSyncedCount,
+      staleThresholdMinutes: 30,
+      tbdFixtureCount,
       dataState,
       safety: {
         pslInactive: true as const,

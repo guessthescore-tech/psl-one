@@ -281,7 +281,7 @@ export class FootballController {
   @Post('admin/fixtures/:id/sync-provider')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('PSL_ADMIN')
-  adminSyncProvider(@Param('id') id: string) {
-    return this.liveMatchService.syncFixtureFromProvider(id);
+  adminSyncProvider(@Param('id') id: string, @CurrentUser() user: TokenPayload) {
+    return this.liveMatchService.syncFixtureFromProvider(id, user.sub);
   }
 }

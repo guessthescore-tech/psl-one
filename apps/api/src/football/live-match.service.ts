@@ -506,7 +506,7 @@ export class LiveMatchService {
     });
   }
 
-  async syncFixtureFromProvider(fixtureId: string) {
+  async syncFixtureFromProvider(fixtureId: string, actorUserId?: string | null) {
     const fixture = await this.prisma.fixture.findUnique({
       where: { id: fixtureId },
       select: { id: true, providerSource: true, providerFixtureId: true },
@@ -524,10 +524,34 @@ export class LiveMatchService {
 
     await this.prisma.fixture.update({
       where: { id: fixtureId },
-      data: { lastSyncedAt: new Date(), lastUpdatedAt: new Date() },
+      data: {
+        status: state.status,
+        homeScore: state.homeScore,
+        awayScore: state.awayScore,
+        currentMinute: state.currentMinute,
+        period: state.period,
+        startedAt: state.startedAt,
+        halfTimeAt: state.halfTimeAt,
+        resumedAt: state.resumedAt,
+        finishedAt: state.finishedAt,
+        lastSyncedAt: new Date(),
+        lastUpdatedAt: new Date(),
+      },
+    });
+    await this.writeAdminAuditLog(actorUserId ?? null, 'PROVIDER_FIXTURE_SYNCED', 'Fixture', fixtureId, {
+      provider: this.provider.providerName,
+      providerFixtureId: fixture.providerFixtureId,
+      status: state.status,
+      homeScore: state.homeScore,
+      awayScore: state.awayScore,
     });
 
-    return { synced: true, fixtureId, provider: this.provider.providerName };
+    return {
+      synced: true,
+      fixtureId,
+      provider: this.provider.providerName,
+      teamResolution: 'not_attempted',
+    };
   }
 
   async syncProviderPlayerStats(

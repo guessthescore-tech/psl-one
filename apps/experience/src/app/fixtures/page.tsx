@@ -11,6 +11,9 @@ import { getServerApiBase } from '@/lib/server-api-base';
 
 const API_BASE = getServerApiBase();
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface Fixture {
   id: string;
   kickoffAt: string;
@@ -25,7 +28,7 @@ interface Fixture {
 async function fetchWcFixtures(): Promise<{ fixtures: Fixture[]; isLive: boolean }> {
   try {
     const res = await fetch(`${API_BASE}/football/fixtures?seasonSlug=fifa-world-cup-2026`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     });
     if (!res.ok) return { fixtures: [], isLive: false };
     const data = await res.json() as Fixture[] | { data?: Fixture[] };
